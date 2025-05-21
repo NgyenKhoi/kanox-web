@@ -149,6 +149,39 @@ CREATE TABLE tblBlock (
 	PRIMARY KEY (user_id, blocked_user_id)
 );
 
+--------------PROC VALIDATE AND ADD FRIEND--------------
+
+CREATE PROCEDURE sp_SendFriendRequest
+    @user_id INT,
+    @friend_id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Không gửi lời mời bản thân
+    IF @user_id = @friend_id
+    BEGIN
+        RAISERROR('Cannot send friend request to yourself.', 16, 1);
+        RETURN;
+    END
+
+    -- Kiểm tra xem đã có record chưa
+    IF EXISTS (
+        SELECT 1 FROM tblFriendship
+        WHERE (user_id = @user_id AND friend_id = @friend_id) OR
+              (user_id = @friend_id AND friend_id = @user_id)
+    )
+    BEGIN
+        RAISERROR('Friend request or friendship already exists.', 16, 1);
+        RETURN;
+    END
+
+    -- Thêm record với trạng thái pending
+    INSERT INTO tblFriendship(user_id, friend_id, friendship_status, created_at, status)
+    VALUES (@user_id, @friend_id, 'pending', GETDATE(), 1);
+END;
+------------------------------------------
+
 --STORY
 
 CREATE TABLE tblStory (
@@ -235,6 +268,169 @@ CREATE TABLE tblChat (
 	created_at DATETIME DEFAULT GETDATE(),
 	status BIT DEFAULT 1
 );
+--------------PROC VALIDATE AND CREATE POST--------------
+
+CCREATE PROCEDURE sp_CreatePost
+    @owner_id INT,
+    @content NVARCHAR(MAX),
+    @visibility VARCHAR(20),
+    @media_url VARCHAR(255) = NULL,
+    @tagged_user_ids NVARCHAR(MAX) = NULL,  -- Danh sách user_id được tag, dạng '1,2,3'
+    @new_post_id INT OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Kiểm tra owner_id có tồn tại và active không
+    IF NOT EXISTS (SELECT 1 FROM tblUser WHERE id = @owner_id AND status = 1)
+    BEGIN
+        RAISERROR('Invalid or inactive owner_id.', 16, 1);
+        RETURN;
+    END
+
+    -- Kiểm tra content không rỗng
+    IF @content IS NULL OR LTRIM(RTRIM(@content)) = ''
+    BEGIN
+        RAISERROR('Content cannot be empty.', 16, 1);
+        RETURN;
+    END
+
+    -- Kiểm tra visibility hợp lệ
+    IF @visibility NOT IN ('public', 'friends', 'only_me', 'custom')
+    BEGIN
+        RAISERROR('Invalid visibility value.', 16, 1);
+        RETURN;
+    END
+
+    -- Thêm bài viết mới
+    INSERT INTO tblPost (owner_id, content, visibility, media_url, created_at, status)
+    VALUES (@owner_id, @content, @visibility, @media_url, GETDATE(), 1);
+
+    -- Lấy ID bài viết vừa thêm
+    SET @new_post_id = SCOPE_IDENTITY();
+
+    -- Xử lý tag người dùng (nếu có)
+    IF @tagged_user_ids IS NOT NULL AND LTRIM(RTRIM(@tagged_user_ids)) <> ''
+    BEGIN
+        DECLARE @pos INT = 1, @len INT, @id_str VARCHAR(20);
+        DECLARE @tagged_user_id INT;
+
+        SET @tagged_user_ids = @tagged_user_ids + ',';  -- Thêm dấu phẩy cuối để dễ tách
+
+        WHILE CHARINDEX(',', @tagged_user_ids, @pos) > 0
+        BEGIN
+            SET @len = CHARINDEX(',', @tagged_user_ids, @pos) - @pos;
+            SET @id_str = SUBSTRING(@tagged_user_ids, @pos, @len);
+            SET @pos = CHARINDEX(',', @tagged_user_ids, @pos) + 1;
+
+            -- Chuyển sang INT và kiểm tra tồn tại user
+            IF ISNUMERIC(@id_str) = 1
+            BEGIN
+                SET @tagged_user_id = CAST(@id_str AS INT);
+                IF EXISTS (SELECT 1 FROM tblUser WHERE id = @tagged_user_id AND status = 1)
+                BEGIN
+                    INSERT INTO tblPostTag (post_id, tagged_user_id, status)
+                    VALUES (@new_post_id, @tagged_user_id, 1);
+                END
+            END
+        END
+    END
+END;
+------------------------------------------
+
+--------------PROC VALIDATE AND SAVE POST--------------
+
+CREATE PROCEDURE sp_SavePost
+    @user_id INT,
+    @post_id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Kiểm tra user tồn tại và active
+    IF NOT EXISTS (SELECT 1 FROM tblUser WHERE id = @user_id AND status = 1)
+    BEGIN
+        RAISERROR('Invalid or inactive user_id.', 16, 1);
+        RETURN;
+    END
+
+    -- Kiểm tra post tồn tại và active
+    IF NOT EXISTS (SELECT 1 FROM tblPost WHERE id = @post_id AND status = 1)
+    BEGIN
+        RAISERROR('Invalid or inactive post_id.', 16, 1);
+        RETURN;
+    END
+
+    -- Kiểm tra xem đã lưu trước đó chưa
+    IF EXISTS (SELECT 1 FROM tblSavedPost WHERE user_id = @user_id AND post_id = @post_id AND status = 1)
+    BEGIN
+        RAISERROR('Post already saved.', 16, 1);
+        RETURN;
+    END
+
+    -- Nếu đã lưu trước đó mà status = 0, cập nhật lại status = 1 và thời gian
+    IF EXISTS (SELECT 1 FROM tblSavedPost WHERE user_id = @user_id AND post_id = @post_id AND status = 0)
+    BEGIN
+        UPDATE tblSavedPost
+        SET status = 1,
+            save_time = GETDATE()
+        WHERE user_id = @user_id AND post_id = @post_id;
+    END
+    ELSE
+    BEGIN
+        -- Thêm mới bản ghi lưu bài viết
+        INSERT INTO tblSavedPost (user_id, post_id, save_time, status)
+        VALUES (@user_id, @post_id, GETDATE(), 1);
+    END
+END;
+------------------------------------------
+
+--------------PROC VALIDATE AND HIDE POST--------------
+
+CREATE PROCEDURE sp_HidePost
+    @user_id INT,
+    @post_id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Kiểm tra user tồn tại và active
+    IF NOT EXISTS (SELECT 1 FROM tblUser WHERE id = @user_id AND status = 1)
+    BEGIN
+        RAISERROR('Invalid or inactive user_id.', 16, 1);
+        RETURN;
+    END
+
+    -- Kiểm tra post tồn tại và active
+    IF NOT EXISTS (SELECT 1 FROM tblPost WHERE id = @post_id AND status = 1)
+    BEGIN
+        RAISERROR('Invalid or inactive post_id.', 16, 1);
+        RETURN;
+    END
+
+    -- Kiểm tra xem đã ẩn trước đó chưa
+    IF EXISTS (SELECT 1 FROM tblHiddenPost WHERE user_id = @user_id AND post_id = @post_id AND status = 1)
+    BEGIN
+        RAISERROR('Post already hidden.', 16, 1);
+        RETURN;
+    END
+
+    -- Nếu đã ẩn trước đó mà status = 0, cập nhật lại status = 1 và thời gian
+    IF EXISTS (SELECT 1 FROM tblHiddenPost WHERE user_id = @user_id AND post_id = @post_id AND status = 0)
+    BEGIN
+        UPDATE tblHiddenPost
+        SET status = 1,
+            hidden_time = GETDATE()
+        WHERE user_id = @user_id AND post_id = @post_id;
+    END
+    ELSE
+    BEGIN
+        -- Thêm mới bản ghi ẩn bài viết
+        INSERT INTO tblHiddenPost (user_id, post_id, hidden_time, status)
+        VALUES (@user_id, @post_id, GETDATE(), 1);
+    END
+END;
+------------------------------------------
 
 --------------TRIGGER FOR CHECK NAME OF GROUP IS NULL?--------------
 
@@ -331,6 +527,20 @@ CREATE TABLE tblActivityLog (
 	device VARCHAR(100),
 	status BIT DEFAULT 1
 );
+---------PROC AUTO ADD LOG ACTIVITY---------
+CREATE PROCEDURE sp_LogActivity
+    @user_id INT,
+    @action_type_id INT,
+    @ip_address VARCHAR(50),
+    @device VARCHAR(100),
+    @status BIT = 1,
+    @target_id INT = NULL,
+    @target_type NVARCHAR(50) = NULL
+AS
+BEGIN
+    INSERT INTO tblActivityLog (user_id, action_type_id, ip_address, device, status, action_time, target_id, target_type)
+    VALUES (@user_id, @action_type_id, @ip_address, @device, @status, GETDATE(), @target_id, @target_type);
+END
 
 --NOTIFICATION
 
