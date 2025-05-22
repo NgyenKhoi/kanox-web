@@ -620,7 +620,7 @@ CREATE TABLE tblPage (
 --TARGET
 
 CREATE TABLE tblTargetType (
-	id INT PRIMARY KEY IDENTITY(1, 1),
+	id INT PRIMARY KEY IDENTITY(1, 1), 
 	name VARCHAR(50),
 	code VARCHAR(50)
 );
@@ -808,3 +808,72 @@ INSERT INTO tblUser (
 
 ('user5@gmail.com', 'user5', '0900000005', '123',
  NULL, NULL, 0, N'User Five', '1994-05-05', N'Bio của user5', 0, 1);
+
+INSERT INTO tblGroup (owner_id, name, description, created_at, status)
+VALUES
+(1, N'Programming Group', N'A place to share programming knowledge', GETDATE(), 1),
+(2, N'Book Club', N'Read and review books together', GETDATE(), 1),
+(3, N'Travel Group', N'Share travel experiences', GETDATE(), 1),
+(4, N'Cooking Group', N'For those who love cooking and cuisine', GETDATE(), 1),
+(5, N'Sports Group', N'Discuss about sports', GETDATE(), 1),
+(6, N'Music Group', N'Share good music every day', GETDATE(), 1),
+(1, N'Tech Group', N'Latest technology news', GETDATE(), 1),
+(2, N'English Learning Group', N'Learn English together', GETDATE(), 1),
+(3, N'Photography Group', N'Share beautiful photos and techniques', GETDATE(), 1),
+(4, N'Movie Group', N'Movie discussions', GETDATE(), 1);
+
+INSERT INTO tblPage (owner_id, name, description, created_at, status)
+VALUES
+(1, N'Tech News Page', N'Update technology news', GETDATE(), 1),
+(2, N'Travel Blog', N'Share travel experiences', GETDATE(), 1),
+(3, N'Vietnamese Cuisine', N'Explore delicious Vietnamese food', GETDATE(), 1),
+(4, N'Book Review', N'Book reviews and ratings', GETDATE(), 1),
+(5, N'Fitness Life', N'Healthy living every day', GETDATE(), 1),
+(6, N'Pop Music', N'Top trending pop music', GETDATE(), 1),
+(1, N'English Zone', N'Learn English together', GETDATE(), 1),
+(2, N'Photo Art', N'Photography art', GETDATE(), 1),
+(3, N'Good Movies', N'Introduce good movies', GETDATE(), 1),
+(4, N'Creative Corner', N'Creative space for everyone', GETDATE(), 1);
+
+INSERT INTO tblGroupMember (group_id, user_id, join_at, is_admin, status)
+VALUES
+-- Group 1: owner 1, add user 2, 3
+(1, 1, GETDATE(), 1, 1),
+(1, 2, GETDATE(), 0, 1),
+(1, 3, GETDATE(), 0, 1),
+-- Group 2: owner 2, add user 1, 4
+(2, 2, GETDATE(), 1, 1),
+(2, 1, GETDATE(), 0, 1),
+(2, 4, GETDATE(), 0, 1),
+-- Group 3: owner 3, add user 2, 5
+(3, 3, GETDATE(), 1, 1),
+(3, 2, GETDATE(), 0, 1),
+(3, 5, GETDATE(), 0, 1),
+-- Group 4: owner 4, add user 1, 6
+(4, 4, GETDATE(), 1, 1),
+(4, 1, GETDATE(), 0, 1),
+(4, 6, GETDATE(), 0, 1),
+-- Group 5: owner 5, add user 3, 4
+(5, 5, GETDATE(), 1, 1),
+(5, 3, GETDATE(), 0, 1),
+(5, 4, GETDATE(), 0, 1),
+-- Group 6: owner 6, add user 2, 5
+(6, 6, GETDATE(), 1, 1),
+(6, 2, GETDATE(), 0, 1),
+(6, 5, GETDATE(), 0, 1),
+-- Group 7: owner 1, add user 4, 5
+(7, 1, GETDATE(), 1, 1),
+(7, 4, GETDATE(), 0, 1),
+(7, 5, GETDATE(), 0, 1),
+-- Group 8: owner 2, add user 3, 6
+(8, 2, GETDATE(), 1, 1),
+(8, 3, GETDATE(), 0, 1),
+(8, 6, GETDATE(), 0, 1),
+-- Group 9: owner 3, add user 1, 2
+(9, 3, GETDATE(), 1, 1),
+(9, 1, GETDATE(), 0, 1),
+(9, 2, GETDATE(), 0, 1),
+-- Group 10: owner 4, add user 5, 6
+(10, 4, GETDATE(), 1, 1),
+(10, 5, GETDATE(), 0, 1),
+(10, 6, GETDATE(), 0, 1);
