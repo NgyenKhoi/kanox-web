@@ -811,41 +811,41 @@ INSERT INTO tblUser (
 
 
 --/////////////////////////////////////////////
- INSERT INTO tblTargetType (name, code) VALUES
-('Bài viết', 'POST'),
-('Bình luận', 'COMMENT'),
+INSERT INTO tblTargetType (name, code) VALUES
+('Post', 'POST'),
+('Comment', 'COMMENT'),
 ('Story', 'STORY'),
-('Người dùng', 'USER'),
-('Nhóm', 'GROUP'),
-('Trang', 'PAGE'),
-('Tin nhắn', 'MESSAGE'),
-('Cuộc gọi', 'CALL'),
-('Thông báo', 'NOTIFICATION'),
-('Báo cáo', 'REPORT');
+('User', 'USER'),
+('Group', 'GROUP'),
+('Page', 'PAGE'),
+('Message', 'MESSAGE'),
+('Call', 'CALL'),
+('Notification', 'NOTIFICATION'),
+('Report', 'REPORT');
 
 INSERT INTO tblReactionType (name, description, status) VALUES
-('Thích', 'Biểu tượng like', 1),
-('Yêu thích', 'Trái tim', 1),
-('Haha', 'Cười haha', 1),
-('Wow', 'Ngạc nhiên', 1),
-('Buồn', 'Biểu tượng buồn', 1),
-('Phẫn nộ', 'Biểu tượng giận dữ', 1),
-('Ủng hộ', 'Biểu tượng đồng tình', 1),
-('Không thích', 'Biểu tượng dislike', 1),
-('Câu hỏi', 'Biểu tượng dấu hỏi', 1),
-('Chúc mừng', 'Biểu tượng cụng ly', 1);
+('Like', 'Thumbs up icon', 1),
+('Love', 'Heart icon', 1),
+('Haha', 'Laughing face icon', 1),
+('Wow', 'Surprised face icon', 1),
+('Sad', 'Sad face icon', 1),
+('Angry', 'Angry face icon', 1),
+('Support', 'Supportive reaction', 1),
+('Dislike', 'Thumbs down icon', 1),
+('Question', 'Question mark icon', 1),
+('Celebrate', 'Cheers icon', 1);
 
 INSERT INTO tblReport (reporter_id, target_id, target_type_id, reason, report_time, status) VALUES
-(2, 1, 1, 'Nội dung không phù hợp', '2023-01-15 09:30:00', 1),
-(3, 5, 2, 'Bình luận xúc phạm', '2023-01-16 14:15:00', 1),
-(1, 3, 3, 'Story có nội dung nhạy cảm', '2023-01-17 18:45:00', 1),
-(4, 2, 4, 'Người dùng giả mạo', '2023-01-18 10:20:00', 1),
-(5, 1, 5, 'Nhóm có nội dung bất hợp pháp', '2023-01-19 16:30:00', 1),
-(2, 4, 6, 'Trang lừa đảo', '2023-01-20 11:10:00', 1),
-(3, 2, 7, 'Tin nhắn spam', '2023-01-21 13:25:00', 1),
-(1, 1, 8, 'Cuộc gọi quấy rối', '2023-01-22 15:40:00', 1),
-(4, 3, 9, 'Thông báo giả mạo', '2023-01-23 09:05:00', 1),
-(5, 2, 10, 'Báo cáo sai sự thật', '2023-01-24 17:50:00', 1);
+(2, 1, 1, 'Inappropriate content', '2023-01-15 09:30:00', 1),
+(3, 5, 2, 'Offensive comment', '2023-01-16 14:15:00', 1),
+(1, 3, 3, 'Sensitive content in story', '2023-01-17 18:45:00', 1),
+(4, 2, 4, 'Fake user profile', '2023-01-18 10:20:00', 1),
+(5, 1, 5, 'Group contains illegal content', '2023-01-19 16:30:00', 1),
+(2, 4, 6, 'Scam page', '2023-01-20 11:10:00', 1),
+(3, 2, 7, 'Spam message', '2023-01-21 13:25:00', 1),
+(1, 1, 8, 'Harassment call', '2023-01-22 15:40:00', 1),
+(4, 3, 9, 'Fake notification', '2023-01-23 09:05:00', 1),
+(5, 2, 10, 'False report', '2023-01-24 17:50:00', 1);
 
 INSERT INTO tblReaction (user_id, reaction_type_id, target_id, target_type_id, created_at) VALUES
 (1, 1, 1, 1, '2023-01-15 08:30:00'),
@@ -858,3 +858,4 @@ INSERT INTO tblReaction (user_id, reaction_type_id, target_id, target_type_id, c
 (3, 7, 2, 7, '2023-01-21 15:35:00'),
 (4, 8, 3, 8, '2023-01-22 16:40:00'),
 (5, 9, 4, 9, '2023-01-23 17:55:00');
+
