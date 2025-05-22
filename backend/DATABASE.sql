@@ -133,13 +133,7 @@ CREATE TABLE tblFriendship (
 	CHECK (user_id <> friend_id)
 );
 
-/*CREATE TABLE tblFriendSuggestion (
-    user_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
-    suggested_user_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
-    mutual_friend_count INT NOT NULL,
-    suggested_at DATETIME DEFAULT GETDATE(),
-    PRIMARY KEY (user_id, suggested_user_id)
-);*/
+
 
 CREATE TABLE tblFriendSuggestion (
     user_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
@@ -869,3 +863,6 @@ INSERT INTO tblUser (
 
 ('user5@gmail.com', 'user5', '0900000005', '123',
  NULL, NULL, 0, N'User Five', '1994-05-05', N'Bio của user5', 0, 1);
+
+DELETE FROM tblUser;
+DBCC CHECKIDENT ('tblUser', RESEED, 0);
