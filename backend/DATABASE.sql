@@ -807,4 +807,113 @@ INSERT INTO tblUser (
  NULL, NULL, 0, N'User Four', '1993-04-04', N'Bio của user4', 1, 1),
 
 ('user5@gmail.com', 'user5', '0900000005', '123',
- NULL, NULL, 0, N'User Five', '1994-05-05', N'Bio của user5', 0, 1);
+ NULL, NULL, 0, N'User Five', '1994-05-05', N'Bio của user5', 0, 1),
+
+('user6@gmail.com', 'user6', '0900000006', '123',
+ NULL, NULL, 0, N'User Six', '1995-06-06', N'Bio của user6', 1, 1),
+
+('user7@gmail.com', 'user7', '0900000007', '123',
+ NULL, NULL, 0, N'User Seven', '1996-07-07', N'Bio của user7', 0, 1),
+
+('user8@gmail.com', 'user8', '0900000008', '123',
+ NULL, NULL, 0, N'User Eight', '1997-08-08', N'Bio của user8', 2, 1),
+
+ ('user9@gmail.com', 'user9', '0900000009', '123',
+ NULL, NULL, 0, N'User Nine', '1998-09-09', N'Bio của user9', 1, 1),
+
+ ('user10@gmail.com', 'user10', '0900000010', '123',
+ NULL, NULL, 0, N'User Ten', '1999-10-10', N'Bio của user10', 0, 1),
+
+('user11@gmail.com', 'user11', '0900000011', '123',
+ NULL, NULL, 0, N'User Eleven', '2000-11-11', N'Bio của user11', 2, 1),
+
+ ('user12@gmail.com', 'user12', '0900000012', '123',
+ NULL, NULL, 0, N'User Twelve', '2001-12-12', N'Bio của user12', 1, 1),
+
+('user13@gmail.com', 'user13', '0900000013', '123',
+ NULL, NULL, 0, N'User Thirteen', '2002-01-13', N'Bio của user13', 0, 1),
+
+('user14@gmail.com', 'user14', '0900000014', '123',
+ NULL, NULL, 0, N'User Fourteen', '2003-02-14', N'Bio của user14', 2, 1),
+
+ ('user15@gmail.com', 'user15', '0900000015', '123',
+ NULL, NULL, 0, N'User Fifteen', '2004-03-15', N'Bio của user15', 1, 1),
+
+ ('user16@gmail.com', 'user16', '0900000016', '123',
+ NULL, NULL, 0, N'User Sixteen', '2005-04-16', N'Bio của user16', 0, 1),
+
+ ('user17@gmail.com', 'user17', '0900000017', '123',
+ NULL, NULL, 0, N'User Seventeen', '2006-05-17', N'Bio của user17', 2, 1),
+
+('user18@gmail.com', 'user18', '0900000018', '123',
+ NULL, NULL, 0, N'User Eighteen', '2007-06-18', N'Bio của user18', 1, 1),
+
+('user19@gmail.com', 'user19', '0900000019', '123',
+ NULL, NULL, 0, N'User Nineteen', '2008-07-19', N'Bio của user19', 0, 1);
+
+INSERT INTO tblFriendship (
+    user_id, friend_id, friendship_status, created_at, status
+) VALUES
+      (1, 2, 'accepted', '2025-05-01 10:00:00', 1), -- Admin và user1 là bạn
+      (1, 3, 'pending', '2025-05-02 11:00:00', 1),  -- Admin gửi lời mời cho user2
+      (2, 4, 'accepted', '2025-05-03 12:00:00', 1), -- user1 và user3 là bạn
+      (2, 5, 'rejected', '2025-05-04 13:00:00', 1), -- user1 từ chối user4
+      (3, 6, 'pending', '2025-05-05 14:00:00', 1),  -- user2 gửi lời mời cho user5
+      (4, 7, 'accepted', '2025-05-06 15:00:00', 1), -- user3 và user6 là bạn
+      (5, 8, 'pending', '2025-05-07 16:00:00', 1),  -- user4 gửi lời mời cho user7
+      (6, 9, 'accepted', '2025-05-08 17:00:00', 1), -- user5 và user8 là bạn
+      (7, 10, 'rejected', '2025-05-09 18:00:00', 1),-- user6 từ chối user9
+      (8, 11, 'pending', '2025-05-10 19:00:00', 1), -- user7 gửi lời mời cho user10
+      (9, 12, 'accepted', '2025-05-11 20:00:00', 1),-- user8 và user11 là bạn
+      (10, 13, 'pending', '2025-05-12 21:00:00', 1),-- user9 gửi lời mời cho user12
+      (11, 14, 'accepted', '2025-05-13 22:00:00', 1),-- user10 và user13 là bạn
+      (12, 15, 'rejected', '2025-05-14 23:00:00', 1),-- user11 từ chối user14
+      (13, 16, 'pending', '2025-05-15 09:00:00', 1), -- user12 gửi lời mời cho user15
+      (14, 17, 'accepted', '2025-05-16 10:00:00', 1),-- user13 và user16 là bạn
+      (15, 18, 'pending', '2025-05-17 11:00:00', 1), -- user14 gửi lời mời cho user17
+      (16, 19, 'accepted', '2025-05-18 12:00:00', 1),-- user15 và user18 là bạn
+      (17, 1, 'rejected', '2025-05-19 13:00:00', 1), -- user16 từ chối Admin
+      (18, 2, 'pending', '2025-05-20 14:00:00', 1); -- user17 gửi lời mời cho user1
+
+INSERT INTO tblFollow (
+    follower_id, followee_id, created_at, status
+) VALUES
+      (2, 1, '2025-05-01 10:00:00', 1),  -- user1 theo dõi Admin
+      (3, 1, '2025-05-02 11:00:00', 1),  -- user2 theo dõi Admin
+      (4, 2, '2025-05-03 12:00:00', 1),  -- user3 theo dõi user1
+      (5, 3, '2025-05-04 13:00:00', 1),  -- user4 theo dõi user2
+      (6, 4, '2025-05-05 14:00:00', 1),  -- user5 theo dõi user3
+      (7, 5, '2025-05-06 15:00:00', 1),  -- user6 theo dõi user4
+      (8, 6, '2025-05-07 16:00:00', 1),  -- user7 theo dõi user5
+      (9, 7, '2025-05-08 17:00:00', 1),  -- user8 theo dõi user6
+      (10, 8, '2025-05-09 18:00:00', 1), -- user9 theo dõi user7
+      (11, 9, '2025-05-10 19:00:00', 1), -- user10 theo dõi user8
+      (12, 10, '2025-05-11 20:00:00', 1),-- user11 theo dõi user9
+      (13, 11, '2025-05-12 21:00:00', 1),-- user12 theo dõi user10
+      (14, 12, '2025-05-13 22:00:00', 1),-- user13 theo dõi user11
+      (15, 13, '2025-05-14 23:00:00', 1),-- user14 theo dõi user12
+      (16, 14, '2025-05-15 09:00:00', 1),-- user15 theo dõi user13
+      (17, 15, '2025-05-16 10:00:00', 1),-- user16 theo dõi user14
+      (18, 16, '2025-05-17 11:00:00', 1),-- user17 theo dõi user15
+      (19, 17, '2025-05-18 12:00:00', 1),-- user18 theo dõi user16
+      (1, 18, '2025-05-19 13:00:00', 1), -- Admin theo dõi user17
+      (2, 19, '2025-05-20 14:00:00', 1); -- user1 theo dõi user18
+
+INSERT INTO tblBlock (
+    user_id, blocked_user_id, created_at, status
+) VALUES
+      (1, 19, '2025-05-01 10:00:00', 1), -- Admin chặn user18
+      (2, 18, '2025-05-02 11:00:00', 1), -- user1 chặn user17
+      (3, 17, '2025-05-03 12:00:00', 1), -- user2 chặn user16
+      (4, 16, '2025-05-04 13:00:00', 1), -- user3 chặn user15
+      (5, 15, '2025-05-05 14:00:00', 1), -- user4 chặn user14
+      (6, 14, '2025-05-06 15:00:00', 1), -- user5 chặn user13
+      (7, 13, '2025-05-07 16:00:00', 1), -- user6 chặn user12
+      (8, 12, '2025-05-08 17:00:00', 1), -- user7 chặn user11
+      (9, 11, '2025-05-09 18:00:00', 1), -- user8 chặn user10
+      (10, 1, '2025-05-10 19:00:00', 1), -- user9 chặn Admin
+      (11, 2, '2025-05-11 20:00:00', 1), -- user10 chặn user1
+      (12, 3, '2025-05-12 21:00:00', 1), -- user11 chặn user2
+      (13, 4, '2025-05-13 22:00:00', 1), -- user12 chặn user3
+      (14, 5, '2025-05-14 23:00:00', 1), -- user13 chặn user4
+      (15, 6, '2025-05-15 09:00:00', 1); -- user14 chặn user5
