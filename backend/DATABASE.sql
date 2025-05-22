@@ -133,6 +133,61 @@ CREATE TABLE tblFriendship (
 	CHECK (user_id <> friend_id)
 );
 
+
+
+CREATE TABLE tblFriendSuggestion (
+    user_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
+    suggested_user_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
+    mutual_friend_count INT NOT NULL,
+    suggested_at DATETIME DEFAULT GETDATE(),
+    PRIMARY KEY (user_id, suggested_user_id)
+);
+
+------------PROC FOR SUGGEST FRIEND
+
+CREATE PROCEDURE sp_UpdateFriendSuggestions
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Xóa gợi ý cũ
+    DELETE FROM tblFriendSuggestion;
+
+    -- Gợi ý theo thuật toán bạn của bạn (FOAF)
+    INSERT INTO tblFriendSuggestion (user_id, suggested_user_id, mutual_friend_count)
+    SELECT
+        f1.user_id,
+        f2.friend_id AS suggested_user_id,
+        COUNT(*) AS mutual_friend_count
+    FROM tblFriendship f1
+    JOIN tblFriendship f2 ON f1.friend_id = f2.user_id
+    WHERE 
+        f1.friendship_status = 'accepted'
+        AND f2.friendship_status = 'accepted'
+        AND f1.user_id <> f2.friend_id -- tránh tự gợi ý chính mình
+
+        -- Chưa là bạn
+        AND f2.friend_id NOT IN (
+            SELECT friend_id FROM tblFriendship 
+            WHERE user_id = f1.user_id AND friendship_status = 'accepted'
+        )
+
+        -- Không bị block
+        AND f2.friend_id NOT IN (
+            SELECT blocked_user_id FROM tblBlock WHERE user_id = f1.user_id
+            UNION
+            SELECT user_id FROM tblBlock WHERE blocked_user_id = f1.user_id
+        )
+
+        -- Không theo dõi nhau
+        AND f2.friend_id NOT IN (
+            SELECT followee_id FROM tblFollow WHERE follower_id = f1.user_id
+        )
+    GROUP BY f1.user_id, f2.friend_id;
+END;
+
+-------------------
+
 CREATE TABLE tblFollow (
 	follower_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
 	followee_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
@@ -808,3 +863,6 @@ INSERT INTO tblUser (
 
 ('user5@gmail.com', 'user5', '0900000005', '123',
  NULL, NULL, 0, N'User Five', '1994-05-05', N'Bio của user5', 0, 1);
+
+DELETE FROM tblUser;
+DBCC CHECKIDENT ('tblUser', RESEED, 0);
