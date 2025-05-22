@@ -808,3 +808,53 @@ INSERT INTO tblUser (
 
 ('user5@gmail.com', 'user5', '0900000005', '123',
  NULL, NULL, 0, N'User Five', '1994-05-05', N'Bio của user5', 0, 1);
+
+
+--/////////////////////////////////////////////
+ INSERT INTO tblTargetType (name, code) VALUES
+('Bài viết', 'POST'),
+('Bình luận', 'COMMENT'),
+('Story', 'STORY'),
+('Người dùng', 'USER'),
+('Nhóm', 'GROUP'),
+('Trang', 'PAGE'),
+('Tin nhắn', 'MESSAGE'),
+('Cuộc gọi', 'CALL'),
+('Thông báo', 'NOTIFICATION'),
+('Báo cáo', 'REPORT');
+
+INSERT INTO tblReactionType (name, description, status) VALUES
+('Thích', 'Biểu tượng like', 1),
+('Yêu thích', 'Trái tim', 1),
+('Haha', 'Cười haha', 1),
+('Wow', 'Ngạc nhiên', 1),
+('Buồn', 'Biểu tượng buồn', 1),
+('Phẫn nộ', 'Biểu tượng giận dữ', 1),
+('Ủng hộ', 'Biểu tượng đồng tình', 1),
+('Không thích', 'Biểu tượng dislike', 1),
+('Câu hỏi', 'Biểu tượng dấu hỏi', 1),
+('Chúc mừng', 'Biểu tượng cụng ly', 1);
+
+INSERT INTO tblReport (reporter_id, target_id, target_type_id, reason, report_time, status) VALUES
+(2, 1, 1, 'Nội dung không phù hợp', '2023-01-15 09:30:00', 1),
+(3, 5, 2, 'Bình luận xúc phạm', '2023-01-16 14:15:00', 1),
+(1, 3, 3, 'Story có nội dung nhạy cảm', '2023-01-17 18:45:00', 1),
+(4, 2, 4, 'Người dùng giả mạo', '2023-01-18 10:20:00', 1),
+(5, 1, 5, 'Nhóm có nội dung bất hợp pháp', '2023-01-19 16:30:00', 1),
+(2, 4, 6, 'Trang lừa đảo', '2023-01-20 11:10:00', 1),
+(3, 2, 7, 'Tin nhắn spam', '2023-01-21 13:25:00', 1),
+(1, 1, 8, 'Cuộc gọi quấy rối', '2023-01-22 15:40:00', 1),
+(4, 3, 9, 'Thông báo giả mạo', '2023-01-23 09:05:00', 1),
+(5, 2, 10, 'Báo cáo sai sự thật', '2023-01-24 17:50:00', 1);
+
+INSERT INTO tblReaction (user_id, reaction_type_id, target_id, target_type_id, created_at) VALUES
+(1, 1, 1, 1, '2023-01-15 08:30:00'),
+(2, 2, 1, 1, '2023-01-15 09:15:00'),
+(3, 3, 2, 2, '2023-01-16 10:20:00'),
+(4, 1, 3, 3, '2023-01-17 11:45:00'),
+(5, 4, 4, 4, '2023-01-18 12:30:00'),
+(1, 5, 5, 5, '2023-01-19 13:15:00'),
+(2, 6, 1, 6, '2023-01-20 14:20:00'),
+(3, 7, 2, 7, '2023-01-21 15:35:00'),
+(4, 8, 3, 8, '2023-01-22 16:40:00'),
+(5, 9, 4, 9, '2023-01-23 17:55:00');
