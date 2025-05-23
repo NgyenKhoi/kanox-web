@@ -1017,17 +1017,6 @@ INSERT INTO tblBlock (
       (13, 5, '2025-05-13 22:00:00', 1), -- Thanh Binh chặn Bao Tran
       (14, 6, '2025-05-14 23:00:00', 1), -- Kieu Anh chặn Khanh Linh
       (15, 7, '2025-05-15 09:00:00', 1); -- Minh Duc chặn Duy Long
-('user2@gmail.com', 'user2', '0900000002', '123',
- NULL, NULL, 0, N'User Two', '1991-02-02', N'Bio của user2', 0, 1),
-
-('user3@gmail.com', 'user3', '0900000003', '123',
- NULL, NULL, 0, N'User Three', '1992-03-03', N'Bio của user3', 2, 1),
-
-('user4@gmail.com', 'user4', '0900000004', '123',
- NULL, NULL, 0, N'User Four', '1993-04-04', N'Bio của user4', 1, 1),
-
-('user5@gmail.com', 'user5', '0900000005', '123',
- NULL, NULL, 0, N'User Five', '1994-05-05', N'Bio của user5', 0, 1);
 
 INSERT INTO tblGroup (owner_id, name, description, created_at, status)
 VALUES
