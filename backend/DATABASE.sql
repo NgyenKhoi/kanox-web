@@ -840,29 +840,3 @@ CREATE TABLE tblContentPolicy (
 );
 
 -----ADD DATA FROM HERE------
------USER DATA-----
-INSERT INTO tblUser (
-    email, username, phone_number, password,
-    persistent_cookie, google_id, is_admin,
-    display_name, date_of_birth, bio, gender, status
-) VALUES
-('admin@gmail.com', 'admin', '0123456789', '123',
- NULL, NULL, 1, N'Admin', '1990-01-01', N'Bio của Admin', 1, 1),
-
-('user1@gmail.com', 'user1', '0900000001', '123',
- NULL, NULL, 0, N'User One', '1990-01-01', N'Bio của user1', 1, 1),
-
-('user2@gmail.com', 'user2', '0900000002', '123',
- NULL, NULL, 0, N'User Two', '1991-02-02', N'Bio của user2', 0, 1),
-
-('user3@gmail.com', 'user3', '0900000003', '123',
- NULL, NULL, 0, N'User Three', '1992-03-03', N'Bio của user3', 2, 1),
-
-('user4@gmail.com', 'user4', '0900000004', '123',
- NULL, NULL, 0, N'User Four', '1993-04-04', N'Bio của user4', 1, 1),
-
-('user5@gmail.com', 'user5', '0900000005', '123',
- NULL, NULL, 0, N'User Five', '1994-05-05', N'Bio của user5', 0, 1);
-
-DELETE FROM tblUser;
-DBCC CHECKIDENT ('tblUser', RESEED, 0);
