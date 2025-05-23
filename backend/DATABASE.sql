@@ -133,6 +133,61 @@ CREATE TABLE tblFriendship (
 	CHECK (user_id <> friend_id)
 );
 
+
+
+CREATE TABLE tblFriendSuggestion (
+    user_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
+    suggested_user_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
+    mutual_friend_count INT NOT NULL,
+    suggested_at DATETIME DEFAULT GETDATE(),
+    PRIMARY KEY (user_id, suggested_user_id)
+);
+
+------------PROC FOR SUGGEST FRIEND
+
+CREATE PROCEDURE sp_UpdateFriendSuggestions
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Xóa gợi ý cũ
+    DELETE FROM tblFriendSuggestion;
+
+    -- Gợi ý theo thuật toán bạn của bạn (FOAF)
+    INSERT INTO tblFriendSuggestion (user_id, suggested_user_id, mutual_friend_count)
+    SELECT
+        f1.user_id,
+        f2.friend_id AS suggested_user_id,
+        COUNT(*) AS mutual_friend_count
+    FROM tblFriendship f1
+    JOIN tblFriendship f2 ON f1.friend_id = f2.user_id
+    WHERE 
+        f1.friendship_status = 'accepted'
+        AND f2.friendship_status = 'accepted'
+        AND f1.user_id <> f2.friend_id -- tránh tự gợi ý chính mình
+
+        -- Chưa là bạn
+        AND f2.friend_id NOT IN (
+            SELECT friend_id FROM tblFriendship 
+            WHERE user_id = f1.user_id AND friendship_status = 'accepted'
+        )
+
+        -- Không bị block
+        AND f2.friend_id NOT IN (
+            SELECT blocked_user_id FROM tblBlock WHERE user_id = f1.user_id
+            UNION
+            SELECT user_id FROM tblBlock WHERE blocked_user_id = f1.user_id
+        )
+
+        -- Không theo dõi nhau
+        AND f2.friend_id NOT IN (
+            SELECT followee_id FROM tblFollow WHERE follower_id = f1.user_id
+        )
+    GROUP BY f1.user_id, f2.friend_id;
+END;
+
+-------------------
+
 CREATE TABLE tblFollow (
 	follower_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
 	followee_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
@@ -785,6 +840,54 @@ CREATE TABLE tblContentPolicy (
 );
 
 -----ADD DATA FROM HERE------
+--/////////////////////////////////////////////
+INSERT INTO tblTargetType (name, code) VALUES
+('Post', 'POST'),
+('Comment', 'COMMENT'),
+('Story', 'STORY'),
+('User', 'USER'),
+('Group', 'GROUP'),
+('Page', 'PAGE'),
+('Message', 'MESSAGE'),
+('Call', 'CALL'),
+('Notification', 'NOTIFICATION'),
+('Report', 'REPORT');
+
+INSERT INTO tblReactionType (name, description, status) VALUES
+('Like', 'Thumbs up icon', 1),
+('Love', 'Heart icon', 1),
+('Haha', 'Laughing face icon', 1),
+('Wow', 'Surprised face icon', 1),
+('Sad', 'Sad face icon', 1),
+('Angry', 'Angry face icon', 1),
+('Support', 'Supportive reaction', 1),
+('Dislike', 'Thumbs down icon', 1),
+('Question', 'Question mark icon', 1),
+('Celebrate', 'Cheers icon', 1);
+
+INSERT INTO tblReport (reporter_id, target_id, target_type_id, reason, report_time, status) VALUES
+(2, 1, 1, 'Inappropriate content', '2023-01-15 09:30:00', 1),
+(3, 5, 2, 'Offensive comment', '2023-01-16 14:15:00', 1),
+(1, 3, 3, 'Sensitive content in story', '2023-01-17 18:45:00', 1),
+(4, 2, 4, 'Fake user profile', '2023-01-18 10:20:00', 1),
+(5, 1, 5, 'Group contains illegal content', '2023-01-19 16:30:00', 1),
+(2, 4, 6, 'Scam page', '2023-01-20 11:10:00', 1),
+(3, 2, 7, 'Spam message', '2023-01-21 13:25:00', 1),
+(1, 1, 8, 'Harassment call', '2023-01-22 15:40:00', 1),
+(4, 3, 9, 'Fake notification', '2023-01-23 09:05:00', 1),
+(5, 2, 10, 'False report', '2023-01-24 17:50:00', 1);
+
+INSERT INTO tblReaction (user_id, reaction_type_id, target_id, target_type_id, created_at) VALUES
+(1, 1, 1, 1, '2023-01-15 08:30:00'),
+(2, 2, 1, 1, '2023-01-15 09:15:00'),
+(3, 3, 2, 2, '2023-01-16 10:20:00'),
+(4, 1, 3, 3, '2023-01-17 11:45:00'),
+(5, 4, 4, 4, '2023-01-18 12:30:00'),
+(1, 5, 5, 5, '2023-01-19 13:15:00'),
+(2, 6, 1, 6, '2023-01-20 14:20:00'),
+(3, 7, 2, 7, '2023-01-21 15:35:00'),
+(4, 8, 3, 8, '2023-01-22 16:40:00'),
+(5, 9, 4, 9, '2023-01-23 17:55:00');
 -----USER DATA-----
 INSERT INTO tblUser (
     email, username, phone_number, password,
