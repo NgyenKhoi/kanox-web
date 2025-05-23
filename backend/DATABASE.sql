@@ -133,6 +133,61 @@ CREATE TABLE tblFriendship (
 	CHECK (user_id <> friend_id)
 );
 
+
+
+CREATE TABLE tblFriendSuggestion (
+    user_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
+    suggested_user_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
+    mutual_friend_count INT NOT NULL,
+    suggested_at DATETIME DEFAULT GETDATE(),
+    PRIMARY KEY (user_id, suggested_user_id)
+);
+
+------------PROC FOR SUGGEST FRIEND
+
+CREATE PROCEDURE sp_UpdateFriendSuggestions
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Xóa gợi ý cũ
+    DELETE FROM tblFriendSuggestion;
+
+    -- Gợi ý theo thuật toán bạn của bạn (FOAF)
+    INSERT INTO tblFriendSuggestion (user_id, suggested_user_id, mutual_friend_count)
+    SELECT
+        f1.user_id,
+        f2.friend_id AS suggested_user_id,
+        COUNT(*) AS mutual_friend_count
+    FROM tblFriendship f1
+    JOIN tblFriendship f2 ON f1.friend_id = f2.user_id
+    WHERE 
+        f1.friendship_status = 'accepted'
+        AND f2.friendship_status = 'accepted'
+        AND f1.user_id <> f2.friend_id -- tránh tự gợi ý chính mình
+
+        -- Chưa là bạn
+        AND f2.friend_id NOT IN (
+            SELECT friend_id FROM tblFriendship 
+            WHERE user_id = f1.user_id AND friendship_status = 'accepted'
+        )
+
+        -- Không bị block
+        AND f2.friend_id NOT IN (
+            SELECT blocked_user_id FROM tblBlock WHERE user_id = f1.user_id
+            UNION
+            SELECT user_id FROM tblBlock WHERE blocked_user_id = f1.user_id
+        )
+
+        -- Không theo dõi nhau
+        AND f2.friend_id NOT IN (
+            SELECT followee_id FROM tblFollow WHERE follower_id = f1.user_id
+        )
+    GROUP BY f1.user_id, f2.friend_id;
+END;
+
+-------------------
+
 CREATE TABLE tblFollow (
 	follower_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
 	followee_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
@@ -785,18 +840,183 @@ CREATE TABLE tblContentPolicy (
 );
 
 -----ADD DATA FROM HERE------
+--/////////////////////////////////////////////
+INSERT INTO tblTargetType (name, code) VALUES
+('Post', 'POST'),
+('Comment', 'COMMENT'),
+('Story', 'STORY'),
+('User', 'USER'),
+('Group', 'GROUP'),
+('Page', 'PAGE'),
+('Message', 'MESSAGE'),
+('Call', 'CALL'),
+('Notification', 'NOTIFICATION'),
+('Report', 'REPORT');
+
+INSERT INTO tblReactionType (name, description, status) VALUES
+('Like', 'Thumbs up icon', 1),
+('Love', 'Heart icon', 1),
+('Haha', 'Laughing face icon', 1),
+('Wow', 'Surprised face icon', 1),
+('Sad', 'Sad face icon', 1),
+('Angry', 'Angry face icon', 1),
+('Support', 'Supportive reaction', 1),
+('Dislike', 'Thumbs down icon', 1),
+('Question', 'Question mark icon', 1),
+('Celebrate', 'Cheers icon', 1);
+
+INSERT INTO tblReport (reporter_id, target_id, target_type_id, reason, report_time, status) VALUES
+(2, 1, 1, 'Inappropriate content', '2023-01-15 09:30:00', 1),
+(3, 5, 2, 'Offensive comment', '2023-01-16 14:15:00', 1),
+(1, 3, 3, 'Sensitive content in story', '2023-01-17 18:45:00', 1),
+(4, 2, 4, 'Fake user profile', '2023-01-18 10:20:00', 1),
+(5, 1, 5, 'Group contains illegal content', '2023-01-19 16:30:00', 1),
+(2, 4, 6, 'Scam page', '2023-01-20 11:10:00', 1),
+(3, 2, 7, 'Spam message', '2023-01-21 13:25:00', 1),
+(1, 1, 8, 'Harassment call', '2023-01-22 15:40:00', 1),
+(4, 3, 9, 'Fake notification', '2023-01-23 09:05:00', 1),
+(5, 2, 10, 'False report', '2023-01-24 17:50:00', 1);
+
+INSERT INTO tblReaction (user_id, reaction_type_id, target_id, target_type_id, created_at) VALUES
+(1, 1, 1, 1, '2023-01-15 08:30:00'),
+(2, 2, 1, 1, '2023-01-15 09:15:00'),
+(3, 3, 2, 2, '2023-01-16 10:20:00'),
+(4, 1, 3, 3, '2023-01-17 11:45:00'),
+(5, 4, 4, 4, '2023-01-18 12:30:00'),
+(1, 5, 5, 5, '2023-01-19 13:15:00'),
+(2, 6, 1, 6, '2023-01-20 14:20:00'),
+(3, 7, 2, 7, '2023-01-21 15:35:00'),
+(4, 8, 3, 8, '2023-01-22 16:40:00'),
+(5, 9, 4, 9, '2023-01-23 17:55:00');
 -----USER DATA-----
 INSERT INTO tblUser (
     email, username, phone_number, password,
     persistent_cookie, google_id, is_admin,
     display_name, date_of_birth, bio, gender, status
 ) VALUES
-('admin@gmail.com', 'admin', '0123456789', '123',
- NULL, NULL, 1, N'Admin', '1990-01-01', N'Bio của Admin', 1, 1),
+      ('admin.@gmail.com', 'admin', '0123456789', '123',
+       NULL, NULL, 1, N'Admin Hoang', '1990-01-01', N'Bio của Admin', 1, 1),
 
-('user1@gmail.com', 'user1', '0900000001', '123',
- NULL, NULL, 0, N'User One', '1990-01-01', N'Bio của user1', 1, 1),
+      ('minhthu@gmail.com', 'minhthu', '0900000001', '123',
+       NULL, NULL, 0, N'Minh Thu', '1990-01-01', N'Bio của Minh Thu', 1, 1),
 
+      ('quocanh@gmail.com', 'quocanh', '0900000002', '123',
+       NULL, NULL, 0, N'Quoc Anh', '1991-02-02', N'Bio của Quoc Anh', 0, 1),
+
+      ('thanhnga@gmail.com', 'thanhnga', '0900000003', '123',
+       NULL, NULL, 0, N'Thanh Nga', '1992-03-03', N'Bio của Thanh Nga', 2, 1),
+
+      ('baotran@gmail.com', 'baotran', '0900000004', '123',
+       NULL, NULL, 0, N'Bao Tran', '1993-04-04', N'Bio của Bao Tran', 1, 1),
+
+      ('khanhlinh@gmail.com', 'khanhlinh', '0900000005', '123',
+       NULL, NULL, 0, N'Khanh Linh', '1994-05-05', N'Bio của Khanh Linh', 0, 1),
+
+      ('duylong@gmail.com', 'duylong', '0900000006', '123',
+       NULL, NULL, 0, N'Duy Long', '1995-06-06', N'Bio của Duy Long', 1, 1),
+
+      ('thuytrang@gmail.com', 'thuytrang', '0900000007', '123',
+       NULL, NULL, 0, N'Thuy Trang', '1996-07-07', N'Bio của Thuy Trang', 0, 1),
+
+      ('anhkhoa@gmail.com', 'anhkhoa', '0900000008', '123',
+       NULL, NULL, 0, N'Anh Khoa', '1997-08-08', N'Bio của Anh Khoa', 2, 1),
+
+      ('hongnhung@gmail.com', 'hongnhung', '0900000009', '123',
+       NULL, NULL, 0, N'Hong Nhung', '1998-09-09', N'Bio của Hong Nhung', 1, 1),
+
+      ('tuanvu@gmail.com', 'tuanvu', '0900000010', '123',
+       NULL, NULL, 0, N'Tuan Vu', '1999-10-10', N'Bio của Tuan Vu', 0, 1),
+
+      ('ngocmai@gmail.com', 'ngocmai', '0900000011', '123',
+       NULL, NULL, 0, N'Ngoc Mai', '2000-11-11', N'Bio của Ngoc Mai', 2, 1),
+
+      ('phuocloc@gmail.com', 'phuocloc', '0900000012', '123',
+       NULL, NULL, 0, N'Phuoc Loc', '2001-12-12', N'Bio của Phuoc Loc', 1, 1),
+
+      ('thanhbinh@gmail.com', 'thanhbinh', '0900000013', '123',
+       NULL, NULL, 0, N'Thanh Binh', '2002-01-13', N'Bio của Thanh Binh', 0, 1),
+
+      ('kieuanh@gmail.com', 'kieuanh', '0900000014', '123',
+       NULL, NULL, 0, N'Kieu Anh', '2003-02-14', N'Bio của Kieu Anh', 2, 1),
+
+      ('minhduc@gmail.com', 'minhduc', '0900000015', '123',
+       NULL, NULL, 0, N'Minh Duc', '2004-03-15', N'Bio của Minh Duc', 1, 1),
+
+      ('lanhuong@gmail.com', 'lanhuong', '0900000016', '123',
+       NULL, NULL, 0, N'Lan Huong', '2005-04-16', N'Bio của Lan Huong', 0, 1),
+
+      ('trunghieu@gmail.com', 'trunghieu', '0900000017', '123',
+       NULL, NULL, 0, N'Trung Hieu', '2006-05-17', N'Bio của Trung Hieu', 2, 1),
+
+      ('thuylinh@gmail.com', 'thuylinh', '0900000018', '123',
+       NULL, NULL, 0, N'Thuy Linh', '2007-06-18', N'Bio của Thuy Linh', 1, 1),
+
+      ('hoangnam@gmail.com', 'hoangnam', '0900000019', '123',
+       NULL, NULL, 0, N'Hoang Nam', '2008-07-19', N'Bio của Hoang Nam', 0, 1);
+INSERT INTO tblFriendship (
+    user_id, friend_id, friendship_status, created_at, status
+) VALUES
+      (1, 2, 'accepted', '2025-05-01 10:00:00', 1), -- Admin Hoang và Minh Thu là bạn
+      (1, 3, 'pending', '2025-05-02 11:00:00', 1),  -- Admin Hoang gửi lời mời cho Quoc Anh
+      (2, 4, 'accepted', '2025-05-03 12:00:00', 1), -- Minh Thu và Thanh Nga là bạn
+      (2, 5, 'rejected', '2025-05-04 13:00:00', 1), -- Minh Thu từ chối Bao Tran
+      (3, 6, 'pending', '2025-05-05 14:00:00', 1),  -- Quoc Anh gửi lời mời cho Khanh Linh
+      (4, 7, 'accepted', '2025-05-06 15:00:00', 1), -- Thanh Nga và Duy Long là bạn
+      (5, 8, 'pending', '2025-05-07 16:00:00', 1),  -- Bao Tran gửi lời mời cho Thuy Trang
+      (6, 9, 'accepted', '2025-05-08 17:00:00', 1), -- Khanh Linh và Anh Khoa là bạn
+      (7, 10, 'rejected', '2025-05-09 18:00:00', 1),-- Duy Long từ chối Hong Nhung
+      (8, 11, 'pending', '2025-05-10 19:00:00', 1), -- Thuy Trang gửi lời mời cho Ngoc Mai
+      (9, 12, 'accepted', '2025-05-11 20:00:00', 1),-- Anh Khoa và Phuoc Loc là bạn
+      (10, 13, 'pending', '2025-05-12 21:00:00', 1),-- Hong Nhung gửi lời mời cho Thanh Binh
+      (11, 14, 'accepted', '2025-05-13 22:00:00', 1),-- Ngoc Mai và Kieu Anh là bạn
+      (12, 15, 'rejected', '2025-05-14 23:00:00', 1),-- Phuoc Loc từ chối Minh Duc
+      (13, 16, 'pending', '2025-05-15 09:00:00', 1), -- Thanh Binh gửi lời mời cho Lan Huong
+      (14, 17, 'accepted', '2025-05-16 10:00:00', 1),-- Kieu Anh và Trung Hieu là bạn
+      (15, 18, 'pending', '2025-05-17 11:00:00', 1), -- Minh Duc gửi lời mời cho Thuy Linh
+      (16, 19, 'accepted', '2025-05-18 12:00:00', 1),-- Lan Huong và Thuy Linh là bạn
+      (17, 1, 'rejected', '2025-05-19 13:00:00', 1), -- Trung Hieu từ chối Admin Hoang
+      (18, 2, 'pending', '2025-05-20 14:00:00', 1); -- Thuy Linh gửi lời mời cho Minh Thu
+INSERT INTO tblFollow (
+    follower_id, followee_id, created_at, status
+) VALUES
+      (2, 1, '2025-05-01 10:00:00', 1),  -- Minh Thu theo dõi Admin Hoang
+      (3, 1, '2025-05-02 11:00:00', 1),  -- Quoc Anh theo dõi Admin Hoang
+      (4, 2, '2025-05-03 12:00:00', 1),  -- Thanh Nga theo dõi Minh Thu
+      (5, 3, '2025-05-04 13:00:00', 1),  -- Bao Tran theo dõi Quoc Anh
+      (6, 4, '2025-05-05 14:00:00', 1),  -- Khanh Linh theo dõi Thanh Nga
+      (7, 4, '2025-05-06 15:00:00', 1),  -- Duy Long theo dõi Thanh Nga
+      (8, 6, '2025-05-07 16:00:00', 1),  -- Thuy Trang theo dõi Khanh Linh
+      (9, 7, '2025-05-08 17:00:00', 1),  -- Anh Khoa theo dõi Duy Long
+      (10, 9, '2025-05-09 18:00:00', 1), -- Hong Nhung theo dõi Anh Khoa
+      (11, 9, '2025-05-10 19:00:00', 1), -- Ngoc Mai theo dõi Anh Khoa
+      (12, 11, '2025-05-11 20:00:00', 1),-- Phuoc Loc theo dõi Ngoc Mai
+      (13, 12, '2025-05-12 21:00:00', 1),-- Thanh Binh theo dõi Phuoc Loc
+      (14, 12, '2025-05-13 22:00:00', 1),-- Kieu Anh theo dõi Phuoc Loc
+      (15, 14, '2025-05-14 23:00:00', 1),-- Minh Duc theo dõi Kieu Anh
+      (16, 14, '2025-05-15 09:00:00', 1),-- Lan Huong theo dõi Kieu Anh
+      (17, 15, '2025-05-16 10:00:00', 1),-- Trung Hieu theo dõi Minh Duc
+      (18, 16, '2025-05-17 11:00:00', 1),-- Thuy Linh theo dõi Lan Huong
+      (19, 16, '2025-05-18 12:00:00', 1),-- Hoang Nam theo dõi Lan Huong
+      (1, 18, '2025-05-19 13:00:00', 1), -- Admin Hoang theo dõi Thuy Linh
+      (2, 19, '2025-05-20 14:00:00', 1); -- Minh Thu theo dõi Hoang Nam
+INSERT INTO tblBlock (
+    user_id, blocked_user_id, created_at, status
+) VALUES
+      (1, 19, '2025-05-01 10:00:00', 1), -- Admin Hoang chặn Hoang Nam
+      (2, 18, '2025-05-02 11:00:00', 1), -- Minh Thu chặn Thuy Linh
+      (3, 17, '2025-05-03 12:00:00', 1), -- Quoc Anh chặn Trung Hieu
+      (4, 16, '2025-05-04 13:00:00', 1), -- Thanh Nga chặn Lan Huong
+      (5, 15, '2025-05-05 14:00:00', 1), -- Bao Tran chặn Minh Duc
+      (6, 14, '2025-05-06 15:00:00', 1), -- Khanh Linh chặn Kieu Anh
+      (7, 13, '2025-05-07 16:00:00', 1), -- Duy Long chặn Thanh Binh
+      (8, 12, '2025-05-08 17:00:00', 1), -- Thuy Trang chặn Phuoc Loc
+      (9, 11, '2025-05-09 18:00:00', 1), -- Anh Khoa chặn Ngoc Mai
+      (10, 1, '2025-05-10 19:00:00', 1), -- Hong Nhung chặn Admin Hoang
+      (11, 2, '2025-05-11 20:00:00', 1), -- Ngoc Mai chặn Minh Thu
+      (12, 3, '2025-05-12 21:00:00', 1), -- Phuoc Loc chặn Quoc Anh
+      (13, 5, '2025-05-13 22:00:00', 1), -- Thanh Binh chặn Bao Tran
+      (14, 6, '2025-05-14 23:00:00', 1), -- Kieu Anh chặn Khanh Linh
+      (15, 7, '2025-05-15 09:00:00', 1); -- Minh Duc chặn Duy Long
 ('user2@gmail.com', 'user2', '0900000002', '123',
  NULL, NULL, 0, N'User Two', '1991-02-02', N'Bio của user2', 0, 1),
 
