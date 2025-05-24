@@ -371,8 +371,8 @@ END;
 CREATE TABLE tblSession (
 	id INT PRIMARY KEY IDENTITY(1, 1),
 	user_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
-	device TEXT,
-	ip_address TEXT,
+	device NVARCHAR(255),
+	ip_address NVARCHAR(45),
 	created_at DATETIME DEFAULT GETDATE(),
 	expired_time DATETIME,
 	status BIT DEFAULT 1
@@ -381,7 +381,7 @@ CREATE TABLE tblSession (
 CREATE TABLE tblPasswordReset (
 	id INT PRIMARY KEY IDENTITY(1, 1),
 	user_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
-	token VARCHAR(255),
+	token VARCHAR(255) NOT NULL UNIQUE,
 	token_expire_time DATETIME,
 	is_used BIT DEFAULT 0,
 	status BIT DEFAULT 1
