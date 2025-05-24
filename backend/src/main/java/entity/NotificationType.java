@@ -2,6 +2,7 @@ package entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
+import org.hibernate.annotations.ColumnDefault;
 
 @Entity
 @Table(name = "tblNotificationType", schema = "dbo")
@@ -18,6 +19,10 @@ public class NotificationType {
     @Size(max = 255)
     @Column(name = "description")
     private String description;
+
+    @ColumnDefault("1")
+    @Column(name = "status")
+    private Boolean status;
 
     public Integer getId() {
         return id;
@@ -41,6 +46,14 @@ public class NotificationType {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public Boolean getStatus() {
+        return status;
+    }
+
+    public void setStatus(Boolean status) {
+        this.status = status;
     }
 
 }

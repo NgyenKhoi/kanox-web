@@ -1,6 +1,9 @@
 package entity;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.EmbeddedId;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
 import org.hibernate.annotations.ColumnDefault;
 
 import java.time.Instant;
@@ -10,16 +13,6 @@ import java.time.Instant;
 public class HiddenPost {
     @EmbeddedId
     private HiddenPostId id;
-
-    @MapsId("userId")
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false)
-    private entity.User user;
-
-    @MapsId("postId")
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "post_id", nullable = false)
-    private entity.Post post;
 
     @ColumnDefault("getdate()")
     @Column(name = "hidden_time")
@@ -35,22 +28,6 @@ public class HiddenPost {
 
     public void setId(HiddenPostId id) {
         this.id = id;
-    }
-
-    public entity.User getUser() {
-        return user;
-    }
-
-    public void setUser(entity.User user) {
-        this.user = user;
-    }
-
-    public entity.Post getPost() {
-        return post;
-    }
-
-    public void setPost(entity.Post post) {
-        this.post = post;
     }
 
     public Instant getHiddenTime() {

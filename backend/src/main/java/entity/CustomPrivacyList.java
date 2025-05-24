@@ -9,36 +9,22 @@ import org.hibernate.annotations.Nationalized;
 import java.time.Instant;
 
 @Entity
-@Table(name = "tblComment", schema = "dbo")
-public class Comment {
+@Table(name = "tblCustomPrivacyLists", schema = "dbo")
+public class CustomPrivacyList {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
     private Integer id;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "parent_comment_id")
-    private Comment parentComment;
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @NotNull
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "post_id", nullable = false)
-    private Post post;
-
-    @Size(max = 1000)
+    @Size(max = 50)
     @Nationalized
-    @Column(name = "content", length = 1000)
-    private String content;
-
-    @Size(max = 20)
-    @ColumnDefault("'default'")
-    @Column(name = "privacy_setting", length = 20)
-    private String privacySetting;
+    @Column(name = "list_name", length = 50)
+    private String listName;
 
     @ColumnDefault("getdate()")
     @Column(name = "created_at")
@@ -56,14 +42,6 @@ public class Comment {
         this.id = id;
     }
 
-    public Comment getParentComment() {
-        return parentComment;
-    }
-
-    public void setParentComment(Comment parentComment) {
-        this.parentComment = parentComment;
-    }
-
     public User getUser() {
         return user;
     }
@@ -72,28 +50,12 @@ public class Comment {
         this.user = user;
     }
 
-    public Post getPost() {
-        return post;
+    public String getListName() {
+        return listName;
     }
 
-    public void setPost(Post post) {
-        this.post = post;
-    }
-
-    public String getContent() {
-        return content;
-    }
-
-    public void setContent(String content) {
-        this.content = content;
-    }
-
-    public String getPrivacySetting() {
-        return privacySetting;
-    }
-
-    public void setPrivacySetting(String privacySetting) {
-        this.privacySetting = privacySetting;
+    public void setListName(String listName) {
+        this.listName = listName;
     }
 
     public Instant getCreatedAt() {

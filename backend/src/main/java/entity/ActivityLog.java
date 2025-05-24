@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.Nationalized;
 
 import java.time.Instant;
 
@@ -18,7 +19,7 @@ public class ActivityLog {
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
-    private entity.User user;
+    private User user;
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -37,6 +38,14 @@ public class ActivityLog {
     @Column(name = "device", length = 100)
     private String device;
 
+    @Column(name = "target_id")
+    private Integer targetId;
+
+    @Size(max = 50)
+    @Nationalized
+    @Column(name = "target_type", length = 50)
+    private String targetType;
+
     @ColumnDefault("1")
     @Column(name = "status")
     private Boolean status;
@@ -49,11 +58,11 @@ public class ActivityLog {
         this.id = id;
     }
 
-    public entity.User getUser() {
+    public User getUser() {
         return user;
     }
 
-    public void setUser(entity.User user) {
+    public void setUser(User user) {
         this.user = user;
     }
 
@@ -87,6 +96,22 @@ public class ActivityLog {
 
     public void setDevice(String device) {
         this.device = device;
+    }
+
+    public Integer getTargetId() {
+        return targetId;
+    }
+
+    public void setTargetId(Integer targetId) {
+        this.targetId = targetId;
+    }
+
+    public String getTargetType() {
+        return targetType;
+    }
+
+    public void setTargetType(String targetType) {
+        this.targetType = targetType;
     }
 
     public Boolean getStatus() {

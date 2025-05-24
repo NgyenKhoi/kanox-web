@@ -32,9 +32,9 @@ public class User {
     @Column(name = "phone_number", nullable = false, length = 12)
     private String phoneNumber;
 
-    @Size(max = 50)
+    @Size(max = 255)
     @NotNull
-    @Column(name = "password", nullable = false, length = 50)
+    @Column(name = "password", nullable = false)
     private String password;
 
     @Size(max = 255)
@@ -64,6 +64,11 @@ public class User {
 
     @Column(name = "gender", columnDefinition = "tinyint")
     private Short gender;
+
+    @Size(max = 20)
+    @ColumnDefault("'default'")
+    @Column(name = "profile_privacy_setting", length = 20)
+    private String profilePrivacySetting;
 
     @NotNull
     @ColumnDefault("1")
@@ -164,6 +169,14 @@ public class User {
 
     public void setGender(Short gender) {
         this.gender = gender;
+    }
+
+    public String getProfilePrivacySetting() {
+        return profilePrivacySetting;
+    }
+
+    public void setProfilePrivacySetting(String profilePrivacySetting) {
+        this.profilePrivacySetting = profilePrivacySetting;
     }
 
     public Boolean getStatus() {

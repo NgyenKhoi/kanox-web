@@ -1,7 +1,6 @@
 package entity;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
@@ -15,11 +14,6 @@ public class Group {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
     private Integer id;
-
-    @NotNull
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "owner_id", nullable = false)
-    private entity.User owner;
 
     @Size(max = 100)
     @Nationalized
@@ -45,14 +39,6 @@ public class Group {
 
     public void setId(Integer id) {
         this.id = id;
-    }
-
-    public entity.User getOwner() {
-        return owner;
-    }
-
-    public void setOwner(entity.User owner) {
-        this.owner = owner;
     }
 
     public String getName() {

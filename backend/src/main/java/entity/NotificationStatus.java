@@ -1,20 +1,24 @@
 package entity;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
 
 @Entity
-@Table(name = "tblMessageType", schema = "dbo")
-public class MessageType {
+@Table(name = "tblNotificationStatus", schema = "dbo")
+public class NotificationStatus {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id", nullable = false)
-    private Integer id;
+    @Column(name = "id", columnDefinition = "tinyint not null")
+    private Short id;
 
-    @Size(max = 50)
-    @Column(name = "name", length = 50)
+    @Size(max = 20)
+    @NotNull
+    @Column(name = "name", nullable = false, length = 20)
     private String name;
 
     @Size(max = 255)
@@ -26,11 +30,11 @@ public class MessageType {
     @Column(name = "status")
     private Boolean status;
 
-    public Integer getId() {
+    public Short getId() {
         return id;
     }
 
-    public void setId(Integer id) {
+    public void setId(Short id) {
         this.id = id;
     }
 

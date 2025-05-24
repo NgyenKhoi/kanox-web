@@ -24,9 +24,8 @@ public class Notification {
     @Column(name = "created_at")
     private Instant createdAt;
 
-    @Size(max = 20)
-    @Column(name = "read_status", length = 20)
-    private String readStatus;
+    @Column(name = "target_id")
+    private Integer targetId;
 
     public Integer getId() {
         return id;
@@ -52,12 +51,12 @@ public class Notification {
         this.createdAt = createdAt;
     }
 
-    public String getReadStatus() {
-        return readStatus;
+    public Integer getTargetId() {
+        return targetId;
     }
 
-    public void setReadStatus(String readStatus) {
-        this.readStatus = readStatus;
+    public void setTargetId(Integer targetId) {
+        this.targetId = targetId;
     }
 
 }

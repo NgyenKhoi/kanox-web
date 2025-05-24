@@ -1,7 +1,6 @@
 package entity;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
@@ -26,9 +25,9 @@ public class Post {
     private String content;
 
     @Size(max = 20)
-    @NotNull
-    @Column(name = "visibility", nullable = false, length = 20)
-    private String visibility;
+    @ColumnDefault("'default'")
+    @Column(name = "privacy_setting", length = 20)
+    private String privacySetting;
 
     @Size(max = 255)
     @Column(name = "media_url")
@@ -62,12 +61,12 @@ public class Post {
         this.content = content;
     }
 
-    public String getVisibility() {
-        return visibility;
+    public String getPrivacySetting() {
+        return privacySetting;
     }
 
-    public void setVisibility(String visibility) {
-        this.visibility = visibility;
+    public void setPrivacySetting(String privacySetting) {
+        this.privacySetting = privacySetting;
     }
 
     public String getMediaUrl() {

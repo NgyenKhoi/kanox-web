@@ -1,6 +1,9 @@
 package entity;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.EmbeddedId;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
 import jakarta.validation.constraints.Size;
 import org.hibernate.annotations.ColumnDefault;
 
@@ -11,16 +14,6 @@ import java.time.Instant;
 public class Friendship {
     @EmbeddedId
     private FriendshipId id;
-
-    @MapsId("userId")
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false)
-    private entity.User user;
-
-    @MapsId("friendId")
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "friend_id", nullable = false)
-    private entity.User friend;
 
     @Size(max = 10)
     @Column(name = "friendship_status", length = 10)
@@ -40,22 +33,6 @@ public class Friendship {
 
     public void setId(FriendshipId id) {
         this.id = id;
-    }
-
-    public entity.User getUser() {
-        return user;
-    }
-
-    public void setUser(entity.User user) {
-        this.user = user;
-    }
-
-    public entity.User getFriend() {
-        return friend;
-    }
-
-    public void setFriend(entity.User friend) {
-        this.friend = friend;
     }
 
     public String getFriendshipStatus() {

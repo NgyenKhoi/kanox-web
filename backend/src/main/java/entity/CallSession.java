@@ -17,12 +17,12 @@ public class CallSession {
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "chat_id", nullable = false)
-    private entity.Chat chat;
+    private Chat chat;
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "host_id", nullable = false)
-    private entity.User host;
+    private User host;
 
     @Column(name = "start_time")
     private Instant startTime;
@@ -42,19 +42,19 @@ public class CallSession {
         this.id = id;
     }
 
-    public entity.Chat getChat() {
+    public Chat getChat() {
         return chat;
     }
 
-    public void setChat(entity.Chat chat) {
+    public void setChat(Chat chat) {
         this.chat = chat;
     }
 
-    public entity.User getHost() {
+    public User getHost() {
         return host;
     }
 
-    public void setHost(entity.User host) {
+    public void setHost(User host) {
         this.host = host;
     }
 

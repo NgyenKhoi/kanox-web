@@ -19,7 +19,7 @@ public class ChatMember {
     @MapsId("userId")
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
-    private entity.User user;
+    private User user;
 
     @ColumnDefault("getdate()")
     @Column(name = "joined_at")
@@ -53,11 +53,11 @@ public class ChatMember {
         this.chat = chat;
     }
 
-    public entity.User getUser() {
+    public User getUser() {
         return user;
     }
 
-    public void setUser(entity.User user) {
+    public void setUser(User user) {
         this.user = user;
     }
 

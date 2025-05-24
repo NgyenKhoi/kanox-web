@@ -14,12 +14,12 @@ public class Block {
     @MapsId("userId")
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
-    private entity.User user;
+    private User user;
 
     @MapsId("blockedUserId")
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "blocked_user_id", nullable = false)
-    private entity.User blockedUser;
+    private User blockedUser;
 
     @ColumnDefault("getdate()")
     @Column(name = "created_at")
@@ -37,19 +37,19 @@ public class Block {
         this.id = id;
     }
 
-    public entity.User getUser() {
+    public User getUser() {
         return user;
     }
 
-    public void setUser(entity.User user) {
+    public void setUser(User user) {
         this.user = user;
     }
 
-    public entity.User getBlockedUser() {
+    public User getBlockedUser() {
         return blockedUser;
     }
 
-    public void setBlockedUser(entity.User blockedUser) {
+    public void setBlockedUser(User blockedUser) {
         this.blockedUser = blockedUser;
     }
 

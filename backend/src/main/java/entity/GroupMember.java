@@ -1,6 +1,9 @@
 package entity;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.EmbeddedId;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
 import org.hibernate.annotations.ColumnDefault;
 
 import java.time.Instant;
@@ -10,16 +13,6 @@ import java.time.Instant;
 public class GroupMember {
     @EmbeddedId
     private GroupMemberId id;
-
-    @MapsId("groupId")
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "group_id", nullable = false)
-    private Group group;
-
-    @MapsId("userId")
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false)
-    private entity.User user;
 
     @ColumnDefault("getdate()")
     @Column(name = "join_at")
@@ -39,22 +32,6 @@ public class GroupMember {
 
     public void setId(GroupMemberId id) {
         this.id = id;
-    }
-
-    public Group getGroup() {
-        return group;
-    }
-
-    public void setGroup(Group group) {
-        this.group = group;
-    }
-
-    public entity.User getUser() {
-        return user;
-    }
-
-    public void setUser(entity.User user) {
-        this.user = user;
     }
 
     public Instant getJoinAt() {

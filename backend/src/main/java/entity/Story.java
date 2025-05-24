@@ -37,7 +37,12 @@ public class Story {
     private String mediaType;
 
     @Size(max = 20)
-    @Column(name = "background_color", length = 20)
+    @ColumnDefault("'default'")
+    @Column(name = "privacy_setting", length = 20)
+    private String privacySetting;
+
+    @Size(max = 50)
+    @Column(name = "background_color", length = 50)
     private String backgroundColor;
 
     @ColumnDefault("1")
@@ -90,6 +95,14 @@ public class Story {
 
     public void setMediaType(String mediaType) {
         this.mediaType = mediaType;
+    }
+
+    public String getPrivacySetting() {
+        return privacySetting;
+    }
+
+    public void setPrivacySetting(String privacySetting) {
+        this.privacySetting = privacySetting;
     }
 
     public String getBackgroundColor() {

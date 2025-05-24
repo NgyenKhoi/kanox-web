@@ -18,6 +18,10 @@ public class Reaction {
     @Column(name = "created_at")
     private Instant createdAt;
 
+    @ColumnDefault("1")
+    @Column(name = "status")
+    private Boolean status;
+
     public ReactionId getId() {
         return id;
     }
@@ -32,6 +36,14 @@ public class Reaction {
 
     public void setCreatedAt(Instant createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public Boolean getStatus() {
+        return status;
+    }
+
+    public void setStatus(Boolean status) {
+        this.status = status;
     }
 
 }

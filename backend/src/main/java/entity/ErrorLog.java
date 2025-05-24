@@ -3,24 +3,26 @@ package entity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
 import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.Nationalized;
 
 import java.time.Instant;
 
 @Entity
-@Table(name = "tblStoryReply", schema = "dbo")
-public class StoryReply {
+@Table(name = "tblErrorLog", schema = "dbo")
+public class ErrorLog {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
     private Integer id;
 
-    @Size(max = 255)
-    @Column(name = "message")
-    private String message;
+    @Size(max = 4000)
+    @Nationalized
+    @Column(name = "error_message", length = 4000)
+    private String errorMessage;
 
     @ColumnDefault("getdate()")
-    @Column(name = "sent_time")
-    private Instant sentTime;
+    @Column(name = "error_time")
+    private Instant errorTime;
 
     @ColumnDefault("1")
     @Column(name = "status")
@@ -34,20 +36,20 @@ public class StoryReply {
         this.id = id;
     }
 
-    public String getMessage() {
-        return message;
+    public String getErrorMessage() {
+        return errorMessage;
     }
 
-    public void setMessage(String message) {
-        this.message = message;
+    public void setErrorMessage(String errorMessage) {
+        this.errorMessage = errorMessage;
     }
 
-    public Instant getSentTime() {
-        return sentTime;
+    public Instant getErrorTime() {
+        return errorTime;
     }
 
-    public void setSentTime(Instant sentTime) {
-        this.sentTime = sentTime;
+    public void setErrorTime(Instant errorTime) {
+        this.errorTime = errorTime;
     }
 
     public Boolean getStatus() {

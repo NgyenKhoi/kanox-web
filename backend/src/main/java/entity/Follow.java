@@ -14,12 +14,12 @@ public class Follow {
     @MapsId("followerId")
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "follower_id", nullable = false)
-    private entity.User follower;
+    private User follower;
 
     @MapsId("followeeId")
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "followee_id", nullable = false)
-    private entity.User followee;
+    private User followee;
 
     @ColumnDefault("getdate()")
     @Column(name = "created_at")
@@ -37,19 +37,19 @@ public class Follow {
         this.id = id;
     }
 
-    public entity.User getFollower() {
+    public User getFollower() {
         return follower;
     }
 
-    public void setFollower(entity.User follower) {
+    public void setFollower(User follower) {
         this.follower = follower;
     }
 
-    public entity.User getFollowee() {
+    public User getFollowee() {
         return followee;
     }
 
-    public void setFollowee(entity.User followee) {
+    public void setFollowee(User followee) {
         this.followee = followee;
     }
 
