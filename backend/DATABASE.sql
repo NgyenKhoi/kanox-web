@@ -133,6 +133,61 @@ CREATE TABLE tblFriendship (
 	CHECK (user_id <> friend_id)
 );
 
+
+
+CREATE TABLE tblFriendSuggestion (
+    user_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
+    suggested_user_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
+    mutual_friend_count INT NOT NULL,
+    suggested_at DATETIME DEFAULT GETDATE(),
+    PRIMARY KEY (user_id, suggested_user_id)
+);
+
+------------PROC FOR SUGGEST FRIEND
+
+CREATE PROCEDURE sp_UpdateFriendSuggestions
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Xóa gợi ý cũ
+    DELETE FROM tblFriendSuggestion;
+
+    -- Gợi ý theo thuật toán bạn của bạn (FOAF)
+    INSERT INTO tblFriendSuggestion (user_id, suggested_user_id, mutual_friend_count)
+    SELECT
+        f1.user_id,
+        f2.friend_id AS suggested_user_id,
+        COUNT(*) AS mutual_friend_count
+    FROM tblFriendship f1
+    JOIN tblFriendship f2 ON f1.friend_id = f2.user_id
+    WHERE 
+        f1.friendship_status = 'accepted'
+        AND f2.friendship_status = 'accepted'
+        AND f1.user_id <> f2.friend_id -- tránh tự gợi ý chính mình
+
+        -- Chưa là bạn
+        AND f2.friend_id NOT IN (
+            SELECT friend_id FROM tblFriendship 
+            WHERE user_id = f1.user_id AND friendship_status = 'accepted'
+        )
+
+        -- Không bị block
+        AND f2.friend_id NOT IN (
+            SELECT blocked_user_id FROM tblBlock WHERE user_id = f1.user_id
+            UNION
+            SELECT user_id FROM tblBlock WHERE blocked_user_id = f1.user_id
+        )
+
+        -- Không theo dõi nhau
+        AND f2.friend_id NOT IN (
+            SELECT followee_id FROM tblFollow WHERE follower_id = f1.user_id
+        )
+    GROUP BY f1.user_id, f2.friend_id;
+END;
+
+-------------------
+
 CREATE TABLE tblFollow (
 	follower_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
 	followee_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
@@ -785,31 +840,6 @@ CREATE TABLE tblContentPolicy (
 );
 
 -----ADD DATA FROM HERE------
------USER DATA-----
-INSERT INTO tblUser (
-    email, username, phone_number, password,
-    persistent_cookie, google_id, is_admin,
-    display_name, date_of_birth, bio, gender, status
-) VALUES
-('admin@gmail.com', 'admin', '0123456789', '123',
- NULL, NULL, 1, N'Admin', '1990-01-01', N'Bio của Admin', 1, 1),
-
-('user1@gmail.com', 'user1', '0900000001', '123',
- NULL, NULL, 0, N'User One', '1990-01-01', N'Bio của user1', 1, 1),
-
-('user2@gmail.com', 'user2', '0900000002', '123',
- NULL, NULL, 0, N'User Two', '1991-02-02', N'Bio của user2', 0, 1),
-
-('user3@gmail.com', 'user3', '0900000003', '123',
- NULL, NULL, 0, N'User Three', '1992-03-03', N'Bio của user3', 2, 1),
-
-('user4@gmail.com', 'user4', '0900000004', '123',
- NULL, NULL, 0, N'User Four', '1993-04-04', N'Bio của user4', 1, 1),
-
-('user5@gmail.com', 'user5', '0900000005', '123',
- NULL, NULL, 0, N'User Five', '1994-05-05', N'Bio của user5', 0, 1);
-
-
 --/////////////////////////////////////////////
 INSERT INTO tblTargetType (name, code) VALUES
 ('Post', 'POST'),
@@ -858,4 +888,5 @@ INSERT INTO tblReaction (user_id, reaction_type_id, target_id, target_type_id, c
 (3, 7, 2, 7, '2023-01-21 15:35:00'),
 (4, 8, 3, 8, '2023-01-22 16:40:00'),
 (5, 9, 4, 9, '2023-01-23 17:55:00');
+
 
