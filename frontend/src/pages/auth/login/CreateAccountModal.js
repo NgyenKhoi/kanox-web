@@ -2,8 +2,11 @@ import React, { useState } from "react";
 import { Modal, Button, Form, Row, Col } from "react-bootstrap";
 import KLogoSvg from "../../../components/svgs/KSvg"; // Assuming XSvg is in the same 'components' directory
 import { X as XCloseIcon } from "react-bootstrap-icons"; // For the close icon
+import { useNavigate } from "react-router-dom"; // Import useNavigate
 
 const CreateAccountModal = ({ show, handleClose }) => {
+  const navigate = useNavigate(); // Khởi tạo useNavigate
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -25,6 +28,7 @@ const CreateAccountModal = ({ show, handleClose }) => {
     // Here you would typically send data to an API
     // For now, just close the modal
     handleClose();
+    navigate("/home"); // Chuyển hướng đến trang Home
   };
 
   // Generate options for Month, Day, Year
@@ -149,11 +153,11 @@ const CreateAccountModal = ({ show, handleClose }) => {
           <div className="d-grid gap-2 mt-5">
             <Button
               type="submit"
-              variant="secondary" // Use secondary to match the gray color
+              variant="dark" // Use secondary to match the gray color
               className="py-3 rounded-pill fw-bold"
               style={{
-                backgroundColor: "#6c757d",
-                borderColor: "#6c757d",
+                backgroundColor: "#000",
+                borderColor: "#000",
                 fontSize: "1.2rem",
               }} // Custom gray
               disabled={

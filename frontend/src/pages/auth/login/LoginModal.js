@@ -5,11 +5,13 @@ import { FcGoogle } from "react-icons/fc";
 import { FaApple } from "react-icons/fa";
 import ForgotPasswordModal from "./ForgotPasswordModal";
 import JoinXModal from "./JoinXModal";
-
+import { useNavigate } from "react-router-dom"; // Import useNavigate
 import KLogoSvg from "../../../components/svgs/KSvg";
 
 // Nhận prop onShowLogin từ SignupPage
 const LoginModal = ({ show, handleClose, onShowLogin }) => {
+  const navigate = useNavigate(); // Khởi tạo useNavigate
+
   const [loginIdentifier, setLoginIdentifier] = useState("");
   const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
   const [showJoinXModal, setShowJoinXModal] = useState(false);
@@ -22,6 +24,7 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
     e.preventDefault();
     console.log("Login Identifier:", loginIdentifier);
     handleClose();
+    navigate("/home"); // Chuyển hướng đến trang Home
   };
 
   const handleShowForgotPasswordModal = () => {

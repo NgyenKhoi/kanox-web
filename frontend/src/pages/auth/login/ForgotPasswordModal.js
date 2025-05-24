@@ -67,11 +67,11 @@ const ForgotPasswordModal = ({ show, handleClose }) => {
 
           <Button
             type="submit"
-            variant="secondary"
+            variant="dark"
             className="py-3 rounded-pill fw-bold w-100"
             style={{
-              backgroundColor: "#6c757d",
-              borderColor: "#6c757d",
+              backgroundColor: "#000",
+              borderColor: "#000",
               fontSize: "1.2rem",
             }}
             disabled={!identifier}
