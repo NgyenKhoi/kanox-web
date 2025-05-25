@@ -22,7 +22,7 @@ pipeline {
             }
         }
 
-        stage('Determine active port') {
+        stage('Determine current active port') {
             steps {
                 script {
                     def status9090 = sh(
@@ -35,6 +35,9 @@ pipeline {
                         returnStdout: true
                     ).trim()
 
+                    echo "kanox-9090 status: ${status9090}"
+                    echo "kanox-9091 status: ${status9091}"
+
                     if (status9090 == 'active') {
                         env.ACTIVE_PORT = '9090'
                         env.STANDBY_PORT = '9091'
@@ -42,7 +45,7 @@ pipeline {
                         env.ACTIVE_PORT = '9091'
                         env.STANDBY_PORT = '9090'
                     } else {
-                        error "❌ Không có service nào đang chạy (9090 hoặc 9091)."
+                        error "❌ Không có service nào đang chạy (9090 hoặc 9091). Không thể xác định ACTIVE_PORT."
                     }
 
                     echo "✅ ACTIVE_PORT: ${env.ACTIVE_PORT}, STANDBY_PORT: ${env.STANDBY_PORT}"
@@ -50,7 +53,7 @@ pipeline {
             }
         }
 
-        stage('Upload JAR to standby port') {
+        stage('Upload to standby port') {
             steps {
                 sh """
                     ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} 'mkdir -p ${REMOTE_DIR}'
@@ -59,23 +62,10 @@ pipeline {
             }
         }
 
-        stage('Stop standby service if running') {
+        stage('Restart standby service') {
             steps {
                 sh """
-                    ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} '
-                        sudo systemctl stop kanox-${STANDBY_PORT}.service || true
-                        sudo fuser -k ${STANDBY_PORT}/tcp || true
-                    '
-                """
-            }
-        }
-
-        stage('Start standby service') {
-            steps {
-                sh """
-                    ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} '
-                        sudo systemctl start kanox-${STANDBY_PORT}.service
-                    '
+                    ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} 'sudo systemctl restart kanox-${STANDBY_PORT}.service'
                 """
             }
         }
@@ -83,7 +73,7 @@ pipeline {
         stage('Health check standby service') {
             steps {
                 script {
-                    def retries = 5
+                    def retries = 15
                     def healthy = false
 
                     for (int i = 0; i < retries; i++) {
@@ -109,25 +99,23 @@ pipeline {
             }
         }
 
-        stage('Switch traffic in NGINX') {
+        stage('Switch traffic') {
             steps {
-                echo "🔁 Switching proxy_pass in NGINX from port ${ACTIVE_PORT} to ${STANDBY_PORT}"
+                echo "🔁 Switching traffic in NGINX from port ${ACTIVE_PORT} ➝ ${STANDBY_PORT}"
                 sh """
                     ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} '
-                        sudo sed -i "s/127.0.0.1:${ACTIVE_PORT}/127.0.0.1:${STANDBY_PORT}/g" ${NGINX_CONF} &&
                         sudo nginx -t &&
+                        sudo sed -i "s/${ACTIVE_PORT}/${STANDBY_PORT}/g" ${NGINX_CONF} &&
                         sudo systemctl reload nginx
                     '
                 """
             }
         }
 
-        stage('Stop old active service') {
+        stage('Stop old service') {
             steps {
                 sh """
-                    ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} '
-                        sudo systemctl stop kanox-${ACTIVE_PORT}.service
-                    '
+                    ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} 'sudo systemctl stop kanox-${ACTIVE_PORT}.service'
                 """
             }
         }
@@ -135,10 +123,10 @@ pipeline {
 
     post {
         success {
-            echo '✅ Deployment hoàn tất, zero downtime thành công!'
+            echo '✅ Zero Downtime Deployment hoàn tất thành công!'
         }
         failure {
-            echo '❌ Lỗi khi triển khai, vui lòng kiểm tra logs.'
+            echo '❌ Có lỗi xảy ra khi triển khai.'
         }
     }
 }
