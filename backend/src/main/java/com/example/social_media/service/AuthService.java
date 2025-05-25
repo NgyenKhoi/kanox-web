@@ -19,7 +19,7 @@ public class AuthService {
     private PasswordEncoder passwordEncoder;
 
     // Login by email or password
-    public Optional<User> login(String email, String rawPassword) {
+    public Optional<User> loginByEmail(String email, String rawPassword) {
         Optional<User> userOpt = userRepository.findByEmailAndStatusTrue(email);
         if (userOpt.isPresent()) {
             User user = userOpt.get();
@@ -29,6 +29,27 @@ public class AuthService {
         }
         return Optional.empty();
     }
+
+    // Login by username and password
+    public Optional<User> loginByUsername(String username, String rawPassword) {
+        Optional<User> userOpt = userRepository.findByUsernameAndStatusTrue(username);
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            if (passwordEncoder.matches(rawPassword, user.getPassword())) {
+                return Optional.of(user);
+            }
+        }
+        return Optional.empty();
+    }
+    //user can login by username or email + password in login form
+    public Optional<User> loginFlexible(String identifier, String rawPassword) {
+        if (identifier.contains("@")) {
+            return loginByEmail(identifier, rawPassword); // login by email
+        } else {
+            return loginByUsername(identifier, rawPassword); // login by username
+        }
+    }
+
 
     // Logout
     public void logout(User user) {
@@ -60,5 +81,9 @@ public class AuthService {
     // view profile
     public Optional<User> getProfile(Integer userId) {
         return userRepository.findById(userId);
+    }
+
+    public Optional<User> getProfileByUsername(String username) {
+        return userRepository.findByUsername(username);
     }
 }
