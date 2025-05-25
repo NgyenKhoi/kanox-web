@@ -8,6 +8,8 @@ pipeline {
         URL_BASE = "https://kanox.duckdns.org"
         MAX_RETRIES = 15
         RETRY_DELAY = 5
+        BASIC_AUTH_USER = 'user'
+        BASIC_AUTH_PASS = '123'
     }
     stages {
         stage('Checkout SCM') {
@@ -30,7 +32,7 @@ pipeline {
                     def active9091 = sh(script: "ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} systemctl is-active kanox-9091.service || true", returnStdout: true).trim()
                     echo "kanox-9090 status: ${active9090}"
                     echo "kanox-9091 status: ${active9091}"
-                    
+
                     if (active9090 == "active" && active9091 != "active") {
                         env.ACTIVE_PORT = "9090"
                         env.STANDBY_PORT = "9091"
@@ -38,7 +40,6 @@ pipeline {
                         env.ACTIVE_PORT = "9091"
                         env.STANDBY_PORT = "9090"
                     } else if (active9090 == "active" && active9091 == "active") {
-                        // Cả hai đều active, chọn 9090 làm active, 9091 standby (theo logic cũ)
                         env.ACTIVE_PORT = "9090"
                         env.STANDBY_PORT = "9091"
                     } else {
@@ -67,8 +68,7 @@ pipeline {
                     def healthy = false
                     for (int i = 1; i <= env.MAX_RETRIES.toInteger(); i++) {
                         echo "⌛ Waiting for service on port ${env.STANDBY_PORT} to become healthy (retry ${i}/${env.MAX_RETRIES})..."
-                        // Gọi cụ thể port trong URL
-                        def response = sh(script: "curl -s ${URL_BASE}:${env.STANDBY_PORT}/actuator/health --insecure", returnStdout: true).trim()
+                        def response = sh(script: "curl -s -u ${BASIC_AUTH_USER}:${BASIC_AUTH_PASS} ${URL_BASE}:${env.STANDBY_PORT}/actuator/health --insecure", returnStdout: true).trim()
                         echo "Health response: ${response}"
                         if (response.contains('"status":"UP"')) {
                             healthy = true
