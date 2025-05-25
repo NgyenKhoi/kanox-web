@@ -22,7 +22,7 @@ pipeline {
             }
         }
 
-        stage('Determine active/standby port') {
+        stage('Determine active port') {
             steps {
                 script {
                     def status9090 = sh(
@@ -50,7 +50,7 @@ pipeline {
             }
         }
 
-        stage('Upload JAR to server') {
+        stage('Upload JAR to standby port') {
             steps {
                 sh """
                     ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} 'mkdir -p ${REMOTE_DIR}'
@@ -59,7 +59,7 @@ pipeline {
             }
         }
 
-        stage('Stop standby service (if any)') {
+        stage('Stop standby service if running') {
             steps {
                 sh """
                     ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} '
@@ -80,10 +80,10 @@ pipeline {
             }
         }
 
-        stage('Health check standby') {
+        stage('Health check standby service') {
             steps {
                 script {
-                    def retries = 10
+                    def retries = 5
                     def healthy = false
 
                     for (int i = 0; i < retries; i++) {
@@ -98,24 +98,24 @@ pipeline {
                             break
                         }
 
-                        echo "⌛ Waiting for port ${STANDBY_PORT} to become healthy... (${i + 1}/${retries})"
+                        echo "⌛ Waiting for service on port ${STANDBY_PORT} to become healthy (retry ${i + 1}/${retries})..."
                         sleep(time: 5, unit: 'SECONDS')
                     }
 
                     if (!healthy) {
-                        error "❌ Service on port ${STANDBY_PORT} failed health check."
+                        error "❌ Health check failed on port ${STANDBY_PORT} after ${retries} retries."
                     }
                 }
             }
         }
 
-        stage('Switch traffic to standby port') {
+        stage('Switch traffic in NGINX') {
             steps {
-                echo "🔁 Switching traffic from ${ACTIVE_PORT} ➝ ${STANDBY_PORT}"
+                echo "🔁 Switching proxy_pass in NGINX from port ${ACTIVE_PORT} to ${STANDBY_PORT}"
                 sh """
                     ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} '
+                        sudo sed -i "s/127.0.0.1:${ACTIVE_PORT}/127.0.0.1:${STANDBY_PORT}/g" ${NGINX_CONF} &&
                         sudo nginx -t &&
-                        sudo sed -i "s/${ACTIVE_PORT}/${STANDBY_PORT}/g" ${NGINX_CONF} &&
                         sudo systemctl reload nginx
                     '
                 """
@@ -125,7 +125,9 @@ pipeline {
         stage('Stop old active service') {
             steps {
                 sh """
-                    ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} 'sudo systemctl stop kanox-${ACTIVE_PORT}.service || true'
+                    ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} '
+                        sudo systemctl stop kanox-${ACTIVE_PORT}.service
+                    '
                 """
             }
         }
@@ -133,10 +135,10 @@ pipeline {
 
     post {
         success {
-            echo '✅ Triển khai không gián đoạn (zero downtime) hoàn tất!'
+            echo '✅ Deployment hoàn tất, zero downtime thành công!'
         }
         failure {
-            echo '❌ Lỗi trong quá trình triển khai!'
+            echo '❌ Lỗi khi triển khai, vui lòng kiểm tra logs.'
         }
     }
 }
