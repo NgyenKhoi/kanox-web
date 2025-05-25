@@ -2,17 +2,16 @@ pipeline {
     agent any
 
     environment {
-        GIT_CREDENTIALS_ID = 'git-token'
         SSH_KEY = '/var/lib/jenkins/.ssh/id_rsa'
         REMOTE_USER = 'vunguyenkhoi47'
         REMOTE_HOST = '34.87.68.190'
         REMOTE_DIR = '/home/vunguyenkhoi47/kanox'
         REMOTE_JAR = "${REMOTE_DIR}/app.jar"
         NGINX_CONF = '/etc/nginx/sites-enabled/kanox.conf'
-        DOMAIN = 'kanox.duckdns.org'
     }
 
     stages {
+
         stage('Clone & Build') {
             steps {
                 dir('backend') {
@@ -22,7 +21,7 @@ pipeline {
             }
         }
 
-        stage('Determine current active port') {
+        stage('Determine Active/Standby Port') {
             steps {
                 script {
                     def status9090 = sh(
@@ -38,22 +37,28 @@ pipeline {
                     echo "kanox-9090 status: ${status9090}"
                     echo "kanox-9091 status: ${status9091}"
 
+                    def activePort, standbyPort
+
                     if (status9090 == 'active') {
-                        env.ACTIVE_PORT = '9090'
-                        env.STANDBY_PORT = '9091'
+                        activePort = '9090'
+                        standbyPort = '9091'
                     } else if (status9091 == 'active') {
-                        env.ACTIVE_PORT = '9091'
-                        env.STANDBY_PORT = '9090'
+                        activePort = '9091'
+                        standbyPort = '9090'
                     } else {
-                        error "❌ Không có service nào đang chạy (9090 hoặc 9091). Không thể xác định ACTIVE_PORT."
+                        error "❌ Không có service nào đang chạy (9090 hoặc 9091)."
                     }
+
+                    // Set environment variables
+                    env.ACTIVE_PORT = activePort
+                    env.STANDBY_PORT = standbyPort
 
                     echo "✅ ACTIVE_PORT: ${env.ACTIVE_PORT}, STANDBY_PORT: ${env.STANDBY_PORT}"
                 }
             }
         }
 
-        stage('Upload to standby port') {
+        stage('Upload to standby') {
             steps {
                 sh """
                     ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} 'mkdir -p ${REMOTE_DIR}'
@@ -65,12 +70,13 @@ pipeline {
         stage('Restart standby service') {
             steps {
                 sh """
-                    ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} 'sudo systemctl restart kanox-${STANDBY_PORT}.service'
+                    ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} \\
+                        'sudo systemctl restart kanox-${STANDBY_PORT}.service'
                 """
             }
         }
 
-        stage('Health check standby service') {
+        stage('Health Check Standby') {
             steps {
                 script {
                     def retries = 15
@@ -78,36 +84,38 @@ pipeline {
 
                     for (int i = 0; i < retries; i++) {
                         def response = sh(
-                            script: "curl -s https://${DOMAIN}/actuator/health --insecure",
+                            script: """
+                                ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} \\
+                                    'curl -s http://localhost:${STANDBY_PORT}/actuator/health || echo FAIL'
+                            """,
                             returnStdout: true
                         ).trim()
 
                         if (response.contains('"status":"UP"')) {
-                            healthy = true
                             echo "✅ Service on port ${STANDBY_PORT} is healthy."
+                            healthy = true
                             break
                         }
 
-                        echo "⌛ Waiting for service on port ${STANDBY_PORT} to become healthy (retry ${i + 1}/${retries})..."
-                        sleep(time: 5, unit: 'SECONDS')
+                        echo "⌛ Waiting for service on port ${STANDBY_PORT} to become healthy (retry ${i + 1}/15)..."
+                        sleep time: 5, unit: 'SECONDS'
                     }
 
                     if (!healthy) {
-                        error "❌ Health check failed on port ${STANDBY_PORT} after ${retries} retries."
+                        error "❌ Health check failed on port ${STANDBY_PORT} after 15 retries."
                     }
                 }
             }
         }
 
-        stage('Switch traffic') {
+        stage('Switch traffic with NGINX') {
             steps {
-                echo "🔁 Switching traffic in NGINX from port ${ACTIVE_PORT} ➝ ${STANDBY_PORT}"
+                echo "🔁 Switching NGINX traffic from ${ACTIVE_PORT} ➝ ${STANDBY_PORT}"
                 sh """
-                    ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} '
-                        sudo nginx -t &&
-                        sudo sed -i "s/${ACTIVE_PORT}/${STANDBY_PORT}/g" ${NGINX_CONF} &&
-                        sudo systemctl reload nginx
-                    '
+                    ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} \\
+                        'sudo sed -i "s/${ACTIVE_PORT}/${STANDBY_PORT}/g" ${NGINX_CONF} && \\
+                         sudo nginx -t && \\
+                         sudo systemctl reload nginx'
                 """
             }
         }
@@ -115,7 +123,8 @@ pipeline {
         stage('Stop old service') {
             steps {
                 sh """
-                    ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} 'sudo systemctl stop kanox-${ACTIVE_PORT}.service'
+                    ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} \\
+                        'sudo systemctl stop kanox-${ACTIVE_PORT}.service'
                 """
             }
         }
@@ -123,7 +132,7 @@ pipeline {
 
     post {
         success {
-            echo '✅ Zero Downtime Deployment hoàn tất thành công!'
+            echo '✅ Triển khai Zero Downtime hoàn tất thành công!'
         }
         failure {
             echo '❌ Có lỗi xảy ra khi triển khai.'
