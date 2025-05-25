@@ -22,7 +22,7 @@ pipeline {
             }
         }
 
-        stage('Determine current active port') {
+        stage('Determine active/standby port') {
             steps {
                 script {
                     def status9090 = sh(
@@ -35,9 +35,6 @@ pipeline {
                         returnStdout: true
                     ).trim()
 
-                    echo "kanox-9090 status: ${status9090}"
-                    echo "kanox-9091 status: ${status9091}"
-
                     if (status9090 == 'active') {
                         env.ACTIVE_PORT = '9090'
                         env.STANDBY_PORT = '9091'
@@ -45,7 +42,7 @@ pipeline {
                         env.ACTIVE_PORT = '9091'
                         env.STANDBY_PORT = '9090'
                     } else {
-                        error "❌ Không có service nào đang chạy (9090 hoặc 9091). Không thể xác định ACTIVE_PORT."
+                        error "❌ Không có service nào đang chạy (9090 hoặc 9091)."
                     }
 
                     echo "✅ ACTIVE_PORT: ${env.ACTIVE_PORT}, STANDBY_PORT: ${env.STANDBY_PORT}"
@@ -53,7 +50,7 @@ pipeline {
             }
         }
 
-        stage('Upload to standby port') {
+        stage('Upload JAR to server') {
             steps {
                 sh """
                     ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} 'mkdir -p ${REMOTE_DIR}'
@@ -62,18 +59,31 @@ pipeline {
             }
         }
 
-        stage('Restart standby service') {
+        stage('Stop standby service (if any)') {
             steps {
                 sh """
-                    ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} 'sudo systemctl restart kanox-${STANDBY_PORT}.service'
+                    ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} '
+                        sudo systemctl stop kanox-${STANDBY_PORT}.service || true
+                        sudo fuser -k ${STANDBY_PORT}/tcp || true
+                    '
                 """
             }
         }
 
-        stage('Health check standby service') {
+        stage('Start standby service') {
+            steps {
+                sh """
+                    ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} '
+                        sudo systemctl start kanox-${STANDBY_PORT}.service
+                    '
+                """
+            }
+        }
+
+        stage('Health check standby') {
             steps {
                 script {
-                    def retries = 15
+                    def retries = 5
                     def healthy = false
 
                     for (int i = 0; i < retries; i++) {
@@ -88,20 +98,20 @@ pipeline {
                             break
                         }
 
-                        echo "⌛ Waiting for service on port ${STANDBY_PORT} to become healthy (retry ${i + 1}/${retries})..."
+                        echo "⌛ Waiting for port ${STANDBY_PORT} to become healthy... (${i + 1}/${retries})"
                         sleep(time: 5, unit: 'SECONDS')
                     }
 
                     if (!healthy) {
-                        error "❌ Health check failed on port ${STANDBY_PORT} after ${retries} retries."
+                        error "❌ Service on port ${STANDBY_PORT} failed health check."
                     }
                 }
             }
         }
 
-        stage('Switch traffic') {
+        stage('Switch traffic to standby port') {
             steps {
-                echo "🔁 Switching traffic in NGINX from port ${ACTIVE_PORT} ➝ ${STANDBY_PORT}"
+                echo "🔁 Switching traffic from ${ACTIVE_PORT} ➝ ${STANDBY_PORT}"
                 sh """
                     ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} '
                         sudo nginx -t &&
@@ -112,10 +122,10 @@ pipeline {
             }
         }
 
-        stage('Stop old service') {
+        stage('Stop old active service') {
             steps {
                 sh """
-                    ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} 'sudo systemctl stop kanox-${ACTIVE_PORT}.service'
+                    ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} 'sudo systemctl stop kanox-${ACTIVE_PORT}.service || true'
                 """
             }
         }
@@ -123,10 +133,10 @@ pipeline {
 
     post {
         success {
-            echo '✅ Zero Downtime Deployment hoàn tất thành công!'
+            echo '✅ Triển khai không gián đoạn (zero downtime) hoàn tất!'
         }
         failure {
-            echo '❌ Có lỗi xảy ra khi triển khai.'
+            echo '❌ Lỗi trong quá trình triển khai!'
         }
     }
 }
