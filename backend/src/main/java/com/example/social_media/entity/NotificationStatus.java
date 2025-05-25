@@ -1,19 +1,16 @@
 package com.example.social_media.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
 
 @Entity
 @Table(name = "tblNotificationStatus", schema = "dbo")
 public class NotificationStatus {
+
     @Id
-    @Column(name = "id", columnDefinition = "tinyint not null")
+    @Column(name = "id", columnDefinition = "tinyint")
     private Short id;
 
     @Size(max = 20)
@@ -26,8 +23,8 @@ public class NotificationStatus {
     @Column(name = "description")
     private String description;
 
-    @ColumnDefault("1")
-    @Column(name = "status")
+
+    @Column(name = "status", columnDefinition = "bit default 1")
     private Boolean status;
 
     public Short getId() {
@@ -61,5 +58,4 @@ public class NotificationStatus {
     public void setStatus(Boolean status) {
         this.status = status;
     }
-
 }
