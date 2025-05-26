@@ -4,10 +4,12 @@ import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Service;
+import io.jsonwebtoken.Claims;
 
-import javax.crypto.SecretKey;
 import java.security.Key;
 import java.util.Date;
+
+import static io.jsonwebtoken.Jwts.*;
 
 @Service
 public class JwtService {
@@ -18,7 +20,7 @@ public class JwtService {
     private final Key key = Keys.hmacShaKeyFor(SECRET.getBytes());
 
     public String generateToken(String username) {
-        return Jwts.builder()
+        return builder()
                 .subject(username)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + EXPIRATION_MS))
@@ -28,9 +30,12 @@ public class JwtService {
 
     public String extractUsername(String token) {
         try {
-            return Jwts.parser().verifyWith((SecretKey) key).build()
-                    .parseSignedClaims(token)
-                    .getPayload().getSubject();
+            return Jwts.parser()
+                    .setSigningKey(key)
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody()
+                    .getSubject();
         } catch (JwtException e) {
             return null;
         }

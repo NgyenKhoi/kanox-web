@@ -5,7 +5,9 @@ import com.example.social_media.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import com.example.social_media.dto.RegisterRequestDto;
 
+import java.time.LocalDate;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -85,5 +87,20 @@ public class AuthService {
 
     public Optional<User> getProfileByUsername(String username) {
         return userRepository.findByUsername(username);
+    }
+
+    public User register(RegisterRequestDto dto) {
+        if (userRepository.existsByEmail(dto.getEmail())) {
+            throw new RuntimeException("Email đã được sử dụng");
+        }
+
+        User user = new User();
+        user.setUsername(dto.getUsername());
+        user.setEmail(dto.getEmail());
+        user.setPassword(passwordEncoder.encode(dto.getPassword()));
+        LocalDate dob = LocalDate.of(dto.getYear(), dto.getMonth(), dto.getDay());
+        user.setDateOfBirth(dob);
+
+        return userRepository.save(user);
     }
 }

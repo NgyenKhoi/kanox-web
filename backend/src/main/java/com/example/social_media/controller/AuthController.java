@@ -1,5 +1,6 @@
 package com.example.social_media.controller;
 import com.example.social_media.dto.LoginRequestDto;
+import com.example.social_media.dto.RegisterRequestDto;
 import com.example.social_media.entity.User;
 import com.example.social_media.jwt.JwtService;
 import com.example.social_media.service.AuthService;
@@ -11,7 +12,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Optional;
 import java.util.HashMap;
 import java.util.Map;
-
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
@@ -60,6 +60,16 @@ public class AuthController {
             return ResponseEntity.ok("Password reset instructions sent to email");
         } else {
             return ResponseEntity.status(404).body("Email not found");
+        }
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@RequestBody RegisterRequestDto dto) {
+        try {
+            User createdUser = authService.register(dto);
+            return ResponseEntity.ok(createdUser);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Registration failed: " + e.getMessage());
         }
     }
 }
