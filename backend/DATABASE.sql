@@ -154,6 +154,7 @@ BEGIN
 END;
 
 -----------------------PROC FOR UPDATE USER PROFILE----------------------------------
+
 CREATE PROCEDURE sp_UpdateProfilePrivacy
     @user_id INT,
     @privacy_setting VARCHAR(20),
@@ -166,6 +167,9 @@ BEGIN
     SELECT @profile_content_type_id = id FROM tblTargetType WHERE code = 'PROFILE';
 
     BEGIN TRY
+        -- Bắt đầu giao dịch trước các kiểm tra
+        BEGIN TRANSACTION;
+
         -- Kiểm tra user_id
         IF NOT EXISTS (SELECT 1 FROM tblUser WHERE id = @user_id AND status = 1)
         BEGIN
@@ -192,13 +196,10 @@ BEGIN
         SET profile_privacy_setting = @privacy_setting
         WHERE id = @user_id;
 
-		UPDATE tblPrivacySettings
-		SET profile_viewer = @privacy_setting,
-			updated_at = GETDATE()
-		WHERE user_id = @user_id;
-
-        -- Giao dịch để đảm bảo tính nguyên tử
-        BEGIN TRANSACTION;
+        UPDATE tblPrivacySettings
+        SET profile_viewer = @privacy_setting,
+            updated_at = GETDATE()
+        WHERE user_id = @user_id;
 
         -- Xóa quyền riêng tư cũ
         DELETE FROM tblContentPrivacy
@@ -214,7 +215,8 @@ BEGIN
         COMMIT TRANSACTION;
     END TRY
     BEGIN CATCH
-        ROLLBACK TRANSACTION;
+        IF @@TRANCOUNT > 0
+            ROLLBACK TRANSACTION;
         DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
         DECLARE @ErrorSeverity INT = ERROR_SEVERITY();
         DECLARE @ErrorState INT = ERROR_STATE();
@@ -1802,8 +1804,9 @@ CREATE TABLE tblErrorLog (
     status BIT DEFAULT 1
 );
 
------ADD DATA FROM HERE------
---/////////////////////////////////////////////
+-----------ADD DATA-------------
+
+-- tblTargetType (Loại nội dung: bài viết, bình luận, câu chuyện, hồ sơ)
 INSERT INTO tblTargetType (name, code) VALUES
 ('Post', 'POST'),
 ('Comment', 'COMMENT'),
@@ -1816,236 +1819,209 @@ INSERT INTO tblTargetType (name, code) VALUES
 ('Notification', 'NOTIFICATION'),
 ('Report', 'REPORT');
 
+-- tblActionType (Loại hành động cho log hoạt động)
+INSERT INTO tblActionType (name, description) VALUES
+('USER_SOFT_DELETE', 'User account soft deleted'),
+('POST_CREATE', 'User created a post'),
+('COMMENT_CREATE', 'User created a comment'),
+('STORY_CREATE', 'User created a story'),
+('FRIEND_REQUEST_SENT', 'User sent a friend request'),
+('FRIEND_REQUEST_ACCEPTED', 'User accepted a friend request');
+
+-- tblNotificationType (Loại thông báo)
+INSERT INTO tblNotificationType (name, description, status) VALUES
+('FriendRequest', 'New friend request received', 1),
+('PostComment', 'New comment on your post', 1),
+('StoryView', 'Someone viewed your story', 1),
+('Reaction', 'Someone reacted to your content', 1);
+
+
+-- tblReactionType (Loại phản hồi: Like, Love, Haha, v.v.)
 INSERT INTO tblReactionType (name, description, status) VALUES
-('Like', 'Thumbs up icon', 1),
-('Love', 'Heart icon', 1),
-('Haha', 'Laughing face icon', 1),
-('Wow', 'Surprised face icon', 1),
-('Sad', 'Sad face icon', 1),
-('Angry', 'Angry face icon', 1),
-('Support', 'Supportive reaction', 1),
-('Dislike', 'Thumbs down icon', 1),
-('Question', 'Question mark icon', 1),
-('Celebrate', 'Cheers icon', 1);
+('Like', 'Like reaction', 1),
+('Love', 'Love reaction', 1),
+('Haha', 'Haha reaction', 1);
 
+-- tblMessageType (Loại tin nhắn: văn bản, hình ảnh, video)
+INSERT INTO tblMessageType (name, description, status) VALUES
+('Text', 'Text message', 1),
+('Image', 'Image message', 1),
+('Video', 'Video message', 1);
+
+-- tblUpgradeType (Loại nâng cấp tài khoản: Premium, VIP)
+INSERT INTO tblUpgradeType (name, description) VALUES
+('Premium', 'Premium account upgrade'),
+('VIP', 'VIP account upgrade');
+
+-- tblContentPolicy (Chính sách nội dung)
+INSERT INTO tblContentPolicy (policy_name, description, status) VALUES
+('HateSpeech', 'Content promoting hate speech', 1),
+('Violence', 'Content promoting violence', 1);
+
+-- tblBannedKeyword (Từ khóa bị cấm)
+INSERT INTO tblBannedKeyword (keyword, created_at, status) VALUES
+('spam', GETDATE(), 1),
+('offensive', GETDATE(), 1);
+
+----the second-----
+
+-- tblUser (Người dùng)
+INSERT INTO tblUser (email, username, phone_number, password, persistent_cookie, google_id, is_admin, display_name, date_of_birth, bio, gender, profile_privacy_setting, status) VALUES
+('emma.wilson@example.com', 'emma_wilson', '555-0101', 'hashed_pass_emma', NULL, NULL, 0, N'Emma Wilson', '1992-03-15', N'Yêu thích leo núi và nhiếp ảnh!', 1, 'public', 1),
+('liam.johnson@example.com', 'liam_johnson', '555-0102', 'hashed_pass_liam', NULL, NULL, 0, N'Liam Johnson', '1988-07-22', N'Đam mê công nghệ và game', 2, 'friends', 1),
+('sophia.martinez@example.com', 'sophia_martinez', '555-0103', 'hashed_pass_sophia', NULL, NULL, 0, N'Sophia Martinez', '1995-11-10', N'Đầu bếp đầy triển vọng', 0, 'only_me', 1),
+('noah.brown@example.com', 'noah_brown', '555-0104', 'hashed_pass_noah', NULL, NULL, 0, N'Noah Brown', '1990-04-05', N'Nghệ sĩ và du khách', 1, 'custom', 1),
+('olivia.smith@example.com', 'olivia_smith', '555-0105', 'hashed_pass_olivia', NULL, NULL, 1, N'Olivia Smith', '1985-09-30', N'Quản trị viên nền tảng', 2, 'public', 1);
+
+-- tblPrivacySettings (Cài đặt quyền riêng tư - tự động thêm bởi trigger trg_InsertPrivacySettings, nhưng có thể cập nhật)
+UPDATE tblPrivacySettings SET
+    post_viewer = 'friends',
+    comment_viewer = 'public',
+    story_viewer = 'custom',
+    profile_viewer = 'only_me',
+    message_viewer = 'friends',
+    updated_at = GETDATE()
+WHERE user_id = 1;
+
+UPDATE tblPrivacySettings SET
+    post_viewer = 'public',
+    comment_viewer = 'friends',
+    story_viewer = 'friends',
+    profile_viewer = 'friends',
+    message_viewer = 'only_me',
+    updated_at = GETDATE()
+WHERE user_id = 2;
+
+-- tblCustomPrivacyLists (Danh sách quyền riêng tư tùy chỉnh)
+INSERT INTO tblCustomPrivacyLists (user_id, list_name, created_at, status) VALUES
+(4, 'CloseFriends', GETDATE(), 1),
+(4, 'Family', GETDATE(), 1);
+
+-- tblCustomPrivacyListMembers (Thành viên trong danh sách tùy chỉnh)
+INSERT INTO tblCustomPrivacyListMembers (list_id, member_user_id, added_at, status) VALUES
+(1, 1, GETDATE(), 1), -- User 1 trong danh sách CloseFriends của User 4
+(1, 2, GETDATE(), 1), -- User 2 trong danh sách CloseFriends của User 4
+(2, 3, GETDATE(), 1); -- User 3 trong danh sách Family của User 4
+
+------the third-----
+
+-- tblFriendship (Mối quan hệ bạn bè)
+INSERT INTO tblFriendship (user_id, friend_id, friendship_status, created_at, status) VALUES
+(1, 2, 'accepted', GETDATE(), 1), -- User 1 và User 2 là bạn
+(2, 3, 'pending', GETDATE(), 1),  -- User 2 gửi yêu cầu kết bạn cho User 3
+(3, 4, 'accepted', GETDATE(), 1); -- User 3 và User 4 là bạn
+
+-- tblFriendSuggestion (Gợi ý bạn bè)
+INSERT INTO tblFriendSuggestion (user_id, suggested_user_id, mutual_friend_count, suggested_at, expiration_date) VALUES
+(1, 3, 1, GETDATE(), DATEADD(DAY, 7, GETDATE())), -- Gợi ý User 3 cho User 1
+(2, 4, 1, GETDATE(), DATEADD(DAY, 7, GETDATE())); -- Gợi ý User 4 cho User 2
+
+-- tblFollow (Theo dõi)
+INSERT INTO tblFollow (follower_id, followee_id, created_at, status) VALUES
+(1, 3, GETDATE(), 1), -- User 1 theo dõi User 3
+(2, 4, GETDATE(), 1); -- User 2 theo dõi User 4
+
+-- tblBlock (Chặn người dùng)
+INSERT INTO tblBlock (user_id, blocked_user_id, created_at, status) VALUES
+(3, 1, GETDATE(), 1); -- User 3 chặn User 1
+
+----the forth----
+-- tblPost (Bài viết)
+INSERT INTO tblPost (owner_id, content, privacy_setting, media_url, status) VALUES
+(1, N'Chào mọi người, đây là bài viết đầu tiên của tôi!', 'public', NULL, 1),
+(2, N'Hôm nay ăn phở ngon quá!', 'friends', 'https://example.com/pho.jpg', 1),
+(4, N'Chỉ bạn thân mới thấy được bài này.', 'custom', NULL, 1);
+
+-- tblContentPrivacy (Quyền riêng tư cho bài viết)
+INSERT INTO tblContentPrivacy (content_id, content_type_id, privacy_setting, custom_list_id, updated_at, status) VALUES
+(3, 1, 'custom', 1, GETDATE(), 1); -- Bài viết ID=3 của User 4 có quyền riêng tư tùy chỉnh
+
+-- tblComment (Bình luận)
+INSERT INTO tblComment (user_id, post_id, parent_comment_id, content, privacy_setting, created_at, status) VALUES
+(2, 1, NULL, N'Wow, bài viết hay quá!', 'public', GETDATE(), 1),
+(3, 1, 1, N'Cảm ơn bạn!', 'public', GETDATE(), 1); -- Bình luận trả lời
+
+-- tblStory (Câu chuyện)
+INSERT INTO tblStory (user_id, caption, media_url, media_type, privacy_setting, background_color, status) VALUES
+(2, N'Chuyến đi Đà Lạt tuyệt vời!', 'https://example.com/dalat.jpg', 'image', 'friends', '#FF0000', 1),
+(4, N'Hôm nay chill!', 'https://example.com/chill.mp4', 'video', 'custom', '#00FF00', 1);
+
+-- tblContentPrivacy (Quyền riêng tư cho câu chuyện)
+INSERT INTO tblContentPrivacy (content_id, content_type_id, privacy_setting, custom_list_id, updated_at, status) VALUES
+(2, 3, 'custom', 1, GETDATE(), 1); -- Câu chuyện ID=2 của User 4 có quyền riêng tư tùy chỉnh
+
+-- tblStoryViewer (Lượt xem câu chuyện)
+INSERT INTO tblStoryViewer (story_id, viewer_id, view_time, status) VALUES
+(1, 1, GETDATE(), 1); -- User 1 xem câu chuyện của User 2
+
+-- tblStoryReply (Phản hồi câu chuyện)
+INSERT INTO tblStoryReply (story_id, sender_id, message, sent_time, status) VALUES
+(1, 1, N'Tuyệt vời quá!', GETDATE(), 1); -- User 1 phản hồi câu chuyện của User 2
+
+------the fifth----------
+-- tblReaction (Phản hồi)
+INSERT INTO tblReaction (user_id, reaction_type_id, target_id, target_type_id, created_at, status) VALUES
+(2, 1, 1, 1, GETDATE(), 1), -- User 2 thích bài viết ID=1
+(3, 2, 1, 3, GETDATE(), 1); -- User 3 yêu thích câu chuyện ID=1
+	
+-- tblNotification (Thông báo)
+INSERT INTO tblNotification (user_id, type_id, message, created_at, target_id, target_type_id, status_id) VALUES
+(1, 1, N'User 2 sent you a friend request.', GETDATE(), 2, NULL, 1),
+(1, 2, N'User 2 commented on your post.', GETDATE(), 1, 1, 1),
+(2, 3, N'User 1 viewed your story.', GETDATE(), 1, 3, 1);
+
+-- tblReport (Báo cáo)
 INSERT INTO tblReport (reporter_id, target_id, target_type_id, reason, report_time, status) VALUES
-(2, 1, 1, 'Inappropriate content', '2023-01-15 09:30:00', 1),
-(3, 5, 2, 'Offensive comment', '2023-01-16 14:15:00', 1),
-(1, 3, 3, 'Sensitive content in story', '2023-01-17 18:45:00', 1),
-(4, 2, 4, 'Fake user profile', '2023-01-18 10:20:00', 1),
-(5, 1, 5, 'Group contains illegal content', '2023-01-19 16:30:00', 1),
-(2, 4, 6, 'Scam page', '2023-01-20 11:10:00', 1),
-(3, 2, 7, 'Spam message', '2023-01-21 13:25:00', 1),
-(1, 1, 8, 'Harassment call', '2023-01-22 15:40:00', 1),
-(4, 3, 9, 'Fake notification', '2023-01-23 09:05:00', 1),
-(5, 2, 10, 'False report', '2023-01-24 17:50:00', 1);
+(3, 1, 1, N'Inappropriate content', GETDATE(), 1); -- User 3 báo cáo bài viết ID=1
 
-INSERT INTO tblReaction (user_id, reaction_type_id, target_id, target_type_id, created_at) VALUES
-(1, 1, 1, 1, '2023-01-15 08:30:00'),
-(2, 2, 1, 1, '2023-01-15 09:15:00'),
-(3, 3, 2, 2, '2023-01-16 10:20:00'),
-(4, 1, 3, 3, '2023-01-17 11:45:00'),
-(5, 4, 4, 4, '2023-01-18 12:30:00'),
-(1, 5, 5, 5, '2023-01-19 13:15:00'),
-(2, 6, 1, 6, '2023-01-20 14:20:00'),
-(3, 7, 2, 7, '2023-01-21 15:35:00'),
-(4, 8, 3, 8, '2023-01-22 16:40:00'),
-(5, 9, 4, 9, '2023-01-23 17:55:00');
------USER DATA-----
-INSERT INTO tblUser (
-    email, username, phone_number, password,
-    persistent_cookie, google_id, is_admin,
-    display_name, date_of_birth, bio, gender, status
-) VALUES
-      ('admin.@gmail.com', 'admin', '0123456789', '123',
-       NULL, NULL, 1, N'Admin Hoang', '1990-01-01', N'Bio của Admin', 1, 1),
+--the 6th----
+-- tblChat (Phiên trò chuyện)
+INSERT INTO tblChat (is_group, name, created_at, status) VALUES
+(0, NULL, GETDATE(), 1), -- Trò chuyện cá nhân
+(1, N'Nhóm bạn thân', GETDATE(), 1); -- Nhóm
 
-      ('minhthu@gmail.com', 'minhthu', '0900000001', '123',
-       NULL, NULL, 0, N'Minh Thu', '1990-01-01', N'Bio của Minh Thu', 1, 1),
+-- tblChatMember (Thành viên trò chuyện)
+INSERT INTO tblChatMember (chat_id, user_id, joined_at, is_admin, status) VALUES
+(1, 1, GETDATE(), 0, 1), -- User 1 trong trò chuyện cá nhân
+(1, 2, GETDATE(), 0, 1), -- User 2 trong trò chuyện cá nhân
+(2, 1, GETDATE(), 1, 1), -- User 1 là admin nhóm
+(2, 2, GETDATE(), 0, 1), -- User 2 trong nhóm
+(2, 3, GETDATE(), 0, 1); -- User 3 trong nhóm
 
-      ('quocanh@gmail.com', 'quocanh', '0900000002', '123',
-       NULL, NULL, 0, N'Quoc Anh', '1991-02-02', N'Bio của Quoc Anh', 0, 1),
+-- tblMessage (Tin nhắn)
+INSERT INTO tblMessage (chat_id, sender_id, type_id, content, created_at, status) VALUES
+(1, 1, 1, N'Chào bạn!', GETDATE(), 1), -- Tin nhắn văn bản trong trò chuyện cá nhân
+(2, 2, 2, NULL, GETDATE(), 1); -- Tin nhắn hình ảnh trong nhóm
 
-      ('thanhnga@gmail.com', 'thanhnga', '0900000003', '123',
-       NULL, NULL, 0, N'Thanh Nga', '1992-03-03', N'Bio của Thanh Nga', 2, 1),
+----the 7th-------
+-- tblSession (Phiên đăng nhập)
+INSERT INTO tblSession (user_id, device, ip_address, created_at, expired_time, status) VALUES
+(1, 'Mobile', '192.168.1.1', GETDATE(), DATEADD(DAY, 7, GETDATE()), 1),
+(2, 'Desktop', '192.168.1.2', GETDATE(), DATEADD(DAY, 7, GETDATE()), 1);
 
-      ('baotran@gmail.com', 'baotran', '0900000004', '123',
-       NULL, NULL, 0, N'Bao Tran', '1993-04-04', N'Bio của Bao Tran', 1, 1),
+-- tblPasswordReset (Yêu cầu đặt lại mật khẩu)
+INSERT INTO tblPasswordReset (user_id, token, token_expire_time, is_used, status) VALUES
+(1, 'reset_token_123', DATEADD(HOUR, 1, GETDATE()), 0, 1);
 
-      ('khanhlinh@gmail.com', 'khanhlinh', '0900000005', '123',
-       NULL, NULL, 0, N'Khanh Linh', '1994-05-05', N'Bio của Khanh Linh', 0, 1),
+-- tblGroup (Nhóm)
+INSERT INTO tblGroup (owner_id, name, description, created_at, status) VALUES
+(1, N'Nhóm yêu công nghệ', N'Chia sẻ kiến thức công nghệ', GETDATE(), 1);
 
-      ('duylong@gmail.com', 'duylong', '0900000006', '123',
-       NULL, NULL, 0, N'Duy Long', '1995-06-06', N'Bio của Duy Long', 1, 1),
-
-      ('thuytrang@gmail.com', 'thuytrang', '0900000007', '123',
-       NULL, NULL, 0, N'Thuy Trang', '1996-07-07', N'Bio của Thuy Trang', 0, 1),
-
-      ('anhkhoa@gmail.com', 'anhkhoa', '0900000008', '123',
-       NULL, NULL, 0, N'Anh Khoa', '1997-08-08', N'Bio của Anh Khoa', 2, 1),
-
-      ('hongnhung@gmail.com', 'hongnhung', '0900000009', '123',
-       NULL, NULL, 0, N'Hong Nhung', '1998-09-09', N'Bio của Hong Nhung', 1, 1),
-
-      ('tuanvu@gmail.com', 'tuanvu', '0900000010', '123',
-       NULL, NULL, 0, N'Tuan Vu', '1999-10-10', N'Bio của Tuan Vu', 0, 1),
-
-      ('ngocmai@gmail.com', 'ngocmai', '0900000011', '123',
-       NULL, NULL, 0, N'Ngoc Mai', '2000-11-11', N'Bio của Ngoc Mai', 2, 1),
-
-      ('phuocloc@gmail.com', 'phuocloc', '0900000012', '123',
-       NULL, NULL, 0, N'Phuoc Loc', '2001-12-12', N'Bio của Phuoc Loc', 1, 1),
-
-      ('thanhbinh@gmail.com', 'thanhbinh', '0900000013', '123',
-       NULL, NULL, 0, N'Thanh Binh', '2002-01-13', N'Bio của Thanh Binh', 0, 1),
-
-      ('kieuanh@gmail.com', 'kieuanh', '0900000014', '123',
-       NULL, NULL, 0, N'Kieu Anh', '2003-02-14', N'Bio của Kieu Anh', 2, 1),
-
-      ('minhduc@gmail.com', 'minhduc', '0900000015', '123',
-       NULL, NULL, 0, N'Minh Duc', '2004-03-15', N'Bio của Minh Duc', 1, 1),
-
-      ('lanhuong@gmail.com', 'lanhuong', '0900000016', '123',
-       NULL, NULL, 0, N'Lan Huong', '2005-04-16', N'Bio của Lan Huong', 0, 1),
-
-      ('trunghieu@gmail.com', 'trunghieu', '0900000017', '123',
-       NULL, NULL, 0, N'Trung Hieu', '2006-05-17', N'Bio của Trung Hieu', 2, 1),
-
-      ('thuylinh@gmail.com', 'thuylinh', '0900000018', '123',
-       NULL, NULL, 0, N'Thuy Linh', '2007-06-18', N'Bio của Thuy Linh', 1, 1),
-
-      ('hoangnam@gmail.com', 'hoangnam', '0900000019', '123',
-       NULL, NULL, 0, N'Hoang Nam', '2008-07-19', N'Bio của Hoang Nam', 0, 1);
-INSERT INTO tblFriendship (
-    user_id, friend_id, friendship_status, created_at, status
-) VALUES
-      (1, 2, 'accepted', '2025-05-01 10:00:00', 1), -- Admin Hoang và Minh Thu là bạn
-      (1, 3, 'pending', '2025-05-02 11:00:00', 1),  -- Admin Hoang gửi lời mời cho Quoc Anh
-      (2, 4, 'accepted', '2025-05-03 12:00:00', 1), -- Minh Thu và Thanh Nga là bạn
-      (2, 5, 'rejected', '2025-05-04 13:00:00', 1), -- Minh Thu từ chối Bao Tran
-      (3, 6, 'pending', '2025-05-05 14:00:00', 1),  -- Quoc Anh gửi lời mời cho Khanh Linh
-      (4, 7, 'accepted', '2025-05-06 15:00:00', 1), -- Thanh Nga và Duy Long là bạn
-      (5, 8, 'pending', '2025-05-07 16:00:00', 1),  -- Bao Tran gửi lời mời cho Thuy Trang
-      (6, 9, 'accepted', '2025-05-08 17:00:00', 1), -- Khanh Linh và Anh Khoa là bạn
-      (7, 10, 'rejected', '2025-05-09 18:00:00', 1),-- Duy Long từ chối Hong Nhung
-      (8, 11, 'pending', '2025-05-10 19:00:00', 1), -- Thuy Trang gửi lời mời cho Ngoc Mai
-      (9, 12, 'accepted', '2025-05-11 20:00:00', 1),-- Anh Khoa và Phuoc Loc là bạn
-      (10, 13, 'pending', '2025-05-12 21:00:00', 1),-- Hong Nhung gửi lời mời cho Thanh Binh
-      (11, 14, 'accepted', '2025-05-13 22:00:00', 1),-- Ngoc Mai và Kieu Anh là bạn
-      (12, 15, 'rejected', '2025-05-14 23:00:00', 1),-- Phuoc Loc từ chối Minh Duc
-      (13, 16, 'pending', '2025-05-15 09:00:00', 1), -- Thanh Binh gửi lời mời cho Lan Huong
-      (14, 17, 'accepted', '2025-05-16 10:00:00', 1),-- Kieu Anh và Trung Hieu là bạn
-      (15, 18, 'pending', '2025-05-17 11:00:00', 1), -- Minh Duc gửi lời mời cho Thuy Linh
-      (16, 19, 'accepted', '2025-05-18 12:00:00', 1),-- Lan Huong và Thuy Linh là bạn
-      (17, 1, 'rejected', '2025-05-19 13:00:00', 1), -- Trung Hieu từ chối Admin Hoang
-      (18, 2, 'pending', '2025-05-20 14:00:00', 1); -- Thuy Linh gửi lời mời cho Minh Thu
-INSERT INTO tblFollow (
-    follower_id, followee_id, created_at, status
-) VALUES
-      (2, 1, '2025-05-01 10:00:00', 1),  -- Minh Thu theo dõi Admin Hoang
-      (3, 1, '2025-05-02 11:00:00', 1),  -- Quoc Anh theo dõi Admin Hoang
-      (4, 2, '2025-05-03 12:00:00', 1),  -- Thanh Nga theo dõi Minh Thu
-      (5, 3, '2025-05-04 13:00:00', 1),  -- Bao Tran theo dõi Quoc Anh
-      (6, 4, '2025-05-05 14:00:00', 1),  -- Khanh Linh theo dõi Thanh Nga
-      (7, 4, '2025-05-06 15:00:00', 1),  -- Duy Long theo dõi Thanh Nga
-      (8, 6, '2025-05-07 16:00:00', 1),  -- Thuy Trang theo dõi Khanh Linh
-      (9, 7, '2025-05-08 17:00:00', 1),  -- Anh Khoa theo dõi Duy Long
-      (10, 9, '2025-05-09 18:00:00', 1), -- Hong Nhung theo dõi Anh Khoa
-      (11, 9, '2025-05-10 19:00:00', 1), -- Ngoc Mai theo dõi Anh Khoa
-      (12, 11, '2025-05-11 20:00:00', 1),-- Phuoc Loc theo dõi Ngoc Mai
-      (13, 12, '2025-05-12 21:00:00', 1),-- Thanh Binh theo dõi Phuoc Loc
-      (14, 12, '2025-05-13 22:00:00', 1),-- Kieu Anh theo dõi Phuoc Loc
-      (15, 14, '2025-05-14 23:00:00', 1),-- Minh Duc theo dõi Kieu Anh
-      (16, 14, '2025-05-15 09:00:00', 1),-- Lan Huong theo dõi Kieu Anh
-      (17, 15, '2025-05-16 10:00:00', 1),-- Trung Hieu theo dõi Minh Duc
-      (18, 16, '2025-05-17 11:00:00', 1),-- Thuy Linh theo dõi Lan Huong
-      (19, 16, '2025-05-18 12:00:00', 1),-- Hoang Nam theo dõi Lan Huong
-      (1, 18, '2025-05-19 13:00:00', 1), -- Admin Hoang theo dõi Thuy Linh
-      (2, 19, '2025-05-20 14:00:00', 1); -- Minh Thu theo dõi Hoang Nam
-INSERT INTO tblBlock (
-    user_id, blocked_user_id, created_at, status
-) VALUES
-      (1, 19, '2025-05-01 10:00:00', 1), -- Admin Hoang chặn Hoang Nam
-      (2, 18, '2025-05-02 11:00:00', 1), -- Minh Thu chặn Thuy Linh
-      (3, 17, '2025-05-03 12:00:00', 1), -- Quoc Anh chặn Trung Hieu
-      (4, 16, '2025-05-04 13:00:00', 1), -- Thanh Nga chặn Lan Huong
-      (5, 15, '2025-05-05 14:00:00', 1), -- Bao Tran chặn Minh Duc
-      (6, 14, '2025-05-06 15:00:00', 1), -- Khanh Linh chặn Kieu Anh
-      (7, 13, '2025-05-07 16:00:00', 1), -- Duy Long chặn Thanh Binh
-      (8, 12, '2025-05-08 17:00:00', 1), -- Thuy Trang chặn Phuoc Loc
-      (9, 11, '2025-05-09 18:00:00', 1), -- Anh Khoa chặn Ngoc Mai
-      (10, 1, '2025-05-10 19:00:00', 1), -- Hong Nhung chặn Admin Hoang
-      (11, 2, '2025-05-11 20:00:00', 1), -- Ngoc Mai chặn Minh Thu
-      (12, 3, '2025-05-12 21:00:00', 1), -- Phuoc Loc chặn Quoc Anh
-      (13, 5, '2025-05-13 22:00:00', 1), -- Thanh Binh chặn Bao Tran
-      (14, 6, '2025-05-14 23:00:00', 1), -- Kieu Anh chặn Khanh Linh
-      (15, 7, '2025-05-15 09:00:00', 1); -- Minh Duc chặn Duy Long
-
-INSERT INTO tblGroup (owner_id, name, description, created_at, status)
-VALUES
-(1, N'Programming Group', N'A place to share programming knowledge', GETDATE(), 1),
-(2, N'Book Club', N'Read and review books together', GETDATE(), 1),
-(3, N'Travel Group', N'Share travel experiences', GETDATE(), 1),
-(4, N'Cooking Group', N'For those who love cooking and cuisine', GETDATE(), 1),
-(5, N'Sports Group', N'Discuss about sports', GETDATE(), 1),
-(6, N'Music Group', N'Share good music every day', GETDATE(), 1),
-(1, N'Tech Group', N'Latest technology news', GETDATE(), 1),
-(2, N'English Learning Group', N'Learn English together', GETDATE(), 1),
-(3, N'Photography Group', N'Share beautiful photos and techniques', GETDATE(), 1),
-(4, N'Movie Group', N'Movie discussions', GETDATE(), 1);
-
-INSERT INTO tblPage (owner_id, name, description, created_at, status)
-VALUES
-(1, N'Tech News Page', N'Update technology news', GETDATE(), 1),
-(2, N'Travel Blog', N'Share travel experiences', GETDATE(), 1),
-(3, N'Vietnamese Cuisine', N'Explore delicious Vietnamese food', GETDATE(), 1),
-(4, N'Book Review', N'Book reviews and ratings', GETDATE(), 1),
-(5, N'Fitness Life', N'Healthy living every day', GETDATE(), 1),
-(6, N'Pop Music', N'Top trending pop music', GETDATE(), 1),
-(1, N'English Zone', N'Learn English together', GETDATE(), 1),
-(2, N'Photo Art', N'Photography art', GETDATE(), 1),
-(3, N'Good Movies', N'Introduce good movies', GETDATE(), 1),
-(4, N'Creative Corner', N'Creative space for everyone', GETDATE(), 1);
-
-INSERT INTO tblGroupMember (group_id, user_id, join_at, is_admin, status)
-VALUES
--- Group 1: owner 1, add user 2, 3
+-- tblGroupMember (Thành viên nhóm)
+INSERT INTO tblGroupMember (group_id, user_id, join_at, is_admin, status) VALUES
 (1, 1, GETDATE(), 1, 1),
-(1, 2, GETDATE(), 0, 1),
-(1, 3, GETDATE(), 0, 1),
--- Group 2: owner 2, add user 1, 4
-(2, 2, GETDATE(), 1, 1),
-(2, 1, GETDATE(), 0, 1),
-(2, 4, GETDATE(), 0, 1),
--- Group 3: owner 3, add user 2, 5
-(3, 3, GETDATE(), 1, 1),
-(3, 2, GETDATE(), 0, 1),
-(3, 5, GETDATE(), 0, 1),
--- Group 4: owner 4, add user 1, 6
-(4, 4, GETDATE(), 1, 1),
-(4, 1, GETDATE(), 0, 1),
-(4, 6, GETDATE(), 0, 1),
--- Group 5: owner 5, add user 3, 4
-(5, 5, GETDATE(), 1, 1),
-(5, 3, GETDATE(), 0, 1),
-(5, 4, GETDATE(), 0, 1),
--- Group 6: owner 6, add user 2, 5
-(6, 6, GETDATE(), 1, 1),
-(6, 2, GETDATE(), 0, 1),
-(6, 5, GETDATE(), 0, 1),
--- Group 7: owner 1, add user 4, 5
-(7, 1, GETDATE(), 1, 1),
-(7, 4, GETDATE(), 0, 1),
-(7, 5, GETDATE(), 0, 1),
--- Group 8: owner 2, add user 3, 6
-(8, 2, GETDATE(), 1, 1),
-(8, 3, GETDATE(), 0, 1),
-(8, 6, GETDATE(), 0, 1),
--- Group 9: owner 3, add user 1, 2
-(9, 3, GETDATE(), 1, 1),
-(9, 1, GETDATE(), 0, 1),
-(9, 2, GETDATE(), 0, 1),
--- Group 10: owner 4, add user 5, 6
-(10, 4, GETDATE(), 1, 1),
-(10, 5, GETDATE(), 0, 1),
-(10, 6, GETDATE(), 0, 1);
+(1, 2, GETDATE(), 0, 1);
+
+-- tblPage (Trang)
+INSERT INTO tblPage (owner_id, name, description, created_at, status) VALUES
+(2, N'Trang ẩm thực', N'Chia sẻ món ăn ngon', GETDATE(), 1);
+
+-- tblAccountUpgrade (Nâng cấp tài khoản)
+INSERT INTO tblAccountUpgrade (user_id, upgrade_type_id, upgrade_at, expire_time, status) VALUES
+(1, 1, GETDATE(), DATEADD(MONTH, 1, GETDATE()), 1); -- User 1 nâng cấp Premium
+
+-- tblAnalytics (Phân tích)
+INSERT INTO tblAnalytics (field_name, field_value, update_time, status) VALUES
+('ActiveUsers', '1000', GETDATE(), 1),
+('PostCount', '500', GETDATE(), 1);
+
