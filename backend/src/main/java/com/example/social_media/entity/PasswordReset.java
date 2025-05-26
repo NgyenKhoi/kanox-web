@@ -18,7 +18,7 @@ public class PasswordReset {
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
-    private TblUser user;
+    private User user;
 
     @Size(max = 255)
     @Column(name = "token")
@@ -43,11 +43,11 @@ public class PasswordReset {
         this.id = id;
     }
 
-    public TblUser getUser() {
+    public User getUser() {
         return user;
     }
 
-    public void setUser(TblUser user) {
+    public void setUser(User user) {
         this.user = user;
     }
 

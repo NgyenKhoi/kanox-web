@@ -17,7 +17,7 @@ public class Session {
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
-    private TblUser user;
+    private User user;
 
     @Lob
     @Column(name = "device")
@@ -46,11 +46,11 @@ public class Session {
         this.id = id;
     }
 
-    public TblUser getUser() {
+    public User getUser() {
         return user;
     }
 
-    public void setUser(TblUser user) {
+    public void setUser(User user) {
         this.user = user;
     }
 
