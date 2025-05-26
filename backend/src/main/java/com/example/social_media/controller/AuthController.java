@@ -1,13 +1,16 @@
 package com.example.social_media.controller;
+import com.example.social_media.dto.LoginRequestDto;
 import com.example.social_media.entity.User;
+import com.example.social_media.jwt.JwtService;
 import com.example.social_media.service.AuthService;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -16,31 +19,30 @@ public class AuthController {
     @Autowired
     private AuthService authService;
 
-    // Login
+    @Autowired
+    private JwtService jwtService;
+
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestParam String identifier,
-                                   @RequestParam String password,
-                                   @RequestParam(defaultValue = "false") boolean rememberMe,
-                                   HttpServletResponse response) {
-        Optional<User> userOpt = authService.loginFlexible(identifier, password);
+    public ResponseEntity<?> login(@RequestBody LoginRequestDto loginRequest) {
+        Optional<User> userOpt = authService.loginFlexible(loginRequest.getIdentifier(), loginRequest.getPassword());
         if (userOpt.isPresent()) {
             User user = userOpt.get();
+            String token = jwtService.generateToken(user.getUsername());
 
-            if (rememberMe) {
-                String token = authService.rememberMe(user);
-                Cookie cookie = new Cookie("remember-me", token);
-                cookie.setHttpOnly(true);
-                cookie.setMaxAge(7 * 24 * 60 * 60); // 7 days
-                cookie.setPath("/");
-                response.addCookie(cookie);
-            }
-
-            return ResponseEntity.ok(user);
+            Map<String, Object> result = new HashMap<>();
+            result.put("token", token);
+            result.put("user", user);
+            return ResponseEntity.ok(result);
         }
         return ResponseEntity.status(401).body("Invalid credentials");
     }
 
-    // Logout
+    @GetMapping("/profile/{username}")
+    public ResponseEntity<?> getProfile(@PathVariable String username) {
+        Optional<User> userOpt = authService.getProfileByUsername(username);
+        return userOpt.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
     @PostMapping("/logout")
     public ResponseEntity<?> logout(@RequestParam Integer userId) {
         Optional<User> userOpt = authService.getProfile(userId);
@@ -51,20 +53,6 @@ public class AuthController {
         return ResponseEntity.notFound().build();
     }
 
-    // Login by persistent cookie
-    @GetMapping("/login-by-cookie")
-    public ResponseEntity<?> loginByCookie(@CookieValue(name = "remember-me", required = false) String cookie) {
-        if (cookie == null) {
-            return ResponseEntity.status(400).body("No remember-me cookie provided");
-        }
-        Optional<User> userOpt = authService.loginByPersistentCookie(cookie);
-        if (userOpt.isPresent()) {
-            return ResponseEntity.ok(userOpt.get());
-        }
-        return ResponseEntity.status(401).body("Invalid token");
-    }
-
-    // Forgot password
     @PostMapping("/forgot-password")
     public ResponseEntity<?> forgotPassword(@RequestParam String email) {
         boolean result = authService.forgotPassword(email);
@@ -73,12 +61,5 @@ public class AuthController {
         } else {
             return ResponseEntity.status(404).body("Email not found");
         }
-    }
-
-    // View profile
-    @GetMapping("/profile/{username}")
-    public ResponseEntity<?> getProfile(@PathVariable String username) {
-        Optional<User> userOpt = authService.getProfileByUsername(username);
-        return userOpt.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
 }
