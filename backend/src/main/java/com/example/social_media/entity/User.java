@@ -1,5 +1,6 @@
 package com.example.social_media.entity;
 
+import jakarta.annotation.Nullable;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -28,7 +29,6 @@ public class User {
     private String username;
 
     @Size(max = 12)
-    @NotNull
     @Column(name = "phone_number", nullable = false, length = 12)
     private String phoneNumber;
 

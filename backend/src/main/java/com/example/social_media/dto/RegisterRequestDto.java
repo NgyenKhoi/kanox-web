@@ -14,7 +14,7 @@ public class RegisterRequestDto {
 
     // Getters và Setters
     public String getUsername() { return username; }
-    public void setName(String name) { this.username = name; }
+    public void setUsername(String name) { this.username = name; }
 
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }

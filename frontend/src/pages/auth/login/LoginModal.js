@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { Modal, Button, Form } from "react-bootstrap";
 import { X as XCloseIcon } from "react-bootstrap-icons";
 import { FcGoogle } from "react-icons/fc";
-import { FaApple } from "react-icons/fa";
 import ForgotPasswordModal from "./ForgotPasswordModal";
 import JoinXModal from "./JoinXModal";
 import { useNavigate } from "react-router-dom"; // Import useNavigate
@@ -27,9 +26,9 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
       const response = await fetch("http://localhost:9090/api/auth/login", {
         method: "POST",
         headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
+          "Content-Type": "application/json",
         },
-        body: new URLSearchParams({
+        body: JSON.stringify({
           identifier: loginIdentifier,
           password: password,
         }),

@@ -100,7 +100,7 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(dto.getPassword()));
         LocalDate dob = LocalDate.of(dto.getYear(), dto.getMonth(), dto.getDay());
         user.setDateOfBirth(dob);
-
+        user.setStatus(true);
         return userRepository.save(user);
     }
 }
