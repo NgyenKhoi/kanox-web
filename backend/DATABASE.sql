@@ -21,7 +21,7 @@ CREATE TABLE tblUser (
     id INT PRIMARY KEY IDENTITY(1, 1),
     email NVARCHAR(50) NOT NULL UNIQUE,
     username VARCHAR(30) NOT NULL UNIQUE,
-    phone_number VARCHAR(12) NOT NULL UNIQUE,
+    phone_number VARCHAR(12) UNIQUE,
     password VARCHAR(255) NOT NULL,
     persistent_cookie VARCHAR(255),
     google_id VARCHAR(255),
@@ -124,6 +124,7 @@ CREATE TABLE tblContentPrivacy (
     PRIMARY KEY (content_id, content_type_id)
 );
 
+
 CREATE TRIGGER trg_ValidateContentPrivacy
 ON tblContentPrivacy
 AFTER INSERT, UPDATE
@@ -131,8 +132,11 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
+    -- Declare variables
     DECLARE @invalid_content TABLE (content_id INT, content_type_id INT);
+    DECLARE @error_msg NVARCHAR(4000) = '';
 
+    -- Collect invalid content entries
     INSERT INTO @invalid_content (content_id, content_type_id)
     SELECT i.content_id, i.content_type_id
     FROM inserted i
@@ -142,14 +146,22 @@ BEGIN
         OR (i.content_type_id = 3 AND NOT EXISTS (SELECT 1 FROM tblStory WHERE id = i.content_id AND status = 1))
         OR (i.content_type_id = 4 AND NOT EXISTS (SELECT 1 FROM tblUser WHERE id = i.content_id AND status = 1));
 
+    -- Check for invalid content
     IF EXISTS (SELECT 1 FROM @invalid_content)
     BEGIN
-        DECLARE @error_msg NVARCHAR(4000);
-        SELECT @error_msg = 'Invalid content_id ' + CAST(content_id AS NVARCHAR(10)) + ' for content_type_id ' + CAST(content_type_id AS NVARCHAR(10))
+        --ස
+
+        -- Aggregate error messages for all invalid rows
+        SELECT @error_msg = @error_msg + 'Invalid content_id ' + CAST(content_id AS NVARCHAR(10)) + 
+                            ' for content_type_id ' + CAST(content_type_id AS NVARCHAR(10)) + '; '
         FROM @invalid_content;
-        RAISERROR(@error_msg, 16, 1);
-        ROLLBACK TRANSACTION;
-        RETURN;
+
+        -- Ensure error message is not empty
+        IF @error_msg = ''
+            SET @error_msg = 'Invalid content detected in tblContentPrivacy.';
+
+        -- Throw error without rolling back to avoid transaction issues
+        THROW 50001, @error_msg, 1;
     END
 END;
 
@@ -945,7 +957,7 @@ CREATE TABLE tblChat (
 );
 --------------PROC VALIDATE AND CREATE POST--------------
 
-CREATE PROCEDURE sp_CreatePost
+create PROCEDURE sp_CreatePost
     @owner_id INT,
     @content NVARCHAR(MAX),
     @privacy_setting VARCHAR(20),
@@ -1050,6 +1062,8 @@ BEGIN
         DECLARE @tagged_user_id INT;
         DECLARE @has_access BIT;
 
+        PRINT 'Processing tagged_user_ids: ' + @tagged_user_ids;
+
         SET @tagged_user_ids = @tagged_user_ids + ',';
 
         WHILE CHARINDEX(',', @tagged_user_ids, @pos) > 0
@@ -1058,10 +1072,16 @@ BEGIN
             SET @id_str = SUBSTRING(@tagged_user_ids, @pos, @len);
             SET @pos = CHARINDEX(',', @tagged_user_ids, @pos) + 1;
 
+            PRINT 'Extracted ID: ' + @id_str;
+
             IF ISNUMERIC(@id_str) = 1
             BEGIN
                 SET @tagged_user_id = CAST(@id_str AS INT);
+                PRINT 'Checking access for user_id: ' + CAST(@tagged_user_id AS VARCHAR);
+
                 EXEC sp_CheckContentAccess @tagged_user_id, @new_post_id, 1, @has_access OUTPUT;
+
+                PRINT 'Has access: ' + CAST(@has_access AS VARCHAR);
 
                 IF @has_access = 1 
                    AND EXISTS (SELECT 1 FROM tblUser WHERE id = @tagged_user_id AND status = 1)
@@ -1070,9 +1090,18 @@ BEGIN
                        WHERE user_id = @owner_id AND blocked_user_id = @tagged_user_id AND status = 1
                    )
                 BEGIN
+                    PRINT 'Inserting into tblPostTag: post_id = ' + CAST(@new_post_id AS VARCHAR) + ', tagged_user_id = ' + CAST(@tagged_user_id AS VARCHAR);
                     INSERT INTO tblPostTag (post_id, tagged_user_id, status)
                     VALUES (@new_post_id, @tagged_user_id, 1);
                 END
+                ELSE
+                BEGIN
+                    PRINT 'Skipped tagging user_id: ' + CAST(@tagged_user_id AS VARCHAR) + ' due to access or block restrictions';
+                END
+            END
+            ELSE
+            BEGIN
+                PRINT 'Invalid ID format: ' + @id_str;
             END
         END
     END
@@ -1238,19 +1267,34 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    -- Kiểm tra tên nhóm không rỗng hoặc NULL cho is_group = 1
+    -- Declare variables for error logging
+    DECLARE @error_msg NVARCHAR(4000) = '';
+
+    -- Check for empty or NULL group name when is_group = 1
     IF EXISTS (
         SELECT 1
         FROM inserted
         WHERE is_group = 1 AND (name IS NULL OR LTRIM(RTRIM(name)) = '')
     )
     BEGIN
-        RAISERROR('Tên nhóm là bắt buộc khi is_group = 1.', 16, 1);
-        ROLLBACK TRANSACTION;
+        SET @error_msg = 'Group name is required when is_group = 1.';
+
+        -- Log error to tblErrorLog table
+        BEGIN TRY
+            INSERT INTO tblErrorLog (error_message, error_time, status)
+            VALUES (@error_msg, GETDATE(), 1);
+        END TRY
+        BEGIN CATCH
+            -- If logging fails, append failure to error message
+            SET @error_msg = @error_msg + ' Failed to log error to tblErrorLog table: ' + ERROR_MESSAGE();
+        END CATCH;
+
+        -- Throw error to notify the caller
+        THROW 50001, @error_msg, 1;
         RETURN;
     END
 
-    -- Chèn hoặc cập nhật dữ liệu hợp lệ
+    -- Perform insert or update for valid data
     IF NOT EXISTS (SELECT * FROM deleted)
     BEGIN
         INSERT INTO tblChat (is_group, name, created_at, status)
