@@ -5,6 +5,7 @@ import com.example.social_media.entity.User;
 import com.example.social_media.jwt.JwtService;
 import com.example.social_media.service.AuthService;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -12,6 +13,9 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Optional;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.slf4j.Logger;
+
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
@@ -21,6 +25,7 @@ public class AuthController {
 
     @Autowired
     private JwtService jwtService;
+    private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequestDto loginRequest) {
@@ -28,6 +33,8 @@ public class AuthController {
         if (userOpt.isPresent()) {
             User user = userOpt.get();
             String token = jwtService.generateToken(user.getUsername());
+            //print log check token exists
+            logger.info("Generated JWT token for user {}: {}", user.getUsername(), token);
 
             Map<String, Object> result = new HashMap<>();
             result.put("token", token);

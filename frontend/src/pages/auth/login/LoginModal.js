@@ -2,10 +2,13 @@ import React, { useState } from "react";
 import { Modal, Button, Form } from "react-bootstrap";
 import { X as XCloseIcon } from "react-bootstrap-icons";
 import { FcGoogle } from "react-icons/fc";
+import { FaApple } from "react-icons/fa";
 import ForgotPasswordModal from "./ForgotPasswordModal";
 import JoinXModal from "./JoinXModal";
 import { useNavigate } from "react-router-dom"; // Import useNavigate
 import KLogoSvg from "../../../components/svgs/KSvg";
+
+const apiBase = process.env.REACT_APP_API_URL;
 
 // Nhận prop onShowLogin từ SignupPage
 const LoginModal = ({ show, handleClose, onShowLogin }) => {
@@ -23,7 +26,7 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch("http://localhost:9090/api/auth/login", {
+      const response = await fetch(`${apiBase}/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

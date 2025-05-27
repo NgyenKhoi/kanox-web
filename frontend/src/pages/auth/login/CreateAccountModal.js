@@ -4,6 +4,8 @@ import KLogoSvg from "../../../components/svgs/KSvg"; // Assuming XSvg is in the
 import { X as XCloseIcon } from "react-bootstrap-icons"; // For the close icon
 import { useNavigate } from "react-router-dom"; // Import useNavigate
 
+const apiBase = process.env.REACT_APP_API_URL;
+
 const CreateAccountModal = ({ show, handleClose }) => {
   const navigate = useNavigate(); // Khởi tạo useNavigate
 
@@ -27,7 +29,7 @@ const CreateAccountModal = ({ show, handleClose }) => {
     e.preventDefault();
 
     try {
-      const response = await fetch("http://localhost:9090/api/auth/register", {
+      const response = await fetch(`${apiBase}/auth/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
