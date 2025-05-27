@@ -43,7 +43,7 @@ public class AuthService {
         }
         return Optional.empty();
     }
-    //user can login by username or email + password in login form
+    //user can log in by username or email + password in login form
     public Optional<User> loginFlexible(String identifier, String rawPassword) {
         if (identifier.contains("@")) {
             return loginByEmail(identifier, rawPassword); // login by email
