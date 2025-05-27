@@ -79,7 +79,7 @@ pipeline {
         stage('Health Check Standby') {
             steps {
                 script {
-                    def retries = 15
+                    def retries = 30
                     def healthy = false
 
                     for (int i = 0; i < retries; i++) {
