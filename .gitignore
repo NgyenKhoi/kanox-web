@@ -42,7 +42,7 @@ Thumbs.db
 hs_err_pid*
 
 # IntelliJ
-.idea/
+/.idea/
 *.iml
 *.ipr
 *.iws
