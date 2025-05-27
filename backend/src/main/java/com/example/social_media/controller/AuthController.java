@@ -1,12 +1,12 @@
 package com.example.social_media.controller;
 import com.example.social_media.dto.LoginRequestDto;
+import com.example.social_media.dto.PasswordResetDto;
 import com.example.social_media.dto.RegisterRequestDto;
 import com.example.social_media.entity.User;
 import com.example.social_media.jwt.JwtService;
 import com.example.social_media.service.AuthService;
-import jakarta.servlet.http.HttpServletResponse;
+import com.example.social_media.service.PasswordResetService;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,12 +20,17 @@ import org.slf4j.Logger;
 @RequestMapping("/api/auth")
 public class AuthController {
 
-    @Autowired
-    private AuthService authService;
+    private final AuthService authService;
+    private final PasswordResetService passwordResetService;
+    private final JwtService jwtService;
 
-    @Autowired
-    private JwtService jwtService;
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
+
+    public AuthController(AuthService authService, PasswordResetService passwordResetService, JwtService jwtService) {
+        this.authService = authService;
+        this.passwordResetService = passwordResetService;
+        this.jwtService = jwtService;
+    }
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequestDto loginRequest) {
@@ -61,12 +66,30 @@ public class AuthController {
     }
 
     @PostMapping("/forgot-password")
-    public ResponseEntity<?> forgotPassword(@RequestParam String email) {
-        boolean result = authService.forgotPassword(email);
+    public ResponseEntity<?> forgotPassword(@RequestBody PasswordResetDto request) {
+        if (request.getEmail() == null) {
+            return ResponseEntity.badRequest().body("Email is required");
+        }
+        boolean result = authService.forgotPassword(request.getEmail());
         if (result) {
             return ResponseEntity.ok("Password reset instructions sent to email");
         } else {
             return ResponseEntity.status(404).body("Email not found");
+        }
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody PasswordResetDto request) {
+        if (request.getToken() == null || request.getNewPassword() == null) {
+            return ResponseEntity.badRequest().body("Token and newPassword are required");
+        }
+        try {
+            passwordResetService.resetPassword(request.getToken(), request.getNewPassword());
+            return ResponseEntity.ok("Đặt lại mật khẩu thành công.");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(400).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Có lỗi xảy ra, vui lòng thử lại sau.");
         }
     }
 

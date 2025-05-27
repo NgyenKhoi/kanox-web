@@ -1,5 +1,7 @@
 D:\social-media\backend\src\main\java\com\example\social_media\config\SecurityConfig.java
 D:\social-media\backend\src\main\java\com\example\social_media\controller\AuthController.java
+D:\social-media\backend\src\main\java\com\example\social_media\dto\LoginRequestDto.java
+D:\social-media\backend\src\main\java\com\example\social_media\dto\RegisterRequestDto.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\AccountUpgrade.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\ActionType.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\ActivityLog.java
@@ -49,9 +51,13 @@ D:\social-media\backend\src\main\java\com\example\social_media\entity\SavedPostI
 D:\social-media\backend\src\main\java\com\example\social_media\entity\Session.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\Story.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\TargetType.java
-D:\social-media\backend\src\main\java\com\example\social_media\entity\TblUser.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\UpgradeType.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\User.java
+D:\social-media\backend\src\main\java\com\example\social_media\jwt\JwtAuthenticationFilter.java
+D:\social-media\backend\src\main\java\com\example\social_media\jwt\JwtService.java
+D:\social-media\backend\src\main\java\com\example\social_media\repository\PasswordResetRepository.java
 D:\social-media\backend\src\main\java\com\example\social_media\repository\UserRepository.java
 D:\social-media\backend\src\main\java\com\example\social_media\service\AuthService.java
+D:\social-media\backend\src\main\java\com\example\social_media\service\CustomUserDetailsService.java
+D:\social-media\backend\src\main\java\com\example\social_media\service\PasswordResetService.java
 D:\social-media\backend\src\main\java\com\example\social_media\SocialMediaApplication.java
