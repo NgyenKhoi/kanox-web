@@ -9,6 +9,7 @@ com\example\social_media\service\CustomUserDetailsService.class
 com\example\social_media\entity\SavedPostId.class
 com\example\social_media\dto\RegisterRequestDto.class
 com\example\social_media\entity\UpgradeType.class
+com\example\social_media\dto\PasswordResetDto.class
 com\example\social_media\service\AuthService.class
 com\example\social_media\entity\Follow.class
 com\example\social_media\entity\FriendshipId.class
