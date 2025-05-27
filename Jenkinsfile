@@ -86,7 +86,7 @@ pipeline {
                         def response = sh(
                             script: """
                                 ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} \\
-                                    'curl -s http://localhost:${STANDBY_PORT}/actuator/health || echo FAIL'
+                                    'curl -s -v http://localhost:${STANDBY_PORT}/actuator/health || echo FAIL'
                             """,
                             returnStdout: true
                         ).trim()
