@@ -44,15 +44,16 @@ const CreateAccountModal = ({ show, handleClose }) => {
         }),
       });
 
-      const data = await response.json();
+      const data = await response.json(); // Parse JSON thay vì text
 
       if (response.ok) {
         toast.success("Đăng ký thành công! Đang chuyển hướng...");
         handleClose();
         setTimeout(() => navigate("/home"), 2000); // Delay for toast visibility
       } else {
+        // Hiển thị thông báo lỗi từ JSON
         toast.error(data.message || "Đăng ký thất bại. Vui lòng thử lại!");
-        if (data.errors) {
+        if (data.errors && Object.keys(data.errors).length > 0) {
           const errorDetails = Object.values(data.errors).join(", ");
           toast.error(`${data.message} - Chi tiết: ${errorDetails}`);
         }
@@ -144,7 +145,7 @@ const CreateAccountModal = ({ show, handleClose }) => {
                       name="month"
                       value={formData.month}
                       onChange={handleInputChange}
-                      className="py-3 rounded-3"
+                      className names="py-3 rounded-3"
                       style={{ fontSize: "1.1rem" }}
                   >
                     <option value="">Tháng</option>
