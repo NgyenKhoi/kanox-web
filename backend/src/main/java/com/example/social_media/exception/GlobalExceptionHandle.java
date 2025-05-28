@@ -9,11 +9,6 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 @ControllerAdvice
 public class GlobalExceptionHandle {
 
-    @ExceptionHandler(EmailAlreadyExistsException.class)
-    public ResponseEntity<String> handleEmailAlreadyExistsException(EmailAlreadyExistsException ex) {
-        return new ResponseEntity<>("Lỗi: " + ex.getMessage(), HttpStatus.CONFLICT);
-    }
-
     @ExceptionHandler(UserNotFoundException.class)
     public ResponseEntity<String> handleUserNotFoundException(UserNotFoundException ex) {
         return new ResponseEntity<>("Lỗi: " + ex.getMessage(), HttpStatus.NOT_FOUND);
@@ -24,9 +19,19 @@ public class GlobalExceptionHandle {
         return new ResponseEntity<>("Lỗi: " + ex.getMessage(), HttpStatus.NOT_FOUND);
     }
 
-    @ExceptionHandler(InvalidPasswordException.class)
-    public ResponseEntity<String> handleInvalidPasswordException(InvalidPasswordException ex) {
-        return new ResponseEntity<>("Lỗi: " + ex.getMessage(), HttpStatus.UNAUTHORIZED);
+    @ExceptionHandler(TokenExpiredException.class)
+    public ResponseEntity<String> handleTokenExpiredException(TokenExpiredException ex) {
+        return new ResponseEntity<>("Lỗi: " + ex.getMessage(), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(InvalidTokenException.class)
+    public ResponseEntity<String> handleInvalidTokenException(InvalidTokenException ex) {
+        return new ResponseEntity<>("Lỗi: " + ex.getMessage(), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<String> handleIllegalArgumentException(IllegalArgumentException ex) {
+        return new ResponseEntity<>("Lỗi: " + ex.getMessage(), HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(Exception.class)
