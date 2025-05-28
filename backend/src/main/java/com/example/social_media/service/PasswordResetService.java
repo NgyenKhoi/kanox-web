@@ -10,26 +10,19 @@ import com.example.social_media.repository.PasswordResetRepository;
 import com.example.social_media.repository.UserRepository;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.util.Optional;
 import java.util.UUID;
-import java.util.regex.Pattern;
 
 @Service
 public class PasswordResetService {
 
     private final PasswordResetRepository passwordResetRepository;
-
     private final UserRepository userRepository;
-
     private final JavaMailSender mailSender;
-
-    private static final Pattern EMAIL_PATTERN = Pattern.compile(
-            "^[A-Za-z0-9+_.-]+@([A-Za-z0-9.-]+\\.[A-Za-z]{2,})$"
-    );
 
     public PasswordResetService(PasswordResetRepository passwordResetRepository, UserRepository userRepository, JavaMailSender mailSender) {
         this.passwordResetRepository = passwordResetRepository;
@@ -38,11 +31,6 @@ public class PasswordResetService {
     }
 
     public void sendResetToken(String email) {
-        // Kiểm tra định dạng email
-        if (email == null || email.trim().isEmpty() || !isValidEmail(email)) {
-            throw new IllegalArgumentException("Định dạng email không hợp lệ");
-        }
-
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("Email không tồn tại"));
 
@@ -59,10 +47,6 @@ public class PasswordResetService {
         } catch (Exception e) {
             throw new RuntimeException("Lỗi khi lưu token hoặc gửi email: " + e.getMessage());
         }
-    }
-
-    private boolean isValidEmail(String email) {
-        return EMAIL_PATTERN.matcher(email).matches();
     }
 
     private void sendEmail(String toEmail, String token) {
@@ -86,10 +70,6 @@ public class PasswordResetService {
 
         if (reset.getTokenExpireTime().isBefore(Instant.now())) {
             throw new TokenExpiredException("Token đã hết hạn");
-        }
-
-        if (newPassword == null || newPassword.isEmpty()) {
-            throw new IllegalArgumentException("Mật khẩu mới không được để trống");
         }
 
         User user = reset.getUser();

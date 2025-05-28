@@ -1,4 +1,5 @@
 package com.example.social_media.controller;
+
 import com.example.social_media.config.URLConfig;
 import com.example.social_media.dto.LoginRequestDto;
 import com.example.social_media.dto.PasswordResetDto;
@@ -7,6 +8,7 @@ import com.example.social_media.entity.User;
 import com.example.social_media.jwt.JwtService;
 import com.example.social_media.service.AuthService;
 import com.example.social_media.service.PasswordResetService;
+import jakarta.validation.Valid;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -34,12 +36,11 @@ public class AuthController {
     }
 
     @PostMapping(URLConfig.LOGIN)
-    public ResponseEntity<?> login(@RequestBody LoginRequestDto loginRequest) {
+    public ResponseEntity<?> login(@RequestBody @Valid LoginRequestDto loginRequest) {
         Optional<User> userOpt = authService.loginFlexible(loginRequest.getIdentifier(), loginRequest.getPassword());
         if (userOpt.isPresent()) {
             User user = userOpt.get();
             String token = jwtService.generateToken(user.getUsername());
-            //print log check token exists
             logger.info("Generated JWT token for user {}: {}", user.getUsername(), token);
 
             Map<String, Object> result = new HashMap<>();
@@ -47,7 +48,7 @@ public class AuthController {
             result.put("user", user);
             return ResponseEntity.ok(result);
         }
-        return ResponseEntity.status(401).body("Invalid credentials");
+        throw new IllegalArgumentException("Invalid credentials");
     }
 
 
@@ -58,44 +59,44 @@ public class AuthController {
             authService.logout(userOpt.get());
             return ResponseEntity.ok("Logged out successfully");
         }
-        return ResponseEntity.notFound().build();
+        throw new IllegalArgumentException("User not found");
     }
 
     @PostMapping(URLConfig.FORGOT_PASSWORD)
-    public ResponseEntity<?> forgotPassword(@RequestBody PasswordResetDto request) {
+    public ResponseEntity<?> forgotPassword(@RequestBody @Valid PasswordResetDto request) {
         if (request.getEmail() == null) {
-            return ResponseEntity.badRequest().body("Email is required");
+            throw new IllegalArgumentException("Email is required");
         }
         boolean result = authService.forgotPassword(request.getEmail());
         if (result) {
             return ResponseEntity.ok("Password reset instructions sent to email");
         } else {
-            return ResponseEntity.status(404).body("Email not found");
+            throw new IllegalArgumentException("Email not found");
         }
     }
 
     @PostMapping(URLConfig.RESET_PASSWORD)
-    public ResponseEntity<?> resetPassword(@RequestBody PasswordResetDto request) {
+    public ResponseEntity<?> resetPassword(@RequestBody @Valid PasswordResetDto request) {
         if (request.getToken() == null || request.getNewPassword() == null) {
-            return ResponseEntity.badRequest().body("Token and newPassword are required");
+            throw new IllegalArgumentException("Token and newPassword are required");
         }
         try {
             passwordResetService.resetPassword(request.getToken(), request.getNewPassword());
             return ResponseEntity.ok("Đặt lại mật khẩu thành công.");
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(400).body(e.getMessage());
+            throw e; // Let GlobalExceptionHandle handle it
         } catch (Exception e) {
-            return ResponseEntity.status(500).body("Có lỗi xảy ra, vui lòng thử lại sau.");
+            throw new RuntimeException("Có lỗi xảy ra, vui lòng thử lại sau.", e);
         }
     }
 
     @PostMapping(URLConfig.REGISTER)
-    public ResponseEntity<?> register(@RequestBody RegisterRequestDto dto) {
+    public ResponseEntity<?> register(@RequestBody @Valid RegisterRequestDto dto) {
         try {
             User createdUser = authService.register(dto);
             return ResponseEntity.ok(createdUser);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Registration failed: " + e.getMessage());
+            throw new IllegalArgumentException("Registration failed: " + e.getMessage());
         }
     }
 }
