@@ -1,9 +1,10 @@
 import React, { useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { Form, Button, Alert } from "react-bootstrap";
 
 const ResetPasswordPage = () => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const token = searchParams.get("token");
 
   const [newPassword, setNewPassword] = useState("");
@@ -57,29 +58,41 @@ const ResetPasswordPage = () => {
       {error && <Alert variant="danger">{error}</Alert>}
       {message && <Alert variant="success">{message}</Alert>}
 
-      <Form.Group className="mb-3">
-        <Form.Label>Mật khẩu mới</Form.Label>
-        <Form.Control
-          type="password"
-          value={newPassword}
-          onChange={(e) => setNewPassword(e.target.value)}
-          required
-        />
-      </Form.Group>
+      {!message && (
+        <>
+          <Form.Group className="mb-3">
+            <Form.Label>Mật khẩu mới</Form.Label>
+            <Form.Control
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              required
+            />
+          </Form.Group>
 
-      <Form.Group className="mb-4">
-        <Form.Label>Xác nhận mật khẩu</Form.Label>
-        <Form.Control
-          type="password"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          required
-        />
-      </Form.Group>
+          <Form.Group className="mb-4">
+            <Form.Label>Xác nhận mật khẩu</Form.Label>
+            <Form.Control
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+            />
+          </Form.Group>
 
-      <Button type="submit" variant="dark" disabled={loading} className="w-100">
-        {loading ? "Đang xử lý..." : "Đặt lại mật khẩu"}
-      </Button>
+          <Button type="submit" variant="dark" disabled={loading} className="w-100">
+            {loading ? "Đang xử lý..." : "Đặt lại mật khẩu"}
+          </Button>
+        </>
+      )}
+
+      {message && (
+        <div className="mt-3 d-flex justify-content-center">
+          <Button variant="outline-primary" onClick={() => navigate("/")}>
+            Về trang chủ
+          </Button>
+        </div>
+      )}
     </Form>
   );
 };
