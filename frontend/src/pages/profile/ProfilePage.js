@@ -24,7 +24,7 @@ function ProfilePage() {
       try {
         const token = localStorage.getItem("token");
         const response = await fetch(
-          `${process.env.REACT_APP_API_URL}/profile/${username}`,
+          `${process.env.REACT_APP_API_URL}/user/profile/${username}`,
           {
             headers: {
               "Content-Type": "application/json",
