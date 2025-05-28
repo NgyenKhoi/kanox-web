@@ -3,7 +3,7 @@ import { Modal, Button, Form } from "react-bootstrap";
 import { X as XCloseIcon } from "react-bootstrap-icons";
 import { FcGoogle } from "react-icons/fc";
 import { FaApple } from "react-icons/fa";
-import ForgotPasswordModal from "./ForgotPasnpm --versionswordModal";
+import ForgotPasswordModal from "./ForgotPasswordModal --versionswordModal";
 import JoinXModal from "./JoinXModal";
 import { useNavigate } from "react-router-dom";
 import KLogoSvg from "../../../components/svgs/KSvg";
