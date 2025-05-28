@@ -1,112 +1,108 @@
 import React, { useState } from "react";
 import { Modal, Button, Form } from "react-bootstrap";
 import { X as XCloseIcon } from "react-bootstrap-icons";
-import KLogoSvg from "../../../components/svgs/KSvg"; // Logo SVG KaNox
+import KLogoSvg from "../../../components/svgs/KSvg";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
+const apiBase = process.env.REACT_APP_API_URL;
 
 const ForgotPasswordModal = ({ show, handleClose }) => {
-  const [step, setStep] = useState(1);
-  const [identifier, setIdentifier] = useState("");
+  const [identifier, setIdentifier] = useState(""); // Email or username
   const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
 
   const handleInputChange = (e) => {
     setIdentifier(e.target.value);
   };
+
   const handleSubmitEmail = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setErrorMsg("");
 
     try {
-      const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/auth/forgot-password`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: identifier }),
-        }
-      );
+      const response = await fetch(`${apiBase}/auth/forgot-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: identifier }),
+      });
+
+      const data = await response.json();
 
       if (response.ok) {
-        setStep(2); // Show confirmation message
+        toast.success(
+            data.message || "Yêu cầu khôi phục mật khẩu đã được gửi thành công!"
+        );
+        handleClose(); // Close modal after success
       } else {
-        const errorText = await response.text();
-        setErrorMsg(errorText || "Gửi yêu cầu thất bại.");
+        toast.error(data.message || "Đã xảy ra lỗi. Vui lòng thử lại!");
+        if (data.errors && Object.keys(data.errors).length > 0) {
+          const errorDetails = Object.values(data.errors).join(", ");
+          toast.error(`${data.message} - Chi tiết: ${errorDetails}`);
+        }
       }
     } catch (error) {
-      console.error("Lỗi khi gửi yêu cầu đặt lại mật khẩu:", error);
-      setErrorMsg("Đã xảy ra lỗi. Vui lòng thử lại sau.");
+      toast.error("Lỗi kết nối. Vui lòng thử lại sau!");
     } finally {
       setLoading(false);
     }
   };
 
-  const onClose = () => {
-    handleClose();
-    setStep(1);
-    setIdentifier("");
-    setErrorMsg("");
-    setLoading(false);
-  };
+  if (!show) return null;
 
   return (
-    <Modal show={show} onHide={onClose} centered size="lg">
-      <Modal.Body className="p-4 rounded-3" style={{ backgroundColor: "#fff", color: "#000", borderRadius: "15px" }}>
-        <div className="d-flex justify-content-between align-items-center mb-4">
-          <Button variant="link" onClick={onClose} className="p-0" style={{ color: "#000", fontSize: "1.5rem" }}>
-            <XCloseIcon />
-          </Button>
-          <div style={{ width: "100px", height: "100px" }}>
-            <KLogoSvg className="w-100 h-100" fill="black" />
-          </div>
-          <div style={{ width: "30px" }}></div>
-        </div>
+      <>
+        <ToastContainer />
+        <Modal show={show} onHide={handleClose} centered size="lg">
+          <Modal.Body
+              className="p-4 rounded-3"
+              style={{ backgroundColor: "#fff", color: "#000", borderRadius: "15px" }}
+          >
+            <div className="d-flex justify-content-between align-items-center mb-4">
+              <Button
+                  variant="link"
+                  onClick={handleClose}
+                  className="p-0"
+                  style={{ color: "#000", fontSize: "1.5rem" }}
+              >
+                <XCloseIcon />
+              </Button>
+              <div style={{ width: "100px", height: "100px" }}>
+                <KLogoSvg className="w-100 h-100" fill="black" />
+              </div>
+              <div style={{ width: "30px" }}></div>
+            </div>
 
-        {step === 1 && (
-          <>
-            <h3 className="fw-bold mb-2 text-center">Tìm tài khoản KaNox của bạn</h3>
-            <p className="text-muted small mb-4 text-center">
-              Nhập email liên kết với tài khoản để thay đổi mật khẩu của bạn.
-            </p>
-            {errorMsg && <p className="text-danger text-center mb-3">{errorMsg}</p>}
-            <Form onSubmit={handleSubmitEmail} className="mx-auto" style={{ maxWidth: "300px" }}>
-              <Form.Group className="mb-5">
+            <h3 className="fw-bold mb-4 text-center">Quên mật khẩu</h3>
+
+            <Form onSubmit={handleSubmitEmail}>
+              <Form.Group className="mb-3">
                 <Form.Control
-                  type="email"
-                  placeholder="Email của bạn"
-                  value={identifier}
-                  onChange={handleInputChange}
-                  className="py-3 px-3 rounded-3"
-                  style={{ fontSize: "1.1rem", borderColor: "#ccc" }}
-                  required
+                    type="email"
+                    placeholder="Nhập email của bạn"
+                    value={identifier}
+                    onChange={handleInputChange}
+                    className="py-3 px-3 rounded-3"
+                    style={{ fontSize: "1.1rem", borderColor: "#ccc" }}
+                    disabled={loading}
                 />
               </Form.Group>
               <Button
-                type="submit"
-                variant="dark"
-                className="py-3 rounded-pill fw-bold w-100"
-                style={{ fontSize: "1.2rem" }}
-                disabled={!identifier || loading}
+                  type="submit"
+                  variant="dark"
+                  className="py-3 rounded-pill fw-bold w-100"
+                  style={{
+                    backgroundColor: "#000",
+                    borderColor: "#000",
+                    fontSize: "1.1rem",
+                  }}
+                  disabled={loading || !identifier}
               >
-                {loading ? "Đang gửi..." : "Tiếp theo"}
+                {loading ? "Đang xử lý..." : "Gửi yêu cầu"}
               </Button>
             </Form>
-          </>
-        )}
-
-        {step === 2 && (
-          <>
-            <h3 className="fw-bold mb-2 text-center">Đã gửi email đặt lại mật khẩu</h3>
-            <p className="text-muted small mb-4 text-center">
-              Hãy kiểm tra email của bạn và nhấp vào liên kết đặt lại mật khẩu để tiếp tục.
-            </p>
-            <div className="text-center">
-              <Button variant="dark" onClick={onClose} className="mt-3">Đóng</Button>
-            </div>
-          </>
-        )}
-      </Modal.Body>
-    </Modal>
+          </Modal.Body>
+        </Modal>
+      </>
   );
 };
 
