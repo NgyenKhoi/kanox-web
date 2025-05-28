@@ -1,4 +1,5 @@
 package com.example.social_media.controller;
+import com.example.social_media.config.URLConfig;
 import com.example.social_media.dto.LoginRequestDto;
 import com.example.social_media.dto.PasswordResetDto;
 import com.example.social_media.dto.RegisterRequestDto;
@@ -17,7 +18,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping(URLConfig.AUTH_BASE)
 public class AuthController {
 
     private final AuthService authService;
@@ -32,7 +33,7 @@ public class AuthController {
         this.jwtService = jwtService;
     }
 
-    @PostMapping("/login")
+    @PostMapping(URLConfig.LOGIN)
     public ResponseEntity<?> login(@RequestBody LoginRequestDto loginRequest) {
         Optional<User> userOpt = authService.loginFlexible(loginRequest.getIdentifier(), loginRequest.getPassword());
         if (userOpt.isPresent()) {
@@ -49,13 +50,13 @@ public class AuthController {
         return ResponseEntity.status(401).body("Invalid credentials");
     }
 
-    @GetMapping("/profile/{username}")
+    @GetMapping(URLConfig.PROFILE)
     public ResponseEntity<?> getProfile(@PathVariable String username) {
         Optional<User> userOpt = authService.getProfileByUsername(username);
         return userOpt.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    @PostMapping("/logout")
+    @PostMapping(URLConfig.LOGOUT)
     public ResponseEntity<?> logout(@RequestParam Integer userId) {
         Optional<User> userOpt = authService.getProfile(userId);
         if (userOpt.isPresent()) {
@@ -65,7 +66,7 @@ public class AuthController {
         return ResponseEntity.notFound().build();
     }
 
-    @PostMapping("/forgot-password")
+    @PostMapping(URLConfig.FORGOT_PASSWORD)
     public ResponseEntity<?> forgotPassword(@RequestBody PasswordResetDto request) {
         if (request.getEmail() == null) {
             return ResponseEntity.badRequest().body("Email is required");
@@ -78,7 +79,7 @@ public class AuthController {
         }
     }
 
-    @PostMapping("/reset-password")
+    @PostMapping(URLConfig.RESET_PASSWORD)
     public ResponseEntity<?> resetPassword(@RequestBody PasswordResetDto request) {
         if (request.getToken() == null || request.getNewPassword() == null) {
             return ResponseEntity.badRequest().body("Token and newPassword are required");
@@ -93,7 +94,7 @@ public class AuthController {
         }
     }
 
-    @PostMapping("/register")
+    @PostMapping(URLConfig.REGISTER)
     public ResponseEntity<?> register(@RequestBody RegisterRequestDto dto) {
         try {
             User createdUser = authService.register(dto);

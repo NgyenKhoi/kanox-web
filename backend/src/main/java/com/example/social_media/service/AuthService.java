@@ -2,7 +2,6 @@ package com.example.social_media.service;
 
 import com.example.social_media.entity.User;
 import com.example.social_media.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import com.example.social_media.dto.RegisterRequestDto;
@@ -14,11 +13,14 @@ import java.util.UUID;
 @Service
 public class AuthService {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
+
+    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
 
     // Login by email or password
     public Optional<User> loginByEmail(String email, String rawPassword) {

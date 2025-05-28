@@ -8,8 +8,6 @@ import JoinXModal from "./JoinXModal";
 import { useNavigate } from "react-router-dom"; // Import useNavigate
 import KLogoSvg from "../../../components/svgs/KSvg";
 
-const apiBase = process.env.REACT_APP_API_URL;
-
 // Nhận prop onShowLogin từ SignupPage
 const LoginModal = ({ show, handleClose, onShowLogin }) => {
   const navigate = useNavigate(); // Khởi tạo useNavigate
@@ -26,7 +24,7 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch(`${apiBase}/auth/login`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
