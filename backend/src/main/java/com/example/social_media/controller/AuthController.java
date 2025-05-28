@@ -1,9 +1,7 @@
 package com.example.social_media.controller;
 
 import com.example.social_media.config.URLConfig;
-import com.example.social_media.dto.LoginRequestDto;
-import com.example.social_media.dto.PasswordResetDto;
-import com.example.social_media.dto.RegisterRequestDto;
+import com.example.social_media.dto.*;
 import com.example.social_media.entity.User;
 import com.example.social_media.jwt.JwtService;
 import com.example.social_media.service.AuthService;
@@ -63,7 +61,7 @@ public class AuthController {
     }
 
     @PostMapping(URLConfig.FORGOT_PASSWORD)
-    public ResponseEntity<?> forgotPassword(@RequestBody @Valid PasswordResetDto request) {
+    public ResponseEntity<?> forgotPassword(@RequestBody @Valid ForgotPasswordRequestDto request) {
         if (request.getEmail() == null) {
             throw new IllegalArgumentException("Email is required");
         }
@@ -76,7 +74,7 @@ public class AuthController {
     }
 
     @PostMapping(URLConfig.RESET_PASSWORD)
-    public ResponseEntity<?> resetPassword(@RequestBody @Valid PasswordResetDto request) {
+    public ResponseEntity<?> resetPassword(@RequestBody @Valid ResetPasswordRequestDto request) {
         if (request.getToken() == null || request.getNewPassword() == null) {
             throw new IllegalArgumentException("Token and newPassword are required");
         }
