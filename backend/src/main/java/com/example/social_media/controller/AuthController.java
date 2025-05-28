@@ -63,7 +63,7 @@ public class AuthController {
     }
 
     @PostMapping(URLConfig.FORGOT_PASSWORD)
-    public ResponseEntity<?> forgotPassword(@RequestBody @Valid PasswordResetDto request) {
+    public ResponseEntity<?> forgotPassword(@RequestBody PasswordResetDto request) {
         if (request.getEmail() == null) {
             throw new IllegalArgumentException("Email is required");
         }

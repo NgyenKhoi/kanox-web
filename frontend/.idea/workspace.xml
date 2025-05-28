@@ -5,20 +5,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="c6c17ae2-c6cb-4c94-a6b8-91c54839fa5e" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/../backend/.idea/compiler.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/.idea/compiler.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/pom.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/controller/AuthController.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/controller/AuthController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/dto/LoginRequestDto.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/dto/LoginRequestDto.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/dto/PasswordResetDto.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/dto/PasswordResetDto.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/dto/RegisterRequestDto.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/dto/RegisterRequestDto.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/exception/GlobalExceptionHandle.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/exception/GlobalExceptionHandle.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/service/PasswordResetService.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/service/PasswordResetService.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/pages/auth/login/CreateAccountModal.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/pages/auth/login/CreateAccountModal.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/pages/auth/login/ForgotPasswordModal.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/pages/auth/login/ForgotPasswordModal.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/pages/auth/login/JoinXModal.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/pages/auth/login/JoinXModal.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/pages/auth/login/LoginModal.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/pages/auth/login/LoginModal.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -37,22 +27,22 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "main",
-    "last_opened_file_path": "D:/SWP391/kanox-web/frontend",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "settings.nodejs",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;last_opened_file_path&quot;: &quot;D:/SWP391/kanox-web/frontend&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;settings.nodejs&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
@@ -70,6 +60,7 @@
       <updated>1748415944699</updated>
       <workItem from="1748415947640" duration="22000" />
       <workItem from="1748442890456" duration="4791000" />
+      <workItem from="1748447971230" duration="1245000" />
     </task>
     <servers />
   </component>
