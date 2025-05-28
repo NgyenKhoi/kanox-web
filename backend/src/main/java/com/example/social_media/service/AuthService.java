@@ -101,15 +101,11 @@ public class AuthService {
         }
     }
 
-    public Optional<User> getProfile(Integer userId) {
+    public Optional<User> getUser(Integer userId) {
         return Optional.ofNullable(userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("Người dùng không tồn tại")));
     }
 
-    public Optional<User> getProfileByUsername(String username) {
-        return Optional.ofNullable(userRepository.findByUsername(username)
-                .orElseThrow(() -> new UserNotFoundException("Người dùng không tồn tại")));
-    }
 
     public User register(RegisterRequestDto dto) {
         if (userRepository.existsByEmail(dto.getEmail())) {

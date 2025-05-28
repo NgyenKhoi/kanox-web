@@ -4,6 +4,7 @@ import { FcGoogle } from "react-icons/fc";
 import { FaApple } from "react-icons/fa";
 import CreateAccountModal from "../login/CreateAccountModal";
 import LoginModal from "../login/LoginModal";
+import Footer from "../../../components/layout/Footer/Footer";
 
 import KLogoSvg from "../../../components/svgs/KSvg"; // Đảm bảo đường dẫn này chính xác
 
@@ -18,7 +19,10 @@ const SignupPage = () => {
   const handleCloseLoginModal = () => setShowLoginModal(false);
 
   return (
-    <Container fluid className="d-flex min-vh-100 bg-white text-black">
+    <Container
+      fluid
+      className="d-flex flex-column min-vh-100 bg-white text-black"
+    >
       <Row className="flex-grow-1 w-100">
         {/* Left Section - K Logo */}
         <Col
@@ -112,6 +116,8 @@ const SignupPage = () => {
         handleClose={handleCloseLoginModal}
         onShowLogin={handleShowLoginModal} // THAY ĐỔI QUAN TRỌNG: Truyền hàm mở LoginModal
       />
+
+      <Footer />
     </Container>
   );
 };
