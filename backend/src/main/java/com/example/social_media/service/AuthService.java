@@ -2,11 +2,14 @@ package com.example.social_media.service;
 
 import com.example.social_media.entity.User;
 import com.example.social_media.repository.UserRepository;
+import com.example.social_media.dto.RegisterRequestDto;
+import com.example.social_media.exception.EmailAlreadyExistsException;
+import com.example.social_media.exception.UserNotFoundException;
+import com.example.social_media.exception.InvalidPasswordException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import com.example.social_media.dto.RegisterRequestDto;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
 import java.time.LocalDate;
 import java.util.Optional;
 import java.util.UUID;
@@ -14,94 +17,93 @@ import java.util.UUID;
 @Service
 public class AuthService {
 
-    private final UserRepository userRepository;
+    @Autowired
+    private UserRepository userRepository;
 
-    private final PasswordEncoder passwordEncoder;
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
-    private final PasswordResetService passwordResetService;
-
-    private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
-
-    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, PasswordResetService passwordResetService) {
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.passwordResetService = passwordResetService;
-    }
-
-    // Login by email or password
     public Optional<User> loginByEmail(String email, String rawPassword) {
         Optional<User> userOpt = userRepository.findByEmailAndStatusTrue(email);
-        if (userOpt.isPresent()) {
-            User user = userOpt.get();
-            if (passwordEncoder.matches(rawPassword, user.getPassword())) {
-                return Optional.of(user);
-            }
+        if (!userOpt.isPresent()) {
+            throw new UserNotFoundException("Người dùng không tồn tại hoặc bị vô hiệu hóa");
         }
-        return Optional.empty();
+        User user = userOpt.get();
+        if (!passwordEncoder.matches(rawPassword, user.getPassword())) {
+            throw new InvalidPasswordException("Mật khẩu không đúng");
+        }
+        return Optional.of(user);
     }
 
-    // Login by username and password
     public Optional<User> loginByUsername(String username, String rawPassword) {
         Optional<User> userOpt = userRepository.findByUsernameAndStatusTrue(username);
-        if (userOpt.isPresent()) {
-            User user = userOpt.get();
-            if (passwordEncoder.matches(rawPassword, user.getPassword())) {
-                return Optional.of(user);
-            }
+        if (!userOpt.isPresent()) {
+            throw new UserNotFoundException("Người dùng không tồn tại hoặc bị vô hiệu hóa");
         }
-        return Optional.empty();
+        User user = userOpt.get();
+        if (!passwordEncoder.matches(rawPassword, user.getPassword())) {
+            throw new InvalidPasswordException("Mật khẩu không đúng");
+        }
+        return Optional.of(user);
     }
-    //user can log in by username or email + password in login form
+
     public Optional<User> loginFlexible(String identifier, String rawPassword) {
         if (identifier.contains("@")) {
-            return loginByEmail(identifier, rawPassword); // login by email
+            return loginByEmail(identifier, rawPassword);
         } else {
-            return loginByUsername(identifier, rawPassword); // login by username
+            return loginByUsername(identifier, rawPassword);
         }
     }
 
-
-    // Logout
     public void logout(User user) {
+        if (user == null) {
+            throw new UserNotFoundException("Người dùng không tồn tại");
+        }
         user.setPersistentCookie(null);
         userRepository.save(user);
     }
 
-    // Remember me: create token and save
     public String rememberMe(User user) {
+        if (user == null) {
+            throw new UserNotFoundException("Người dùng không tồn tại");
+        }
         String token = UUID.randomUUID().toString();
         user.setPersistentCookie(token);
         userRepository.save(user);
         return token;
     }
-    //forgot password
+
+    public Optional<User> loginByPersistentCookie(String cookie) {
+        Optional<User> userOpt = userRepository.findByPersistentCookie(cookie);
+        if (!userOpt.isPresent()) {
+            throw new UserNotFoundException("Cookie không hợp lệ");
+        }
+        return userOpt;
+    }
+
     public boolean forgotPassword(String email) {
         Optional<User> userOpt = userRepository.findByEmail(email);
-        if (userOpt.isEmpty()) {
-            return false;
+        if (!userOpt.isPresent()) {
+            throw new UserNotFoundException("Email không tồn tại");
         }
-        try {
-            passwordResetService.sendResetToken(email);
-            return true;
-        } catch (Exception e) {
-            logger.error("Failed to send reset email to {}", email, e);
-            return false;
-        }
+        // TODO: tạo token reset password, gửi mail cho user
+        return true;
     }
-    // view profile
+
     public Optional<User> getProfile(Integer userId) {
-        return userRepository.findById(userId);
+        return Optional.ofNullable(userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("Người dùng không tồn tại")));
     }
 
     public Optional<User> getProfileByUsername(String username) {
-        return userRepository.findByUsername(username);
+        return Optional.ofNullable(userRepository.findByUsername(username)
+                .orElseThrow(() -> new UserNotFoundException("Người dùng không tồn tại")));
     }
 
     public User register(RegisterRequestDto dto) {
         if (userRepository.existsByEmail(dto.getEmail())) {
-            throw new RuntimeException("Email đã được sử dụng");
+            throw new EmailAlreadyExistsException("Email đã được sử dụng");
         }
-
         User user = new User();
         user.setUsername(dto.getUsername());
         user.setEmail(dto.getEmail());
