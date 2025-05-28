@@ -1,38 +1,61 @@
-// src/pages/profile/ProfilePage.js
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Container, Row, Col, Image, Button, Nav } from "react-bootstrap";
 import {
   FaArrowLeft,
   FaCalendarAlt,
   FaCheckCircle,
   FaEllipsisH,
-  FaMapMarkerAlt, // Đã thay thế FaLocationDot bằng FaMapMarkerAlt
-  FaLink, // FaLink vẫn giữ nguyên, vì nó có sẵn
+  FaMapMarkerAlt,
+  FaLink,
 } from "react-icons/fa";
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import TweetCard from "../../components/posts/TweetCard/TweetCard";
 import EditProfileModal from "../../components/profile/EditProfileModal";
 
 function ProfilePage() {
   const [showAlert, setShowAlert] = useState(true);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [userProfile, setUserProfile] = useState(null);
+  const { username } = useParams();
 
-  const [userProfile, setUserProfile] = useState({
-    name: "NAME",
-    username: "example",
-    postCount: 3,
-    joinedDate: "tháng 5 năm 2025",
-    following: 80,
-    followers: 4,
-    avatar: "https://via.placeholder.com/150",
-    banner:
-      "https://via.placeholder.com/600x200/007bff/ffffff?text=Your+Banner+Here",
-    isPremium: false,
-    bio: "Đây là tiểu sử mẫu của tôi.",
-    location: "TP. Hồ Chí Minh, Việt Nam",
-    website: "https://example.com",
-    dob: "2004-03-14",
-  });
+  //fetch user profile here
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch(
+          `${process.env.REACT_APP_API_URL}/profile/${username}`,
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Không thể tải thông tin hồ sơ.");
+        }
+
+        const data = await response.json();
+        setUserProfile({
+          ...data,
+          banner:
+            data.banner ||
+            "https://via.placeholder.com/1200x400.png?text=Banner+Example",
+          avatar:
+            data.avatar || "https://via.placeholder.com/150.png?text=Avatar",
+          postCount: data.postCount || 0,
+          website: data.website || "",
+          isPremium: false,
+        });
+      } catch (error) {
+        console.error("Lỗi khi tải hồ sơ:", error.message);
+      }
+    };
+
+    fetchUserProfile();
+  }, [username]);
 
   const sampleTweets = [
     {
@@ -91,6 +114,14 @@ function ProfilePage() {
     console.log("Profile updated:", updatedData);
   };
 
+  if (!userProfile) {
+    return (
+      <div className="d-flex justify-content-center align-items-center min-vh-100">
+        <div>Đang tải hồ sơ...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="d-flex flex-column min-vh-100 bg-light">
       {/* Header cho trang Profile */}
@@ -124,7 +155,6 @@ function ProfilePage() {
       {/* Main Profile Content */}
       <Container fluid className="flex-grow-1">
         <Row>
-          {/* Left Sidebar (Empty or hidden for profile page) */}
           <Col
             xs={0}
             sm={0}
@@ -132,9 +162,8 @@ function ProfilePage() {
             lg={3}
             xl={2}
             className="d-none d-lg-block"
-          ></Col>
+          />
 
-          {/* Center Profile Column */}
           <Col
             xs={12}
             sm={12}
@@ -166,7 +195,6 @@ function ProfilePage() {
                     zIndex: 2,
                   }}
                 />
-                {/* Nút "Chỉnh sửa hồ sơ" */}
                 <Button
                   variant="outline-dark"
                   className="rounded-pill fw-bold px-3 py-2"
@@ -180,19 +208,15 @@ function ProfilePage() {
               <h4 className="mb-0 fw-bold">{userProfile.name}</h4>
               <p className="text-muted mb-2">@{userProfile.username}</p>
 
-              {/* Hiển thị Tiểu sử nếu có */}
               {userProfile.bio && <p className="mb-2">{userProfile.bio}</p>}
 
-              {/* Hiển thị Vị trí nếu có */}
               {userProfile.location && (
                 <p className="text-muted d-flex align-items-center mb-2">
                   <FaMapMarkerAlt size={16} className="me-2" />{" "}
-                  {/* Đã đổi icon */}
                   {userProfile.location}
                 </p>
               )}
 
-              {/* Hiển thị Trang web nếu có */}
               {userProfile.website && (
                 <p className="text-muted d-flex align-items-center mb-2">
                   <FaLink size={16} className="me-2" />
@@ -209,21 +233,25 @@ function ProfilePage() {
 
               <p className="text-muted d-flex align-items-center mb-2">
                 <FaCalendarAlt size={16} className="me-2" />
-                Tham gia {userProfile.joinedDate}
+                Ngày sinh{" "}
+                {userProfile.dateOfBirth
+                  ? new Date(userProfile.dateOfBirth).toLocaleDateString(
+                      "vi-VN"
+                    )
+                  : "Chưa cập nhật"}
               </p>
 
               <div className="d-flex mb-3">
                 <Link to="#" className="me-3 text-dark text-decoration-none">
-                  <span className="fw-bold">{userProfile.following}</span>{" "}
+                  <span className="fw-bold">{userProfile.followeeCount}</span>{" "}
                   <span className="text-muted">Đang theo dõi</span>
                 </Link>
                 <Link to="#" className="text-dark text-decoration-none">
-                  <span className="fw-bold">{userProfile.followers}</span>{" "}
+                  <span className="fw-bold">{userProfile.followerCount}</span>{" "}
                   <span className="text-muted">Người theo dõi</span>
                 </Link>
               </div>
 
-              {/* Account Premium Alert */}
               {showAlert && !userProfile.isPremium && (
                 <div
                   className="alert alert-success d-flex align-items-start"
@@ -255,7 +283,7 @@ function ProfilePage() {
                   </Button>
                 </div>
               )}
-              {/* Profile Navigation Tabs */}
+
               <Nav variant="underline" className="mt-4 profile-tabs">
                 <Nav.Item>
                   <Nav.Link
@@ -296,7 +324,6 @@ function ProfilePage() {
               </Nav>
             </div>
 
-            {/* User's Tweets */}
             <div className="mt-0 border-top">
               {sampleTweets.map((tweet) => (
                 <TweetCard key={tweet.id} tweet={tweet} />
@@ -304,7 +331,6 @@ function ProfilePage() {
             </div>
           </Col>
 
-          {/* Right Sidebar (Empty or hidden for profile page) */}
           <Col
             xs={0}
             sm={0}
@@ -312,11 +338,10 @@ function ProfilePage() {
             lg={3}
             xl={3}
             className="d-none d-lg-block"
-          ></Col>
+          />
         </Row>
       </Container>
 
-      {/* Edit Profile Modal Component */}
       <EditProfileModal
         show={showEditModal}
         handleClose={handleCloseEditModal}

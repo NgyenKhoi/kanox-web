@@ -50,15 +50,10 @@ public class AuthController {
         return ResponseEntity.status(401).body("Invalid credentials");
     }
 
-    @GetMapping(URLConfig.PROFILE)
-    public ResponseEntity<?> getProfile(@PathVariable String username) {
-        Optional<User> userOpt = authService.getProfileByUsername(username);
-        return userOpt.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
-    }
 
     @PostMapping(URLConfig.LOGOUT)
     public ResponseEntity<?> logout(@RequestParam Integer userId) {
-        Optional<User> userOpt = authService.getProfile(userId);
+        Optional<User> userOpt = authService.getUser(userId);
         if (userOpt.isPresent()) {
             authService.logout(userOpt.get());
             return ResponseEntity.ok("Logged out successfully");

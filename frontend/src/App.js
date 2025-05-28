@@ -11,8 +11,9 @@ function App() {
     <Router>
       <Routes>
         <Route path="/" element={<SignupPage />} />{" "}
-        <Route path="/profile" element={<ProfilePage />} />{" "}
-        <Route path="/reset-password" element={<ResetPasswordPage />} /> {/* Route cho trang đặt lại mật khẩu */}
+        <Route path="/profile/:username" element={<ProfilePage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />{" "}
+        {/* Route cho trang đặt lại mật khẩu */}
         {/* Trang mặc định là SignupPage */}
         <Route path="/home" element={<HomePage />} />{" "}
         {/* Route cho trang Home */}
@@ -21,5 +22,4 @@ function App() {
     </Router>
   );
 }
-
 export default App;
