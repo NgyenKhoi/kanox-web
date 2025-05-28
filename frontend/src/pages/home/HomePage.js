@@ -1,20 +1,119 @@
+// src/pages/HomePage/HomePage.jsx
 import React from "react";
 import { Container, Row, Col } from "react-bootstrap";
+import Header from "../../components/layout/Header/Header";
+import SidebarLeft from "../../components/layout/SidebarLeft/SidebarLeft";
+import SidebarRight from "../../components/layout/SidebarRight/SidebarRight";
+import TweetInput from "../../components/posts/TweetInput/TweetInput";
+import TweetCard from "../../components/posts/TweetCard/TweetCard";
 
-const HomePage = () => {
+function HomePage() {
+  const sampleTweets = [
+    {
+      id: 1,
+      user: {
+        name: "Jane Doe",
+        username: "janedoe",
+        avatar: "https://via.placeholder.com/50",
+      },
+      content:
+        "Just cloned Twitter's basic layout with React and Bootstrap! It's looking good. #ReactJS #Bootstrap5 #WebDev",
+      imageUrl: null,
+      timestamp: new Date("2025-05-25T05:00:00Z"),
+      comments: 15,
+      retweets: 5,
+      likes: 30,
+    },
+    {
+      id: 2,
+      user: {
+        name: "Amaoou_513",
+        username: "Amaoou_513",
+        avatar: "https://via.placeholder.com/50",
+      },
+      content: "",
+      imageUrl:
+        "https://via.placeholder.com/600x400/007bff/ffffff?text=Image+1\n(Your+Image+Here)",
+      timestamp: new Date("2025-05-25T04:30:00Z"),
+      comments: 8,
+      retweets: 2,
+      likes: 45,
+    },
+    {
+      id: 3,
+      user: {
+        name: "Another User",
+        username: "another_user",
+        avatar: "https://via.placeholder.com/50",
+      },
+      content:
+        "Learning about component-based architecture is crucial for scalable applications. #WebDev",
+      imageUrl: null,
+      timestamp: new Date("2025-05-24T18:00:00Z"),
+      comments: 3,
+      retweets: 1,
+      likes: 12,
+    },
+  ];
+
   return (
-    <Container
-      fluid
-      className="d-flex min-vh-100 bg-light text-dark justify-content-center align-items-center"
-    >
-      <Row>
-        <Col className="text-center">
-          <h1 className="display-4 fw-bold">Chào mừng bạn đến với KaNox!</h1>
-          <p className="lead">Bạn đã đăng nhập/đăng ký thành công.</p>
-        </Col>
-      </Row>
-    </Container>
+    <div className="d-flex flex-column min-vh-100 bg-light">
+      <Header />
+      <Container fluid className="mt-0 pt-0">
+        <Row>
+          {/* Sidebar Left */}
+          {/* Ensure min-height: 100vh for sticky to work */}
+          <Col
+            xs={0}
+            sm={0}
+            md={0}
+            lg={3}
+            xl={2}
+            className="d-none d-lg-flex justify-content-end align-items-stretch"
+            style={{ minHeight: "100vh" }}
+          >
+            <SidebarLeft />
+          </Col>
+
+          {/* Main Content */}
+          <Col
+            xs={12}
+            sm={12}
+            md={12}
+            lg={6}
+            xl={7}
+            className="px-md-0 border-start border-end mt-5 pt-1 mt-lg-0 pt-lg-0"
+          >
+            <TweetInput />
+
+            {sampleTweets.map((tweet) => (
+              <TweetCard key={tweet.id + "extra2"} tweet={tweet} />
+            ))}
+            {sampleTweets.map((tweet) => (
+              <TweetCard key={tweet.id + "extra2"} tweet={tweet} />
+            ))}
+            {sampleTweets.map((tweet) => (
+              <TweetCard key={tweet.id + "extra2"} tweet={tweet} />
+            ))}
+          </Col>
+
+          {/* Sidebar Right */}
+          {/* Ensure min-height: 100vh for sticky to work */}
+          <Col
+            xs={0}
+            sm={0}
+            md={0}
+            lg={3}
+            xl={3}
+            className="d-none d-lg-block ps-md-4"
+            style={{ minHeight: "100vh" }}
+          >
+            <SidebarRight />
+          </Col>
+        </Row>
+      </Container>
+    </div>
   );
-};
+}
 
 export default HomePage;
