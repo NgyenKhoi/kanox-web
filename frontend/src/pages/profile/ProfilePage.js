@@ -24,7 +24,7 @@ function ProfilePage() {
       try {
         const token = localStorage.getItem("token");
         const response = await fetch(
-          `${process.env.REACT_APP_API_URL}/user/profile/${username}`,
+          `${process.env.REACT_APP_API_URL}/profile/${username}`,
           {
             headers: {
               "Content-Type": "application/json",
@@ -42,9 +42,9 @@ function ProfilePage() {
           ...data,
           banner:
             data.banner ||
-            "https://via.placeholder.com/1200x400.png?text=Banner+Example",
+            "https://source.unsplash.com/1200x400/?nature,water",
           avatar:
-            data.avatar || "https://via.placeholder.com/150.png?text=Avatar",
+            data.avatar || "https://source.unsplash.com/150x150/?portrait",
           postCount: data.postCount || 0,
           website: data.website || "",
           isPremium: false,
