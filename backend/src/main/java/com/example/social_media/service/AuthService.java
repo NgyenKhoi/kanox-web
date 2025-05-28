@@ -5,7 +5,8 @@ import com.example.social_media.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import com.example.social_media.dto.RegisterRequestDto;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.time.LocalDate;
 import java.util.Optional;
 import java.util.UUID;
@@ -17,9 +18,14 @@ public class AuthService {
 
     private final PasswordEncoder passwordEncoder;
 
-    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    private final PasswordResetService passwordResetService;
+
+    private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
+
+    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, PasswordResetService passwordResetService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.passwordResetService = passwordResetService;
     }
 
     // Login by email or password
@@ -68,20 +74,20 @@ public class AuthService {
         userRepository.save(user);
         return token;
     }
-    //login by persistent cookie
-    public Optional<User> loginByPersistentCookie(String cookie) {
-        return userRepository.findByPersistentCookie(cookie);
-    }
     //forgot password
     public boolean forgotPassword(String email) {
         Optional<User> userOpt = userRepository.findByEmail(email);
-        if (userOpt.isPresent()) {
-            // TODO: tạo token reset password, gửi mail cho user
-            return true;
+        if (userOpt.isEmpty()) {
+            return false;
         }
-        return false;
+        try {
+            passwordResetService.sendResetToken(email);
+            return true;
+        } catch (Exception e) {
+            logger.error("Failed to send reset email to {}", email, e);
+            return false;
+        }
     }
-
     // view profile
     public Optional<User> getProfile(Integer userId) {
         return userRepository.findById(userId);
