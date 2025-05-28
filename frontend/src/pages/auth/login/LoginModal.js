@@ -136,16 +136,6 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
                   className="py-3 px-3 rounded-3"
                   style={{ fontSize: "1.1rem", borderColor: "#ccc" }}
                 />
-                <br />
-                <Form.Control
-                  type="text"
-                  placeholder="Mật Khẩu"
-                  name="loginIdentifier"
-                  value={loginIdentifier}
-                  onChange={handleInputChange}
-                  className="py-3 px-3 rounded-3"
-                  style={{ fontSize: "1.1rem", borderColor: "#ccc" }}
-                />
               </Form.Group>
               <Form.Group className="mb-3">
                 <Form.Control

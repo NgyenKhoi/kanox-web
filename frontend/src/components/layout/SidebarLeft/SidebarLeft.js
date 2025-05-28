@@ -72,7 +72,6 @@ function SidebarLeft() {
               className="d-flex align-items-center text-dark py-2 px-3 rounded-pill hover-bg-light"
             >
               <BsRocketTakeoff size={24} className="me-3" />
-              <span className="fs-5 d-none d-lg-block">Grok</span>
             </Nav.Link>
           </Nav.Item>
           <Nav.Item className="mb-1">
@@ -130,36 +129,6 @@ function SidebarLeft() {
             <FaTwitter size={24} />
           </Button>
         </Nav>
-
-        <div className="dropdown mt-auto w-100 pt-3 border-top d-none d-lg-block">
-          <a
-            href="#"
-            className="d-flex align-items-center text-dark text-decoration-none dropdown-toggle"
-            id="dropdownUser2"
-            data-bs-toggle="dropdown"
-            aria-expanded="false"
-          >
-            <Image
-              src="https://via.placeholder.com/40"
-              alt=""
-              width="40"
-              height="40"
-              roundedCircle
-              className="me-2"
-            />
-            <div className="d-flex flex-column">
-              <strong className="text-truncate" style={{ maxWidth: "100px" }}>
-                Outboxer000
-              </strong>
-              <small
-                className="text-muted text-truncate"
-                style={{ maxWidth: "100px" }}
-              >
-                @4conmeo
-              </small>
-            </div>
-          </a>
-        </div>
       </div>
     </div>
   );
