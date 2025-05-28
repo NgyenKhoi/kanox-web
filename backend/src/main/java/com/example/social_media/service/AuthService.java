@@ -6,6 +6,8 @@ import com.example.social_media.dto.RegisterRequestDto;
 import com.example.social_media.exception.EmailAlreadyExistsException;
 import com.example.social_media.exception.UserNotFoundException;
 import com.example.social_media.exception.InvalidPasswordException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -22,6 +24,13 @@ public class AuthService {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    private final PasswordResetService passwordResetService;
+    private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
+
+    public AuthService(PasswordResetService passwordResetService) {
+        this.passwordResetService = passwordResetService;
+    }
 
     public Optional<User> loginByEmail(String email, String rawPassword) {
         Optional<User> userOpt = userRepository.findByEmailAndStatusTrue(email);
@@ -73,21 +82,23 @@ public class AuthService {
         return token;
     }
 
-    public Optional<User> loginByPersistentCookie(String cookie) {
-        Optional<User> userOpt = userRepository.findByPersistentCookie(cookie);
-        if (!userOpt.isPresent()) {
-            throw new UserNotFoundException("Cookie không hợp lệ");
-        }
-        return userOpt;
-    }
 
     public boolean forgotPassword(String email) {
+        logger.info("Processing forgot password for email: {}", email);
+
         Optional<User> userOpt = userRepository.findByEmail(email);
-        if (!userOpt.isPresent()) {
-            throw new UserNotFoundException("Email không tồn tại");
+        if (userOpt.isEmpty()) {
+            logger.warn("Email not found: {}", email);
+            return false;
         }
-        // TODO: tạo token reset password, gửi mail cho user
-        return true;
+        try {
+            passwordResetService.sendResetToken(email);
+            logger.info("Password reset token sent to email: {}", email);
+            return true;
+        } catch (Exception e) {
+            logger.error("Failed to send password reset email to {}: {}", email, e.getMessage());
+            return false;
+        }
     }
 
     public Optional<User> getProfile(Integer userId) {
