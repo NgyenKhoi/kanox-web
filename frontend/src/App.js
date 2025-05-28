@@ -9,7 +9,7 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<HomePage />} />{" "}
+        <Route path="/" element={<SignupPage />} />{" "}
         {/* Trang mặc định là SignupPage */}
         <Route path="/home" element={<HomePage />} />{" "}
         <Route path="/profile" element={<ProfilePage />} />{" "}
