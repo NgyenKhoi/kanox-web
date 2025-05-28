@@ -61,48 +61,41 @@ public class AuthController {
     }
 
     @PostMapping(URLConfig.FORGOT_PASSWORD)
-<<<<<<< HEAD
-    public ResponseEntity<?> forgotPassword(@RequestBody @Valid ForgotPasswordRequestDto request) {
-=======
-    public ResponseEntity<?> forgotPassword(@RequestBody PasswordResetDto request) {
->>>>>>> b5d23e5118633cb90a448b02e0366da479843be8
-        if (request.getEmail() == null) {
-            throw new IllegalArgumentException("Email is required");
+        public ResponseEntity<?> forgotPassword (@RequestBody PasswordResetDto request){
+            if (request.getEmail() == null) {
+                throw new IllegalArgumentException("Email is required");
+            }
+            boolean result = authService.forgotPassword(request.getEmail());
+            if (result) {
+                return ResponseEntity.ok("Password reset instructions sent to email");
+            } else {
+                throw new IllegalArgumentException("Email not found");
+            }
         }
-        boolean result = authService.forgotPassword(request.getEmail());
-        if (result) {
-            return ResponseEntity.ok("Password reset instructions sent to email");
-        } else {
-            throw new IllegalArgumentException("Email not found");
-        }
-    }
 
-    @PostMapping(URLConfig.RESET_PASSWORD)
-<<<<<<< HEAD
-    public ResponseEntity<?> resetPassword(@RequestBody @Valid ResetPasswordRequestDto request) {
-=======
-    public ResponseEntity<?> resetPassword(@RequestBody PasswordResetDto request) {
->>>>>>> b5d23e5118633cb90a448b02e0366da479843be8
-        if (request.getToken() == null || request.getNewPassword() == null) {
-            throw new IllegalArgumentException("Token and newPassword are required");
-        }
-        try {
-            passwordResetService.resetPassword(request.getToken(), request.getNewPassword());
-            return ResponseEntity.ok("Đặt lại mật khẩu thành công.");
-        } catch (IllegalArgumentException e) {
-            throw e; // Let GlobalExceptionHandle handle it
-        } catch (Exception e) {
-            throw new RuntimeException("Có lỗi xảy ra, vui lòng thử lại sau.", e);
-        }
-    }
+        @PostMapping(URLConfig.RESET_PASSWORD)
 
-    @PostMapping(URLConfig.REGISTER)
-    public ResponseEntity<?> register(@RequestBody @Valid RegisterRequestDto dto) {
-        try {
-            User createdUser = authService.register(dto);
-            return ResponseEntity.ok(createdUser);
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Registration failed: " + e.getMessage());
+            public ResponseEntity<?> resetPassword (@RequestBody PasswordResetDto request){
+                if (request.getToken() == null || request.getNewPassword() == null) {
+                    throw new IllegalArgumentException("Token and newPassword are required");
+                }
+                try {
+                    passwordResetService.resetPassword(request.getToken(), request.getNewPassword());
+                    return ResponseEntity.ok("Đặt lại mật khẩu thành công.");
+                } catch (IllegalArgumentException e) {
+                    throw e; // Let GlobalExceptionHandle handle it
+                } catch (Exception e) {
+                    throw new RuntimeException("Có lỗi xảy ra, vui lòng thử lại sau.", e);
+                }
+            }
+
+            @PostMapping(URLConfig.REGISTER)
+            public ResponseEntity<?> register (@RequestBody @Valid RegisterRequestDto dto){
+                try {
+                    User createdUser = authService.register(dto);
+                    return ResponseEntity.ok(createdUser);
+                } catch (Exception e) {
+                    throw new IllegalArgumentException("Registration failed: " + e.getMessage());
+                }
+            }
         }
-    }
-}

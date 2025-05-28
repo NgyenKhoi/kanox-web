@@ -10,8 +10,6 @@ public class LoginRequestDto {
     private String identifier;
 
     @NotBlank(message = "Mật khẩu không được để trống")
-    @Pattern(regexp = "^(?=.*[A-Z])(?=.*[!@#$%^&*()_+=])(?=.{8,}).*$",
-            message = "Mật khẩu phải dài ít nhất 8 ký tự, chứa ít nhất 1 chữ cái in hoa và 1 ký tự đặc biệt (!@#$%^&*()_+=)")
     private String password;
 
     public LoginRequestDto() {
