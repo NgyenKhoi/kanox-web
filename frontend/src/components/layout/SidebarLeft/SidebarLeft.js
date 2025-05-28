@@ -14,6 +14,7 @@ import { BsRocketTakeoff, BsStars } from "react-icons/bs";
 import { Link } from "react-router-dom";
 
 function SidebarLeft() {
+  const username = localStorage.getItem("username");
   return (
     <div
       className="d-flex flex-column flex-shrink-0 pt-2 pb-3 ps-3 pe-0 sticky-top"
@@ -97,7 +98,7 @@ function SidebarLeft() {
           <Nav.Item className="mb-1">
             <Nav.Link
               as={Link}
-              to="/profile"
+              to={`/profile/${username}`}
               className="d-flex align-items-center text-dark py-2 px-3 rounded-pill hover-bg-light"
             >
               <FaUserAlt size={24} className="me-3" />

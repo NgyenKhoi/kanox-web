@@ -40,6 +40,7 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
         const { token, user } = data;
 
         localStorage.setItem("token", token);
+        localStorage.setItem("username", data.user.username);
         console.log("User:", user);
 
         handleClose();
