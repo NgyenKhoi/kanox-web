@@ -76,7 +76,7 @@ public class AuthController {
     }
 
     @PostMapping(URLConfig.RESET_PASSWORD)
-    public ResponseEntity<?> resetPassword(@RequestBody @Valid PasswordResetDto request) {
+    public ResponseEntity<?> resetPassword(@RequestBody PasswordResetDto request) {
         if (request.getToken() == null || request.getNewPassword() == null) {
             throw new IllegalArgumentException("Token and newPassword are required");
         }
