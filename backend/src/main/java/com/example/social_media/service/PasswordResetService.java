@@ -1,10 +1,10 @@
 package com.example.social_media.service;
 
+import com.example.social_media.config.URLConfig;
 import com.example.social_media.entity.PasswordReset;
 import com.example.social_media.entity.User;
 import com.example.social_media.repository.PasswordResetRepository;
 import com.example.social_media.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -18,14 +18,17 @@ import java.util.UUID;
 @Service
 public class PasswordResetService {
 
-    @Autowired
-    private PasswordResetRepository passwordResetRepository;
+    private final PasswordResetRepository passwordResetRepository;
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
 
-    @Autowired
-    private JavaMailSender mailSender;
+    private final JavaMailSender mailSender;
+
+    public PasswordResetService(PasswordResetRepository passwordResetRepository, UserRepository userRepository, JavaMailSender mailSender) {
+        this.passwordResetRepository = passwordResetRepository;
+        this.userRepository = userRepository;
+        this.mailSender = mailSender;
+    }
 
     public void sendResetToken(String email) {
         User user = userRepository.findByEmail(email)
@@ -44,7 +47,7 @@ public class PasswordResetService {
     }
 
     private void sendEmail(String toEmail, String token) {
-        String resetLink = "http://localhost:3000/reset-password?token=" + token;
+        String resetLink = URLConfig.FRONTEND_RESET_PASSWORD_URL + token;
 
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(toEmail);
