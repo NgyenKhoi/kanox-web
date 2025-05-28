@@ -2,7 +2,7 @@ import logo from "./logo.svg";
 import "./App.css";
 import SignupPage from "./pages/auth/signup/signupPage";
 import HomePage from "./pages/home/HomePage";
-import ResetPasswordPage from "./pages/auth/login/ResetPasswordPage.js"; // import trang reset password
+import ResetPasswordPage from "./pages/auth/login/ResetPasswordPage"; // import trang reset password
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
 function App() {
