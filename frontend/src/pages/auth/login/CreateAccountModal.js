@@ -4,12 +4,15 @@ import KLogoSvg from "../../../components/svgs/KSvg"; // Assuming XSvg is in the
 import { X as XCloseIcon } from "react-bootstrap-icons"; // For the close icon
 import { useNavigate } from "react-router-dom"; // Import useNavigate
 
+const apiBase = process.env.REACT_APP_API_URL;
+
 const CreateAccountModal = ({ show, handleClose }) => {
   const navigate = useNavigate(); // Khởi tạo useNavigate
 
   const [formData, setFormData] = useState({
-    name: "",
+    username: "",
     email: "",
+    password: "",
     month: "",
     day: "",
     year: "",
@@ -22,13 +25,38 @@ const CreateAccountModal = ({ show, handleClose }) => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Form Data:", formData);
-    // Here you would typically send data to an API
-    // For now, just close the modal
-    handleClose();
-    navigate("/home"); // Chuyển hướng đến trang Home
+
+    try {
+      const response = await fetch(`${apiBase}/auth/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: formData.username,
+          email: formData.email,
+          password: formData.password,
+          month: parseInt(formData.month),
+          day: parseInt(formData.day),
+          year: parseInt(formData.year),
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Register success:", data);
+        handleClose();
+        navigate("/home"); // Điều hướng sau đăng ký thành công
+      } else {
+        const error = await response.text();
+        alert("Đăng ký thất bại: " + error);
+      }
+    } catch (error) {
+      console.error("Error registering:", error);
+      alert("Có lỗi xảy ra khi đăng ký.");
+    }
   };
 
   // Generate options for Month, Day, Year
@@ -72,8 +100,8 @@ const CreateAccountModal = ({ show, handleClose }) => {
             <Form.Control
               type="text"
               placeholder="Tên"
-              name="name"
-              value={formData.name}
+              name="username"
+              value={formData.username}
               onChange={handleInputChange}
               className="py-3 px-3 rounded-3"
               style={{ fontSize: "1.1rem" }}
@@ -86,6 +114,18 @@ const CreateAccountModal = ({ show, handleClose }) => {
               placeholder="Email"
               name="email"
               value={formData.email}
+              onChange={handleInputChange}
+              className="py-3 px-3 rounded-3"
+              style={{ fontSize: "1.1rem" }}
+            />
+          </Form.Group>
+
+          <Form.Group className="mb-3">
+            <Form.Control
+              type="password"
+              placeholder="Mật khẩu"
+              name="password"
+              value={formData.password}
               onChange={handleInputChange}
               className="py-3 px-3 rounded-3"
               style={{ fontSize: "1.1rem" }}
@@ -161,8 +201,9 @@ const CreateAccountModal = ({ show, handleClose }) => {
                 fontSize: "1.2rem",
               }} // Custom gray
               disabled={
-                !formData.name ||
+                !formData.username ||
                 !formData.email ||
+                !formData.password ||
                 !formData.month ||
                 !formData.day ||
                 !formData.year

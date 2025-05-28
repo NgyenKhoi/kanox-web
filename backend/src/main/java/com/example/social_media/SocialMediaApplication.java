@@ -14,6 +14,6 @@ public class SocialMediaApplication {
 	}
 	@GetMapping("/")
 	public String home() {
-		return "Welcome to My social media web ai lam ma xin vcl";
+		return "Welcome to My social media web ai lam ma ngu vcl";
 	}
 }

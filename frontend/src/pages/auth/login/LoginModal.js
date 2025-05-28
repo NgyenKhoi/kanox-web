@@ -8,11 +8,14 @@ import JoinXModal from "./JoinXModal";
 import { useNavigate } from "react-router-dom"; // Import useNavigate
 import KLogoSvg from "../../../components/svgs/KSvg";
 
+const apiBase = process.env.REACT_APP_API_URL;
+
 // Nhận prop onShowLogin từ SignupPage
 const LoginModal = ({ show, handleClose, onShowLogin }) => {
   const navigate = useNavigate(); // Khởi tạo useNavigate
 
   const [loginIdentifier, setLoginIdentifier] = useState("");
+  const [password, setPassword] = useState("");
   const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
   const [showJoinXModal, setShowJoinXModal] = useState(false);
 
@@ -20,11 +23,37 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
     setLoginIdentifier(e.target.value);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Login Identifier:", loginIdentifier);
-    handleClose();
-    navigate("/home"); // Chuyển hướng đến trang Home
+    try {
+      const response = await fetch(`${apiBase}/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          identifier: loginIdentifier,
+          password: password,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const { token, user } = data;
+
+        localStorage.setItem("token", token);
+        console.log("User:", user);
+
+        handleClose();
+        navigate("/home");
+      } else {
+        const error = await response.text();
+        alert("Login failed: " + error);
+      }
+    } catch (err) {
+      console.error("Login error:", err);
+      alert("Có lỗi xảy ra khi đăng nhập.");
+    }
   };
 
   const handleShowForgotPasswordModal = () => {
@@ -118,7 +147,17 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
                   style={{ fontSize: "1.1rem", borderColor: "#ccc" }}
                 />
               </Form.Group>
-
+              <Form.Group className="mb-3">
+                <Form.Control
+                  type="password"
+                  placeholder="Mật khẩu"
+                  name="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="py-3 px-3 rounded-3"
+                  style={{ fontSize: "1.1rem", borderColor: "#ccc" }}
+                />
+              </Form.Group>
               <Button
                 type="submit"
                 variant="dark"
@@ -128,7 +167,7 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
                   borderColor: "#000",
                   fontSize: "1.1rem",
                 }}
-                disabled={!loginIdentifier}
+                disabled={!loginIdentifier || !password}
               >
                 Tiếp theo
               </Button>
