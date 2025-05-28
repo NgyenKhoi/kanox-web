@@ -61,7 +61,7 @@ public class AuthController {
     }
 
     @PostMapping(URLConfig.FORGOT_PASSWORD)
-        public ResponseEntity<?> forgotPassword (@RequestBody PasswordResetDto request){
+        public ResponseEntity<?> forgotPassword (@RequestBody ForgotPasswordRequestDto request){
             if (request.getEmail() == null) {
                 throw new IllegalArgumentException("Email is required");
             }
@@ -72,10 +72,8 @@ public class AuthController {
                 throw new IllegalArgumentException("Email not found");
             }
         }
-
         @PostMapping(URLConfig.RESET_PASSWORD)
-
-            public ResponseEntity<?> resetPassword (@RequestBody PasswordResetDto request){
+            public ResponseEntity<?> resetPassword (@RequestBody ResetPasswordRequestDto request){
                 if (request.getToken() == null || request.getNewPassword() == null) {
                     throw new IllegalArgumentException("Token and newPassword are required");
                 }
@@ -88,7 +86,6 @@ public class AuthController {
                     throw new RuntimeException("Có lỗi xảy ra, vui lòng thử lại sau.", e);
                 }
             }
-
             @PostMapping(URLConfig.REGISTER)
             public ResponseEntity<?> register (@RequestBody @Valid RegisterRequestDto dto){
                 try {
