@@ -10,7 +10,7 @@ import java.util.Objects;
 
 @Embeddable
 public class ContentPrivacyId implements Serializable {
-    private static final long serialVersionUID = -6154719749295439397L;
+    private static final long serialVersionUID = 3823145472597198078L;
     @NotNull
     @Column(name = "content_id", nullable = false)
     private Integer contentId;

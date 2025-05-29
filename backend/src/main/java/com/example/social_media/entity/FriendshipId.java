@@ -10,7 +10,7 @@ import java.util.Objects;
 
 @Embeddable
 public class FriendshipId implements Serializable {
-    private static final long serialVersionUID = 5915124688926408612L;
+    private static final long serialVersionUID = -131312191799924250L;
     @NotNull
     @Column(name = "user_id", nullable = false)
     private Integer userId;

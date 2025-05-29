@@ -3,6 +3,9 @@ package com.example.social_media.entity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
 
+import java.util.LinkedHashSet;
+import java.util.Set;
+
 @Entity
 @Table(name = "tblTargetType", schema = "dbo")
 public class TargetType {
@@ -18,6 +21,18 @@ public class TargetType {
     @Size(max = 50)
     @Column(name = "code", length = 50)
     private String code;
+
+    @OneToMany(mappedBy = "contentType")
+    private Set<ContentPrivacy> tblContentPrivacies = new LinkedHashSet<>();
+
+    @OneToMany(mappedBy = "targetType")
+    private Set<Media> tblMedia = new LinkedHashSet<>();
+
+    @OneToMany(mappedBy = "targetType")
+    private Set<Notification> tblNotifications = new LinkedHashSet<>();
+
+    @OneToMany(mappedBy = "targetType")
+    private Set<Reaction> tblReactions = new LinkedHashSet<>();
 
     public Integer getId() {
         return id;
@@ -41,6 +56,38 @@ public class TargetType {
 
     public void setCode(String code) {
         this.code = code;
+    }
+
+    public Set<ContentPrivacy> getTblContentPrivacies() {
+        return tblContentPrivacies;
+    }
+
+    public void setTblContentPrivacies(Set<ContentPrivacy> tblContentPrivacies) {
+        this.tblContentPrivacies = tblContentPrivacies;
+    }
+
+    public Set<Media> getTblMedia() {
+        return tblMedia;
+    }
+
+    public void setTblMedia(Set<Media> tblMedia) {
+        this.tblMedia = tblMedia;
+    }
+
+    public Set<Notification> getTblNotifications() {
+        return tblNotifications;
+    }
+
+    public void setTblNotifications(Set<Notification> tblNotifications) {
+        this.tblNotifications = tblNotifications;
+    }
+
+    public Set<Reaction> getTblReactions() {
+        return tblReactions;
+    }
+
+    public void setTblReactions(Set<Reaction> tblReactions) {
+        this.tblReactions = tblReactions;
     }
 
 }

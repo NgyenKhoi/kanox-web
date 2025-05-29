@@ -10,7 +10,7 @@ import java.util.Objects;
 
 @Embeddable
 public class BlockId implements Serializable {
-    private static final long serialVersionUID = -241392882755632L;
+    private static final long serialVersionUID = 664989630280985584L;
     @NotNull
     @Column(name = "user_id", nullable = false)
     private Integer userId;

@@ -28,7 +28,7 @@ public class User {
     private String username;
 
     @Size(max = 12)
-    @Column(name = "phone_number", nullable = false, length = 12)
+    @Column(name = "phone_number", length = 12)
     private String phoneNumber;
 
     @Size(max = 255)

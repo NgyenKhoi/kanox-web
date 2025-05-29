@@ -7,6 +7,8 @@ import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
 
 import java.time.Instant;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "tblCustomPrivacyLists", schema = "dbo")
@@ -33,6 +35,12 @@ public class CustomPrivacyList {
     @ColumnDefault("1")
     @Column(name = "status")
     private Boolean status;
+
+    @OneToMany(mappedBy = "customList")
+    private Set<ContentPrivacy> tblContentPrivacies = new LinkedHashSet<>();
+
+    @OneToMany(mappedBy = "list")
+    private Set<CustomPrivacyListMember> tblCustomPrivacyListMembers = new LinkedHashSet<>();
 
     public Integer getId() {
         return id;
@@ -72,6 +80,22 @@ public class CustomPrivacyList {
 
     public void setStatus(Boolean status) {
         this.status = status;
+    }
+
+    public Set<ContentPrivacy> getTblContentPrivacies() {
+        return tblContentPrivacies;
+    }
+
+    public void setTblContentPrivacies(Set<ContentPrivacy> tblContentPrivacies) {
+        this.tblContentPrivacies = tblContentPrivacies;
+    }
+
+    public Set<CustomPrivacyListMember> getTblCustomPrivacyListMembers() {
+        return tblCustomPrivacyListMembers;
+    }
+
+    public void setTblCustomPrivacyListMembers(Set<CustomPrivacyListMember> tblCustomPrivacyListMembers) {
+        this.tblCustomPrivacyListMembers = tblCustomPrivacyListMembers;
     }
 
 }

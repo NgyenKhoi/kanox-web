@@ -10,7 +10,7 @@ import java.util.Objects;
 
 @Embeddable
 public class ReactionId implements Serializable {
-    private static final long serialVersionUID = -3307335784805320899L;
+    private static final long serialVersionUID = 7232077145154021993L;
     @NotNull
     @Column(name = "user_id", nullable = false)
     private Integer userId;

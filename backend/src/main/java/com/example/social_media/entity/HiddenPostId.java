@@ -10,7 +10,7 @@ import java.util.Objects;
 
 @Embeddable
 public class HiddenPostId implements Serializable {
-    private static final long serialVersionUID = 6348211189478712597L;
+    private static final long serialVersionUID = 1100663535723716658L;
     @NotNull
     @Column(name = "user_id", nullable = false)
     private Integer userId;

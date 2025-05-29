@@ -6,6 +6,8 @@ import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
 
 import java.time.Instant;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "tblChat", schema = "dbo")
@@ -31,6 +33,15 @@ public class Chat {
     @ColumnDefault("1")
     @Column(name = "status")
     private Boolean status;
+
+    @OneToMany(mappedBy = "chat")
+    private Set<CallSession> tblCallSessions = new LinkedHashSet<>();
+
+    @OneToMany(mappedBy = "chat")
+    private Set<ChatMember> tblChatMembers = new LinkedHashSet<>();
+
+    @OneToMany(mappedBy = "chat")
+    private Set<Message> tblMessages = new LinkedHashSet<>();
 
     public Integer getId() {
         return id;
@@ -70,6 +81,30 @@ public class Chat {
 
     public void setStatus(Boolean status) {
         this.status = status;
+    }
+
+    public Set<CallSession> getTblCallSessions() {
+        return tblCallSessions;
+    }
+
+    public void setTblCallSessions(Set<CallSession> tblCallSessions) {
+        this.tblCallSessions = tblCallSessions;
+    }
+
+    public Set<ChatMember> getTblChatMembers() {
+        return tblChatMembers;
+    }
+
+    public void setTblChatMembers(Set<ChatMember> tblChatMembers) {
+        this.tblChatMembers = tblChatMembers;
+    }
+
+    public Set<Message> getTblMessages() {
+        return tblMessages;
+    }
+
+    public void setTblMessages(Set<Message> tblMessages) {
+        this.tblMessages = tblMessages;
     }
 
 }
