@@ -21,16 +21,8 @@ public class RegisterRequestDto {
             message = "Mật khẩu phải dài ít nhất 8 ký tự, chứa ít nhất 1 chữ cái in hoa và 1 ký tự đặc biệt (!@#$%^&*()_+=)")
     private String password;
 
-    @Min(value = 1, message = "Ngày phải từ 1 đến 31")
-    @Max(value = 31, message = "Ngày phải từ 1 đến 31")
     private int day;
-
-    @Min(value = 1, message = "Tháng phải từ 1 đến 12")
-    @Max(value = 12, message = "Tháng phải từ 1 đến 12")
     private int month;
-
-    @Min(value = 1900, message = "Năm phải từ 1900 trở lên")
-    @Max(value = 2025, message = "Năm không được lớn hơn 2025")
     private int year;
 
     public String getUsername() {
