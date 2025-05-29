@@ -49,8 +49,6 @@ public class UserProfileService {
         user.setGender(updateDto.getGender());
         user.setDateOfBirth(updateDto.getDateOfBirth());
 
-        userRepository.save(user);
-
         int followerCount = followRepository.countByFolloweeAndStatusTrue(user);
         int followeeCount = followRepository.countByFollowerAndStatusTrue(user);
 

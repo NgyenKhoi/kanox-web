@@ -17,7 +17,6 @@ function ProfilePage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [userProfile, setUserProfile] = useState(null);
   const { username } = useParams();
-
   //fetch user profile here
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -41,8 +40,7 @@ function ProfilePage() {
         setUserProfile({
           ...data,
           banner:
-            data.banner ||
-            "https://source.unsplash.com/1200x400/?nature,water",
+            data.banner || "https://source.unsplash.com/1200x400/?nature,water",
           avatar:
             data.avatar || "https://source.unsplash.com/150x150/?portrait",
           postCount: data.postCount || 0,
@@ -347,6 +345,7 @@ function ProfilePage() {
         handleClose={handleCloseEditModal}
         userProfile={userProfile}
         onSave={handleSaveProfile}
+        username={username}
       />
     </div>
   );

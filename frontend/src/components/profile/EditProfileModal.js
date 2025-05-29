@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Modal, Button, Form, Image } from "react-bootstrap";
 import { FaCamera, FaTimes } from "react-icons/fa";
 
-function EditProfileModal({ show, handleClose, userProfile, onSave }) {
+function EditProfileModal({ show, handleClose, userProfile, onSave, username }) {
   const [formData, setFormData] = useState({
     displayName: "",
     bio: "",
@@ -16,7 +16,7 @@ function EditProfileModal({ show, handleClose, userProfile, onSave }) {
   useEffect(() => {
     if (show && userProfile) {
       setFormData({
-        name: userProfile.displayName || "",
+        displayName: userProfile.displayName || "",
         bio: userProfile.bio || "",
         dob: userProfile.dob || "",
         gender: userProfile.gender != null ? String(userProfile.gender) : "",
@@ -55,7 +55,7 @@ function EditProfileModal({ show, handleClose, userProfile, onSave }) {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify(formData),
+      body: JSON.stringify(payload),
     });
 
     const response = await fetch(`${process.env.REACT_APP_API_URL}/user//profile/${username}`, {  
