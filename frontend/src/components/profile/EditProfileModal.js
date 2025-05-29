@@ -58,7 +58,7 @@ function EditProfileModal({ show, handleClose, userProfile, onSave, username }) 
       body: JSON.stringify(payload),
     });
 
-    const response = await fetch(`${process.env.REACT_APP_API_URL}/user//profile/${username}`, {  
+    const response = await fetch(`${process.env.REACT_APP_API_URL}/user/profile/${username}`, {  
       headers: {
         Authorization: `Bearer ${token}`,
       },
