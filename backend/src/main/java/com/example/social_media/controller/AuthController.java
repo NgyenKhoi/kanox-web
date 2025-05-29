@@ -75,14 +75,17 @@ public class AuthController {
             }
         }
         @PostMapping(URLConfig.RESET_PASSWORD)
-        public ResponseEntity<?> resetPassword(@RequestBody @Valid ResetPasswordRequestDto request) {
+        public ResponseEntity<Map<String, Object>> resetPassword(@RequestBody @Valid ResetPasswordRequestDto request) {
             if (request.getToken() == null || request.getNewPassword() == null) {
                 throw new IllegalArgumentException("Token and newPassword are required");
             }
 
             try {
                 passwordResetService.resetPassword(request.getToken(), request.getNewPassword());
-                return ResponseEntity.ok("Đặt lại mật khẩu thành công.");
+                Map<String, Object> response = new HashMap<>();
+                response.put("status", "success");
+                response.put("message", "Đặt lại mật khẩu thành công.");
+                return ResponseEntity.ok(response);
             } catch (InvalidTokenException e) {
                 throw e;
             } catch (TokenExpiredException e) {
