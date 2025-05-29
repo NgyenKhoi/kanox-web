@@ -44,9 +44,7 @@ const CreateAccountModal = ({ show, handleClose }) => {
           year: parseInt(formData.year), // Đảm bảo chuyển đổi sang số nguyên
         }),
       });
-
-      const data = await response.json(); // Luôn cố gắng parse JSON để lấy thông báo lỗi
-
+      const data = await response.json();
       if (response.ok) {
         // Đăng ký thành công
         toast.success(
