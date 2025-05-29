@@ -21,19 +21,19 @@ function EditProfileModal({
   });
 
   useEffect(() => {
-    if (show && userProfile) {
+    if (!show) {
       setFormData({
-        displayName: userProfile.displayName || "",
-        bio: userProfile.bio || "",
-        dateOfBirth: userProfile.dateOfBirth || "",
-        gender: userProfile.gender != null ? String(userProfile.gender) : "",
-        location: userProfile.location || "",
-        website: userProfile.website || "",
-        avatar: userProfile.avatar || "",
-        banner: userProfile.banner || "",
+        displayName: "",
+        bio: "",
+        location: "",
+        website: "",
+        dateOfBirth: "",
+        avatar: "",
+        banner: "",
+        gender: "",
       });
     }
-  }, [show, userProfile]);
+  }, [show]);
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -50,14 +50,23 @@ function EditProfileModal({
 
   const handleSave = async () => {
     const token = localStorage.getItem("token");
-    const payload = {};
+    const payload = {
+      displayName: formData.displayName,
+      bio: formData.bio,
+      location: formData.location,
+      website: formData.website,
+      dateOfBirth: formData.dateOfBirth,
+      gender: formData.gender ? Number(formData.gender) : null,
+      avatar: formData.avatar,
+      banner: formData.banner,
+    };
     if (formData.displayName !== userProfile.displayName) {
       payload.displayName = formData.displayName;
     }
     if (formData.dateOfBirth !== userProfile.dateOfBirth) {
       payload.dateOfBirth = formData.dateOfBirth;
     }
-        if (formData.bio !== userProfile.bio) {
+    if (formData.bio !== userProfile.bio) {
       payload.bio = formData.bio;
     }
     if (
@@ -218,6 +227,24 @@ function EditProfileModal({
               )}
             </Form.Group>
           ))}
+          <Form.Group className="mb-3" controlId="formGender">
+            <Form.Label className="text-muted small mb-0">Giới tính</Form.Label>
+            <Form.Select
+              value={formData.gender}
+              onChange={(e) => handleInputChange("gender", e.target.value)}
+              className="border-0 border-bottom rounded-0 px-0 pt-0 pb-1"
+              style={{
+                fontSize: "1.25rem",
+                outline: "none",
+                boxShadow: "none",
+              }}
+            >
+              <option value="">Không chọn</option>
+              <option value="0">Nam</option>
+              <option value="1">Nữ</option>
+              <option value="2">Khác</option>
+            </Form.Select>
+          </Form.Group>
         </Form>
       </Modal.Body>
     </Modal>
