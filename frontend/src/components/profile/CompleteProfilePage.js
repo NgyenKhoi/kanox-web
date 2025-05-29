@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { Container, Form, Button, Row, Col, Alert } from "react-bootstrap";
 import { useNavigate } from "react-router-dom"; // Dùng để chuyển hướng
 import KLogoSvg from "../../components/svgs/KSvg"; // Đảm bảo đường dẫn này chính xác
-
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 const CompleteProfilePage = () => {
   const navigate = useNavigate();
 
@@ -53,53 +54,60 @@ const CompleteProfilePage = () => {
     return Object.keys(newErrors).length === 0; // Trả về true nếu không có lỗi
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSubmitError("");
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setSubmitError(""); // Có thể giữ hoặc bỏ nếu bạn chỉ dùng toast
 
-    if (!validateForm()) return;
+  if (!validateForm()) return;
 
-    const tempRegister = JSON.parse(localStorage.getItem("tempRegister"));
-    if (!tempRegister) {
-      setSubmitError(
-        "Thông tin tài khoản tạm không tồn tại. Vui lòng đăng ký lại."
-      );
-      return;
-    }
+  const tempRegister = JSON.parse(localStorage.getItem("tempRegister"));
+  if (!tempRegister) {
+    toast.error("Thông tin tài khoản tạm không tồn tại. Vui lòng đăng ký lại.");
+    return;
+  }
 
-    const fullProfile = {
-      username: tempRegister.username,
-      email: tempRegister.email,
-      password: tempRegister.password,
-      dob: `${tempRegister.dob.year}-${String(tempRegister.dob.month).padStart(2, "0")}-${String(tempRegister.dob.day).padStart(2, "0")}`,
-      displayName: formData.displayName,
-      phoneNumber: formData.phoneNumber,
-      bio: formData.bio,
-    };
-
-    try {
-      const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/auth/register`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(fullProfile),
-        }
-      );
-
-      const data = await response.json();
-
-      if (response.ok) {
-        localStorage.removeItem("tempRegister"); // Xóa thông tin tạm
-        navigate("/home"); // Hoặc nơi bạn muốn
-      } else {
-        setSubmitError(data.message || "Đăng ký thất bại. Vui lòng thử lại.");
-      }
-    } catch (err) {
-      console.error("Lỗi khi gửi hồ sơ hoàn chỉnh:", err);
-      setSubmitError("Lỗi kết nối đến máy chủ.");
-    }
+  const fullProfile = {
+    username: tempRegister.username,
+    email: tempRegister.email,
+    password: tempRegister.password,
+    dob: `${tempRegister.dob.year}-${String(tempRegister.dob.month).padStart(2, "0")}-${String(tempRegister.dob.day).padStart(2, "0")}`,
+    displayName: formData.displayName,
+    phoneNumber: formData.phoneNumber,
+    bio: formData.bio,
   };
+
+  try {
+    const response = await fetch(`${process.env.REACT_APP_API_URL}/auth/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(fullProfile),
+    });
+
+    // Lấy content-type để xử lý response linh hoạt
+    const contentType = response.headers.get("content-type");
+    let data;
+    if (contentType && contentType.includes("application/json")) {
+      data = await response.json();
+    } else {
+      data = { message: await response.text() };
+    }
+
+    if (response.ok) {
+      localStorage.removeItem("tempRegister");
+      toast.success(data.message || "Đăng ký thành công!");
+      navigate("/home");
+    } else {
+      toast.error(data.message || "Đăng ký thất bại. Vui lòng thử lại.");
+      if (data.errors && Object.keys(data.errors).length > 0) {
+        const errorDetails = Object.values(data.errors).join(", ");
+        toast.error(`${data.message} - Chi tiết: ${errorDetails}`);
+      }
+    }
+  } catch (err) {
+    console.error("Lỗi khi gửi hồ sơ hoàn chỉnh:", err);
+    toast.error("Lỗi kết nối đến máy chủ.");
+  }
+};
 
   return (
     <Container

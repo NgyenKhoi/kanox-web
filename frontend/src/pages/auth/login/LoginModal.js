@@ -36,16 +36,24 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
           }),
         }
       );
-      const data = await response.json();
+
+      const contentType = response.headers.get("content-type");
+      let data;
+      if (contentType && contentType.includes("application/json")) {
+        data = await response.json();
+      } else {
+        data = { message: await response.text() };
+      }
 
       if (response.ok) {
         const { token, user } = data;
         localStorage.setItem("token", token);
-        localStorage.setItem("username", data.user.username);
-        console.log("User:", user);
-        toast.success("Đăng nhập thành công! Đang chuyển hướng...");
+        localStorage.setItem("username", user.username);
+        toast.success(
+          data.message || "Đăng nhập thành công! Đang chuyển hướng..."
+        );
         handleClose();
-        setTimeout(() => navigate("/home"), 2000); // Delay for toast visibility
+        setTimeout(() => navigate("/home"), 2000);
       } else {
         toast.error(data.message || "Đăng nhập thất bại. Vui lòng thử lại!");
       }
