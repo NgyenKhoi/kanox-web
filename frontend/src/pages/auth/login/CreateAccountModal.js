@@ -4,7 +4,7 @@ import KLogoSvg from "../../../components/svgs/KSvg";
 import { X as XCloseIcon } from "react-bootstrap-icons";
 import { useNavigate } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import "react-toastify/dist/ReactToastify.c ss";
 
 const apiBase = process.env.REACT_APP_API_URL;
 
