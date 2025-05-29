@@ -208,7 +208,7 @@ function SidebarRight() {
             Thêm ...
           </Nav.Link>
           <span className="text-muted small mx-2 my-1 p-0">
-            &copy; 2025 X Corp.
+            &copy; 2025 KaNox Corp.
           </span>
         </Nav>
       </div>

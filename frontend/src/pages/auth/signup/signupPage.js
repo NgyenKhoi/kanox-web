@@ -75,7 +75,7 @@ const SignupPage = () => {
             <p className="text-muted small mt-2">
               Khi đăng ký, bạn đã đồng ý với{" "}
               <a
-                href="#"
+                href="/terms"
                 className="text-decoration-none"
                 style={{ color: "#1A8CD8" }}
               >
@@ -83,7 +83,7 @@ const SignupPage = () => {
               </a>{" "}
               và{" "}
               <a
-                href="#"
+                href="/privacy"
                 className="text-decoration-none"
                 style={{ color: "#1A8CD8" }}
               >
