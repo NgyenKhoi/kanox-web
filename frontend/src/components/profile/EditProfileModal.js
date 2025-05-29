@@ -25,7 +25,7 @@ function EditProfileModal({
       setFormData({
         displayName: userProfile.displayName || "",
         bio: userProfile.bio || "",
-        dob: userProfile.dateOfBirth || "",
+        dateOfBirth: userProfile.dateOfBirth || "",
         gender: userProfile.gender != null ? String(userProfile.gender) : "",
         location: userProfile.location || "",
         website: userProfile.website || "",
@@ -57,8 +57,8 @@ function EditProfileModal({
     if (formData.dateOfBirth !== userProfile.dateOfBirth) {
       payload.dateOfBirth = formData.dateOfBirth;
     }
-    if (formData.dateOfBirth !== (userProfile.dateOfBirth || "")) {
-      payload.dateOfBirth = formData.dateOfBirth;
+        if (formData.bio !== userProfile.bio) {
+      payload.bio = formData.bio;
     }
     if (
       formData.gender !==
@@ -185,7 +185,7 @@ function EditProfileModal({
             { label: "Tiểu sử", field: "bio", type: "textarea", rows: 3 },
             { label: "Vị trí", field: "location", type: "text" },
             { label: "Trang web", field: "website", type: "text" },
-            { label: "Ngày sinh", field: "dob", type: "date" },
+            { label: "Ngày sinh", field: "dateOfBirth", type: "date" },
           ].map(({ label, field, type, rows }) => (
             <Form.Group className="mb-3" controlId={`form${field}`} key={field}>
               <Form.Label className="text-muted small mb-0">{label}</Form.Label>
