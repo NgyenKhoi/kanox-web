@@ -24,7 +24,18 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/auth/login`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            identifier: loginIdentifier,
+            password: password,
+          }),
+        }
+      );
       const data = await response.json();
 
       if (response.ok) {
