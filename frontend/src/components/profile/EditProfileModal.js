@@ -14,7 +14,7 @@ function EditProfileModal({
     bio: "",
     location: "",
     website: "",
-    dob: "",
+    dateOfBirth: "",
     avatar: "",
     banner: "",
     gender: "",
@@ -54,11 +54,11 @@ function EditProfileModal({
     if (formData.displayName !== userProfile.displayName) {
       payload.displayName = formData.displayName;
     }
-    if (formData.bio !== userProfile.bio) {
-      payload.bio = formData.bio;
+    if (formData.dateOfBirth !== userProfile.dateOfBirth) {
+      payload.dateOfBirth = formData.dateOfBirth;
     }
-    if (formData.dob !== (userProfile.dateOfBirth || "")) {
-      payload.dateOfBirth = formData.dob;
+    if (formData.dateOfBirth !== (userProfile.dateOfBirth || "")) {
+      payload.dateOfBirth = formData.dateOfBirth;
     }
     if (
       formData.gender !==
