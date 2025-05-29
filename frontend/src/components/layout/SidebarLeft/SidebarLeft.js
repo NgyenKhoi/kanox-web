@@ -29,7 +29,7 @@ function SidebarLeft() {
           <Nav.Item className="mb-1">
             <Nav.Link
               as={Link}
-              to="/"
+              to="/HomePage"
               className="d-flex align-items-center text-dark py-2 px-3 rounded-pill hover-bg-light fw-bold"
             >
               <FaHome size={24} className="me-3" />

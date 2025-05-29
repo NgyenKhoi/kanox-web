@@ -23,7 +23,7 @@ function Header() {
           className="me-2"
         />
 
-        <Navbar.Brand as={Link} to="/" className="mx-auto">
+        <Navbar.Brand as={Link} to="/HomePage" className="mx-auto">
           <FaTwitter size={30} className="text-dark" />{" "}
         </Navbar.Brand>
 
