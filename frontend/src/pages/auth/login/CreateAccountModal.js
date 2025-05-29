@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
+
 const CreateAccountModal = ({ show, handleClose }) => {
   const navigate = useNavigate(); // Hook để chuyển hướng
 
@@ -46,7 +47,7 @@ const CreateAccountModal = ({ show, handleClose }) => {
     toast.success("Tiếp tục đến bước hoàn tất hồ sơ...");
     handleClose();
 
-    setTimeout(() => navigate("/complete-profile"), 2000);
+    setTimeout(() => navigate("/home"), 2000);
   };
 
   // Tạo mảng tháng, ngày, năm cho select options

@@ -117,6 +117,10 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(dto.getPassword()));
         LocalDate dob = LocalDate.of(dto.getYear(), dto.getMonth(), dto.getDay());
         user.setDateOfBirth(dob);
+        user.setDisplayName(dto.getDisplayName());
+        user.setPhoneNumber(dto.getPhoneNumber());
+        user.setBio(dto.getBio());
+        user.setGender(dto.getGender());
         user.setStatus(true);
         return userRepository.save(user);
     }
