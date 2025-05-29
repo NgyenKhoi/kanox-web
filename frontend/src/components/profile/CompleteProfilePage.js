@@ -55,42 +55,49 @@ const CompleteProfilePage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setSubmitError(""); // Reset lỗi tổng thể
+    setSubmitError("");
 
-    if (validateForm()) {
-      // Logic gửi thông tin profile lên server
-      try {
-        // Trong một ứng dụng thực tế, bạn sẽ gửi dữ liệu này lên API backend
-        // Ví dụ:
-        // const token = localStorage.getItem("token"); // Lấy token nếu cần cho API này
-        // const response = await fetch(`${process.env.REACT_APP_API_URL}/user/complete-profile`, {
-        //   method: 'POST',
-        //   headers: {
-        //     'Content-Type': 'application/json',
-        //     'Authorization': `Bearer ${token}`,
-        //   },
-        //   body: JSON.stringify(formData),
-        // });
+    if (!validateForm()) return;
 
-        // if (!response.ok) {
-        //   const errorData = await response.json();
-        //   throw new Error(errorData.message || "Không thể cập nhật hồ sơ.");
-        // }
-
-        // const result = await response.json();
-        console.log("Dữ liệu profile đã gửi:", formData);
-        alert("Thông tin hồ sơ đã được cập nhật thành công!"); // Thông báo thành công tạm thời
-
-        // Sau khi hoàn thành, chuyển hướng người dùng đến trang chính
-        navigate("/home");
-      } catch (error) {
-        console.error("Lỗi khi hoàn thành hồ sơ:", error);
-        setSubmitError(`Đã xảy ra lỗi: ${error.message}. Vui lòng thử lại.`);
-      }
-    } else {
+    const tempRegister = JSON.parse(localStorage.getItem("tempRegister"));
+    if (!tempRegister) {
       setSubmitError(
-        "Vui lòng điền đầy đủ và chính xác các thông tin bắt buộc."
+        "Thông tin tài khoản tạm không tồn tại. Vui lòng đăng ký lại."
       );
+      return;
+    }
+
+    const fullProfile = {
+      username: tempRegister.username,
+      email: tempRegister.email,
+      password: tempRegister.password,
+      dob: `${tempRegister.dob.year}-${String(tempRegister.dob.month).padStart(2, "0")}-${String(tempRegister.dob.day).padStart(2, "0")}`,
+      displayName: formData.displayName,
+      phoneNumber: formData.phoneNumber,
+      bio: formData.bio,
+    };
+
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/auth/register`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(fullProfile),
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        localStorage.removeItem("tempRegister"); // Xóa thông tin tạm
+        navigate("/home"); // Hoặc nơi bạn muốn
+      } else {
+        setSubmitError(data.message || "Đăng ký thất bại. Vui lòng thử lại.");
+      }
+    } catch (err) {
+      console.error("Lỗi khi gửi hồ sơ hoàn chỉnh:", err);
+      setSubmitError("Lỗi kết nối đến máy chủ.");
     }
   };
 

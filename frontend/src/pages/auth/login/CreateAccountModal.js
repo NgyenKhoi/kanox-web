@@ -6,8 +6,6 @@ import { useNavigate } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-const apiBase = process.env.REACT_APP_API_URL;
-
 const CreateAccountModal = ({ show, handleClose }) => {
   const navigate = useNavigate(); // Hook để chuyển hướng
 
@@ -30,52 +28,25 @@ const CreateAccountModal = ({ show, handleClose }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    try {
-      // Gửi request đăng ký tài khoản đến API backend
-      const response = await fetch(`${apiBase}/auth/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: formData.username,
-          email: formData.email,
-          password: formData.password,
-          month: parseInt(formData.month), // Đảm bảo chuyển đổi sang số nguyên
-          day: parseInt(formData.day), // Đảm bảo chuyển đổi sang số nguyên
-          year: parseInt(formData.year), // Đảm bảo chuyển đổi sang số nguyên
-        }),
-      });
-      const data = await response.json();
-      if (response.ok) {
-        // Đăng ký thành công
-        toast.success(
-          "Đăng ký thành công! Đang chuyển hướng để hoàn tất hồ sơ..."
-        );
-        handleClose(); // Đóng modal hiện tại
+    // đây là form lưu ttin trước khi complete profile, nên Không gửi đến backend nữa, chỉ lưu localStorage hoặc context
+    const tempData = {
+      username: formData.username,
+      email: formData.email,
+      password: formData.password,
+      dob: {
+        day: formData.day,
+        month: formData.month,
+        year: formData.year,
+      },
+    };
 
-        // CHUYỂN ĐỔI QUAN TRỌNG:
-        // Chuyển hướng người dùng đến trang "CompleteProfilePage"
-        // Thay vì navigate("/home"), bạn cần chuyển hướng đến trang hoàn thiện profile.
-        setTimeout(() => navigate("/complete-profile"), 2000); // Delay để người dùng đọc được toast
-      } else {
-        // Đăng ký thất bại
-        // Hiển thị thông báo lỗi từ backend
-        if (data.errors && Object.keys(data.errors).length > 0) {
-          // Nếu backend trả về validation errors chi tiết
-          const errorMessages = Object.values(data.errors)
-            .map((err) => (Array.isArray(err) ? err.join(", ") : err))
-            .join("; ");
-          toast.error(
-            `${data.message || "Đăng ký thất bại."} ${errorMessages}`
-          );
-        } else {
-          // Nếu chỉ có thông báo lỗi chung
-          toast.error(data.message || "Đăng ký thất bại. Vui lòng thử lại!");
-        }
-      }
-    } catch (error) {
-      console.error("Lỗi kết nối hoặc xử lý response:", error);
-      toast.error("Lỗi kết nối. Vui lòng thử lại sau!");
-    }
+    // Lưu tạm vào localStorage
+    localStorage.setItem("tempRegister", JSON.stringify(tempData));
+
+    toast.success("Tiếp tục đến bước hoàn tất hồ sơ...");
+    handleClose();
+
+    setTimeout(() => navigate("/complete-profile"), 2000);
   };
 
   // Tạo mảng tháng, ngày, năm cho select options
