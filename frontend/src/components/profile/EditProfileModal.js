@@ -20,20 +20,21 @@ function EditProfileModal({
     gender: "",
   });
 
-  useEffect(() => {
-    if (!show) {
-      setFormData({
-        displayName: "",
-        bio: "",
-        location: "",
-        website: "",
-        dateOfBirth: "",
-        avatar: "",
-        banner: "",
-        gender: "",
-      });
-    }
-  }, [show]);
+useEffect(() => {
+  if (show && userProfile) {
+    setFormData({
+      displayName: userProfile.displayName || "",
+      bio: userProfile.bio || "",
+      location: userProfile.location || "",
+      website: userProfile.website || "",
+      dateOfBirth: userProfile.dateOfBirth || "",
+      avatar: userProfile.avatar || "",
+      banner: userProfile.banner || "",
+      gender:
+        userProfile.gender != null ? String(userProfile.gender) : "",
+    });
+  }
+}, [show, userProfile]);
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
