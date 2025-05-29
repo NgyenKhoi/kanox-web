@@ -35,7 +35,7 @@ const ResetPasswordPage = () => {
         body: JSON.stringify({ token, newPassword }),
       });
 
-      const data = await res.json();
+      const data = await res.json(); // Lấy JSON response
 
       if (res.ok) {
         toast.success("Đặt lại mật khẩu thành công! Đang chuyển hướng...");
@@ -43,8 +43,8 @@ const ResetPasswordPage = () => {
         setConfirmPassword("");
         setTimeout(() => navigate("/"), 2000); // Delay để hiển thị toast
       } else {
-        // Lấy message từ JSON response, hoặc thông báo mặc định
-        toast.error(data.message || "Đặt lại mật khẩu thất bại.");
+        const errorMessage = data.message || data.errors?.newPassword || "Đặt lại mật khẩu thất bại.";
+        toast.error(errorMessage);
       }
     } catch (e) {
       toast.error("Đã xảy ra lỗi. Vui lòng thử lại.");
