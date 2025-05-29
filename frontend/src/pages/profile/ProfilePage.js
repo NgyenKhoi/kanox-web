@@ -203,7 +203,7 @@ function ProfilePage() {
               </div>
 
               {/* User Info */}
-              <h4 className="mb-0 fw-bold">{userProfile.name}</h4>
+              <h4 className="mb-0 fw-bold">{userProfile.displayName}</h4>
               <p className="text-muted mb-2">@{userProfile.username}</p>
 
               {userProfile.bio && <p className="mb-2">{userProfile.bio}</p>}
