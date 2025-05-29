@@ -3,6 +3,8 @@ package com.example.social_media.controller;
 import com.example.social_media.config.URLConfig;
 import com.example.social_media.dto.*;
 import com.example.social_media.entity.User;
+import com.example.social_media.exception.InvalidTokenException;
+import com.example.social_media.exception.TokenExpiredException;
 import com.example.social_media.jwt.JwtService;
 import com.example.social_media.service.AuthService;
 import com.example.social_media.service.PasswordResetService;
@@ -73,19 +75,23 @@ public class AuthController {
             }
         }
         @PostMapping(URLConfig.RESET_PASSWORD)
-            public ResponseEntity<?> resetPassword (@RequestBody @Valid ResetPasswordRequestDto request){
-                if (request.getToken() == null || request.getNewPassword() == null) {
-                    throw new IllegalArgumentException("Token and newPassword are required");
-                }
-                try {
-                    passwordResetService.resetPassword(request.getToken(), request.getNewPassword());
-                    return ResponseEntity.ok("Đặt lại mật khẩu thành công.");
-                } catch (IllegalArgumentException e) {
-                    throw e; // Let GlobalExceptionHandle handle it
-                } catch (Exception e) {
-                    throw new RuntimeException("Có lỗi xảy ra, vui lòng thử lại sau.", e);
-                }
+        public ResponseEntity<?> resetPassword(@RequestBody @Valid ResetPasswordRequestDto request) {
+            if (request.getToken() == null || request.getNewPassword() == null) {
+                throw new IllegalArgumentException("Token and newPassword are required");
             }
+
+            try {
+                passwordResetService.resetPassword(request.getToken(), request.getNewPassword());
+                return ResponseEntity.ok("Đặt lại mật khẩu thành công.");
+            } catch (InvalidTokenException e) {
+                throw e;
+            } catch (TokenExpiredException e) {
+                throw e;
+            } catch (Exception e) {
+                logger.error("Unexpected error during password reset: ", e);
+                throw new IllegalStateException("Không thể đặt lại mật khẩu: " + e.getMessage(), e);
+            }
+        }
             @PostMapping(URLConfig.REGISTER)
             public ResponseEntity<?> register (@RequestBody @Valid RegisterRequestDto dto){
                 try {
