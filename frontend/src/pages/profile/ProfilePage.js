@@ -239,6 +239,18 @@ function ProfilePage() {
                   : "Chưa cập nhật"}
               </p>
 
+              {userProfile.gender !== undefined && (
+                <p className="text-muted d-flex align-items-center mb-2">
+                  <FaEllipsisH size={16} className="me-2" />
+                  Giới tính:{" "}
+                  {userProfile.gender === 0
+                    ? "Nam"
+                    : userProfile.gender === 1
+                    ? "Nữ"
+                    : "Khác"}
+                </p>
+              )}
+
               <div className="d-flex mb-3">
                 <Link to="#" className="me-3 text-dark text-decoration-none">
                   <span className="fw-bold">{userProfile.followeeCount}</span>{" "}
