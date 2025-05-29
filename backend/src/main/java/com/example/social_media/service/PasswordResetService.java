@@ -48,7 +48,7 @@ public class PasswordResetService {
             throw new RuntimeException("Lỗi khi lưu token hoặc gửi email: " + e.getMessage());
         }
     }
-    
+
     private void sendEmail(String toEmail, String token) {
         String resetLink = URLConfig.FRONTEND_RESET_PASSWORD_URL + token;
 

@@ -1,39 +1,72 @@
-// src/components/profile/EditProfileModal.jsx
-import React, { useState } from "react";
-import { Modal, Button, Form, Image, Row, Col } from "react-bootstrap";
-import { FaCamera, FaTimes } from "react-icons/fa"; // Import FaTimes cho nút đóng
+import React, { useState, useEffect } from "react";
+import { Modal, Button, Form, Image } from "react-bootstrap";
+import { FaCamera, FaTimes } from "react-icons/fa";
 
 function EditProfileModal({ show, handleClose, userProfile, onSave }) {
-  const [name, setName] = useState(userProfile.name);
-  const [bio, setBio] = useState(userProfile.bio || ""); // Thêm bio vào userProfile nếu chưa có
-  const [location, setLocation] = useState(userProfile.location || ""); // Thêm location
-  const [website, setWebsite] = useState(userProfile.website || ""); // Thêm website
-  const [dob, setDob] = useState(userProfile.dob || "2004-03-14"); // Định dạng YYYY-MM-DD cho input type="date"
+  const [formData, setFormData] = useState({
+    displayName: "",
+    bio: "",
+    location: "",
+    website: "",
+    dob: "",
+    avatar: "",
+    banner: "",
+  });
 
-  // Giả định bạn có thể thay đổi avatar và banner
-  const [avatarPreview, setAvatarPreview] = useState(userProfile.avatar);
-  const [bannerPreview, setBannerPreview] = useState(userProfile.banner);
+  useEffect(() => {
+    if (show && userProfile) {
+      setFormData({
+        name: userProfile.displayName || "",
+        bio: userProfile.bio || "",
+        dob: userProfile.dob || "",
+        gender: userProfile.gender != null ? String(userProfile.gender) : "",
+        // location: userProfile.location || "",
+        // website: userProfile.website || "",
+        // avatar: userProfile.avatar || "",
+        // banner: userProfile.banner || "",
+      });
+    }
+  }, [show, userProfile]);
 
-  const handleSave = () => {
-    // Gọi hàm onSave truyền từ ProfilePage với dữ liệu mới
-    onSave({ name, bio, location, website, dob });
+  const handleInputChange = (field, value) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleImageChange = (field, e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const imageUrl = URL.createObjectURL(file);
+      setFormData((prev) => ({ ...prev, [field]: imageUrl }));
+      // Thực tế cần upload ảnh lên server tại đây
+    }
+  };
+
+  const handleSave = async () => {
+    const token = localStorage.getItem("token");
+    const payload = {
+      displayName: formData.displayName,
+      bio: formData.bio,
+      gender: formData.gender ? Number(formData.gender) : null,
+      dateOfBirth: formData.dob, // định dạng ISO yyyy-MM-dd ok cho LocalDate
+    };
+    await fetch(`${process.env.REACT_APP_API_URL}/user/profile/${username}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(formData),
+    });
+
+    const response = await fetch(`${process.env.REACT_APP_API_URL}/user//profile/${username}`, {  
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    const updatedProfile = await response.json();
+
+    onSave(updatedProfile);
     handleClose();
-  };
-
-  const handleAvatarChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setAvatarPreview(URL.createObjectURL(file));
-      // Trong ứng dụng thực tế, bạn sẽ cần upload file này lên server
-    }
-  };
-
-  const handleBannerChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setBannerPreview(URL.createObjectURL(file));
-      // Trong ứng dụng thực tế, bạn sẽ cần upload file này lên server
-    }
   };
 
   return (
@@ -57,14 +90,15 @@ function EditProfileModal({ show, handleClose, userProfile, onSave }) {
           Lưu
         </Button>
       </Modal.Header>
+
       <Modal.Body className="p-0">
-        {/* Banner Section */}
+        {/* Banner */}
         <div
           className="position-relative"
           style={{ height: "200px", backgroundColor: "#ced4da" }}
         >
           <Image
-            src={bannerPreview}
+            src={formData.banner}
             fluid
             className="w-100 h-100"
             style={{ objectFit: "cover" }}
@@ -84,7 +118,7 @@ function EditProfileModal({ show, handleClose, userProfile, onSave }) {
                 id="banner-upload"
                 className="d-none"
                 accept="image/*"
-                onChange={handleBannerChange}
+                onChange={(e) => handleImageChange("banner", e)}
               />
             </label>
             <Button
@@ -97,13 +131,13 @@ function EditProfileModal({ show, handleClose, userProfile, onSave }) {
           </div>
         </div>
 
-        {/* Avatar Section */}
+        {/* Avatar */}
         <div
           className="position-relative"
           style={{ marginTop: "-75px", marginLeft: "20px", zIndex: 3 }}
         >
           <Image
-            src={avatarPreview}
+            src={formData.avatar}
             roundedCircle
             className="border border-white border-4"
             style={{ width: "130px", height: "130px", objectFit: "cover" }}
@@ -119,88 +153,51 @@ function EditProfileModal({ show, handleClose, userProfile, onSave }) {
               id="avatar-upload"
               className="d-none"
               accept="image/*"
-              onChange={handleAvatarChange}
+              onChange={(e) => handleImageChange("avatar", e)}
             />
           </label>
         </div>
 
+        {/* Form */}
         <Form className="p-3 pt-4">
-          <Form.Group className="mb-3" controlId="formName">
-            <Form.Label className="text-muted small mb-0">Tên</Form.Label>
-            <Form.Control
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="border-0 border-bottom rounded-0 px-0 pt-0 pb-1"
-              style={{
-                fontSize: "1.25rem",
-                outline: "none",
-                boxShadow: "none",
-              }}
-            />
-          </Form.Group>
-
-          <Form.Group className="mb-3" controlId="formBio">
-            <Form.Label className="text-muted small mb-0">Tiểu sử</Form.Label>
-            <Form.Control
-              as="textarea"
-              rows={3}
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              className="border-0 border-bottom rounded-0 px-0 pt-0 pb-1"
-              style={{
-                fontSize: "1.25rem",
-                outline: "none",
-                boxShadow: "none",
-                resize: "none",
-              }}
-            />
-          </Form.Group>
-
-          <Form.Group className="mb-3" controlId="formLocation">
-            <Form.Label className="text-muted small mb-0">Vị trí</Form.Label>
-            <Form.Control
-              type="text"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              className="border-0 border-bottom rounded-0 px-0 pt-0 pb-1"
-              style={{
-                fontSize: "1.25rem",
-                outline: "none",
-                boxShadow: "none",
-              }}
-            />
-          </Form.Group>
-
-          <Form.Group className="mb-3" controlId="formWebsite">
-            <Form.Label className="text-muted small mb-0">Trang web</Form.Label>
-            <Form.Control
-              type="text"
-              value={website}
-              onChange={(e) => setWebsite(e.target.value)}
-              className="border-0 border-bottom rounded-0 px-0 pt-0 pb-1"
-              style={{
-                fontSize: "1.25rem",
-                outline: "none",
-                boxShadow: "none",
-              }}
-            />
-          </Form.Group>
-
-          <Form.Group className="mb-3" controlId="formDob">
-            <Form.Label className="text-muted small mb-0">Ngày sinh</Form.Label>
-            <Form.Control
-              type="date"
-              value={dob}
-              onChange={(e) => setDob(e.target.value)}
-              className="border-0 border-bottom rounded-0 px-0 pt-0 pb-1"
-              style={{
-                fontSize: "1.25rem",
-                outline: "none",
-                boxShadow: "none",
-              }}
-            />
-          </Form.Group>
+          {[
+            { label: "Tên", field: "displayName", type: "text" },
+            { label: "Tiểu sử", field: "bio", type: "textarea", rows: 3 },
+            { label: "Vị trí", field: "location", type: "text" },
+            { label: "Trang web", field: "website", type: "text" },
+            { label: "Ngày sinh", field: "dob", type: "date" },
+          ].map(({ label, field, type, rows }) => (
+            <Form.Group className="mb-3" controlId={`form${field}`} key={field}>
+              <Form.Label className="text-muted small mb-0">{label}</Form.Label>
+              {type === "textarea" ? (
+                <Form.Control
+                  as="textarea"
+                  rows={rows}
+                  value={formData[field]}
+                  onChange={(e) => handleInputChange(field, e.target.value)}
+                  className="border-0 border-bottom rounded-0 px-0 pt-0 pb-1"
+                  style={{
+                    fontSize: "1.25rem",
+                    outline: "none",
+                    boxShadow: "none",
+                    resize: "none",
+                  }}
+                />
+              ) : (
+                <Form.Control
+                  type={type}
+                  value={formData[field]}
+                  onChange={(e) => handleInputChange(field, e.target.value)}
+                  className="border-0 border-bottom rounded-0 px-0 pt-0 pb-1"
+                  style={{
+                    fontSize: "1.25rem",
+                    outline: "none",
+                    boxShadow: "none",
+                  }}
+                />
+              )}
+            </Form.Group>
+          ))}
         </Form>
       </Modal.Body>
     </Modal>
