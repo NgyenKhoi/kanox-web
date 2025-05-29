@@ -17,19 +17,21 @@ function EditProfileModal({
     dob: "",
     avatar: "",
     banner: "",
+    gender: "",
   });
 
   useEffect(() => {
     if (show && userProfile) {
-      console.log("userProfile:", userProfile);
-      setFormData((prev) => ({
-        ...prev,
-        displayName: userProfile.displayName ?? prev.displayName,
-        bio: userProfile.bio ?? prev.bio,
-        dob: userProfile.dob ?? prev.dob,
-        gender:
-          userProfile.gender != null ? String(userProfile.gender) : prev.gender,
-      }));
+      setFormData({
+        displayName: userProfile.displayName || "",
+        bio: userProfile.bio || "",
+        dob: userProfile.dateOfBirth || "",
+        gender: userProfile.gender != null ? String(userProfile.gender) : "",
+        location: userProfile.location || "",
+        website: userProfile.website || "",
+        avatar: userProfile.avatar || "",
+        banner: userProfile.banner || "",
+      });
     }
   }, [show, userProfile]);
 
@@ -48,12 +50,22 @@ function EditProfileModal({
 
   const handleSave = async () => {
     const token = localStorage.getItem("token");
-    const payload = {
-      displayName: formData.displayName,
-      bio: formData.bio,
-      gender: formData.gender ? Number(formData.gender) : null,
-      dateOfBirth: formData.dob, // định dạng ISO yyyy-MM-dd ok cho LocalDate
-    };
+    const payload = {};
+    if (formData.displayName !== userProfile.displayName) {
+      payload.displayName = formData.displayName;
+    }
+    if (formData.bio !== userProfile.bio) {
+      payload.bio = formData.bio;
+    }
+    if (formData.dob !== (userProfile.dateOfBirth || "")) {
+      payload.dateOfBirth = formData.dob;
+    }
+    if (
+      formData.gender !==
+      (userProfile.gender != null ? String(userProfile.gender) : "")
+    ) {
+      payload.gender = formData.gender ? Number(formData.gender) : null;
+    }
     await fetch(`${process.env.REACT_APP_API_URL}/user/profile/${username}`, {
       method: "PUT",
       headers: {
