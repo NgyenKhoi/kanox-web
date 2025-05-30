@@ -2,6 +2,7 @@ package controller;
 
 import entity.Page;
 import service.PageService;
+import config.URLConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -10,7 +11,7 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/pages")
+@RequestMapping(URLConfig.PAGE_BASE)
 public class PageController {
     
     @Autowired
