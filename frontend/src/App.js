@@ -4,7 +4,6 @@ import SignupPage from "./pages/auth/signup/signupPage";
 import HomePage from "./pages/home/HomePage";
 import ProfilePage from "./pages/profile/ProfilePage";
 import ResetPasswordPage from "./pages/auth/login/ResetPasswordPage"; // import trang reset password
-import CompleteProfilePage from "./components/profile/CompleteProfilePage";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
 function App() {
@@ -14,7 +13,6 @@ function App() {
         <Route path="/" element={<SignupPage />} />{" "}
         <Route path="/profile/:username" element={<ProfilePage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />{" "}
-        <Route path="/complete-profile" element={<CompleteProfilePage />} />{" "}
         {/* Route cho trang đặt lại mật khẩu */}
         {/* Trang mặc định là SignupPage */}
         <Route path="/home" element={<HomePage />} />{" "}
