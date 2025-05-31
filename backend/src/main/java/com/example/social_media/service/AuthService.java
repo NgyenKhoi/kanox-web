@@ -127,7 +127,8 @@ public class AuthService {
             
             // Convert gender string to short
             Short genderValue;
-            switch (dto.getGender().toUpperCase()) {
+            String genderStr = dto.getGender().toUpperCase();
+            switch (genderStr) {
                 case "MALE":
                     genderValue = 0;
                     break;

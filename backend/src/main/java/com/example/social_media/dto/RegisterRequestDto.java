@@ -31,7 +31,7 @@ public class RegisterRequestDto {
     private String bio;
 
     @Pattern(regexp = "^(MALE|FEMALE|OTHER)$", message = "Gender phải là MALE, FEMALE hoặc OTHER")
-    private Short gender;
+    private String gender;
 
     public String getUsername() {
         return username;
@@ -105,11 +105,11 @@ public class RegisterRequestDto {
         this.bio = bio;
     }
 
-    public Short getGender() {
+    public String getGender() {
         return gender;
     }
 
-    public void setGender(Short gender) {
+    public void setGender(String gender) {
         this.gender = gender;
     }
 }
