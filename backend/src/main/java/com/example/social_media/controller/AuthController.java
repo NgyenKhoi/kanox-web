@@ -3,23 +3,23 @@ package com.example.social_media.controller;
 import com.example.social_media.config.URLConfig;
 import com.example.social_media.dto.*;
 import com.example.social_media.entity.User;
+import com.example.social_media.exception.EmailAlreadyExistsException;
 import com.example.social_media.exception.InvalidTokenException;
 import com.example.social_media.exception.TokenExpiredException;
 import com.example.social_media.jwt.JwtService;
 import com.example.social_media.service.AuthService;
 import com.example.social_media.service.PasswordResetService;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Optional;
 import java.util.HashMap;
 import java.util.Map;
 import java.time.LocalDate;
 import java.time.DateTimeException;
-
-import org.slf4j.Logger;
+import java.util.Optional;
 
 @RestController
 @RequestMapping(URLConfig.AUTH_BASE)

@@ -83,7 +83,6 @@ public class AuthService {
         return token;
     }
 
-
     public boolean forgotPassword(String email) {
         logger.info("Processing forgot password for email: {}", email);
 
@@ -106,7 +105,6 @@ public class AuthService {
         return Optional.ofNullable(userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("Người dùng không tồn tại")));
     }
-
 
     public User register(RegisterRequestDto dto) {
         logger.info("Starting registration process for user: {}", dto.getUsername());
