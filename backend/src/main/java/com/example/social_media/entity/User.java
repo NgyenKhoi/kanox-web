@@ -72,7 +72,7 @@ public class User {
     @NotNull
     @ColumnDefault("1")
     @Column(name = "status", nullable = false)
-    private Boolean status = false;
+    private Boolean status = true;
 
     public Integer getId() {
         return id;

@@ -108,20 +108,49 @@ public class AuthService {
 
 
     public User register(RegisterRequestDto dto) {
-        if (userRepository.existsByEmail(dto.getEmail())) {
-            throw new EmailAlreadyExistsException("Email đã được sử dụng");
+        logger.info("Starting registration process for user: {}", dto.getUsername());
+        try {
+            if (userRepository.existsByEmail(dto.getEmail())) {
+                logger.warn("Registration failed: Email {} already exists", dto.getEmail());
+                throw new EmailAlreadyExistsException("Email đã được sử dụng");
+            }
+            logger.info("Creating new user with username: {}", dto.getUsername());
+            User user = new User();
+            user.setUsername(dto.getUsername());
+            user.setEmail(dto.getEmail());
+            user.setPassword(passwordEncoder.encode(dto.getPassword()));
+            LocalDate dob = LocalDate.of(dto.getYear(), dto.getMonth(), dto.getDay());
+            user.setDateOfBirth(dob);
+            user.setDisplayName(dto.getDisplayName());
+            user.setPhoneNumber(dto.getPhoneNumber());
+            user.setBio(dto.getBio());
+            
+            // Convert gender string to short
+            Short genderValue;
+            String genderStr = dto.getGender().toUpperCase();
+            switch (genderStr) {
+                case "MALE":
+                    genderValue = 0;
+                    break;
+                case "FEMALE":
+                    genderValue = 1;
+                    break;
+                case "OTHER":
+                default:
+                    genderValue = 2;
+                    break;
+            }
+            user.setGender(genderValue);
+            
+            user.setStatus(true);
+            
+            logger.info("Saving user to database: {}", user.getUsername());
+            User savedUser = userRepository.save(user);
+            logger.info("User registered successfully: {}", savedUser.getUsername());
+            return savedUser;
+        } catch (Exception e) {
+            logger.error("Error during user registration: ", e);
+            throw e;
         }
-        User user = new User();
-        user.setUsername(dto.getUsername());
-        user.setEmail(dto.getEmail());
-        user.setPassword(passwordEncoder.encode(dto.getPassword()));
-        LocalDate dob = LocalDate.of(dto.getYear(), dto.getMonth(), dto.getDay());
-        user.setDateOfBirth(dob);
-        user.setDisplayName(dto.getDisplayName());
-        user.setPhoneNumber(dto.getPhoneNumber());
-        user.setBio(dto.getBio());
-        user.setGender(dto.getGender());
-        user.setStatus(true);
-        return userRepository.save(user);
     }
 }

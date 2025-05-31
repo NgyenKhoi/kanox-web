@@ -97,10 +97,13 @@ public class AuthController {
         }
             @PostMapping(URLConfig.REGISTER)
             public ResponseEntity<?> register (@RequestBody @Valid RegisterRequestDto dto){
+                logger.info("Received registration request for username: {}", dto.getUsername());
                 try {
                     User createdUser = authService.register(dto);
+                    logger.info("User registered successfully with ID: {}", createdUser.getId());
                     return ResponseEntity.ok(createdUser);
                 } catch (Exception e) {
+                    logger.error("Registration failed for username {}: {}", dto.getUsername(), e.getMessage(), e);
                     throw new IllegalArgumentException("Registration failed: " + e.getMessage());
                 }
             }
