@@ -124,7 +124,23 @@ public class AuthService {
             user.setDisplayName(dto.getDisplayName());
             user.setPhoneNumber(dto.getPhoneNumber());
             user.setBio(dto.getBio());
-            user.setGender(dto.getGender());
+            
+            // Convert gender string to short
+            Short genderValue;
+            switch (dto.getGender().toUpperCase()) {
+                case "MALE":
+                    genderValue = 0;
+                    break;
+                case "FEMALE":
+                    genderValue = 1;
+                    break;
+                case "OTHER":
+                default:
+                    genderValue = 2;
+                    break;
+            }
+            user.setGender(genderValue);
+            
             user.setStatus(true);
             
             logger.info("Saving user to database: {}", user.getUsername());

@@ -19,6 +19,7 @@ const CreateAccountModal = ({ show, handleClose }) => {
     displayName: "",
     phoneNumber: "",
     bio: "",
+    gender: "OTHER",
   });
 
   const [errors, setErrors] = useState({});
@@ -46,6 +47,8 @@ const CreateAccountModal = ({ show, handleClose }) => {
     // Username validation
     if (!formData.username) {
       newErrors.username = "Tên người dùng là bắt buộc.";
+    } else if (!/^[A-Za-z0-9]+$/.test(formData.username)) {
+      newErrors.username = "Tên người dùng chỉ được chứa chữ cái và số.";
     }
 
     // Email validation
@@ -58,8 +61,8 @@ const CreateAccountModal = ({ show, handleClose }) => {
     // Password validation
     if (!formData.password) {
       newErrors.password = "Mật khẩu là bắt buộc.";
-    } else if (formData.password.length < 6) {
-      newErrors.password = "Mật khẩu phải có ít nhất 6 ký tự.";
+    } else if (!/^(?=.*[A-Z])(?=.*[!@#$%^&*()_+=.])(?=.{8,}).*$/.test(formData.password)) {
+      newErrors.password = "Mật khẩu phải dài ít nhất 8 ký tự, chứa ít nhất 1 chữ cái in hoa và 1 ký tự đặc biệt (!@#$%^&*()_+=.)";
     }
 
     // Date of birth validation
@@ -70,13 +73,20 @@ const CreateAccountModal = ({ show, handleClose }) => {
     // Display name validation
     if (!formData.displayName) {
       newErrors.displayName = "Tên hiển thị là bắt buộc.";
+    } else if (formData.displayName.length > 50) {
+      newErrors.displayName = "Tên hiển thị không được quá 50 ký tự.";
     }
 
     // Phone number validation
     if (!formData.phoneNumber) {
       newErrors.phoneNumber = "Số điện thoại là bắt buộc.";
-    } else if (!/^\d{10,11}$/.test(formData.phoneNumber)) {
-      newErrors.phoneNumber = "Số điện thoại không hợp lệ (10-11 chữ số).";
+    } else if (!/^\+?[0-9]{7,15}$/.test(formData.phoneNumber)) {
+      newErrors.phoneNumber = "Số điện thoại không hợp lệ (7-15 chữ số).";
+    }
+
+    // Bio validation
+    if (formData.bio && formData.bio.length > 255) {
+      newErrors.bio = "Bio không được quá 255 ký tự.";
     }
 
     setErrors(newErrors);
@@ -93,13 +103,17 @@ const CreateAccountModal = ({ show, handleClose }) => {
       username: formData.username,
       email: formData.email,
       password: formData.password,
-      dob: `${formData.year}-${String(formData.month).padStart(2, "0")}-${String(formData.day).padStart(2, "0")}`,
+      year: parseInt(formData.year),
+      month: parseInt(formData.month),
+      day: parseInt(formData.day),
       displayName: formData.displayName,
       phoneNumber: formData.phoneNumber,
-      bio: formData.bio,
+      bio: formData.bio || "",
+      gender: formData.gender
     };
 
     try {
+      console.log("Sending registration data:", fullProfile);
       const response = await fetch(`${process.env.REACT_APP_API_URL}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -113,6 +127,8 @@ const CreateAccountModal = ({ show, handleClose }) => {
       } else {
         data = { message: await response.text() };
       }
+
+      console.log("Registration response:", data);
 
       if (response.ok) {
         toast.success(data.message || "Đăng ký thành công!");
