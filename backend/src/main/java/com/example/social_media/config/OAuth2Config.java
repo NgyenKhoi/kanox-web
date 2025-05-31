@@ -15,8 +15,8 @@ import java.util.Arrays;
 @EnableWebSecurity
 public class OAuth2Config {
 
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    @Bean(name = "securityFilterChainOAuth2")
+    public SecurityFilterChain securityFilterChainOAuth2(HttpSecurity http) throws Exception {
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(authorize -> authorize
