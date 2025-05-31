@@ -13,6 +13,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.DateTimeException;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -110,17 +111,45 @@ public class AuthService {
     public User register(RegisterRequestDto dto) {
         logger.info("Starting registration process for user: {}", dto.getUsername());
         try {
+            // Validate username format
+            if (!dto.getUsername().matches("^[A-Za-z0-9]+$")) {
+                throw new IllegalArgumentException("Username chỉ được chứa chữ cái và số");
+            }
+
+            // Validate email format
+            if (!dto.getEmail().matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
+                throw new IllegalArgumentException("Email không hợp lệ");
+            }
+
+            // Validate password strength
+            if (!dto.getPassword().matches("^(?=.*[A-Z])(?=.*[!@#$%^&*()_+=.])(?=.{8,}).*$")) {
+                throw new IllegalArgumentException("Mật khẩu phải dài ít nhất 8 ký tự, chứa ít nhất 1 chữ cái in hoa và 1 ký tự đặc biệt");
+            }
+
+            // Check if username exists
+            if (userRepository.existsByUsername(dto.getUsername())) {
+                throw new IllegalArgumentException("Username đã tồn tại");
+            }
+
+            // Check if email exists
             if (userRepository.existsByEmail(dto.getEmail())) {
-                logger.warn("Registration failed: Email {} already exists", dto.getEmail());
                 throw new EmailAlreadyExistsException("Email đã được sử dụng");
             }
+
             logger.info("Creating new user with username: {}", dto.getUsername());
             User user = new User();
             user.setUsername(dto.getUsername());
             user.setEmail(dto.getEmail());
             user.setPassword(passwordEncoder.encode(dto.getPassword()));
-            LocalDate dob = LocalDate.of(dto.getYear(), dto.getMonth(), dto.getDay());
-            user.setDateOfBirth(dob);
+            
+            // Validate and set date of birth
+            try {
+                LocalDate dob = LocalDate.of(dto.getYear(), dto.getMonth(), dto.getDay());
+                user.setDateOfBirth(dob);
+            } catch (DateTimeException e) {
+                throw new IllegalArgumentException("Ngày sinh không hợp lệ");
+            }
+
             user.setDisplayName(dto.getDisplayName());
             user.setPhoneNumber(dto.getPhoneNumber());
             user.setBio(dto.getBio());

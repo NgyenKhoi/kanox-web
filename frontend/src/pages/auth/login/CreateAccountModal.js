@@ -116,16 +116,24 @@ const CreateAccountModal = ({ show, handleClose }) => {
       console.log("Sending registration data:", fullProfile);
       const response = await fetch(`${process.env.REACT_APP_API_URL}/auth/register`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
         body: JSON.stringify(fullProfile),
       });
+
+      console.log("Response status:", response.status);
+      console.log("Response headers:", Object.fromEntries(response.headers.entries()));
 
       const contentType = response.headers.get("content-type");
       let data;
       if (contentType && contentType.includes("application/json")) {
         data = await response.json();
       } else {
-        data = { message: await response.text() };
+        const text = await response.text();
+        console.log("Non-JSON response:", text);
+        data = { message: text };
       }
 
       console.log("Registration response:", data);
@@ -135,10 +143,13 @@ const CreateAccountModal = ({ show, handleClose }) => {
         handleClose();
         navigate("/home");
       } else {
-        toast.error(data.message || "Đăng ký thất bại. Vui lòng thử lại.");
+        const errorMessage = data.message || "Đăng ký thất bại. Vui lòng thử lại.";
+        console.error("Registration failed:", errorMessage);
+        toast.error(errorMessage);
         if (data.errors && Object.keys(data.errors).length > 0) {
           const errorDetails = Object.values(data.errors).join(", ");
-          toast.error(`${data.message} - Chi tiết: ${errorDetails}`);
+          console.error("Validation errors:", errorDetails);
+          toast.error(`${errorMessage} - Chi tiết: ${errorDetails}`);
         }
       }
     } catch (err) {
