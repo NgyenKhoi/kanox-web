@@ -395,16 +395,6 @@ END;
 
 ------------------------------------------------------------
 
-CREATE TABLE tblSession (
-	id INT PRIMARY KEY IDENTITY(1, 1),
-	user_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
-	device NVARCHAR(255),
-	ip_address NVARCHAR(45),
-	created_at DATETIME DEFAULT GETDATE(),
-	expired_time DATETIME,
-	status BIT DEFAULT 1
-);
-
 CREATE TABLE tblPasswordReset (
 	id INT PRIMARY KEY IDENTITY(1, 1),
 	user_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
