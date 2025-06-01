@@ -3,21 +3,23 @@ package com.example.social_media.controller;
 import com.example.social_media.config.URLConfig;
 import com.example.social_media.dto.*;
 import com.example.social_media.entity.User;
+import com.example.social_media.exception.EmailAlreadyExistsException;
 import com.example.social_media.exception.InvalidTokenException;
 import com.example.social_media.exception.TokenExpiredException;
 import com.example.social_media.jwt.JwtService;
 import com.example.social_media.service.AuthService;
 import com.example.social_media.service.PasswordResetService;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Optional;
 import java.util.HashMap;
 import java.util.Map;
-
-import org.slf4j.Logger;
+import java.time.LocalDate;
+import java.time.DateTimeException;
+import java.util.Optional;
 
 @RestController
 @RequestMapping(URLConfig.AUTH_BASE)
@@ -96,12 +98,37 @@ public class AuthController {
             }
         }
             @PostMapping(URLConfig.REGISTER)
-            public ResponseEntity<?> register (@RequestBody @Valid RegisterRequestDto dto){
+            public ResponseEntity<?> register(@RequestBody @Valid RegisterRequestDto dto) {
+                logger.info("Received registration request for username: {}", dto.getUsername());
                 try {
+                    // Validate date of birth
+                    try {
+                        LocalDate.of(dto.getYear(), dto.getMonth(), dto.getDay());
+                    } catch (DateTimeException e) {
+                        logger.error("Invalid date of birth: {}-{}-{}", dto.getYear(), dto.getMonth(), dto.getDay());
+                        return ResponseEntity.badRequest().body(Map.of(
+                            "message", "Ngày sinh không hợp lệ",
+                            "errors", Map.of("dob", "Ngày sinh không hợp lệ")
+                        ));
+                    }
+
                     User createdUser = authService.register(dto);
-                    return ResponseEntity.ok(createdUser);
+                    logger.info("User registered successfully with ID: {}", createdUser.getId());
+                    return ResponseEntity.ok(Map.of(
+                        "message", "Đăng ký thành công",
+                        "user", createdUser
+                    ));
+                } catch (EmailAlreadyExistsException e) {
+                    logger.warn("Registration failed: Email already exists - {}", dto.getEmail());
+                    return ResponseEntity.badRequest().body(Map.of(
+                        "message", e.getMessage(),
+                        "errors", Map.of("email", e.getMessage())
+                    ));
                 } catch (Exception e) {
-                    throw new IllegalArgumentException("Registration failed: " + e.getMessage());
+                    logger.error("Registration failed for username {}: {}", dto.getUsername(), e.getMessage(), e);
+                    return ResponseEntity.badRequest().body(Map.of(
+                        "message", "Đăng ký thất bại: " + e.getMessage()
+                    ));
                 }
             }
         }
