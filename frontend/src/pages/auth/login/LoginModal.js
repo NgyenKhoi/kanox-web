@@ -69,7 +69,7 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
 
       // Gửi idToken lên backend để xác thực và lấy token JWT
       const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/auth/google-login`,
+        `${process.env.REACT_APP_API_URL}/auth/login-google`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
