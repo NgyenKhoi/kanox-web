@@ -137,8 +137,8 @@ public class AuthController {
                 }
             }
     //add login google here
-        @GetMapping(URLConfig.LOGIN_GOOGLE)
-        public Map<String, Object> authSuccess(@AuthenticationPrincipal OAuth2User principal) {
+        @PostMapping(URLConfig.LOGIN_GOOGLE)
+        public Map<String, Object> loginWithGoogle(@AuthenticationPrincipal OAuth2User principal) {
             Map<String, Object> response = new HashMap<>();
 
             if (principal != null) {
