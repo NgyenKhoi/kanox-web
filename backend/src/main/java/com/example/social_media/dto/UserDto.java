@@ -12,6 +12,4 @@ public class UserDto {
         this.displayName = user.getDisplayName();
         this.email = user.getEmail();
     }
-
-
 }

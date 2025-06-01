@@ -7,18 +7,19 @@ import com.example.social_media.exception.EmailAlreadyExistsException;
 import com.example.social_media.exception.InvalidTokenException;
 import com.example.social_media.exception.TokenExpiredException;
 import com.example.social_media.jwt.JwtService;
-import com.example.social_media.repository.UserRepository;
 import com.example.social_media.service.AuthService;
 import com.example.social_media.service.PasswordResetService;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.http.javanet.NetHttpTransport;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.HashMap;
+import java.util.List;
+import com.google.api.client.json.gson.GsonFactory;
 import java.util.Map;
 import java.time.LocalDate;
 import java.time.DateTimeException;
@@ -35,8 +36,8 @@ public class AuthController {
 
     public AuthController(AuthService authService,
                           PasswordResetService passwordResetService,
-                          JwtService jwtService,
-                          UserRepository userRepository) {
+                          JwtService jwtService
+                          ) {
         this.authService = authService;
         this.passwordResetService = passwordResetService;
         this.jwtService = jwtService;
@@ -137,25 +138,38 @@ public class AuthController {
                 }
             }
     //add login google here
-        @PostMapping(URLConfig.LOGIN_GOOGLE)
-        public Map<String, Object> loginWithGoogle(@AuthenticationPrincipal OAuth2User principal) {
-            Map<String, Object> response = new HashMap<>();
-
-            if (principal != null) {
-                String email = principal.getAttribute("email");
-                String name = principal.getAttribute("name");
-                String googleId = principal.getAttribute("sub");
-
-                User user = authService.loginOrRegisterGoogleUser(googleId, email, name);
-
-                String token = jwtService.generateToken(user.getUsername());
-
-                response.put("token", token);
-                response.put("user", new UserDto(user));
-                return response;
+    @PostMapping(URLConfig.LOGIN_GOOGLE)
+    public ResponseEntity<?> loginWithGoogleIdToken(@RequestBody GoogleLoginRequestDto request) {
+        try {
+            if (request.getIdToken() == null || request.getIdToken().isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "idToken is required"));
             }
 
-            response.put("error", "Authentication failed!");
-            return response;
+            // Xác minh idToken
+            GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
+                    .setAudience(List.of("your-google-client-id"))
+                    .build();
+
+            GoogleIdToken idToken = verifier.verify(request.getIdToken());
+            if (idToken == null) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Invalid ID token"));
+            }
+
+            GoogleIdToken.Payload payload = idToken.getPayload();
+            String email = payload.getEmail();
+            String name = (String) payload.get("name");
+            String googleId = payload.getSubject();
+
+            User user = authService.loginOrRegisterGoogleUser(googleId, email, name);
+            String token = jwtService.generateToken(user.getUsername());
+
+            return ResponseEntity.ok(Map.of(
+                    "token", token,
+                    "user", new UserDto(user)
+            ));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", "Google login failed: " + e.getMessage()));
         }
+    }
 }
