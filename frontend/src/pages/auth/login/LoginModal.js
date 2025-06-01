@@ -9,7 +9,7 @@ import { useNavigate } from "react-router-dom";
 import KLogoSvg from "../../../components/svgs/KSvg";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-
+import { GoogleLogin } from "@react-oauth/google";
 const LoginModal = ({ show, handleClose, onShowLogin }) => {
   const navigate = useNavigate();
 
@@ -62,6 +62,42 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
     }
   };
 
+  const handleGoogleLoginSuccess = async (credentialResponse) => {
+    try {
+      // credentialResponse chứa access token hoặc id_token
+      const idToken = credentialResponse.credential;
+
+      // Gửi idToken lên backend để xác thực và lấy token JWT
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/auth/google-login`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ idToken }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        const { token, user } = data;
+        localStorage.setItem("token", token);
+        localStorage.setItem("username", user.username);
+        toast.success("Đăng nhập bằng Google thành công! Đang chuyển hướng...");
+        handleClose();
+        setTimeout(() => navigate("/home"), 2000);
+      } else {
+        toast.error(data.message || "Đăng nhập Google thất bại.");
+      }
+    } catch (error) {
+      toast.error("Lỗi đăng nhập Google. Vui lòng thử lại.");
+    }
+  };
+
+  const handleGoogleLoginError = () => {
+    toast.error("Đăng nhập Google thất bại hoặc bị hủy.");
+  };
+
   const handleShowForgotPasswordModal = () => {
     handleClose();
     setShowForgotPasswordModal(true);
@@ -103,24 +139,20 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
           </div>
 
           <h3 className="fw-bold mb-4 text-center">Đăng nhập vào KaNox</h3>
-
           <div
             className="d-flex flex-column gap-3 mx-auto"
             style={{ maxWidth: "300px" }}
           >
-            <Button
-              variant="outline-secondary"
-              className="d-flex align-items-center justify-content-center py-2 rounded-pill fw-bold"
-              style={{ borderColor: "#e0e0e0", color: "#000" }}
-            >
-              <span
-                className="bg-light rounded-circle p-1 me-2 d-flex align-items-center justify-content-center"
-                style={{ width: "30px", height: "30px" }}
-              >
-                <FcGoogle size={20} />
-              </span>
-              Đăng nhập với Google
-            </Button>
+            {/* Thay nút Google bằng GoogleLogin component */}
+            <GoogleLogin
+              onSuccess={handleGoogleLoginSuccess}
+              onError={handleGoogleLoginError}
+              useOneTap
+              size="large"
+              shape="pill"
+              text="continue_with"
+              theme="outline"
+            />
 
             <div className="d-flex align-items-center my-3">
               <hr className="flex-grow-1 border-secondary" />

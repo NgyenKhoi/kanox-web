@@ -7,12 +7,15 @@ import com.example.social_media.exception.EmailAlreadyExistsException;
 import com.example.social_media.exception.InvalidTokenException;
 import com.example.social_media.exception.TokenExpiredException;
 import com.example.social_media.jwt.JwtService;
+import com.example.social_media.repository.UserRepository;
 import com.example.social_media.service.AuthService;
 import com.example.social_media.service.PasswordResetService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -28,10 +31,12 @@ public class AuthController {
     private final AuthService authService;
     private final PasswordResetService passwordResetService;
     private final JwtService jwtService;
-
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
-    public AuthController(AuthService authService, PasswordResetService passwordResetService, JwtService jwtService) {
+    public AuthController(AuthService authService,
+                          PasswordResetService passwordResetService,
+                          JwtService jwtService,
+                          UserRepository userRepository) {
         this.authService = authService;
         this.passwordResetService = passwordResetService;
         this.jwtService = jwtService;
@@ -131,4 +136,26 @@ public class AuthController {
                     ));
                 }
             }
+    //add login google here
+        @GetMapping(URLConfig.LOGIN_GOOGLE)
+        public Map<String, Object> authSuccess(@AuthenticationPrincipal OAuth2User principal) {
+            Map<String, Object> response = new HashMap<>();
+
+            if (principal != null) {
+                String email = principal.getAttribute("email");
+                String name = principal.getAttribute("name");
+                String googleId = principal.getAttribute("sub");
+
+                User user = authService.loginOrRegisterGoogleUser(googleId, email, name);
+
+                String token = jwtService.generateToken(user.getUsername());
+
+                response.put("token", token);
+                response.put("user", new UserDto(user));
+                return response;
+            }
+
+            response.put("error", "Authentication failed!");
+            return response;
         }
+}

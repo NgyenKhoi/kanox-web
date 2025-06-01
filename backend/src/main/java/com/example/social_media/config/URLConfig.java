@@ -8,6 +8,7 @@ public class URLConfig {
     public static final String FORGOT_PASSWORD = "/forgot-password";
     public static final String RESET_PASSWORD = "/reset-password";
     public static final String LOGOUT = "/logout";
+    public static final String LOGIN_GOOGLE = "/login-google";
     // User Management URLs
     public static final String USER_MANAGEMENT_BASE = "/api/user";
     public static final String PROFILE = "/profile/{username}";

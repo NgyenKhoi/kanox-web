@@ -180,4 +180,18 @@ public class AuthService {
             throw e;
         }
     }
+
+    public User loginOrRegisterGoogleUser(String googleId, String email, String displayName) {
+        Optional<User> existingUser = userRepository.findByGoogleId(googleId);
+        if (existingUser.isPresent()) {
+            return existingUser.get();
+        }
+        User newUser = new User();
+        newUser.setGoogleId(googleId);
+        newUser.setEmail(email);
+        newUser.setUsername(email.split("@")[0]);
+        newUser.setDisplayName(displayName);
+        newUser.setStatus(true);
+        return userRepository.save(newUser);
+    }
 }
