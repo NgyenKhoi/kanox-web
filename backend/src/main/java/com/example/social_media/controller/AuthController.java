@@ -8,7 +8,7 @@ import com.example.social_media.exception.InvalidTokenException;
 import com.example.social_media.exception.TokenExpiredException;
 import com.example.social_media.jwt.JwtService;
 import com.example.social_media.service.AuthService;
-import com.example.social_media.service.PasswordResetService;
+import com.example.social_media.service.MailService;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
@@ -30,16 +30,16 @@ import java.util.Optional;
 public class AuthController {
 
     private final AuthService authService;
-    private final PasswordResetService passwordResetService;
+    private final MailService mailService;
     private final JwtService jwtService;
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
     public AuthController(AuthService authService,
-                          PasswordResetService passwordResetService,
+                          MailService mailService,
                           JwtService jwtService
                           ) {
         this.authService = authService;
-        this.passwordResetService = passwordResetService;
+        this.mailService = mailService;
         this.jwtService = jwtService;
     }
 
@@ -89,7 +89,7 @@ public class AuthController {
             }
 
             try {
-                passwordResetService.resetPassword(request.getToken(), request.getNewPassword());
+                mailService.resetPassword(request.getToken(), request.getNewPassword());
                 Map<String, Object> response = new HashMap<>();
                 response.put("status", "success");
                 response.put("message", "Đặt lại mật khẩu thành công.");

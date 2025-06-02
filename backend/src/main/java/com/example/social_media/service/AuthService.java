@@ -26,11 +26,11 @@ public class AuthService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    private final PasswordResetService passwordResetService;
+    private final MailService mailService;
     private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
 
-    public AuthService(PasswordResetService passwordResetService) {
-        this.passwordResetService = passwordResetService;
+    public AuthService(MailService mailService) {
+        this.mailService = mailService;
     }
 
     public Optional<User> loginByEmail(String email, String rawPassword) {
@@ -92,7 +92,7 @@ public class AuthService {
             return false;
         }
         try {
-            passwordResetService.sendResetToken(email);
+            mailService.sendResetToken(email);
             logger.info("Password reset token sent to email: {}", email);
             return true;
         } catch (Exception e) {
@@ -181,17 +181,27 @@ public class AuthService {
         }
     }
 
-    public User loginOrRegisterGoogleUser(String googleId, String email, String displayName) {
-        Optional<User> existingUser = userRepository.findByGoogleId(googleId);
-        if (existingUser.isPresent()) {
-            return existingUser.get();
+    public User loginOrRegisterGoogleUser(String googleId, String email, String name) {
+        Optional<User> userOpt = userRepository.findByEmail(email);
+        //check if login google have the same email as existing user
+        if (userOpt.isPresent()) {
+            User existingUser = userOpt.get();
+
+            // user dont have google id will set into here
+            if (existingUser.getGoogleId() == null) {
+                existingUser.setGoogleId(googleId);
+                userRepository.save(existingUser); // cập nhật nếu muốn
+            }
+
+            return existingUser;
         }
+        String tempPassword = UUID.randomUUID().toString().substring(0, 8);
         User newUser = new User();
-        newUser.setGoogleId(googleId);
+        newUser.setUsername(name);
         newUser.setEmail(email);
-        newUser.setUsername(email.split("@")[0]);
-        newUser.setDisplayName(displayName);
-        newUser.setStatus(true);
+        newUser.setGoogleId(googleId);
+        newUser.setPassword(passwordEncoder.encode(tempPassword));
+        mailService.sendTemporaryPasswordEmail(email, tempPassword);
         return userRepository.save(newUser);
     }
 }

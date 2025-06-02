@@ -10,7 +10,6 @@ import com.example.social_media.repository.PasswordResetRepository;
 import com.example.social_media.repository.UserRepository;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -18,13 +17,13 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Service
-public class PasswordResetService {
+public class MailService {
 
     private final PasswordResetRepository passwordResetRepository;
     private final UserRepository userRepository;
     private final JavaMailSender mailSender;
 
-    public PasswordResetService(PasswordResetRepository passwordResetRepository, UserRepository userRepository, JavaMailSender mailSender) {
+    public MailService(PasswordResetRepository passwordResetRepository, UserRepository userRepository, JavaMailSender mailSender) {
         this.passwordResetRepository = passwordResetRepository;
         this.userRepository = userRepository;
         this.mailSender = mailSender;
@@ -85,5 +84,16 @@ public class PasswordResetService {
         } catch (Exception e) {
             throw new RuntimeException("Lỗi khi cập nhật mật khẩu: " + e.getMessage());
         }
+    }
+    //send temporary password when regis by google, user can change it here
+    public void sendTemporaryPasswordEmail(String toEmail, String temporaryPassword) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(toEmail);
+        message.setSubject("Welcome! Your Temporary Password");
+        message.setText("Chào bạn,\n\nTài khoản của bạn đã được tạo qua Google Login.\n" +
+                "Dưới đây là mật khẩu tạm thời của bạn: " + temporaryPassword +
+                "\n\nVui lòng đăng nhập và đổi mật khẩu trong phần cài đặt.\n\nTrân trọng!");
+
+        mailSender.send(message);
     }
 }
