@@ -18,7 +18,7 @@ const VerifyEmailPage = () => {
 
     const verifyToken = async () => {
       try {
-        const res = await fetch(`${process.env.REACT_APP_API_URL}/auth/verify?token=${token}`, {
+        const res = await fetch(`${process.env.REACT_APP_API_URL}/auth/verify-token?token=${token}`, {
           method: "POST",
         });
 

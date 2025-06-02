@@ -10,7 +10,7 @@ public class URLConfig {
     public static final String RESET_PASSWORD = "/reset-password";
     public static final String LOGOUT = "/logout";
     public static final String LOGIN_GOOGLE = "/login-google";
-    public static final String EMAIL_VERIFICATION = "https://kanox.duckdns.org/api/auth/verify?token=";
+    public static final String EMAIL_VERIFICATION = "https://kanox.duckdns.org/api/auth" + VERIFY_TOKEN + "?token=";
     // User Management URLs
     public static final String USER_MANAGEMENT_BASE = "/api/user";
     public static final String PROFILE = "/profile/{username}";
