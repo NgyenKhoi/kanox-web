@@ -5,16 +5,23 @@ import HomePage from "./pages/home/HomePage";
 import ProfilePage from "./pages/profile/ProfilePage";
 import ResetPasswordPage from "./pages/auth/login/ResetPasswordPage"; // import trang reset password
 import CompleteProfilePage from "./components/profile/CompleteProfilePage";
+import ExplorePage from "./pages/search/ExplorePage";
+import NotificationPage from "./pages/Notifications/NotificationPage";
+import MessengerPage from "./pages/Messenger/MessengerPage";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
 function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<SignupPage />} />{" "}
+        <Route path="/" element={<HomePage />} />{" "}
         <Route path="/profile/:username" element={<ProfilePage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />{" "}
         <Route path="/complete-profile" element={<CompleteProfilePage />} />{" "}
+        <Route path="/explore" element={<ExplorePage />} />
+        <Route path="/notifications" element={<NotificationPage />} />{" "}
+        <Route path="/messages" element={<MessengerPage />} />{" "}
+        {/* Route for Notifications */}
         {/* Route cho trang đặt lại mật khẩu */}
         {/* Trang mặc định là SignupPage */}
         <Route path="/home" element={<HomePage />} />{" "}

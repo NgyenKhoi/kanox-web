@@ -2,7 +2,6 @@
 import React from "react";
 import { Nav, Button, Image } from "react-bootstrap";
 import {
-  FaTwitter,
   FaHome,
   FaSearch,
   FaBell,
@@ -10,8 +9,9 @@ import {
   FaUserAlt,
   FaEllipsisH,
 } from "react-icons/fa";
-import { BsRocketTakeoff, BsStars } from "react-icons/bs";
+import { BsStars } from "react-icons/bs";
 import { Link } from "react-router-dom";
+import KLogoSvg from "../../svgs/KSvg";
 
 function SidebarLeft() {
   const username = localStorage.getItem("username");
@@ -21,15 +21,16 @@ function SidebarLeft() {
       style={{ width: "280px", top: 0, overflowY: "auto", height: "100vh" }}
     >
       <div className="d-flex flex-column align-items-start">
-        <Link to="/" className="d-none d-lg-block mb-3 ms-2 mt-2">
-          <FaTwitter size={30} className="text-dark" />
+        <Link to="/Home" className="d-none d-lg-block mb-3 ms-2 mt-2">
+          {/* Logo lớn: Truyền width và height trực tiếp */}
+          <KLogoSvg width="100px" height="100px" fill="black" />
         </Link>
 
         <Nav className="flex-column mb-auto">
           <Nav.Item className="mb-1">
             <Nav.Link
               as={Link}
-              to="/HomePage"
+              to="/Home"
               className="d-flex align-items-center text-dark py-2 px-3 rounded-pill hover-bg-light fw-bold"
             >
               <FaHome size={24} className="me-3" />
@@ -66,15 +67,7 @@ function SidebarLeft() {
               <span className="fs-5 d-none d-lg-block">Tin nhắn</span>
             </Nav.Link>
           </Nav.Item>
-          <Nav.Item className="mb-1">
-            <Nav.Link
-              as={Link}
-              to="/grok"
-              className="d-flex align-items-center text-dark py-2 px-3 rounded-pill hover-bg-light"
-            >
-              <BsRocketTakeoff size={24} className="me-3" />
-            </Nav.Link>
-          </Nav.Item>
+
           <Nav.Item className="mb-1">
             <Nav.Link
               as={Link}
@@ -125,9 +118,15 @@ function SidebarLeft() {
           <Button
             variant="primary"
             className="rounded-circle mt-3 p-3 fw-bold d-lg-none mx-auto"
-            style={{ width: "56px", height: "56px" }}
+            style={{
+              width: "56px",
+              height: "56px",
+              backgroundColor: "#1A8CD8",
+              borderColor: "#1A8CD8",
+            }}
           >
-            <FaTwitter size={24} />
+            {/* Logo nhỏ trên nút: Truyền width và height trực tiếp */}
+            <KLogoSvg width="24px" height="24px" fill="white" />
           </Button>
         </Nav>
       </div>
