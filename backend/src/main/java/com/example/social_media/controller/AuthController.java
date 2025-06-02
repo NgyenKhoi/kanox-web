@@ -181,7 +181,7 @@ public class AuthController {
 
             // Xác minh idToken
             GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
-                    .setAudience(List.of("233866118973-t26ue94egg2v1reebqpe684kglf0bjej.apps.googleusercontent.com"))
+                    .setAudience(List.of(URLConfig.GOOGLE_LOGIN_CLIENT_ID))
                     .build();
 
             GoogleIdToken idToken = verifier.verify(request.getIdToken());

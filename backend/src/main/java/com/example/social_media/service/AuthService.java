@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -129,15 +130,19 @@ public class AuthService {
             default -> throw new IllegalArgumentException("Invalid gender: " + dto.getGender());
         };
         verificationToken.setGender(genderCode);
+        verificationToken.setCreatedDate(Instant.now());
+        try {
         verificationToken.setExpiryDate(LocalDateTime.now().plusDays(1)
                 .atZone(ZoneId.systemDefault())
                 .toInstant());
 
         verificationTokenRepository.save(verificationToken);
-
         String verificationLink = URLConfig.EMAIL_VERIFICATION + token;
         mailService.sendVerificationEmail(dto.getEmail(), verificationLink);
         return null;
+        } catch (Exception e) {
+            throw new RuntimeException("Lỗi khi xử lý đăng ký: " + e.getMessage());
+        }
     }
 
     public User verifyToken(String token) {
@@ -183,8 +188,16 @@ public class AuthService {
             return existingUser;
         }
         String tempPassword = UUID.randomUUID().toString().substring(0, 8);
+        //take username from google login
         User newUser = new User();
-        newUser.setUsername(name);
+        String baseUsername = name.replaceAll("\\s+", "").toLowerCase();
+        String finalUsername = baseUsername;
+        int i = 1;
+        while (userRepository.existsByUsername(finalUsername)) {
+            finalUsername = baseUsername + i;
+            i++;
+        }
+        newUser.setUsername(finalUsername);
         newUser.setEmail(email);
         newUser.setGoogleId(googleId);
         newUser.setPassword(passwordEncoder.encode(tempPassword));

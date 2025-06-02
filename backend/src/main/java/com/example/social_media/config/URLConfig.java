@@ -17,4 +17,7 @@ public class URLConfig {
     // Frontend URLs
     public static final String FRONTEND_RESET_PASSWORD_URL = "https://kanox-web.netlify.app/reset-password?token=";
 
+
+    //some id config (ex: google...)
+    public static final String GOOGLE_LOGIN_CLIENT_ID = "233866118973-t26ue94egg2v1reebqpe684kglf0bjej.apps.googleusercontent.com";
 }
