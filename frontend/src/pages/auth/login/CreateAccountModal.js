@@ -132,7 +132,7 @@ const CreateAccountModal = ({ show, handleClose }) => {
       console.log("Response status:", response.status);
       console.log(
         "Response headers:",
-        Object.fromEntries(response.headers.entries())
+        Object.fromEntries(response.headers.entries())  
       );
 
       const contentType = response.headers.get("content-type");
@@ -152,10 +152,6 @@ const CreateAccountModal = ({ show, handleClose }) => {
           data.message || "Đăng ký thành công! Vui lòng xác thực email."
         );
         handleClose();
-        setTimeout(
-          () => navigate(`/verify-email?email=${formData.email}`),
-          2000
-        );
       } else {
         const errorMessage =
           data.message || "Đăng ký thất bại. Vui lòng thử lại.";
