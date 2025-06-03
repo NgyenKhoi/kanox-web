@@ -205,8 +205,8 @@ function EditProfileModal({
   // Các tùy chọn cho giới tính
   const genderOptions = [
     { value: "", label: "Không xác định" }, // Tùy chọn mặc định
-    { value: "0", label: "Nữ" },
-    { value: "1", label: "Nam" },
+    { value: "0", label: "Nam" },
+    { value: "1", label: "Nữ" },
     { value: "2", label: "Khác" },
   ];
 
