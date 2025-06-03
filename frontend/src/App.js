@@ -9,12 +9,13 @@ import MessengerPage from "./pages/Messenger/MessengerPage";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import VerifyEmailPage from "./pages/auth/login/VerifyEmailPage";
 import { AuthProvider } from "./context/AuthContext";
+import SignupPage from "./pages/auth/signup/signupPage";
 function App() {
   return (
     <Router>
       <AuthProvider>
       <Routes>
-        <Route path="/" element={<HomePage />} />{" "}
+        <Route path="/" element={<SignupPage />} />{" "}
         <Route path="/profile/:username" element={<ProfilePage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />{" "}
         <Route path="/explore" element={<ExplorePage />} />
