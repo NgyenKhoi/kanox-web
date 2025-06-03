@@ -1,16 +1,51 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Container, Row, Col, Button } from "react-bootstrap";
 import { FcGoogle } from "react-icons/fc";
-import { FaApple } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 import CreateAccountModal from "../login/CreateAccountModal";
 import LoginModal from "../login/LoginModal";
 import Footer from "../../../components/layout/Footer/Footer";
-
-import KLogoSvg from "../../../components/svgs/KSvg"; // Đảm bảo đường dẫn này chính xác
+import KLogoSvg from "../../../components/svgs/KSvg";
 
 const SignupPage = () => {
   const [showCreateAccountModal, setShowCreateAccountModal] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const token =
+      localStorage.getItem("token") || sessionStorage.getItem("token");
+    if (!token) return;
+
+    const checkCurrentUser = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_API_URL}/auth/me`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (response.ok) {
+          // Token hợp lệ → chuyển sang trang home
+          navigate("/home");
+        } else {
+          // Token không hợp lệ → xóa token
+          localStorage.removeItem("token");
+          sessionStorage.removeItem("token");
+          localStorage.removeItem("user");
+          sessionStorage.removeItem("user");
+        }
+      } catch (error) {
+        console.error("Lỗi khi gọi API /auth/me:", error);
+      }
+    };
+
+    checkCurrentUser();
+  }, [navigate]);
 
   const handleShowCreateAccountModal = () => setShowCreateAccountModal(true);
   const handleCloseCreateAccountModal = () => setShowCreateAccountModal(false);
@@ -24,7 +59,6 @@ const SignupPage = () => {
       className="d-flex flex-column min-vh-100 bg-white text-black"
     >
       <Row className="flex-grow-1 w-100">
-        {/* Left Section - K Logo */}
         <Col
           xs={12}
           lg={6}
@@ -35,7 +69,6 @@ const SignupPage = () => {
           </div>
         </Col>
 
-        {/* Right Section - Signup Form */}
         <Col
           xs={12}
           lg={6}
@@ -54,7 +87,6 @@ const SignupPage = () => {
             >
               <FcGoogle className="me-2" size={24} />
               Đăng nhập với Google
-              <span className="ms-1" style={{ color: "#888" }}></span>
             </Button>
 
             <div className="d-flex align-items-center my-3">
@@ -110,11 +142,10 @@ const SignupPage = () => {
         handleClose={handleCloseCreateAccountModal}
       />
 
-      {/* Truyền handleShowLoginModal xuống LoginModal */}
       <LoginModal
         show={showLoginModal}
         handleClose={handleCloseLoginModal}
-        onShowLogin={handleShowLoginModal} // THAY ĐỔI QUAN TRỌNG: Truyền hàm mở LoginModal
+        onShowLogin={handleShowLoginModal}
       />
 
       <Footer />
