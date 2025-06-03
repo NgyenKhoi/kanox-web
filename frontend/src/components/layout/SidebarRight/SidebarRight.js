@@ -1,5 +1,5 @@
 // src/components/layout/SidebarRight/SidebarRight.jsx
-import React from "react";
+import React, { useState } from "react";
 import {
   Card,
   ListGroup,
@@ -10,9 +10,12 @@ import {
   Image,
 } from "react-bootstrap";
 import { FaSearch } from "react-icons/fa";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom"; // Import useNavigate
 
 function SidebarRight() {
+  const [showFullFooter, setShowFullFooter] = useState(false); // State để kiểm soát việc hiển thị footer đầy đủ
+  const navigate = useNavigate(); // Khởi tạo useNavigate
+
   const trends = [
     {
       id: 1,
@@ -56,16 +59,43 @@ function SidebarRight() {
     },
   ];
 
+  // Các liên kết footer đầy đủ (được lấy từ Footer.jsx)
+  const fullFooterLinks = [
+    { to: "/about", text: "Giới thiệu" },
+    // { to: "/download-app", text: "Tải ứng dụng X" },
+    // { to: "/grok", text: "Grok" },
+    { to: "/help-center", text: "Trung tâm Trợ giúp" },
+    { to: "/terms", text: "Điều khoản Dịch vụ" },
+    { to: "/privacy", text: "Chính sách Riêng tư" },
+    { to: "/cookies", text: "Chính sách cookie" },
+    { to: "/accessibility", text: "Khả năng truy cập" },
+    { to: "/ads-info", text: "Thông tin quảng cáo" },
+    { to: "/blog", text: "Blog" },
+    // { to: "/careers", text: "Nghề nghiệp" },
+    // { to: "/brand-resources", text: "Tài nguyên thương hiệu" },
+    { to: "/ads", text: "Quảng cáo" },
+    // { to: "/marketing", text: "Tiếp thị" },
+    { to: "/business", text: "KaNox dành cho doanh nghiệp" },
+    { to: "/developers", text: "Nhà phát triển" },
+    { to: "/directory", text: "Danh mục" },
+    { to: "/settings", text: "Cài đặt" },
+  ];
+
+  // Các liên kết footer mặc định hiển thị
+  const defaultFooterLinks = fullFooterLinks.slice(0, 5); // Hiển thị 5 mục đầu tiên
+
+  // Hàm xử lý khi click nút "Đăng ký" của gói Premium
+  const handleSubscribePremiumClick = () => {
+    navigate("/premium"); // Chuyển hướng đến trang /premium
+  };
+
   return (
-    // Sử dụng sticky-top với top: 0 để nó dính vào đầu trang
-    // Thay đổi overflow-y: auto và height: 100vh để nội dung cuộn bên trong
-    // Điều chỉnh pt-2 (padding-top) để nó không bị dính sát vào header nếu có
-    <div
-      className="p-3 pt-2 sticky-top d-none d-lg-block"
-      style={{ top: "0", width: "350px", height: "100vh", overflowY: "auto" }}
-    >
-      {/* Thanh tìm kiếm */}
-      <Form className="d-flex mb-3 mt-2">
+    <div className="p-3 pt-2 d-none d-lg-block">
+      {/* Thanh tìm kiếm - Cố định (sticky) */}
+      <Form
+        className="d-flex mb-3 mt-2 sticky-top bg-light"
+        style={{ top: "0", zIndex: 1020 }}
+      >
         <div className="position-relative w-100">
           <FaSearch
             className="position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"
@@ -89,7 +119,11 @@ function SidebarRight() {
             Đăng ký để mở khóa các tính năng mới và nếu đủ điều kiện, bạn sẽ
             được nhận một khoản chia sẻ doanh thu cho người sáng tạo nội dung.
           </p>
-          <Button variant="dark" className="rounded-pill px-4 fw-bold">
+          <Button
+            variant="dark"
+            className="rounded-pill px-4 fw-bold"
+            onClick={handleSubscribePremiumClick} // Thêm onClick event ở đây
+          >
             Đăng ký
           </Button>
         </Card.Body>
@@ -162,51 +196,44 @@ function SidebarRight() {
         </ListGroup>
       </Card>
 
-      {/* Footer chính thức của SidebarRight */}
+      {/* Footer chính thức của SidebarRight - Giờ có chức năng ẩn/hiện */}
       <div className="p-3">
         <Nav className="flex-wrap">
+          {/* Hiển thị các liên kết mặc định */}
+          {defaultFooterLinks.map((link, index) => (
+            <Nav.Link
+              key={index}
+              as={Link}
+              to={link.to}
+              className="text-muted small me-2 my-1 p-0"
+            >
+              {link.text}
+            </Nav.Link>
+          ))}
+
+          {/* Nếu showFullFooter là true, hiển thị phần còn lại */}
+          {showFullFooter &&
+            fullFooterLinks
+              .slice(defaultFooterLinks.length)
+              .map((link, index) => (
+                <Nav.Link
+                  key={`full-${index}`}
+                  as={Link}
+                  to={link.to}
+                  className="text-muted small me-2 my-1 p-0"
+                >
+                  {link.text}
+                </Nav.Link>
+              ))}
+
+          {/* Nút "Thêm..." hoặc "Ẩn bớt" */}
           <Nav.Link
-            as={Link}
-            to="/terms"
-            className="text-muted small me-2 my-1 p-0"
+            onClick={() => setShowFullFooter(!showFullFooter)}
+            className="text-muted small me-2 my-1 p-0 cursor-pointer" // Thêm cursor-pointer cho dễ nhìn
           >
-            Điều khoản Dịch vụ
+            {showFullFooter ? "Ẩn bớt" : "Thêm..."}
           </Nav.Link>
-          <Nav.Link
-            as={Link}
-            to="/privacy"
-            className="text-muted small me-2 my-1 p-0"
-          >
-            Chính sách Riêng tư
-          </Nav.Link>
-          <Nav.Link
-            as={Link}
-            to="/cookies"
-            className="text-muted small me-2 my-1 p-0"
-          >
-            Chính sách cookie
-          </Nav.Link>
-          <Nav.Link
-            as={Link}
-            to="/accessibility"
-            className="text-muted small me-2 my-1 p-0"
-          >
-            Khả năng truy cập
-          </Nav.Link>
-          <Nav.Link
-            as={Link}
-            to="/ads-info"
-            className="text-muted small me-2 my-1 p-0"
-          >
-            Thông tin quảng cáo
-          </Nav.Link>
-          <Nav.Link
-            as={Link}
-            to="/more-info"
-            className="text-muted small me-2 my-1 p-0"
-          >
-            Thêm ...
-          </Nav.Link>
+
           <span className="text-muted small mx-2 my-1 p-0">
             &copy; 2025 KaNox Corp.
           </span>

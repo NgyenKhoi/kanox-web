@@ -68,9 +68,9 @@ function HomePage() {
             sm={0}
             md={0}
             lg={3}
-            xl={2}
+            xl={3}
             className="d-none d-lg-flex justify-content-end align-items-stretch"
-            style={{ minHeight: "100vh" }}
+            style={{ minHeight: "80vh" }}
           >
             <SidebarLeft />
           </Col>
@@ -81,9 +81,15 @@ function HomePage() {
             sm={12}
             md={12}
             lg={6}
-            xl={7}
+            xl={6}
             className="px-md-0 border-start border-end mt-5 pt-1 mt-lg-0 pt-lg-0"
           >
+            <div
+              className="sticky-top bg-white border-bottom fw-bold fs-5 px-3 py-2 d-flex justify-content-between align-items-center d-lg-block d-none"
+              style={{ zIndex: 1020 }}
+            >
+              <span>Trang chủ</span>
+            </div>
             <TweetInput />
 
             {sampleTweets.map((tweet) => (
@@ -106,7 +112,7 @@ function HomePage() {
             lg={3}
             xl={3}
             className="d-none d-lg-block ps-md-4"
-            style={{ minHeight: "100vh" }}
+            // style={{ minHeight: "100vh" }}
           >
             <SidebarRight />
           </Col>
