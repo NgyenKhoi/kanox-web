@@ -3,30 +3,25 @@ import React, { createContext, useState, useEffect } from "react";
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null); // { username, email, ... } or null
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
 
-  useEffect(() => {
-    const savedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
-    if (savedUser) {
+useEffect(() => {
+  const savedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
+  if (savedUser) {
+    try {
       setUser(JSON.parse(savedUser));
-    } else {
-      // Nếu dùng token: Gọi API để xác thực
-      fetch(`${process.env.REACT_APP_API_URL}/auth/me`, {
-        credentials: "include", // Để gửi cookie (session ID)
-      })
-        .then((res) => res.ok ? res.json() : null)
-        .then((data) => {
-          if (data) setUser(data);
-        })
-        .catch(() => {})
-        .finally(() => setLoading(false));
+    } catch (error) {
+      console.error("Lỗi parse user từ localStorage:", error);
+      setUser(null);
+      localStorage.removeItem("user"); // dọn dẹp nếu dữ liệu lỗi
+      sessionStorage.removeItem("user");
     }
-  }, []);
+  }
+}, []);
 
   return (
     <AuthContext.Provider value={{ user, setUser }}>
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
 };
