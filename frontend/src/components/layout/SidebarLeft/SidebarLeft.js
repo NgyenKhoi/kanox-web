@@ -20,7 +20,7 @@ function SidebarLeft() {
   // Điều hướng nếu chưa đăng nhập
   const handleProtectedClick = (path) => {
     if (!user) {
-      navigate("/login");
+      navigate("/");
     } else {
       navigate(path);
     }
@@ -143,7 +143,7 @@ function SidebarLeft() {
             <Button
               variant="outline-primary"
               className="mt-4 w-100 fw-bold"
-              onClick={() => navigate("/login")}
+              onClick={() => navigate("/")}
             >
               Đăng nhập
             </Button>
