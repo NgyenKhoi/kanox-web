@@ -11,7 +11,6 @@ import {
 } from "react-icons/fa";
 import { BsRocketTakeoff, BsStars } from "react-icons/bs";
 import { Link, useNavigate } from "react-router-dom";
-import { Link } from "react-router-dom";
 import KLogoSvg from "../../svgs/KSvg";
 
 function SidebarLeft() {
