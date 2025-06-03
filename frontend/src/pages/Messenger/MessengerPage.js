@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect, useContext } from 'react';
 import {
   Container,
   Row,
@@ -6,139 +6,165 @@ import {
   InputGroup,
   Form,
   Button,
-  Image,
-} from "react-bootstrap";
-import { FaSearch, FaEnvelope, FaPenSquare, FaCog } from "react-icons/fa"; // Importing icons
-import SidebarLeft from "../../components/layout/SidebarLeft/SidebarLeft"; // Adjust the path as needed
+  // Image, // Comment vì không cần Image để hiển thị avatar nữa
+  ListGroup,
+} from 'react-bootstrap';
+import { FaSearch, FaEnvelope, FaPenSquare, FaCog } from 'react-icons/fa';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import SidebarLeft from '../../components/layout/SidebarLeft/SidebarLeft';
+import Chat from '../../components/Chat';
+import { AuthContext } from '../../context/AuthContext';
 
 function MessengerPage() {
-  // Dummy data for message list (left pane)
-  const messages = [
-    {
-      id: 1,
-      name: "Bessie Cooper",
-      username: "@bessiecooper", // Assuming a username
-      lastMessage: "Hi, Robert. I'm facing some chall...",
-      avatar: "https://via.placeholder.com/40", // Placeholder avatar
-    },
-    {
-      id: 2,
-      name: "Thomas Baker",
-      username: "@thomasbaker",
-      lastMessage: "I have a job interview coming up ...",
-      avatar: "https://via.placeholder.com/40",
-    },
-    {
-      id: 3,
-      name: "Daniel Brown",
-      username: "@danielbrown",
-      lastMessage: "Not much, just planning to relax ...",
-      avatar: "https://via.placeholder.com/40",
-    },
-    {
-      id: 4,
-      name: "Ronald Richards",
-      username: "@ronaldrichards",
-      lastMessage: "I'm stuck on this bug in the code ...",
-      avatar: "https://via.placeholder.com/40",
-    },
-  ];
+  const { token, user } = useContext(AuthContext);
+  const [chats, setChats] = useState([]);
+  const [selectedChatId, setSelectedChatId] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    if (!token || !user) {
+      toast.error('Vui lòng đăng nhập để xem tin nhắn.');
+      return;
+    }
+
+    fetch(`${process.env.REACT_APP_API_URL}/chats`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+    })
+        .then(async (response) => {
+          const contentType = response.headers.get('content-type');
+          let data;
+          if (contentType && contentType.includes('application/json')) {
+            data = await response.json();
+          } else {
+            throw new Error('Phản hồi không phải JSON');
+          }
+          if (response.ok) {
+            setChats(data);
+          } else {
+            throw new Error(data.message || 'Lỗi khi tải danh sách chat.');
+          }
+        })
+        .catch((err) => {
+          toast.error(err.message || 'Lỗi khi tải danh sách chat.');
+        });
+  }, [token, user]);
+
+  const filteredChats = chats.filter(
+      (chat) =>
+          chat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          chat.lastMessage?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
-    <div className="d-flex min-vh-100 bg-light">
-      {/* Sidebar trái */}
-      <div className="d-none d-lg-block">
-        <SidebarLeft />
-      </div>
+      <>
+        <ToastContainer />
+        <div className="d-flex min-vh-100 bg-light">
+          <div className="d-none d-lg-block">
+            <SidebarLeft />
+          </div>
 
-      {/* Main Content Area - Messages */}
-      <div className="d-flex flex-column flex-grow-1 border-start border-end bg-white">
-        {/* Header/Search Bar for Messages Page */}
-        <div
-          className="sticky-top bg-white border-bottom py-2"
-          style={{ zIndex: 1020 }}
-        >
-          <Container fluid>
-            <Row className="align-items-center">
-              <Col xs={6} className="text-start">
-                <h5 className="fw-bold mb-0">Tin nhắn</h5>
-              </Col>
-              <Col xs={6} className="text-end">
-                <Button variant="link" className="text-dark p-0">
-                  <FaCog /> {/* Settings icon, as seen in Notification page */}
-                </Button>
-              </Col>
-            </Row>
-            <InputGroup className="mt-3">
-              <InputGroup.Text className="bg-light border-0 rounded-pill ps-3">
-                <FaSearch className="text-muted" />
-              </InputGroup.Text>
-              <Form.Control
-                type="text"
-                placeholder="Tìm kiếm"
-                className="bg-light border-0 rounded-pill py-2"
-                style={{ height: "auto" }}
-              />
-            </InputGroup>
-          </Container>
-        </div>
+          <div className="d-flex flex-column flex-grow-1 border-start border-end bg-white">
+            <div
+                className="sticky-top bg-white border-bottom py-2"
+                style={{ zIndex: 1020 }}
+            >
+              <Container fluid>
+                <Row className="align-items-center">
+                  <Col xs={6} className="text-start">
+                    <h5 className="fw-bold mb-0">Tin nhắn</h5>
+                  </Col>
+                  <Col xs={6} className="text-end">
+                    <Button variant="link" className="text-dark p-0">
+                      <FaCog />
+                    </Button>
+                  </Col>
+                </Row>
+                <InputGroup className="mt-3">
+                  <InputGroup.Text className="bg-light border-0 rounded-pill ps-3">
+                    <FaSearch className="text-muted" />
+                  </InputGroup.Text>
+                  <Form.Control
+                      type="text"
+                      placeholder="Tìm kiếm"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="bg-light border-0 rounded-pill py-2"
+                      style={{ height: 'auto' }}
+                  />
+                </InputGroup>
+              </Container>
+            </div>
 
-        {/* Message List and Chat Area */}
-        <div className="d-flex flex-grow-1">
-          {/* Left Pane: Message List */}
-          <div
-            className="border-end overflow-auto"
-            style={{ flexBasis: "350px", flexShrink: 0 }}
-          >
-            {messages.map((msg) => (
+            <div className="d-flex flex-grow-1">
               <div
-                key={msg.id}
-                className="d-flex align-items-center p-3 border-bottom hover-bg-light"
+                  className="border-end overflow-auto"
+                  style={{ flexBasis: '350px', flexShrink: 0 }}
               >
-                <Image
-                  src={msg.avatar}
-                  roundedCircle
-                  className="me-2"
-                  style={{ width: "40px", height: "40px" }}
-                />
-                <div className="flex-grow-1">
-                  <p className="fw-bold mb-0">{msg.name}</p>
-                  <p className="text-muted small mb-0">{msg.lastMessage}</p>
+                <ListGroup variant="flush">
+                  {filteredChats.map((chat) => (
+                      <ListGroup.Item
+                          key={chat.id}
+                          action
+                          active={selectedChatId === chat.id}
+                          onClick={() => setSelectedChatId(chat.id)}
+                          className="d-flex align-items-center p-3 border-bottom hover-bg-light"
+                      >
+                        {/* Comment phần hiển thị avatar */}
+                        {/* <Image
+                      src={chat.avatar || 'https://via.placeholder.com/40'}
+                      roundedCircle
+                      className="me-2"
+                      style={{ width: '40px', height: '40px' }}
+                    /> */}
+                        <div className="flex-grow-1">
+                          <p className="fw-bold mb-0">{chat.name}</p>
+                          <p className="text-muted small mb-0">{chat.lastMessage}</p>
+                        </div>
+                      </ListGroup.Item>
+                  ))}
+                </ListGroup>
+                <div className="p-3 border-top text-center">
+                  <Button variant="link" className="text-primary fw-bold">
+                    <FaPenSquare className="me-2" />
+                    Tin nhắn mới
+                  </Button>
                 </div>
               </div>
-            ))}
-            <div className="p-3 border-top text-center">
-              <Button variant="link" className="text-primary fw-bold">
-                <FaPenSquare className="me-2" />
-                Tin nhắn mới
-              </Button>
+
+              <div className="flex-grow-1 d-flex flex-column">
+                {selectedChatId ? (
+                    <Chat chatId={selectedChatId} />
+                ) : (
+                    <div className="d-flex flex-column justify-content-center align-items-center p-3 flex-grow-1">
+                      <FaEnvelope
+                          className="text-muted mb-3"
+                          style={{ fontSize: '5rem' }}
+                      />
+                      <h4 className="fw-bold mb-2">Tin nhắn của bạn</h4>
+                      <p className="text-muted text-center mb-4">
+                        Chọn một người để hiển thị cuộc trò chuyện của họ hoặc bắt đầu
+                        một cuộc trò chuyện mới.
+                      </p>
+                      <Button
+                          variant="primary"
+                          className="rounded-pill px-4 py-2"
+                      >
+                        Tin nhắn mới
+                      </Button>
+                    </div>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Right Pane: Chat/Empty State */}
-          <div className="flex-grow-1 d-flex flex-column justify-content-center align-items-center p-3">
-            <FaEnvelope
-              className="text-muted mb-3"
-              style={{ fontSize: "5rem" }}
-            />
-            <h4 className="fw-bold mb-2">Tin nhắn của bạn</h4>
-            <p className="text-muted text-center mb-4">
-              Chọn một người để hiển thị cuộc trò chuyện của họ hoặc bắt đầu một
-              cuộc trò chuyện mới.
-            </p>
-            <Button variant="primary" className="rounded-pill px-4 py-2">
-              Tin nhắn mới
-            </Button>
-          </div>
+          <div className="d-none d-lg-block" style={{ width: '350px' }} />
         </div>
-      </div>
-
-      {/* Right Sidebar - Empty or other elements (Optional) */}
-      {/* The image doesn't show a right sidebar for messages, so this will be empty or removed */}
-      <div className="d-none d-lg-block" style={{ width: "350px" }}>
-        {/* You can add content here if needed, or remove this div if the layout is strictly two-column for messages */}
-      </div>
-    </div>
+      </>
   );
 }
 
