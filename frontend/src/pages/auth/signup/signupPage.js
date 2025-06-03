@@ -6,46 +6,21 @@ import CreateAccountModal from "../login/CreateAccountModal";
 import LoginModal from "../login/LoginModal";
 import Footer from "../../../components/layout/Footer/Footer";
 import KLogoSvg from "../../../components/svgs/KSvg";
+import React, { useEffect, useState, useContext } from "react";
+import { AuthContext } from "../../../context/AuthContext";
 
-const SignupPage = () => {
+  const SignupPage = () => {
   const [showCreateAccountModal, setShowCreateAccountModal] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const navigate = useNavigate();
+  const { user } = useContext(AuthContext); // 👈 Dùng AuthContext
 
   useEffect(() => {
-    const token =
-      localStorage.getItem("token") || sessionStorage.getItem("token");
-    if (!token) return;
-
-    const checkCurrentUser = async () => {
-      try {
-        const response = await fetch(
-          `${process.env.REACT_APP_API_URL}/auth/me`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        if (response.ok) {
-          // Token hợp lệ → chuyển sang trang home
-          navigate("/home");
-        } else {
-          // Token không hợp lệ → xóa token
-          localStorage.removeItem("token");
-          sessionStorage.removeItem("token");
-          localStorage.removeItem("user");
-          sessionStorage.removeItem("user");
-        }
-      } catch (error) {
-        console.error("Lỗi khi gọi API /auth/me:", error);
-      }
-    };
-
-    checkCurrentUser();
-  }, [navigate]);
+    if (user) {
+      // Nếu đã có user trong context → chuyển hướng đến home
+      navigate("/home");
+    }
+  }, [user, navigate]);
 
   const handleShowCreateAccountModal = () => setShowCreateAccountModal(true);
   const handleCloseCreateAccountModal = () => setShowCreateAccountModal(false);
