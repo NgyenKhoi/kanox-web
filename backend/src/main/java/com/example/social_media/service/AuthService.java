@@ -115,6 +115,13 @@ public class AuthService {
             throw new EmailAlreadyExistsException("Email đã được sử dụng");
         }
 
+        // Xóa token cũ theo email (nếu có)
+        Optional<VerificationToken> existingTokenOpt = verificationTokenRepository.findByEmail(dto.getEmail());
+        if (existingTokenOpt.isPresent()) {
+            logger.info("old token exists for email: {}, delete old token", dto.getEmail());
+            verificationTokenRepository.delete(existingTokenOpt.get());
+        }
+
         String token = UUID.randomUUID().toString();
         logger.info("Tạo token xác thực: {}", token);
 
@@ -163,7 +170,7 @@ public class AuthService {
             mailService.sendVerificationEmail(dto.getEmail(), verificationLink);
             logger.info("Email xác thực đã được gửi đến: {}", dto.getEmail());
 
-            return null; // hoặc trả về entity User nếu cần
+            return null;
         } catch (Exception e) {
             logger.error("Lỗi khi xử lý đăng ký user: {}", dto.getUsername(), e);
             throw new RuntimeException("Lỗi khi xử lý đăng ký: " + e.getMessage(), e);
