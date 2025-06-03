@@ -121,10 +121,7 @@ public class AuthService {
 
         // Xóa token cũ theo email (nếu có)
         Optional<VerificationToken> existingTokenOpt = verificationTokenRepository.findByEmail(dto.getEmail());
-        if (existingTokenOpt.isPresent()) {
-            logger.info("old token exists for email: {}, delete old token", dto.getEmail());
-            verificationTokenRepository.delete(existingTokenOpt.get());
-        }
+        existingTokenOpt.ifPresent(verificationTokenRepository::delete);
 
         String token = UUID.randomUUID().toString();
         logger.info("Tạo token xác thực: {}", token);
@@ -134,51 +131,25 @@ public class AuthService {
         verificationToken.setUsername(dto.getUsername());
         verificationToken.setEmail(dto.getEmail());
         verificationToken.setPassword(passwordEncoder.encode(dto.getPassword()));
+        verificationToken.setPhoneNumber(dto.getPhoneNumber() != null ? dto.getPhoneNumber() : "");
 
-        LocalDate dob;
-        try {
-            dob = LocalDate.of(dto.getYear(), dto.getMonth(), dto.getDay());
-        } catch (DateTimeException e) {
-            logger.error("Ngày sinh không hợp lệ: năm={}, tháng={}, ngày={}", dto.getYear(), dto.getMonth(), dto.getDay(), e);
-            throw new IllegalArgumentException("Ngày sinh không hợp lệ");
-        }
-        verificationToken.setDateOfBirth(dob);
-        verificationToken.setDisplayName(dto.getDisplayName());
-        verificationToken.setPhoneNumber(dto.getPhoneNumber());
-        verificationToken.setBio(dto.getBio());
+        Instant now = Instant.now();
+        verificationToken.setCreatedDate(now);
+        Instant expiry = LocalDateTime.now().plusDays(1)
+                .atZone(ZoneId.systemDefault())
+                .toInstant();
+        verificationToken.setExpiryDate(expiry);
 
-        short genderCode = switch (dto.getGender().toUpperCase()) {
-            case "MALE" -> 0;
-            case "FEMALE" -> 1;
-            case "OTHER" -> 2;
-            default -> {
-                logger.error("Gender không hợp lệ: {}", dto.getGender());
-                throw new IllegalArgumentException("Invalid gender: " + dto.getGender());
-            }
-        };
-        verificationToken.setGender(genderCode);
-        verificationToken.setCreatedDate(Instant.now());
+        verificationTokenRepository.save(verificationToken);
+        logger.info("Lưu VerificationToken thành công cho username: {}", dto.getUsername());
 
-        try {
-            Instant expiry = LocalDateTime.now().plusDays(1)
-                    .atZone(ZoneId.systemDefault())
-                    .toInstant();
-            verificationToken.setExpiryDate(expiry);
-            logger.info("Token hết hạn vào: {}", expiry);
+        // Gửi email xác thực
+        String verificationLink = URLConfig.EMAIL_VERIFICATION + token;
+        mailService.sendVerificationEmail(dto.getEmail(), verificationLink);
+        logger.info("Email xác thực đã được gửi đến: {}", dto.getEmail());
 
-            verificationTokenRepository.save(verificationToken);
-            logger.info("Lưu VerificationToken thành công cho username: {}", dto.getUsername());
-
-            String verificationLink = URLConfig.EMAIL_VERIFICATION + token;
-            logger.info("Gửi email xác thực đến: {}", dto.getEmail());
-            mailService.sendVerificationEmail(dto.getEmail(), verificationLink);
-            logger.info("Email xác thực đã được gửi đến: {}", dto.getEmail());
-
-            return null;
-        } catch (Exception e) {
-            logger.error("Lỗi khi xử lý đăng ký user: {}", dto.getUsername(), e);
-            throw new RuntimeException("Lỗi khi xử lý đăng ký: " + e.getMessage(), e);
-        }
+        // Trả về null để client biết cần xác thực email trước
+        return null;
     }
 
     public User verifyToken(String token) {
@@ -187,7 +158,7 @@ public class AuthService {
             throw new IllegalArgumentException("Token không tồn tại hoặc đã bị xoá.");
         }
 
-        if (verificationToken.getExpiryDate().isBefore(java.time.Instant.now())) {
+        if (verificationToken.getExpiryDate().isBefore(Instant.now())) {
             verificationTokenRepository.delete(verificationToken);
             throw new IllegalArgumentException("Token đã hết hạn.");
         }
@@ -196,14 +167,12 @@ public class AuthService {
         user.setUsername(verificationToken.getUsername());
         user.setEmail(verificationToken.getEmail());
         user.setPassword(verificationToken.getPassword());
-        user.setDisplayName(verificationToken.getDisplayName());
         user.setPhoneNumber(verificationToken.getPhoneNumber());
-        user.setBio(verificationToken.getBio());
-        user.setGender(verificationToken.getGender());
-        user.setDateOfBirth(verificationToken.getDateOfBirth());
         user.setStatus(true);
 
         User savedUser = userRepository.save(user);
+
+        // Xóa token sau khi xác thực thành công
         verificationTokenRepository.delete(verificationToken);
 
         return savedUser;

@@ -7,7 +7,6 @@ import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
 
 import java.time.Instant;
-import java.time.LocalDate;
 
 @Entity
 @Table(name = "tblVerificationToken", schema = "dbo")
@@ -45,22 +44,6 @@ public class VerificationToken {
     @Nationalized
     @Column(name = "token", nullable = false)
     private String token;
-
-    @Size(max = 50)
-    @Nationalized
-    @Column(name = "display_name", length = 50)
-    private String displayName;
-
-    @Column(name = "date_of_birth")
-    private LocalDate dateOfBirth;
-
-    @Size(max = 255)
-    @Nationalized
-    @Column(name = "bio")
-    private String bio;
-
-    @Column(name = "gender", columnDefinition = "tinyint")
-    private Short gender;
 
     @NotNull
     @Column(name = "expiry_date", nullable = false)
@@ -117,38 +100,6 @@ public class VerificationToken {
 
     public void setToken(String token) {
         this.token = token;
-    }
-
-    public String getDisplayName() {
-        return displayName;
-    }
-
-    public void setDisplayName(String displayName) {
-        this.displayName = displayName;
-    }
-
-    public LocalDate getDateOfBirth() {
-        return dateOfBirth;
-    }
-
-    public void setDateOfBirth(LocalDate dateOfBirth) {
-        this.dateOfBirth = dateOfBirth;
-    }
-
-    public String getBio() {
-        return bio;
-    }
-
-    public void setBio(String bio) {
-        this.bio = bio;
-    }
-
-    public Short getGender() {
-        return gender;
-    }
-
-    public void setGender(Short gender) {
-        this.gender = gender;
     }
 
     public Instant getExpiryDate() {

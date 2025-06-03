@@ -42,7 +42,7 @@ public class AuthController {
         this.mailService = mailService;
         this.jwtService = jwtService;
     }
-
+    //GET CURRENT USER
     @GetMapping(URLConfig.ME)
     public ResponseEntity<?> getCurrentUser(@RequestHeader("Authorization") String authHeader) {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
@@ -65,7 +65,7 @@ public class AuthController {
             return ResponseEntity.status(404).body(Map.of("message", "User not found"));
         }
     }
-
+    //LOGIN
     @PostMapping(URLConfig.LOGIN)
     public ResponseEntity<?> login(@RequestBody @Valid LoginRequestDto loginRequest) {
         Optional<User> userOpt = authService.loginFlexible(loginRequest.getIdentifier(), loginRequest.getPassword());
@@ -82,7 +82,7 @@ public class AuthController {
         throw new IllegalArgumentException("Invalid credentials");
     }
 
-
+    //LOGOUT
     @PostMapping(URLConfig.LOGOUT)
     public ResponseEntity<?> logout(@RequestParam Integer userId) {
         Optional<User> userOpt = authService.getUser(userId);
@@ -92,7 +92,7 @@ public class AuthController {
         }
         throw new IllegalArgumentException("User not found");
     }
-
+    //FORGOT PASSWORD
     @PostMapping(URLConfig.FORGOT_PASSWORD)
         public ResponseEntity<?> forgotPassword (@RequestBody ForgotPasswordRequestDto request){
             if (request.getEmail() == null) {
@@ -128,11 +128,9 @@ public class AuthController {
     public ResponseEntity<?> register(@RequestBody @Valid RegisterRequestDto dto) {
         logger.info("Received registration request for username: {}", dto.getUsername());
         try {
-            // Validate date of birth
             try {
                 LocalDate.of(dto.getYear(), dto.getMonth(), dto.getDay());
             } catch (DateTimeException e) {
-                logger.error("Invalid date of birth: {}-{}-{}", dto.getYear(), dto.getMonth(), dto.getDay());
                 return ResponseEntity.badRequest().body(Map.of(
                         "message", "Ngày sinh không hợp lệ",
                         "errors", Map.of("dob", "Ngày sinh không hợp lệ")
@@ -170,7 +168,7 @@ public class AuthController {
         }
     }
 
-    // New endpoint for verifying token
+    // Endpoint xác thực token
     @PostMapping(URLConfig.VERIFY_TOKEN)
     public ResponseEntity<?> verifyToken(@RequestParam String token) {
         try {
