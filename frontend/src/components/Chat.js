@@ -3,7 +3,7 @@ import { Form, Button, Container, Row, Col } from "react-bootstrap";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import SockJS from "sockjs-client";
-import Stomp from "stompjs";
+import { Client } from '@stomp/stompjs'; // Đúng import
 import Peer from "simple-peer";
 import { AuthContext } from '../context/AuthContext';
 
@@ -24,8 +24,16 @@ const Chat = ({ chatId }) => {
         }
 
         const socket = new SockJS(`${process.env.REACT_APP_API_URL}/ws`);
-        const client = Stomp.over(socket);
-        client.connect({ Authorization: `Bearer ${token}` }, () => {
+        const client = new Client({
+            webSocketFactory: () => socket,
+            connectHeaders: { Authorization: `Bearer ${token}` },
+            debug: (str) => console.log(str),
+            reconnectDelay: 5000,
+            heartbeatIncoming: 4000,
+            heartbeatOutgoing: 4000,
+        });
+
+        client.onConnect = () => {
             client.subscribe(`/topic/chat/${chatId}`, (msg) => {
                 const message = JSON.parse(msg.body);
                 setMessages((prev) => [...prev, message]);
@@ -41,7 +49,9 @@ const Chat = ({ chatId }) => {
                 }
             });
             setStompClient(client);
-        });
+        };
+
+        client.activate();
 
         fetch(`${process.env.REACT_APP_API_URL}/chat/${chatId}/messages`, {
             headers: {
@@ -79,7 +89,9 @@ const Chat = ({ chatId }) => {
             });
 
         return () => {
-            if (stompClient) stompClient.disconnect();
+            if (stompClient) {
+                stompClient.deactivate();
+            }
             if (stream) stream.getTracks().forEach((track) => track.stop());
         };
     }, [chatId, user, token]);
@@ -92,7 +104,10 @@ const Chat = ({ chatId }) => {
                 content: message,
                 typeId: 1,
             };
-            stompClient.send("/app/sendMessage", {}, JSON.stringify(msg));
+            stompClient.publish({
+                destination: "/app/sendMessage",
+                body: JSON.stringify(msg),
+            });
             setMessage("");
         }
     };
@@ -111,16 +126,15 @@ const Chat = ({ chatId }) => {
             },
         });
         newPeer.on("signal", (data) => {
-            stompClient.send(
-                "/app/call/offer",
-                {},
-                JSON.stringify({
+            stompClient.publish({
+                destination: "/app/call/offer",
+                body: JSON.stringify({
                     chatId,
                     type: "offer",
                     sdp: data,
                     userId: user.id,
-                })
-            );
+                }),
+            });
         });
         newPeer.on("stream", (remoteStream) => {
             remoteVideoRef.current.srcObject = remoteStream;
@@ -142,16 +156,15 @@ const Chat = ({ chatId }) => {
             },
         });
         newPeer.on("signal", (signalData) => {
-            stompClient.send(
-                "/app/call/answer",
-                {},
-                JSON.stringify({
+            stompClient.publish({
+                destination: "/app/call/answer",
+                body: JSON.stringify({
                     chatId,
                     type: "answer",
                     sdp: signalData,
                     userId: user.id,
-                })
-            );
+                }),
+            });
         });
         newPeer.on("stream", (remoteStream) => {
             remoteVideoRef.current.srcObject = remoteStream;

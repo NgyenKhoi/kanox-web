@@ -6,6 +6,7 @@ import {
   FaCheckCircle,
   FaMapMarkerAlt,
   FaLink,
+  FaEllipsisH,
 } from "react-icons/fa";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import TweetCard from "../../components/posts/TweetCard/TweetCard";
