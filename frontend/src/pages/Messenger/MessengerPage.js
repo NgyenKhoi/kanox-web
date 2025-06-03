@@ -14,7 +14,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import SidebarLeft from '../../components/layout/SidebarLeft/SidebarLeft';
 import Chat from '../../components/Chat';
-import { AuthContext } from '../../src/context/AuthContext';
+import { AuthContext } from '../../context/AuthContext';
 
 function MessengerPage() {
   const { token, user } = useContext(AuthContext);

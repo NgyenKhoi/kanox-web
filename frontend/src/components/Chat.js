@@ -5,7 +5,7 @@ import "react-toastify/dist/ReactToastify.css";
 import SockJS from "sockjs-client";
 import Stomp from "stompjs";
 import Peer from "simple-peer";
-import { AuthContext } from '../src/context/AuthContext';
+import { AuthContext } from '../context/AuthContext';
 
 const Chat = ({ chatId }) => {
     const { user, token } = useContext(AuthContext);
