@@ -6,9 +6,11 @@ import ProfilePage from "./pages/profile/ProfilePage";
 import ResetPasswordPage from "./pages/auth/login/ResetPasswordPage"; // import trang reset password
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import VerifyEmailPage from "./pages/auth/login/VerifyEmailPage";
+import { AuthProvider } from "./context/AuthContext";
 function App() {
   return (
     <Router>
+      <AuthProvider>
       <Routes>
         <Route path="/" element={<SignupPage />} />{" "}
         <Route path="/profile/:username" element={<ProfilePage />} />
@@ -20,6 +22,7 @@ function App() {
         {/* Route cho trang Home */}
         {/* Bạn có thể thêm các route khác ở đây nếu cần */}
       </Routes>
+      </AuthProvider>
     </Router>
   );
 }

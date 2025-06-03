@@ -17,9 +17,14 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
   const [password, setPassword] = useState("");
   const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
   const [showJoinXModal, setShowJoinXModal] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
 
   const handleInputChange = (e) => {
     setLoginIdentifier(e.target.value);
+  };
+
+  const handleRememberMeChange = (e) => {
+    setRememberMe(e.target.checked);
   };
 
   const handleSubmit = async (e) => {
@@ -47,8 +52,16 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
 
       if (response.ok) {
         const { token, user } = data;
-        localStorage.setItem("token", token);
-        localStorage.setItem("username", user.username);
+
+        // Lưu token và username vào localStorage hoặc sessionStorage tùy rememberMe
+        if (rememberMe) {
+          localStorage.setItem("token", token);
+          localStorage.setItem("username", user.username);
+        } else {
+          sessionStorage.setItem("token", token);
+          sessionStorage.setItem("username", user.username);
+        }
+
         toast.success(
           data.message || "Đăng nhập thành công! Đang chuyển hướng..."
         );
@@ -181,6 +194,15 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
                   onChange={(e) => setPassword(e.target.value)}
                   className="py-3 px-3 rounded-3"
                   style={{ fontSize: "1.1rem", borderColor: "#ccc" }}
+                />
+              </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Check
+                  type="checkbox"
+                  id="rememberMe"
+                  label="Ghi nhớ đăng nhập"
+                  checked={rememberMe}
+                  onChange={handleRememberMeChange}
                 />
               </Form.Group>
               <Button
