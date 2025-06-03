@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Container, Form, Button, Row, Col } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
-import KLogoSvg from "../../components/svgs/KSvg";
+import KLogoSvg from "../../../components/svgs/KSvg";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
