@@ -64,4 +64,9 @@ public class GlobalExceptionHandle {
         response.put("errors", new HashMap<>()); // Thêm errors rỗng
         return new ResponseEntity<>(response, status);
     }
+
+    @ExceptionHandler(RegistrationException.class)
+    public ResponseEntity<Map<String, Object>> handleRegistrationException(RegistrationException ex) {
+        return buildErrorResponse(ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+    }
 }

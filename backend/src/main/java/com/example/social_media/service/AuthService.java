@@ -14,10 +14,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.*;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -105,43 +102,71 @@ public class AuthService {
     }
 
     public User register(RegisterRequestDto dto) {
+        Logger logger = LoggerFactory.getLogger(this.getClass());
+
+        logger.info("Bắt đầu đăng ký user với username: {}", dto.getUsername());
+
         if (userRepository.existsByUsername(dto.getUsername())) {
+            logger.warn("Username đã tồn tại: {}", dto.getUsername());
             throw new IllegalArgumentException("Username đã tồn tại");
         }
         if (userRepository.existsByEmail(dto.getEmail())) {
+            logger.warn("Email đã được sử dụng: {}", dto.getEmail());
             throw new EmailAlreadyExistsException("Email đã được sử dụng");
         }
 
         String token = UUID.randomUUID().toString();
+        logger.info("Tạo token xác thực: {}", token);
 
         VerificationToken verificationToken = new VerificationToken();
         verificationToken.setToken(token);
         verificationToken.setUsername(dto.getUsername());
         verificationToken.setEmail(dto.getEmail());
         verificationToken.setPassword(passwordEncoder.encode(dto.getPassword()));
-        verificationToken.setDateOfBirth(LocalDate.of(dto.getYear(), dto.getMonth(), dto.getDay()));
+
+        LocalDate dob;
+        try {
+            dob = LocalDate.of(dto.getYear(), dto.getMonth(), dto.getDay());
+        } catch (DateTimeException e) {
+            logger.error("Ngày sinh không hợp lệ: năm={}, tháng={}, ngày={}", dto.getYear(), dto.getMonth(), dto.getDay(), e);
+            throw new IllegalArgumentException("Ngày sinh không hợp lệ");
+        }
+        verificationToken.setDateOfBirth(dob);
         verificationToken.setDisplayName(dto.getDisplayName());
         verificationToken.setPhoneNumber(dto.getPhoneNumber());
         verificationToken.setBio(dto.getBio());
+
         short genderCode = switch (dto.getGender().toUpperCase()) {
             case "MALE" -> 0;
             case "FEMALE" -> 1;
             case "OTHER" -> 2;
-            default -> throw new IllegalArgumentException("Invalid gender: " + dto.getGender());
+            default -> {
+                logger.error("Gender không hợp lệ: {}", dto.getGender());
+                throw new IllegalArgumentException("Invalid gender: " + dto.getGender());
+            }
         };
         verificationToken.setGender(genderCode);
         verificationToken.setCreatedDate(Instant.now());
-        try {
-        verificationToken.setExpiryDate(LocalDateTime.now().plusDays(1)
-                .atZone(ZoneId.systemDefault())
-                .toInstant());
 
-        verificationTokenRepository.save(verificationToken);
-        String verificationLink = URLConfig.EMAIL_VERIFICATION + token;
-        mailService.sendVerificationEmail(dto.getEmail(), verificationLink);
-        return null;
+        try {
+            Instant expiry = LocalDateTime.now().plusDays(1)
+                    .atZone(ZoneId.systemDefault())
+                    .toInstant();
+            verificationToken.setExpiryDate(expiry);
+            logger.info("Token hết hạn vào: {}", expiry);
+
+            verificationTokenRepository.save(verificationToken);
+            logger.info("Lưu VerificationToken thành công cho username: {}", dto.getUsername());
+
+            String verificationLink = URLConfig.EMAIL_VERIFICATION + token;
+            logger.info("Gửi email xác thực đến: {}", dto.getEmail());
+            mailService.sendVerificationEmail(dto.getEmail(), verificationLink);
+            logger.info("Email xác thực đã được gửi đến: {}", dto.getEmail());
+
+            return null; // hoặc trả về entity User nếu cần
         } catch (Exception e) {
-            throw new RuntimeException("Lỗi khi xử lý đăng ký: " + e.getMessage());
+            logger.error("Lỗi khi xử lý đăng ký user: {}", dto.getUsername(), e);
+            throw new RuntimeException("Lỗi khi xử lý đăng ký: " + e.getMessage(), e);
         }
     }
 
