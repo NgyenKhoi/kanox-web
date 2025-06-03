@@ -11,6 +11,7 @@ public class URLConfig {
     public static final String LOGOUT = "/logout";
     public static final String LOGIN_GOOGLE = "/login-google";
     public static final String EMAIL_VERIFICATION = "https://kanox-web.netlify.app/verify-email?token=";
+    public static final String ME = "/me";
     // User Management URLs
     public static final String USER_MANAGEMENT_BASE = "/api/user";
     public static final String PROFILE = "/profile/{username}";

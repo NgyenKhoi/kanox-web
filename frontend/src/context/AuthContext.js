@@ -12,7 +12,7 @@ export const AuthProvider = ({ children }) => {
       setUser(JSON.parse(savedUser));
     } else {
       // Nếu dùng token: Gọi API để xác thực
-      fetch("/api/auth/me", {
+      fetch(`${process.env.REACT_APP_API_URL}/auth/me`, {
         credentials: "include", // Để gửi cookie (session ID)
       })
         .then((res) => res.ok ? res.json() : null)

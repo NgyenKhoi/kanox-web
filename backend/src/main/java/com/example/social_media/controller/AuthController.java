@@ -43,6 +43,29 @@ public class AuthController {
         this.jwtService = jwtService;
     }
 
+    @GetMapping(URLConfig.ME)
+    public ResponseEntity<?> getCurrentUser(@RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(401).body(Map.of("message", "Missing or invalid Authorization header"));
+        }
+
+        String token = authHeader.substring(7); // bỏ "Bearer "
+        String username;
+
+        try {
+            username = jwtService.extractUsername(token);
+        } catch (Exception e) {
+            return ResponseEntity.status(401).body(Map.of("message", "Invalid token"));
+        }
+
+        Optional<User> userOpt = authService.getUserByUsername(username);
+        if (userOpt.isPresent()) {
+            return ResponseEntity.ok(new UserDto(userOpt.get()));
+        } else {
+            return ResponseEntity.status(404).body(Map.of("message", "User not found"));
+        }
+    }
+
     @PostMapping(URLConfig.LOGIN)
     public ResponseEntity<?> login(@RequestBody @Valid LoginRequestDto loginRequest) {
         Optional<User> userOpt = authService.loginFlexible(loginRequest.getIdentifier(), loginRequest.getPassword());

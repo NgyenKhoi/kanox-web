@@ -37,6 +37,10 @@ public class AuthService {
         this.verificationTokenRepository = verificationTokenRepository;
     }
 
+    public Optional<User> getUserByUsername(String username) {
+        return userRepository.findByUsername(username);
+    }
+
     public Optional<User> loginByEmail(String email, String rawPassword) {
         Optional<User> userOpt = userRepository.findByEmailAndStatusTrue(email);
         if (userOpt.isEmpty()) {
