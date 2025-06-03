@@ -10,6 +10,8 @@ import KLogoSvg from "../../../components/svgs/KSvg";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { GoogleLogin } from "@react-oauth/google";
+import { useContext } from "react";
+import { AuthContext } from "../../../context/AuthContext";
 const LoginModal = ({ show, handleClose, onShowLogin }) => {
   const navigate = useNavigate();
 
@@ -18,7 +20,7 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
   const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
   const [showJoinXModal, setShowJoinXModal] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-
+  const { setUser } = useContext(AuthContext);
   const handleInputChange = (e) => {
     setLoginIdentifier(e.target.value);
   };
@@ -43,6 +45,7 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
       );
 
       const contentType = response.headers.get("content-type");
+
       let data;
       if (contentType && contentType.includes("application/json")) {
         data = await response.json();
@@ -52,19 +55,16 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
 
       if (response.ok) {
         const { token, user } = data;
-
-        // Lưu token và username vào localStorage hoặc sessionStorage tùy rememberMe
+        setUser(user);
         if (rememberMe) {
           localStorage.setItem("token", token);
-          localStorage.setItem("username", user.username);
+          localStorage.setItem("user", JSON.stringify(user));
         } else {
           sessionStorage.setItem("token", token);
-          sessionStorage.setItem("username", user.username);
+          sessionStorage.setItem("user", JSON.stringify(user));
         }
 
-        toast.success(
-          data.message || "Đăng nhập thành công! Đang chuyển hướng..."
-        );
+        toast.success("Đăng nhập bằng Google thành công! Đang chuyển hướng...");
         handleClose();
         setTimeout(() => navigate("/home"), 2000);
       } else {
@@ -94,6 +94,7 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
 
       if (response.ok) {
         const { token, user } = data;
+        setUser(user);
         localStorage.setItem("token", token);
         localStorage.setItem("username", user.username);
         toast.success("Đăng nhập bằng Google thành công! Đang chuyển hướng...");
