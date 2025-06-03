@@ -1,4 +1,3 @@
-import React, { useEffect, useState } from "react";
 import { Container, Row, Col, Button } from "react-bootstrap";
 import { FcGoogle } from "react-icons/fc";
 import { useNavigate } from "react-router-dom";
