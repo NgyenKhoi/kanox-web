@@ -6,6 +6,7 @@ import { FaApple } from "react-icons/fa";
 import ForgotPasswordModal from "./ForgotPasswordModal";
 import JoinXModal from "./JoinXModal";
 import { useNavigate } from "react-router-dom";
+import KLogoSvg from "../../../components/svgs/KSvg";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { GoogleLogin } from "@react-oauth/google";
