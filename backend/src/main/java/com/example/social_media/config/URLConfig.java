@@ -12,6 +12,8 @@ public class URLConfig {
     // User Management URLs
     public static final String USER_MANAGEMENT_BASE = "/api/user";
     public static final String PROFILE = "/profile/{username}";
+    // Chat URLs
+    public static final String CHAT_MESSAGES = "/chat/{chatId}/messages";
     // Frontend URLs
     public static final String FRONTEND_RESET_PASSWORD_URL = "https://kanox-web.netlify.app/reset-password?token=";
 
