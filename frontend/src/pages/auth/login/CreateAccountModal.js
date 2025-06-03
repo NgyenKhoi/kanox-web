@@ -43,7 +43,7 @@ const CreateAccountModal = ({ show, handleClose }) => {
 
   const validateForm = () => {
     let newErrors = {};
-    
+
     // Username validation
     if (!formData.username) {
       newErrors.username = "Tên người dùng là bắt buộc.";
@@ -61,8 +61,11 @@ const CreateAccountModal = ({ show, handleClose }) => {
     // Password validation
     if (!formData.password) {
       newErrors.password = "Mật khẩu là bắt buộc.";
-    } else if (!/^(?=.*[A-Z])(?=.*[!@#$%^&*()_+=.])(?=.{8,}).*$/.test(formData.password)) {
-      newErrors.password = "Mật khẩu phải dài ít nhất 8 ký tự, chứa ít nhất 1 chữ cái in hoa và 1 ký tự đặc biệt (!@#$%^&*()_+=.)";
+    } else if (
+      !/^(?=.*[A-Z])(?=.*[!@#$%^&*()_+=.])(?=.{8,}).*$/.test(formData.password)
+    ) {
+      newErrors.password =
+        "Mật khẩu phải dài ít nhất 8 ký tự, chứa ít nhất 1 chữ cái in hoa và 1 ký tự đặc biệt (!@#$%^&*()_+=.)";
     }
 
     // Date of birth validation
@@ -109,22 +112,28 @@ const CreateAccountModal = ({ show, handleClose }) => {
       displayName: formData.displayName,
       phoneNumber: formData.phoneNumber,
       bio: formData.bio || "",
-      gender: formData.gender
+      gender: formData.gender,
     };
 
     try {
       console.log("Sending registration data:", fullProfile);
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/auth/register`, {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "Accept": "application/json"
-        },
-        body: JSON.stringify(fullProfile),
-      });
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/auth/register`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify(fullProfile),
+        }
+      );
 
       console.log("Response status:", response.status);
-      console.log("Response headers:", Object.fromEntries(response.headers.entries()));
+      console.log(
+        "Response headers:",
+        Object.fromEntries(response.headers.entries())  
+      );
 
       const contentType = response.headers.get("content-type");
       let data;
@@ -139,11 +148,13 @@ const CreateAccountModal = ({ show, handleClose }) => {
       console.log("Registration response:", data);
 
       if (response.ok) {
-        toast.success(data.message || "Đăng ký thành công!");
+        toast.success(
+          data.message || "Đăng ký thành công! Vui lòng xác thực email."
+        );
         handleClose();
-        navigate("/home");
       } else {
-        const errorMessage = data.message || "Đăng ký thất bại. Vui lòng thử lại.";
+        const errorMessage =
+          data.message || "Đăng ký thất bại. Vui lòng thử lại.";
         console.error("Registration failed:", errorMessage);
         toast.error(errorMessage);
         if (data.errors && Object.keys(data.errors).length > 0) {
@@ -338,9 +349,7 @@ const CreateAccountModal = ({ show, handleClose }) => {
                 </Form.Select>
               </Col>
             </Row>
-            {errors.dob && (
-              <div className="text-danger mb-3">{errors.dob}</div>
-            )}
+            {errors.dob && <div className="text-danger mb-3">{errors.dob}</div>}
 
             <Form.Group className="mb-4">
               <Form.Control

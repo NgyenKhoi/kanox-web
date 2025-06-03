@@ -1,26 +1,24 @@
 import React, { useState } from "react";
-import { Modal, Button, Form } from "react-bootstrap";
+import { Modal, Button } from "react-bootstrap";
 import { X as XCloseIcon } from "react-bootstrap-icons";
-import { FcGoogle } from "react-icons/fc";
 import KLogoSvg from "../../../components/svgs/KSvg";
 import CreateAccountModal from "./CreateAccountModal";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-
-const apiBase = process.env.REACT_APP_API_URL;
+import { GoogleLogin } from "@react-oauth/google";
+import { useNavigate } from "react-router-dom";
 
 const JoinXModal = ({ show, handleClose, onShowLoginModal }) => {
-  const [showCreateAccountModalFromJoinX, setShowCreateAccountModalFromJoinX] =
-    useState(false);
+  const [showCreateAccountModal, setShowCreateAccountModal] = useState(false);
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
-  const handleShowCreateAccountModalFromJoinX = () => {
+  const openCreateAccountModal = () => {
     handleClose();
-    setShowCreateAccountModalFromJoinX(true);
+    setShowCreateAccountModal(true);
   };
 
-  const handleCloseCreateAccountModalFromJoinX = () =>
-    setShowCreateAccountModalFromJoinX(false);
+  const closeCreateAccountModal = () => setShowCreateAccountModal(false);
 
   const handleLoginClick = () => {
     handleClose();
@@ -29,41 +27,38 @@ const JoinXModal = ({ show, handleClose, onShowLoginModal }) => {
     }
   };
 
-  const handleGoogleLogin = async () => {
-    setLoading(true);
+  const handleGoogleRegisterSuccess = async (credentialResponse) => {
     try {
-      // Giả định đây là logic gọi OAuth2 Google (cần tích hợp thư viện như @react-oauth/google)
-      // Tạm thời giả lập gọi API backend
-      const response = await fetch(`${apiBase}/auth/google-login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        // Body sẽ chứa credential từ Google nếu dùng thư viện OAuth
-      });
+      const idToken = credentialResponse.credential;
 
-      const contentType = response.headers.get("content-type");
-      let data;
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/auth/register-google`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ idToken }),
+        }
+      );
 
-      if (contentType && contentType.includes("application/json")) {
-        data = await response.json();
-      } else {
-        data = { message: await response.text() };
-      }
+      const data = await response.json();
 
       if (response.ok) {
-        toast.success(data.message || "Đăng nhập bằng Google thành công!");
+        const { token, user } = data;
+        localStorage.setItem("token", token);
+        localStorage.setItem("username", user.username);
+        toast.success("Đăng ký bằng Google thành công! Đang chuyển hướng...");
         handleClose();
+        setTimeout(() => navigate("/home"), 2000);
       } else {
-        toast.error(data.message || "Đăng nhập bằng Google thất bại!");
-        if (data.errors && Object.keys(data.errors).length > 0) {
-          const errorDetails = Object.values(data.errors).join(", ");
-          toast.error(`${data.message} - Chi tiết: ${errorDetails}`);
-        }
+        toast.error(data.message || "Đăng ký Google thất bại.");
       }
     } catch (error) {
-      toast.error("Lỗi kết nối. Vui lòng thử lại sau!");
-    } finally {
-      setLoading(false);
+      toast.error("Lỗi khi đăng ký Google. Vui lòng thử lại.");
     }
+  };
+
+  const handleGoogleRegisterError = () => {
+    toast.error("Đăng ký Google thất bại hoặc bị hủy.");
   };
 
   return (
@@ -93,29 +88,21 @@ const JoinXModal = ({ show, handleClose, onShowLoginModal }) => {
             <div style={{ width: "30px" }}></div>
           </div>
 
-          <h3 className="fw-bold mb-4 text-center">
-            Tham gia KaNox ngay hôm nay
-          </h3>
+          <h3 className="fw-bold mb-4 text-center">Tham gia KaNox ngay hôm nay</h3>
 
           <div
             className="d-flex flex-column gap-3 mx-auto"
             style={{ maxWidth: "300px" }}
           >
-            <Button
-              variant="outline-secondary"
-              className="d-flex align-items-center justify-content-center py-2 rounded-pill fw-bold"
-              style={{ borderColor: "#e0e0e0", color: "#000" }}
-              onClick={handleGoogleLogin}
-              disabled={loading}
-            >
-              <span
-                className="bg-light rounded-circle p-1 me-2 d-flex align-items-center justify-content-center"
-                style={{ width: "30px", height: "30px" }}
-              >
-                <FcGoogle size={20} />
-              </span>
-              {loading ? "Đang xử lý..." : "Đăng nhập với Google"}
-            </Button>
+            <GoogleLogin
+              onSuccess={handleGoogleRegisterSuccess}
+              onError={handleGoogleRegisterError}
+              useOneTap
+              size="large"
+              shape="pill"
+              text="signup_with"
+              theme="outline"
+            />
 
             <div className="d-flex align-items-center my-3">
               <hr className="flex-grow-1 border-secondary" />
@@ -127,7 +114,7 @@ const JoinXModal = ({ show, handleClose, onShowLoginModal }) => {
               variant="dark"
               className="py-3 rounded-pill fw-bold"
               style={{ backgroundColor: "#000", borderColor: "#000" }}
-              onClick={handleShowCreateAccountModalFromJoinX}
+              onClick={openCreateAccountModal}
               disabled={loading}
             >
               Tạo tài khoản
@@ -168,8 +155,8 @@ const JoinXModal = ({ show, handleClose, onShowLoginModal }) => {
       </Modal>
 
       <CreateAccountModal
-        show={showCreateAccountModalFromJoinX}
-        handleClose={handleCloseCreateAccountModalFromJoinX}
+        show={showCreateAccountModal}
+        handleClose={closeCreateAccountModal}
       />
     </>
   );

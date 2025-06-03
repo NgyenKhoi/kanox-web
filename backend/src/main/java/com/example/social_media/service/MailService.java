@@ -90,9 +90,26 @@ public class MailService {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(toEmail);
         message.setSubject("Welcome! Your Temporary Password");
-        message.setText("Chào bạn,\n\nTài khoản của bạn đã được tạo qua Google Login.\n" +
-                "Dưới đây là mật khẩu tạm thời của bạn: " + temporaryPassword +
-                "\n\nVui lòng đăng nhập và đổi mật khẩu trong phần cài đặt.\n\nTrân trọng!");
+        message.setText("Hello,\n\nYour account has been created via Google Login.\n" +
+                "Here is your temporary password: " + temporaryPassword +
+                "\n\nPlease log in and change your password in the settings section.\n\nBest regards!");
+
+        mailSender.send(message);
+    }
+
+    public void sendVerificationEmail(String recipientEmail, String verificationLink) {
+        String subject = "Please verify your email address";
+        String content = "Dear user,\n\n"
+                + "Thank you for registering. Please click the link below to verify your email address:\n"
+                + verificationLink + "\n\n"
+                + "This link will expire in 24 hours.\n\n"
+                + "Best regards,\n"
+                + "Social Media App Team";
+
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(recipientEmail);
+        message.setSubject(subject);
+        message.setText(content);
 
         mailSender.send(message);
     }

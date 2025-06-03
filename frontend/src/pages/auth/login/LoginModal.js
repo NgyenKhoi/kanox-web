@@ -10,6 +10,8 @@ import KLogoSvg from "../../../components/svgs/KSvg";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { GoogleLogin } from "@react-oauth/google";
+import { useContext } from "react";
+import { AuthContext } from "../../../context/AuthContext";
 const LoginModal = ({ show, handleClose, onShowLogin }) => {
   const navigate = useNavigate();
 
@@ -17,9 +19,14 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
   const [password, setPassword] = useState("");
   const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
   const [showJoinXModal, setShowJoinXModal] = useState(false);
-
+  const [rememberMe, setRememberMe] = useState(false);
+  const { setUser } = useContext(AuthContext);
   const handleInputChange = (e) => {
     setLoginIdentifier(e.target.value);
+  };
+
+  const handleRememberMeChange = (e) => {
+    setRememberMe(e.target.checked);
   };
 
   const handleSubmit = async (e) => {
@@ -38,6 +45,7 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
       );
 
       const contentType = response.headers.get("content-type");
+
       let data;
       if (contentType && contentType.includes("application/json")) {
         data = await response.json();
@@ -47,11 +55,16 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
 
       if (response.ok) {
         const { token, user } = data;
-        localStorage.setItem("token", token);
-        localStorage.setItem("username", user.username);
-        toast.success(
-          data.message || "Đăng nhập thành công! Đang chuyển hướng..."
-        );
+        setUser(user);
+        if (rememberMe) {
+          localStorage.setItem("token", token);
+          localStorage.setItem("user", JSON.stringify(user));
+        } else {
+          sessionStorage.setItem("token", token);
+          sessionStorage.setItem("user", JSON.stringify(user));
+        }
+
+        toast.success("Đăng nhập bằng Google thành công! Đang chuyển hướng...");
         handleClose();
         setTimeout(() => navigate("/home"), 2000);
       } else {
@@ -81,6 +94,7 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
 
       if (response.ok) {
         const { token, user } = data;
+        setUser(user);
         localStorage.setItem("token", token);
         localStorage.setItem("username", user.username);
         toast.success("Đăng nhập bằng Google thành công! Đang chuyển hướng...");
@@ -181,6 +195,15 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
                   onChange={(e) => setPassword(e.target.value)}
                   className="py-3 px-3 rounded-3"
                   style={{ fontSize: "1.1rem", borderColor: "#ccc" }}
+                />
+              </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Check
+                  type="checkbox"
+                  id="rememberMe"
+                  label="Ghi nhớ đăng nhập"
+                  checked={rememberMe}
+                  onChange={handleRememberMeChange}
                 />
               </Form.Group>
               <Button

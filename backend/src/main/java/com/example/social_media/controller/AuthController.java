@@ -43,6 +43,29 @@ public class AuthController {
         this.jwtService = jwtService;
     }
 
+    @GetMapping(URLConfig.ME)
+    public ResponseEntity<?> getCurrentUser(@RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(401).body(Map.of("message", "Missing or invalid Authorization header"));
+        }
+
+        String token = authHeader.substring(7); // bỏ "Bearer "
+        String username;
+
+        try {
+            username = jwtService.extractUsername(token);
+        } catch (Exception e) {
+            return ResponseEntity.status(401).body(Map.of("message", "Invalid token"));
+        }
+
+        Optional<User> userOpt = authService.getUserByUsername(username);
+        if (userOpt.isPresent()) {
+            return ResponseEntity.ok(new UserDto(userOpt.get()));
+        } else {
+            return ResponseEntity.status(404).body(Map.of("message", "User not found"));
+        }
+    }
+
     @PostMapping(URLConfig.LOGIN)
     public ResponseEntity<?> login(@RequestBody @Valid LoginRequestDto loginRequest) {
         Optional<User> userOpt = authService.loginFlexible(loginRequest.getIdentifier(), loginRequest.getPassword());
@@ -94,49 +117,83 @@ public class AuthController {
                 response.put("status", "success");
                 response.put("message", "Đặt lại mật khẩu thành công.");
                 return ResponseEntity.ok(response);
-            } catch (InvalidTokenException e) {
-                throw e;
-            } catch (TokenExpiredException e) {
+            } catch (InvalidTokenException | TokenExpiredException e) {
                 throw e;
             } catch (Exception e) {
                 logger.error("Unexpected error during password reset: ", e);
                 throw new IllegalStateException("Không thể đặt lại mật khẩu: " + e.getMessage(), e);
             }
         }
-            @PostMapping(URLConfig.REGISTER)
-            public ResponseEntity<?> register(@RequestBody @Valid RegisterRequestDto dto) {
-                logger.info("Received registration request for username: {}", dto.getUsername());
-                try {
-                    // Validate date of birth
-                    try {
-                        LocalDate.of(dto.getYear(), dto.getMonth(), dto.getDay());
-                    } catch (DateTimeException e) {
-                        logger.error("Invalid date of birth: {}-{}-{}", dto.getYear(), dto.getMonth(), dto.getDay());
-                        return ResponseEntity.badRequest().body(Map.of(
-                            "message", "Ngày sinh không hợp lệ",
-                            "errors", Map.of("dob", "Ngày sinh không hợp lệ")
-                        ));
-                    }
-
-                    User createdUser = authService.register(dto);
-                    logger.info("User registered successfully with ID: {}", createdUser.getId());
-                    return ResponseEntity.ok(Map.of(
-                        "message", "Đăng ký thành công",
-                        "user", createdUser
-                    ));
-                } catch (EmailAlreadyExistsException e) {
-                    logger.warn("Registration failed: Email already exists - {}", dto.getEmail());
-                    return ResponseEntity.badRequest().body(Map.of(
-                        "message", e.getMessage(),
-                        "errors", Map.of("email", e.getMessage())
-                    ));
-                } catch (Exception e) {
-                    logger.error("Registration failed for username {}: {}", dto.getUsername(), e.getMessage(), e);
-                    return ResponseEntity.badRequest().body(Map.of(
-                        "message", "Đăng ký thất bại: " + e.getMessage()
-                    ));
-                }
+    @PostMapping(URLConfig.REGISTER)
+    public ResponseEntity<?> register(@RequestBody @Valid RegisterRequestDto dto) {
+        logger.info("Received registration request for username: {}", dto.getUsername());
+        try {
+            // Validate date of birth
+            try {
+                LocalDate.of(dto.getYear(), dto.getMonth(), dto.getDay());
+            } catch (DateTimeException e) {
+                logger.error("Invalid date of birth: {}-{}-{}", dto.getYear(), dto.getMonth(), dto.getDay());
+                return ResponseEntity.badRequest().body(Map.of(
+                        "message", "Ngày sinh không hợp lệ",
+                        "errors", Map.of("dob", "Ngày sinh không hợp lệ")
+                ));
             }
+
+            User createdUser = authService.register(dto);
+            if (createdUser == null) {
+                return ResponseEntity.ok(Map.of(
+                        "message", "Đăng ký thành công, vui lòng kiểm tra email để xác thực tài khoản."
+                ));
+            }
+
+            logger.info("User registered successfully with ID: {}", createdUser.getId());
+
+            return ResponseEntity.ok(Map.of(
+                    "message", "Đăng ký thành công, vui lòng kiểm tra email để xác thực tài khoản.",
+                    "user", new UserDto(createdUser)
+            ));
+        } catch (EmailAlreadyExistsException e) {
+            logger.warn("Email already exists: {}", dto.getEmail());
+            return ResponseEntity.status(409).body(Map.of(
+                    "message", e.getMessage()
+            ));
+        } catch (IllegalArgumentException e) {
+            logger.warn("Registration failed due to illegal argument: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of(
+                    "message", e.getMessage()
+            ));
+        } catch (Exception e) {
+            logger.error("Unexpected error during registration: ", e);
+            return ResponseEntity.status(500).body(Map.of(
+                    "message", "Lỗi server, vui lòng thử lại sau."
+            ));
+        }
+    }
+
+    // New endpoint for verifying token
+    @PostMapping(URLConfig.VERIFY_TOKEN)
+    public ResponseEntity<?> verifyToken(@RequestParam String token) {
+        try {
+            User verifiedUser = authService.verifyToken(token);
+            logger.info("User {} verified successfully", verifiedUser.getUsername());
+
+            return ResponseEntity.ok(Map.of(
+                    "message", "Tài khoản đã được xác thực thành công.",
+                    "user", new UserDto(verifiedUser)
+            ));
+        } catch (IllegalArgumentException e) {
+            logger.warn("Token verification failed: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of(
+                    "message", e.getMessage()
+            ));
+        } catch (Exception e) {
+            logger.error("Unexpected error during token verification: ", e);
+            return ResponseEntity.status(500).body(Map.of(
+                    "message", "Lỗi máy chủ khi xác thực token."
+            ));
+        }
+    }
+
     //add login google here
     @PostMapping(URLConfig.LOGIN_GOOGLE)
     public ResponseEntity<?> loginWithGoogleIdToken(@RequestBody GoogleLoginRequestDto request) {
@@ -147,7 +204,7 @@ public class AuthController {
 
             // Xác minh idToken
             GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
-                    .setAudience(List.of("233866118973-t26ue94egg2v1reebqpe684kglf0bjej.apps.googleusercontent.com"))
+                    .setAudience(List.of(URLConfig.GOOGLE_LOGIN_CLIENT_ID))
                     .build();
 
             GoogleIdToken idToken = verifier.verify(request.getIdToken());
