@@ -41,56 +41,55 @@ function ProfilePage() {
   };
 
   useEffect(() => {
-    const fetchUserProfile = async () => {
-      const token = localStorage.getItem("token");
-      const currentUsername = localStorage.getItem("username");
+  const fetchUserProfile = async () => {
+    const token = localStorage.getItem("token");
+    const currentUsername = localStorage.getItem("username");
 
-      if (!currentUsername || !token) {
-        setUserProfile(defaultUserProfile);
-        console.warn(
-          "Không tìm thấy username hoặc token trong localStorage. Đang sử dụng dữ liệu profile mặc định."
+    if (!currentUsername || !token) {
+      setUserProfile(defaultUserProfile);
+      console.warn(
+        "Không tìm thấy username hoặc token trong localStorage. Đang sử dụng dữ liệu profile mặc định."
+      );
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/user/profile/${username}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        console.error(
+          `Lỗi khi tải hồ sơ (${response.status}): ${response.statusText}. Sử dụng dữ liệu profile mặc định.`
         );
+        setUserProfile(defaultUserProfile);
         return;
       }
 
-      try {
-        const response = await fetch(
-          `${process.env.REACT_APP_API_URL}/user/profile/${username}`,
-          {
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+      const data = await response.json();
 
-        if (!response.ok) {
-          console.error(
-            `Lỗi khi tải hồ sơ (${response.status}): ${response.statusText}. Sử dụng dữ liệu profile mặc định.`
-          );
-          setUserProfile(defaultUserProfile);
-          return;
-        }
+      setUserProfile({
+        ...data,
+        banner: data.banner || "https://source.unsplash.com/1200x400/?nature,water",
+        avatar: data.avatar || "https://source.unsplash.com/150x150/?portrait",
+        postCount: data.postCount || 0,
+        website: data.website || "",
+        isPremium: data.isPremium || false,
+      });
+    } catch (error) {
+      console.error("Lỗi khi tải hồ sơ:", error.message);
+      setUserProfile(defaultUserProfile);
+    }
+  };
 
-        const data = await response.json();
-        setUserProfile({
-          ...data,
-          banner:
-            data.banner || "https://source.unsplash.com/1200x400/?nature,water",
-          avatar:
-            data.avatar || "https://source.unsplash.com/150x150/?portrait",
-          postCount: data.postCount || 0,
-          website: data.website || "",
-          isPremium: data.isPremium || false,
-        });
-      } catch (error) {
-        console.error("Lỗi khi tải hồ sơ:", error.message);
-        setUserProfile(defaultUserProfile);
-      }
-    };
-
-    fetchUserProfile();
-  }, [username]);
+  fetchUserProfile();
+}, [username]);
 
   const sampleTweets = [
     {
