@@ -39,58 +39,59 @@ function ProfilePage() {
     avatar: "https://source.unsplash.com/150x150/?person,face",
     isPremium: false,
   };
-
+  const userJson = localStorage.getItem("user");
+  const currentUser = userJson ? JSON.parse(userJson) : null;
   useEffect(() => {
-  const fetchUserProfile = async () => {
-    const token = localStorage.getItem("token");
-    const userJson = localStorage.getItem("user");
-    const currentUser = userJson ? JSON.parse(userJson) : null;
+    const fetchUserProfile = async () => {
+      const token = localStorage.getItem("token");
 
-    if (!currentUser || !token) {
-      setUserProfile(defaultUserProfile);
-      console.warn(
-        "Không tìm thấy user hoặc token trong localStorage. Đang sử dụng dữ liệu profile mặc định."
-      );
-      return;
-    }
-
-    try {
-      const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/user/profile/${currentUser.username}`,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        console.error(
-          `Lỗi khi tải hồ sơ (${response.status}): ${response.statusText}. Sử dụng dữ liệu profile mặc định.`
-        );
+      if (!currentUser || !token) {
         setUserProfile(defaultUserProfile);
+        console.warn(
+          "Không tìm thấy user hoặc token trong localStorage. Đang sử dụng dữ liệu profile mặc định."
+        );
         return;
       }
 
-      const data = await response.json();
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_API_URL}/user/profile/${currentUser.username}`,
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
 
-      setUserProfile({
-        ...data,
-        banner: data.banner || "https://source.unsplash.com/1200x400/?nature,water",
-        avatar: data.avatar || "https://source.unsplash.com/150x150/?portrait",
-        postCount: data.postCount || 0,
-        website: data.website || "",
-        isPremium: data.isPremium || false,
-      });
-    } catch (error) {
-      console.error("Lỗi khi tải hồ sơ:", error.message);
-      setUserProfile(defaultUserProfile);
-    }
-  };
+        if (!response.ok) {
+          console.error(
+            `Lỗi khi tải hồ sơ (${response.status}): ${response.statusText}. Sử dụng dữ liệu profile mặc định.`
+          );
+          setUserProfile(defaultUserProfile);
+          return;
+        }
 
-  fetchUserProfile();
-}, [currentUser.username]);
+        const data = await response.json();
+
+        setUserProfile({
+          ...data,
+          banner:
+            data.banner || "https://source.unsplash.com/1200x400/?nature,water",
+          avatar:
+            data.avatar || "https://source.unsplash.com/150x150/?portrait",
+          postCount: data.postCount || 0,
+          website: data.website || "",
+          isPremium: data.isPremium || false,
+        });
+      } catch (error) {
+        console.error("Lỗi khi tải hồ sơ:", error.message);
+        setUserProfile(defaultUserProfile);
+      }
+    };
+
+    fetchUserProfile();
+  }, [currentUser?.username]);
 
   const sampleTweets = [
     {
@@ -558,27 +559,27 @@ function ProfilePage() {
                   </p>
                 )}
 
-              <p className="text-muted d-flex align-items-center mb-2">
-                <FaCalendarAlt size={16} className="me-2" />
-                Ngày sinh{" "}
-                {userProfile.dateOfBirth
-                  ? new Date(userProfile.dateOfBirth).toLocaleDateString(
-                      "vi-VN"
-                    )
-                  : "Chưa cập nhật"}
-              </p>
-
-              {userProfile.gender !== undefined && (
                 <p className="text-muted d-flex align-items-center mb-2">
-                  <FaEllipsisH size={16} className="me-2" />
-                  Giới tính:{" "}
-                  {userProfile.gender === 0
-                    ? "Nam"
-                    : userProfile.gender === 1
-                    ? "Nữ"
-                    : "Khác"}
+                  <FaCalendarAlt size={16} className="me-2" />
+                  Ngày sinh{" "}
+                  {userProfile.dateOfBirth
+                    ? new Date(userProfile.dateOfBirth).toLocaleDateString(
+                        "vi-VN"
+                      )
+                    : "Chưa cập nhật"}
                 </p>
-              )}
+
+                {userProfile.gender !== undefined && (
+                  <p className="text-muted d-flex align-items-center mb-2">
+                    <FaEllipsisH size={16} className="me-2" />
+                    Giới tính:{" "}
+                    {userProfile.gender === 0
+                      ? "Nam"
+                      : userProfile.gender === 1
+                      ? "Nữ"
+                      : "Khác"}
+                  </p>
+                )}
                 <div className="d-flex mb-3">
                   <Link to="#" className="me-3 text-dark text-decoration-none">
                     <span className="fw-bold">{userProfile.followeeCount}</span>{" "}
