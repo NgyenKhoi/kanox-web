@@ -10,7 +10,7 @@ function HomePage() {
   const sampleTweets = [
     {
       id: 1,
-      user: { name: "Jane Doe", username: "janedoe", avatar: "https://via.placeholder.com/50" },
+      user: { name: "Jane Doe", username: "janedoe", avatar: "https://via.placeholder.com/50?text=Jane" },
       content: "Just cloned Twitter's basic layout with React and Bootstrap! It's looking good. #ReactJS #Bootstrap5 #WebDev",
       imageUrl: null,
       timestamp: new Date("2025-05-25T05:00:00Z"),
@@ -20,9 +20,9 @@ function HomePage() {
     },
     {
       id: 2,
-      user: { name: "Amaoou_513", username: "Amaoou_513", avatar: "https://via.placeholder.com/50" },
+      user: { name: "Amaoou_513", username: "Amaoou_513", avatar: "https://via.placeholder.com/50?text=Amaoou" },
       content: "",
-      imageUrl: "https://via.placeholder.com/600x400/007bff/ffffff?text=Image+1\n(Your+Image+Here)",
+      imageUrl: "https://via.placeholder.com/600x400/000000/ffffff?text=Image+1\n(Your+Image+Here)",
       timestamp: new Date("2025-05-25T04:30:00Z"),
       comments: 8,
       retweets: 2,
@@ -30,7 +30,7 @@ function HomePage() {
     },
     {
       id: 3,
-      user: { name: "Another User", username: "another_user", avatar: "https://via.placeholder.com/50" },
+      user: { name: "Another User", username: "another_user", avatar: "https://via.placeholder.com/50?text=User" },
       content: "Learning about component-based architecture is crucial for scalable applications. #WebDev",
       imageUrl: null,
       timestamp: new Date("2025-05-24T18:00:00Z"),
@@ -43,7 +43,7 @@ function HomePage() {
   const [loading, setLoading] = useState(false);
 
   return (
-      <div className="d-flex flex-column min-vh-100 bg-light">
+      <div className="d-flex flex-column min-vh-100" style={{ backgroundColor: "#fff" }}>
         <Header />
         <Container fluid className="flex-grow-1">
           <Row className="h-100">
@@ -60,7 +60,7 @@ function HomePage() {
               <TweetInput loading={loading} setLoading={setLoading} />
               {loading ? (
                   <div className="d-flex justify-content-center py-4">
-                    <Spinner animation="border" role="status" />
+                    <Spinner animation="border" role="status" style={{ color: "#000" }} />
                   </div>
               ) : (
                   sampleTweets.map((tweet) => <TweetCard key={tweet.id} tweet={tweet} />)

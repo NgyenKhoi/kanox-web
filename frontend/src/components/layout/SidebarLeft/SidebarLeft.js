@@ -49,12 +49,27 @@ function SidebarLeft() {
 
         {/* Sidebar cho desktop */}
         <div
-            className="d-none d-md-flex flex-column flex-shrink-0 pt-2 pb-3 ps-3 pe-0 sticky-top bg-light border-end"
-            style={{ width: "280px", height: "100vh", overflowY: "auto" }}
+            className="d-none d-md-flex flex-column flex-shrink-0 pt-2 pb-3 ps-3 pe-0 sticky-top border-end"
+            style={{
+              width: "280px",
+              height: "100vh",
+              overflowY: "auto",
+              backgroundColor: "#fff",
+              scrollbarWidth: "none", /* Ẩn thanh cuộn trên Firefox */
+            }}
         >
+          {/* Ẩn thanh cuộn trên Webkit (Chrome, Safari) */}
+          <style>
+            {`
+            div::-webkit-scrollbar {
+              display: none; /* Ẩn thanh cuộn */
+            }
+          `}
+          </style>
+
           <div className="d-flex flex-column align-items-start">
             <Link to="/Home" className="d-none d-md-block mb-3 ms-2 mt-2">
-              <KLogoSvg width="100px" height="100px" fill="black" />
+              <KLogoSvg width="100px" height="100px" fill="#000" />
             </Link>
 
             <Nav className="flex-column mb-auto">
@@ -182,7 +197,7 @@ function SidebarLeft() {
               )}
 
               <Button
-                  variant="primary"
+                  variant="dark"
                   className="rounded-pill mt-3 py-3 fw-bold w-75 d-none d-md-block ms-3"
                   onClick={() => handleProtectedClick("/create-post")}
               >
@@ -191,7 +206,7 @@ function SidebarLeft() {
 
               {!user && (
                   <Button
-                      variant="outline-primary"
+                      variant="outline-dark"
                       className="mt-4 w-75 fw-bold ms-3"
                       onClick={() => navigate("/")}
                   >
@@ -207,7 +222,7 @@ function SidebarLeft() {
           <Offcanvas.Header closeButton>
             <Offcanvas.Title>
               <Link to="/Home" onClick={handleClose}>
-                <KLogoSvg width="60px" height="60px" fill="black" />
+                <KLogoSvg width="60px" height="60px" fill="#000" />
               </Link>
             </Offcanvas.Title>
           </Offcanvas.Header>
@@ -375,7 +390,7 @@ function SidebarLeft() {
               )}
               {!user && (
                   <Button
-                      variant="outline-primary"
+                      variant="outline-dark"
                       className="mt-4 w-100 fw-bold"
                       onClick={() => {
                         navigate("/");
@@ -389,9 +404,9 @@ function SidebarLeft() {
           </Offcanvas.Body>
         </Offcanvas>
 
-        {/* Nút Create Story/Post trên mobile - cải thiện giao diện */}
+        {/* Nút Create Story/Post trên mobile */}
         <Button
-            variant="primary"
+            variant="dark"
             className="d-md-none position-fixed bottom-0 end-0 m-3 rounded-circle shadow"
             style={{ width: "60px", height: "60px", zIndex: 1050 }}
             title="Tạo bài đăng"

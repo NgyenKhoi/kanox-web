@@ -34,19 +34,19 @@ function SidebarRight() {
       id: 1,
       name: "Ayii",
       username: "Ayiiyiii",
-      avatar: "https://via.placeholder.com/40",
+      avatar: "https://via.placeholder.com/40?text=Ayii",
     },
     {
       id: 2,
       name: "無一",
       username: "cero_09051",
-      avatar: "https://via.placeholder.com/40",
+      avatar: "https://via.placeholder.com/40?text=無一",
     },
     {
       id: 3,
       name: "Dilibay ✨💛",
       username: "Dilibay_heaven",
-      avatar: "https://via.placeholder.com/40",
+      avatar: "https://via.placeholder.com/40?text=Dilibay",
     },
   ];
 
@@ -75,9 +75,23 @@ function SidebarRight() {
   return (
       <div
           className="p-3 pt-2 d-none d-lg-block position-sticky top-0"
-          style={{ height: "100vh", overflowY: "auto" }}
+          style={{
+            height: "100vh",
+            overflowY: "auto",
+            backgroundColor: "#fff",
+            scrollbarWidth: "none", /* Ẩn thanh cuộn trên Firefox */
+          }}
       >
-        <Form className="mb-4 sticky-top bg-light" style={{ top: "0", zIndex: 1020 }}>
+        {/* Ẩn thanh cuộn trên Webkit (Chrome, Safari) */}
+        <style>
+          {`
+          div::-webkit-scrollbar {
+            display: none; /* Ẩn thanh cuộn */
+          }
+        `}
+        </style>
+
+        <Form className="mb-4 sticky-top bg-white" style={{ top: "0", zIndex: 1020 }}>
           <div className="position-relative w-100">
             <FaSearch
                 className="position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"
@@ -86,21 +100,23 @@ function SidebarRight() {
             <Form.Control
                 type="search"
                 placeholder="Tìm kiếm"
-                className="rounded-pill ps-5 bg-light border-0 shadow-sm"
+                className="rounded-pill ps-5 bg-white border border-dark shadow-sm"
                 aria-label="Search"
-                style={{ height: "48px", fontSize: "1rem" }}
+                style={{ height: "48px", fontSize: "1rem", color: "#000" }}
             />
           </div>
         </Form>
 
-        <Card className="mb-4 rounded-3 shadow-sm border-0">
+        <Card className="mb-4 rounded-3 shadow-sm border border-dark">
           <Card.Body className="p-4">
-            <h5 className="fw-bold mb-3 text-dark">Đăng ký gói Premium</h5>
-            <p className="mb-3 text-muted" style={{ fontSize: "0.95rem" }}>
+            <h5 className="fw-bold mb-3" style={{ color: "#000" }}>
+              Đăng ký gói Premium
+            </h5>
+            <p className="mb-3" style={{ color: "#000", fontSize: "0.95rem" }}>
               Đăng ký để mở khóa các tính năng mới và nhận chia sẻ doanh thu nếu bạn là người sáng tạo nội dung.
             </p>
             <Button
-                variant="primary"
+                variant="dark"
                 className="rounded-pill px-4 py-2 fw-bold"
                 onClick={handleSubscribePremiumClick}
             >
@@ -109,8 +125,11 @@ function SidebarRight() {
           </Card.Body>
         </Card>
 
-        <Card className="mb-4 rounded-3 shadow-sm border-0">
-          <Card.Header className="fw-bold bg-white border-0 p-4 pb-2">
+        <Card className="mb-4 rounded-3 shadow-sm border border-dark">
+          <Card.Header
+              className="fw-bold bg-white border-0 p-4 pb-2"
+              style={{ color: "#000" }}
+          >
             Những điều đang diễn ra
           </Card.Header>
           <ListGroup variant="flush">
@@ -118,15 +137,16 @@ function SidebarRight() {
                 <ListGroup.Item
                     key={trend.id}
                     action
-                    className="d-flex flex-column align-items-start py-3 px-4 border-0 hover-bg-light"
+                    className="d-flex flex-column align-items-start py-3 px-4 border-0"
+                    style={{ backgroundColor: "transparent" }}
                 >
                   <div className="d-flex justify-content-between w-100">
                     <div>
-                      <small className="text-muted" style={{ fontSize: "0.85rem" }}>{trend.name}</small>
-                      <h6 className="mb-1 fw-bold">{trend.title}</h6>
-                      <small className="text-muted" style={{ fontSize: "0.85rem" }}>{trend.tweets}</small>
+                      <small style={{ color: "#666", fontSize: "0.85rem" }}>{trend.name}</small>
+                      <h6 className="mb-1 fw-bold" style={{ color: "#000" }}>{trend.title}</h6>
+                      <small style={{ color: "#666", fontSize: "0.85rem" }}>{trend.tweets}</small>
                     </div>
-                    <Button variant="link" className="text-muted p-0">
+                    <Button variant="link" className="text-dark p-0">
                       <FaEllipsisH size={16} />
                     </Button>
                   </div>
@@ -134,22 +154,27 @@ function SidebarRight() {
             ))}
             <ListGroup.Item
                 action
-                className="text-primary py-2 px-4 fw-bold border-0"
+                className="py-2 px-4 fw-bold border-0"
+                style={{ color: "#000" }}
             >
               Hiển thị thêm
             </ListGroup.Item>
           </ListGroup>
         </Card>
 
-        <Card className="mb-4 rounded-3 shadow-sm border-0">
-          <Card.Header className="fw-bold bg-white border-0 p-4 pb-2">
+        <Card className="mb-4 rounded-3 shadow-sm border border-dark">
+          <Card.Header
+              className="fw-bold bg-white border-0 p-4 pb-2"
+              style={{ color: "#000" }}
+          >
             Gợi ý theo dõi
           </Card.Header>
           <ListGroup variant="flush">
             {suggestedUsers.map((user) => (
                 <ListGroup.Item
                     key={user.id}
-                    className="d-flex align-items-center py-3 px-4 border-0 hover-bg-light"
+                    className="d-flex align-items-center py-3 px-4 border-0"
+                    style={{ backgroundColor: "transparent" }}
                 >
                   <Image
                       src={user.avatar}
@@ -157,16 +182,18 @@ function SidebarRight() {
                       width="40"
                       height="40"
                       roundedCircle
-                      className="me-3"
+                      className="me-3 border border-dark"
                   />
                   <div className="d-flex flex-column flex-grow-1">
-                    <span className="fw-bold" style={{ fontSize: "0.95rem" }}>{user.name}</span>
-                    <span className="text-muted" style={{ fontSize: "0.85rem" }}>@{user.username}</span>
+                <span className="fw-bold" style={{ fontSize: "0.95rem", color: "#000" }}>
+                  {user.name}
+                </span>
+                    <span style={{ fontSize: "0.85rem", color: "#666" }}>@{user.username}</span>
                   </div>
                   <Button
-                      variant="outline-primary"
+                      variant="outline-dark"
                       size="sm"
-                      className="rounded-pill px-3 py-1 fw-bold"
+                      className="col-auto rounded-pill px-3 py-1 fw-bold"
                   >
                     Theo dõi
                   </Button>
@@ -174,14 +201,15 @@ function SidebarRight() {
             ))}
             <ListGroup.Item
                 action
-                className="text-primary py-2 px-4 fw-bold border-0"
+                className="py-2 px-4 fw-bold border-0"
+                style={{ color: "#000" }}
             >
               Hiển thị thêm
             </ListGroup.Item>
           </ListGroup>
         </Card>
 
-        <div className="px-4">
+        <div className="px-3">
           <Nav className="flex-wrap">
             {defaultFooterLinks.map((link, index) => (
                 <Nav.Link
@@ -189,7 +217,7 @@ function SidebarRight() {
                     as={Link}
                     to={link.to}
                     className="text-muted small me-3 my-1 p-0"
-                    style={{ fontSize: "0.85rem" }}
+                    style={{ fontSize: "0.85rem", color: "#666" }}
                 >
                   {link.text}
                 </Nav.Link>
@@ -201,19 +229,19 @@ function SidebarRight() {
                         as={Link}
                         to={link.to}
                         className="text-muted small me-3 my-1 p-0"
-                        style={{ fontSize: "0.85rem" }}
+                        style={{ fontSize: "0.85rem", color: "#666" }}
                     >
                       {link.text}
                     </Nav.Link>
                 ))}
             <Nav.Link
                 onClick={() => setShowFullFooter(!showFullFooter)}
-                className="text-muted small me-3 my-1 p-0"
-                style={{ fontSize: "0.85rem" }}
+                className="text-muted small mep-0 my-1"
+                style={{ fontSize: "0.85rem", color: "#666" }}
             >
               {showFullFooter ? "Ẩn bớt" : "Thêm..."}
             </Nav.Link>
-            <span className="text-muted small my-1 p-0" style={{ fontSize: "0.85rem" }}>
+            <span className="text-muted small my-1 p-0" style={{ color: "#666", fontSize: "0.85rem" }}>
             © 2025 KaNox Corp.
           </span>
           </Nav>
