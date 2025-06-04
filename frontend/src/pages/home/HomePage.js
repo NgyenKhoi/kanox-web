@@ -1,4 +1,3 @@
-// src/pages/HomePage/HomePage.jsx
 import React, { useState } from "react";
 import { Container, Row, Col, Spinner } from "react-bootstrap";
 import Header from "../../components/layout/Header/Header";
@@ -46,14 +45,16 @@ function HomePage() {
   return (
       <div className="d-flex flex-column min-vh-100 bg-light">
         <Header />
-        <Container fluid className="mt-0 pt-0">
-          <Row>
-            <Col xs={0} sm={0} md={0} lg={3} xl={3} className="d-none d-lg-flex justify-content-end align-items-stretch" style={{ minHeight: "80vh" }}>
+        <Container fluid className="flex-grow-1">
+          <Row className="h-100">
+            <Col xs={0} md={0} lg={3} className="p-0">
               <SidebarLeft />
             </Col>
-
-            <Col xs={12} sm={12} md={12} lg={6} xl={6} className="px-md-0 border-start border-end mt-5 pt-1 mt-lg-0 pt-lg-0">
-              <div className="sticky-top bg-white border-bottom fw-bold fs-5 px-3 py-2 d-flex justify-content-between align-items-center d-lg-block d-none" style={{ zIndex: 1020 }}>
+            <Col xs={12} lg={6} className="border-start border-end p-0">
+              <div
+                  className="sticky-top bg-white border-bottom fw-bold fs-5 px-3 py-2 d-flex justify-content-between align-items-center"
+                  style={{ zIndex: 1020 }}
+              >
                 <span>Trang chủ</span>
               </div>
               <TweetInput loading={loading} setLoading={setLoading} />
@@ -65,8 +66,7 @@ function HomePage() {
                   sampleTweets.map((tweet) => <TweetCard key={tweet.id} tweet={tweet} />)
               )}
             </Col>
-
-            <Col xs={0} sm={0} md={0} lg={3} xl={3} className="d-none d-lg-block ps-md-4">
+            <Col xs={0} lg={3} className="d-none d-lg-block border-start p-0">
               <SidebarRight />
             </Col>
           </Row>

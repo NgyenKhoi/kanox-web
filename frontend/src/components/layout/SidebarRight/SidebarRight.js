@@ -1,14 +1,6 @@
 import React, { useState } from "react";
-import {
-  Card,
-  ListGroup,
-  Button,
-  Form,
-  FormControl,
-  Nav,
-  Image,
-} from "react-bootstrap";
-import { FaSearch } from "react-icons/fa";
+import { Card, ListGroup, Button, Form, Nav, Image } from "react-bootstrap";
+import { FaSearch, FaEllipsisH } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
 
 function SidebarRight() {
@@ -81,33 +73,35 @@ function SidebarRight() {
   };
 
   return (
-      <div className="p-3 pt-2 d-none d-md-block">
-        <Form className="d-flex mb-3 mt-2 sticky-top">
+      <div
+          className="p-3 pt-2 d-none d-lg-block position-sticky top-0"
+          style={{ height: "100vh", overflowY: "auto" }}
+      >
+        <Form className="mb-4 sticky-top bg-light" style={{ top: "0", zIndex: 1020 }}>
           <div className="position-relative w-100">
             <FaSearch
                 className="position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"
                 size={18}
             />
-            <FormControl
+            <Form.Control
                 type="search"
                 placeholder="Tìm kiếm"
-                className="rounded-pill ps-5 bg-light border-0"
+                className="rounded-pill ps-5 bg-light border-0 shadow-sm"
                 aria-label="Search"
-                style={{ minHeight: "40px" }}
+                style={{ height: "48px", fontSize: "1rem" }}
             />
           </div>
         </Form>
 
-        <Card className="mb-3 rounded-4 bg-light border-0">
-          <Card.Body>
-            <h5 className="fw-bold text-primary">Đăng ký gói Premium</h5>
-            <p className="mb-2 text-dark">
-              Đăng ký để mở khóa các tính năng mới và nếu đủ điều kiện, bạn sẽ
-              được nhận một khoản chia sẻ doanh thu cho người sáng tạo nội dung.
+        <Card className="mb-4 rounded-3 shadow-sm border-0">
+          <Card.Body className="p-4">
+            <h5 className="fw-bold mb-3 text-dark">Đăng ký gói Premium</h5>
+            <p className="mb-3 text-muted" style={{ fontSize: "0.95rem" }}>
+              Đăng ký để mở khóa các tính năng mới và nhận chia sẻ doanh thu nếu bạn là người sáng tạo nội dung.
             </p>
             <Button
-                variant="dark"
-                className="rounded-pill px-4 fw-bold"
+                variant="primary"
+                className="rounded-pill px-4 py-2 fw-bold"
                 onClick={handleSubscribePremiumClick}
             >
               Đăng ký
@@ -115,8 +109,8 @@ function SidebarRight() {
           </Card.Body>
         </Card>
 
-        <Card className="mb-3 rounded-4 shadow-sm border-0">
-          <Card.Header className="fw-bold bg-white border-bottom-0 p-3">
+        <Card className="mb-4 rounded-3 shadow-sm border-0">
+          <Card.Header className="fw-bold bg-white border-0 p-4 pb-2">
             Những điều đang diễn ra
           </Card.Header>
           <ListGroup variant="flush">
@@ -124,48 +118,55 @@ function SidebarRight() {
                 <ListGroup.Item
                     key={trend.id}
                     action
-                    className="d-flex flex-column align-items-start py-2 px-3 border-0"
+                    className="d-flex flex-column align-items-start py-3 px-4 border-0 hover-bg-light"
                 >
-                  <small className="text-muted">{trend.name}</small>
-                  <h6 className="mb-0 fw-bold">{trend.title}</h6>
-                  <small className="text-muted">{trend.tweets}</small>
+                  <div className="d-flex justify-content-between w-100">
+                    <div>
+                      <small className="text-muted" style={{ fontSize: "0.85rem" }}>{trend.name}</small>
+                      <h6 className="mb-1 fw-bold">{trend.title}</h6>
+                      <small className="text-muted" style={{ fontSize: "0.85rem" }}>{trend.tweets}</small>
+                    </div>
+                    <Button variant="link" className="text-muted p-0">
+                      <FaEllipsisH size={16} />
+                    </Button>
+                  </div>
                 </ListGroup.Item>
             ))}
             <ListGroup.Item
                 action
-                className="text-primary py-2 px-3 fw-bold border-0"
+                className="text-primary py-2 px-4 fw-bold border-0"
             >
               Hiển thị thêm
             </ListGroup.Item>
           </ListGroup>
         </Card>
 
-        <Card className="mb-3 rounded-4 shadow-sm border-0">
-          <Card.Header className="fw-bold bg-white border-bottom-0 p-3">
+        <Card className="mb-4 rounded-3 shadow-sm border-0">
+          <Card.Header className="fw-bold bg-white border-0 p-4 pb-2">
             Gợi ý theo dõi
           </Card.Header>
           <ListGroup variant="flush">
             {suggestedUsers.map((user) => (
                 <ListGroup.Item
                     key={user.id}
-                    className="d-flex align-items-center py-2 px-3 border-0"
+                    className="d-flex align-items-center py-3 px-4 border-0 hover-bg-light"
                 >
                   <Image
                       src={user.avatar}
                       alt={user.name}
-                      width="48"
-                      height="48"
+                      width="40"
+                      height="40"
                       roundedCircle
                       className="me-3"
                   />
                   <div className="d-flex flex-column flex-grow-1">
-                    <span className="fw-bold">{user.name}</span>
-                    <span className="text-muted small">@{user.username}</span>
+                    <span className="fw-bold" style={{ fontSize: "0.95rem" }}>{user.name}</span>
+                    <span className="text-muted" style={{ fontSize: "0.85rem" }}>@{user.username}</span>
                   </div>
                   <Button
-                      variant="dark"
+                      variant="outline-primary"
                       size="sm"
-                      className="rounded-pill px-3 fw-bold"
+                      className="rounded-pill px-3 py-1 fw-bold"
                   >
                     Theo dõi
                   </Button>
@@ -173,48 +174,46 @@ function SidebarRight() {
             ))}
             <ListGroup.Item
                 action
-                className="text-primary py-2 px-3 fw-bold border-0"
+                className="text-primary py-2 px-4 fw-bold border-0"
             >
               Hiển thị thêm
             </ListGroup.Item>
           </ListGroup>
         </Card>
 
-        <div className="p-3">
+        <div className="px-4">
           <Nav className="flex-wrap">
             {defaultFooterLinks.map((link, index) => (
                 <Nav.Link
                     key={index}
                     as={Link}
                     to={link.to}
-                    className="text-muted small me-2 my-1 p-0"
+                    className="text-muted small me-3 my-1 p-0"
+                    style={{ fontSize: "0.85rem" }}
                 >
                   {link.text}
                 </Nav.Link>
             ))}
-
             {showFullFooter &&
-                fullFooterLinks
-                    .slice(defaultFooterLinks.length)
-                    .map((link, index) => (
-                        <Nav.Link
-                            key={`full-${index}`}
-                            as={Link}
-                            to={link.to}
-                            className="text-muted small me-2 my-1 p-0"
-                        >
-                          {link.text}
-                        </Nav.Link>
-                    ))}
-
+                fullFooterLinks.slice(defaultFooterLinks.length).map((link, index) => (
+                    <Nav.Link
+                        key={`full-${index}`}
+                        as={Link}
+                        to={link.to}
+                        className="text-muted small me-3 my-1 p-0"
+                        style={{ fontSize: "0.85rem" }}
+                    >
+                      {link.text}
+                    </Nav.Link>
+                ))}
             <Nav.Link
                 onClick={() => setShowFullFooter(!showFullFooter)}
-                className="text-muted small me-2 my-1 p-0"
+                className="text-muted small me-3 my-1 p-0"
+                style={{ fontSize: "0.85rem" }}
             >
               {showFullFooter ? "Ẩn bớt" : "Thêm..."}
             </Nav.Link>
-
-            <span className="text-muted small mx-2 my-1 p-0">
+            <span className="text-muted small my-1 p-0" style={{ fontSize: "0.85rem" }}>
             © 2025 KaNox Corp.
           </span>
           </Nav>
