@@ -91,7 +91,7 @@ function ProfilePage() {
     };
 
     fetchUserProfile();
-  }, [currentUser?.username]);
+  }, []);
 
   const sampleTweets = [
     {
