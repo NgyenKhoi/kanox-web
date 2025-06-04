@@ -2,7 +2,6 @@ import React from "react";
 import { Navbar, Container, Image, Button } from "react-bootstrap";
 import { FaSearch, FaPlus } from "react-icons/fa";
 import { Link } from "react-router-dom";
-import KLogoSvg from "../svgs/KSvg";
 
 function Header() {
   return (
@@ -23,12 +22,7 @@ function Header() {
               onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.1)")}
               onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1.0)")}
           />
-
-          <Navbar.Brand as={Link} to="/Home" className="mx-auto">
-            <KLogoSvg width="40px" height="40px" />
-          </Navbar.Brand>
-
-          <div className="d-flex align-items-center">
+            <div className="d-flex align-items-center">
             <Button
                 variant="outline-dark"
                 className="rounded-circle p-2 ms-2 d-md-none"
