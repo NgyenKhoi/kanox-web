@@ -55,14 +55,13 @@ function SidebarLeft() {
                     height: "100vh",
                     overflowY: "auto",
                     backgroundColor: "#fff",
-                    scrollbarWidth: "none", /* Ẩn thanh cuộn trên Firefox */
+                    scrollbarWidth: "none",
                 }}
             >
-                {/* Ẩn thanh cuộn trên Webkit (Chrome, Safari) */}
                 <style>
                     {`
             div::-webkit-scrollbar {
-              display: none; /* Ẩn thanh cuộn */
+              display: none;
             }
           `}
                 </style>
