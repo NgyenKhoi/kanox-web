@@ -35,7 +35,7 @@ function EditProfileModal({
         location: userProfile.location || "",
         website: userProfile.website || "",
         // Chuyển đổi định dạng ngày tháng từ ISO string sang YYYY-MM-DD
-        dob: userProfile.dateOfBirth
+        dateOfBirth: userProfile.dateOfBirth
           ? new Date(userProfile.dateOfBirth).toISOString().split("T")[0]
           : "",
         // Đảm bảo gender là string để set vào select, hoặc "" nếu null
@@ -104,103 +104,79 @@ function EditProfileModal({
   };
 
   const handleSave = async () => {
-    const token = localStorage.getItem("token");
-    const payload = {}; // Object chứa chỉ các trường đã thay đổi
+  const token = localStorage.getItem("token");
+  const payload = { ...formData }; // Bắt đầu từ bản sao đầy đủ của formData
 
-    try {
-      // 1. Xử lý upload ảnh mới trước
-      if (avatarFile) {
-        const newAvatarUrl = await uploadFile(avatarFile);
-        payload.avatar = newAvatarUrl;
-      } else if (formData.avatar === "" && userProfile.avatar) {
-        // Nếu người dùng xóa avatar hiện có
-        payload.avatar = ""; // Hoặc null, tùy thuộc vào API backend của bạn
-      }
-
-      if (bannerFile) {
-        const newBannerUrl = await uploadFile(bannerFile);
-        payload.banner = newBannerUrl;
-      } else if (formData.banner === "" && userProfile.banner) {
-        // Nếu người dùng xóa banner hiện có
-        payload.banner = ""; // Hoặc null
-      }
-
-      // 2. So sánh và chỉ thêm các trường text/date đã thay đổi vào payload
-      if (formData.displayName !== userProfile.displayName) {
-        payload.displayName = formData.displayName;
-      }
-      if (formData.bio !== userProfile.bio) {
-        payload.bio = formData.bio;
-      }
-      if (formData.location !== userProfile.location) {
-        payload.location = formData.location;
-      }
-      if (formData.website !== userProfile.website) {
-        payload.website = formData.website;
-      }
-
-      // Chuyển đổi ngày sinh sang định dạng ISO string nếu đã thay đổi
-      const currentDobFormatted = userProfile.dateOfBirth
-        ? new Date(userProfile.dateOfBirth).toISOString().split("T")[0]
-        : "";
-      if (formData.dob !== currentDobFormatted) {
-        payload.dateOfBirth = formData.dob;
-      }
-
-      // Kiểm tra và chuyển đổi giới tính
-      const currentGenderFormatted =
-        userProfile.gender != null ? String(userProfile.gender) : "";
-      if (formData.gender !== currentGenderFormatted) {
-        payload.gender = formData.gender ? Number(formData.gender) : null;
-      }
-
-      // Kiểm tra nếu không có gì thay đổi để lưu
-      if (Object.keys(payload).length === 0) {
-        toast.info("Không có thay đổi nào để lưu.");
-        handleClose();
-        return;
-      }
-
-      // 3. Gửi payload cập nhật profile
-      const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/user/profile/${username}`,
-        {
-          method: "PUT", // Sử dụng PUT hoặc PATCH tùy theo API backend
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(payload),
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Lỗi khi cập nhật hồ sơ.");
-      }
-
-      // 4. Sau khi cập nhật thành công, fetch lại toàn bộ profile
-      const updatedProfileResponse = await fetch(
-        `${process.env.REACT_APP_API_URL}/user/profile/${username}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      if (!updatedProfileResponse.ok) {
-        throw new Error("Lỗi khi tải lại hồ sơ sau cập nhật.");
-      }
-      const updatedProfile = await updatedProfileResponse.json();
-
-      onSave(updatedProfile); // Gọi callback để cập nhật state trong ProfilePage
-      handleClose(); // Đóng modal
-      toast.success("Hồ sơ đã được cập nhật thành công!");
-    } catch (error) {
-      console.error("Lỗi khi lưu hồ sơ:", error);
-      toast.error(`Lỗi khi lưu hồ sơ: ${error.message}`);
+  try {
+    // Upload ảnh avatar nếu có
+    if (avatarFile) {
+      const newAvatarUrl = await uploadFile(avatarFile);
+      payload.avatar = newAvatarUrl;
     }
-  };
+
+    // Nếu avatar bị xóa
+    if (!formData.avatar && userProfile.avatar) {
+      payload.avatar = "";
+    }
+
+    // Upload ảnh banner nếu có
+    if (bannerFile) {
+      const newBannerUrl = await uploadFile(bannerFile);
+      payload.banner = newBannerUrl;
+    }
+
+    // Nếu banner bị xóa
+    if (!formData.banner && userProfile.banner) {
+      payload.banner = "";
+    }
+
+    // Đảm bảo format đúng kiểu cho ngày sinh và giới tính
+    if (payload.dateOfBirth) {
+      payload.dateOfBirth = payload.dateOfBirth;
+    }
+
+    payload.gender = payload.gender ? Number(payload.gender) : null;
+
+    // Gửi PUT request với toàn bộ payload
+    const response = await fetch(
+      `${process.env.REACT_APP_API_URL}/user/profile/${username}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Lỗi khi cập nhật hồ sơ.");
+    }
+
+    // Reload lại profile từ server
+    const updatedProfileResponse = await fetch(
+      `${process.env.REACT_APP_API_URL}/user/profile/${username}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    if (!updatedProfileResponse.ok) {
+      throw new Error("Lỗi khi tải lại hồ sơ sau cập nhật.");
+    }
+    const updatedProfile = await updatedProfileResponse.json();
+
+    onSave(updatedProfile);
+    handleClose();
+    toast.success("Hồ sơ đã được cập nhật thành công!");
+  } catch (error) {
+    console.error("Lỗi khi lưu hồ sơ:", error);
+    toast.error(`Lỗi khi lưu hồ sơ: ${error.message}`);
+  }
+};
 
   // Các tùy chọn cho giới tính
   const genderOptions = [
@@ -345,7 +321,7 @@ function EditProfileModal({
               { label: "Tiểu sử", field: "bio", type: "textarea", rows: 3 },
               { label: "Vị trí", field: "location", type: "text" },
               { label: "Trang web", field: "website", type: "text" },
-              { label: "Ngày sinh", field: "dob", type: "date" },
+              { label: "Ngày sinh", field: "dateOfBirth", type: "date" },
             ].map(({ label, field, type, rows }) => (
               <Form.Group
                 className="mb-3"
