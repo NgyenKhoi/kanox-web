@@ -6,7 +6,7 @@ import TweetCard from "../../components/posts/TweetCard/TweetCard";
 import EditProfileModal from "../../components/profile/EditProfileModal";
 import SidebarLeft from "../../components/layout/SidebarLeft/SidebarLeft";
 import SidebarRight from "../../components/layout/SidebarRight/SidebarRight";
-import { AuthContext } from "../../context/AuthContext"; // Đảm bảo đường dẫn đúng
+import { AuthContext } from "../../context/AuthContext";
 
 function ProfilePage() {
   const { user, setUser } = useContext(AuthContext);
@@ -44,25 +44,13 @@ function ProfilePage() {
       { id: 2, user: { name: userProfile?.displayName || "Người dùng Test", username: userProfile?.username || "testuser", avatar: userProfile?.avatar }, content: "Đang thử nghiệm giao diện Profile Page. Trông khá ổn!", imageUrl: "https://via.placeholder.com/600x400/000000/ffffff?text=Mock+Image", timestamp: new Date("2025-05-29T10:00:00Z"), comments: 2, retweets: 1, likes: 5 },
       { id: 3, user: { name: userProfile?.displayName || "Người dùng Test", username: userProfile?.username || "testuser", avatar: userProfile?.avatar }, content: "React là một thư viện tuyệt vời để xây dựng UI.", imageUrl: null, timestamp: new Date("2025-05-30T14:30:00Z"), comments: 1, retweets: 0, likes: 3 },
     ],
-    replies: [
-      { id: 101, user: { name: "Phản hồi Người dùng", username: "replyuser", avatar: "https://via.placeholder.com/50" }, content: "Đây là một phản hồi đến bài đăng của @testuser. #ReactJS", imageUrl: null, timestamp: new Date("2025-05-31T08:00:00Z"), comments: 0, retweets: 0, likes: 1, inReplyTo: userProfile?.username || "testuser" },
-      { id: 102, user: { name: userProfile?.displayName || "Người dùng Test", username: userProfile?.username || "testuser", avatar: userProfile?.avatar }, content: "Đúng vậy! Rất thích làm việc với React. #WebDev", imageUrl: null, timestamp: new Date("2025-06-01T11:20:00Z"), comments: 0, retweets: 0, likes: 2, inReplyTo: "replyuser" },
+    shares: [
+      { id: 201, user: { name: userProfile?.displayName || "Người dùng Test", username: userProfile?.username || "testuser", avatar: userProfile?.avatar }, content: "Chia sẻ bài đăng này vì quá hay! #Motivation", imageUrl: "https://source.unsplash.com/600x400/?sunset", timestamp: new Date("2025-05-27T18:00:00Z"), comments: 3, retweets: 2, likes: 10 },
+      { id: 202, user: { name: userProfile?.displayName || "Người dùng Test", username: userProfile?.username || "testuser", avatar: userProfile?.avatar }, content: "Một bài đăng thú vị về nghệ thuật! #Art", imageUrl: "https://source.unsplash.com/600x400/?abstract", timestamp: new Date("2025-05-25T11:00:00Z"), comments: 1, retweets: 0, likes: 7 },
     ],
-    media: [
-      { id: 201, user: { name: userProfile?.displayName || "Người dùng Test", username: userProfile?.username || "testuser", avatar: userProfile?.avatar }, content: "Cảnh hoàng hôn tuyệt đẹp hôm nay! #Photography", imageUrl: "https://source.unsplash.com/600x400/?sunset", timestamp: new Date("2025-05-27T18:00:00Z"), comments: 3, retweets: 2, likes: 10 },
-      { id: 202, user: { name: userProfile?.displayName || "Người dùng Test", username: userProfile?.username || "testuser", avatar: userProfile?.avatar }, content: "Thử nghiệm với một số hiệu ứng ảnh mới. #Art", imageUrl: "https://source.unsplash.com/600x400/?abstract", timestamp: new Date("2025-05-25T11:00:00Z"), comments: 1, retweets: 0, likes: 7 },
-    ],
-    likes: [
+    savedArticles: [
       { id: 301, user: { name: "Người dùng Khác 1", username: "otheruser1", avatar: "https://via.placeholder.com/50" }, content: "Bài đăng rất hay! Rất đồng ý. #GoodVibes", imageUrl: null, timestamp: new Date("2025-05-29T09:00:00Z"), comments: 0, retweets: 0, likes: 0 },
       { id: 302, user: { name: "Người dùng Khác 2", username: "otheruser2", avatar: "https://via.placeholder.com/50" }, content: "Hình ảnh này đẹp quá! Tuyệt vời. #Nature", imageUrl: "https://source.unsplash.com/600x400/?mountain", timestamp: new Date("2025-05-28T16:00:00Z"), comments: 1, retweets: 0, likes: 0 },
-    ],
-    highlights: [
-      { id: 401, user: { name: userProfile?.displayName || "Người dùng Test", username: userProfile?.username || "testuser", avatar: userProfile?.avatar }, content: "Đạt được 500 người theo dõi! Cảm ơn tất cả mọi người! 🎉", imageUrl: null, timestamp: new Date("2025-05-20T10:00:00Z"), comments: 15, retweets: 5, likes: 100, isHighlight: true },
-      { id: 402, user: { name: userProfile?.displayName || "Người dùng Test", username: userProfile?.username || "testuser", avatar: userProfile?.avatar }, content: "Hoàn thành dự án React đầu tiên! Cảm thấy rất tuyệt vời. 💪", imageUrl: "https://source.unsplash.com/600x400/?coding,success", timestamp: new Date("2025-04-15T14:00:00Z"), comments: 8, retweets: 3, likes: 50, isHighlight: true },
-    ],
-    articles: [
-      { id: 501, user: { name: userProfile?.displayName || "Người dùng Test", username: userProfile?.username || "testuser", avatar: userProfile?.avatar }, title: "Cách xây dựng ứng dụng React cơ bản", content: "Trong bài viết này, tôi sẽ hướng dẫn các bạn từng bước xây dựng một ứng dụng React đơn giản từ đầu...", imageUrl: "https://source.unsplash.com/600x400/?reactjs,programming", timestamp: new Date("2025-05-10T09:00:00Z"), readTime: "5 phút đọc" },
-      { id: 502, user: { name: userProfile?.displayName || "Người dùng Test", username: userProfile?.username || "testuser", avatar: userProfile?.avatar }, title: "10 mẹo để tối ưu hóa hiệu suất website", content: "Tối ưu hóa hiệu suất website là rất quan trọng để cải thiện trải nghiệm người dùng...", imageUrl: "https://source.unsplash.com/600x400/?website,performance", timestamp: new Date("2025-04-25T00:00:00Z"), readTime: "8 phút đọc" },
     ],
   };
 
@@ -143,40 +131,13 @@ function ProfilePage() {
   // Xử lý tab content
   const renderTabContent = () => {
     const data = sampleData[activeTab] || [];
-    if (activeTab === "articles") {
-      return data.length > 0 ? (
-          data.map((article) => (
-              <div key={article.id} className="border-bottom p-3">
-                <div className="d-flex align-items-center mb-2">
-                  <Image src={article.user.avatar} roundedCircle width={30} height={30} className="me-2" />
-                  <div>
-                    <span className="fw-bold text-dark">{article.user.name}</span>
-                    <span className="text-secondary small d-none d-sm-inline"> @{article.user.username}</span>
-                  </div>
-                </div>
-                <h5 className="fw-bold mb-1 text-dark">{article.title}</h5>
-                {article.imageUrl && <Image src={article.imageUrl} fluid className="rounded mb-3" style={{ maxHeight: "500px", objectFit: "cover" }} />}
-                <p className="text-dark small">{article.content.substring(0, 150)}...</p>
-                <div className="d-flex justify-content-between text-secondary small">
-                  <span>{new Date(article.timestamp).toLocaleDateString("en-US")}</span>
-                  <span>{article.readTime}</span>
-                </div>
-              </div>
-          ))
-      ) : (
-          <p className="text-dark text-center p-4">Không có bài viết nào.</p>
-      );
-    }
-
     return data.length > 0 ? (
         data.map((item) => <TweetCard key={item.id} tweet={item} />)
     ) : (
         <p className="text-dark text-center p-4">
           {activeTab === "posts" && "Không có bài đăng nào."}
-          {activeTab === "replies" && "Không có phản hồi nào."}
-          {activeTab === "media" && "Không có phương tiện nào."}
-          {activeTab === "likes" && "Không có lượt thích nào."}
-          {activeTab === "highlights" && "Không có sự kiện nổi bật nào."}
+          {activeTab === "shares" && "Không có bài chia sẻ nào."}
+          {activeTab === "savedArticles" && "Không có bài viết đã lưu nào."}
         </p>
     );
   };
@@ -225,7 +186,7 @@ function ProfilePage() {
             </Col>
 
             {/* Profile Content */}
-            <Col xs={12} lg={6} className="px-md-0 border-start border-end border-dark">
+            <Col xs={12} lg={6} className="px-md-0">
               <Image
                   src={userProfile.banner || "https://via.placeholder.com/1200x400?text=Banner"}
                   fluid
@@ -312,18 +273,15 @@ function ProfilePage() {
 
                 {/* Tabs */}
                 <Nav variant="tabs" className="mt-4 profile-tabs nav-justified">
-                  {["posts", "replies", "media", "likes", "highlights", "articles"].map((tab) => (
+                  {["posts", "shares", "savedArticles"].map((tab) => (
                       <Nav.Item key={tab}>
                         <Nav.Link
                             onClick={() => setActiveTab(tab)}
                             className={`text-dark fw-bold ${activeTab === tab ? "active" : ""}`}
                         >
                           {tab === "posts" && "Bài đăng"}
-                          {tab === "replies" && "Các phản hồi"}
-                          {tab === "media" && "Phương tiện"}
-                          {tab === "likes" && "Lượt thích"}
-                          {tab === "highlights" && "Sự kiện nổi bật"}
-                          {tab === "articles" && "Bài viết"}
+                          {tab === "shares" && "Chia sẻ"}
+                          {tab === "savedArticles" && "Bài viết đã lưu"}
                         </Nav.Link>
                       </Nav.Item>
                   ))}
@@ -335,7 +293,7 @@ function ProfilePage() {
             </Col>
 
             {/* SidebarRight */}
-            <Col xs={0} lg={3} className="d-none d-lg-block border-start p-0">
+            <Col xs={0} lg={3} className="d-none d-lg-block p-0">
               <SidebarRight />
             </Col>
           </Row>
