@@ -75,7 +75,7 @@ function ProfilePage() {
 
   const sampleTweets = [
     { id: 1, user: { name: userProfile?.displayName || "Người dùng Test", username: userProfile?.username || "testuser", avatar: userProfile?.avatar || "https://via.placeholder.com/50" }, content: "Xin chào từ tài khoản ảo! #TestAccount", imageUrl: null, timestamp: new Date("2025-05-28T00:00:00Z"), comments: 0, retweets: 0, likes: 0 },
-    { id: 2, user: { name: userProfile?.displayName || "Người dùng Test", username: userProfile?.username || "testuser", avatar: userProfile?.avatar || "https://via.placeholder.com/50" }, content: "Đang thử nghiệm giao diện Profile Page. Trông khá ổn!", imageUrl: "https://via.placeholder.com/600x400/FF5733/ffffff?text=Mock+Image", timestamp: new Date("2025-05-29T10:00:00Z"), comments: 2, retweets: 1, likes: 5 },
+    { id: 2, user: { name: userProfile?.displayName || "Người dùng Test", username: userProfile?.username || "testuser", avatar: userProfile?.avatar || "https://via.placeholder.com/50" }, content: "Đang thử nghiệm giao diện Profile Page. Trông khá ổn!", imageUrl: "https://via.placeholder.com/600x400/000000/ffffff?text=Mock+Image", timestamp: new Date("2025-05-29T10:00:00Z"), comments: 2, retweets: 1, likes: 5 },
     { id: 3, user: { name: userProfile?.displayName || "Người dùng Test", username: userProfile?.username || "testuser", avatar: userProfile?.avatar || "https://via.placeholder.com/50" }, content: "React là một thư viện tuyệt vời để xây dựng UI.", imageUrl: null, timestamp: new Date("2025-05-30T14:30:00Z"), comments: 1, retweets: 0, likes: 3 },
   ];
 
@@ -199,13 +199,13 @@ function ProfilePage() {
   if (loading) {
     return (
         <div className="d-flex justify-content-center align-items-center min-vh-100">
-          <Spinner animation="border" role="status" />
+          <Spinner animation="border" role="status" style={{ color: "#000" }} />
         </div>
     );
   }
 
   return (
-      <div className="d-flex min-vh-100 bg-light">
+      <div className="d-flex min-vh-100" style={{ backgroundColor: "#fff" }}>
         <div className="d-none d-lg-block">
           <SidebarLeft />
         </div>
@@ -229,7 +229,7 @@ function ProfilePage() {
 
           <Container fluid className="flex-grow-1">
             <Row className="h-100">
-              <Col xs={12} sm={12} md={12} lg={8} xl={7} className="px-md-0 border-start border-end">
+              <Col xs={12} sm={12} md={12} lg={6} xl={6} className="px-md-0 border-start border-end">
                 <Image src={userProfile.banner} fluid className="w-100" style={{ height: "200px", objectFit: "cover" }} />
                 <div className="position-relative p-3">
                   <div className="d-flex justify-content-between align-items-end mb-3">
@@ -248,11 +248,11 @@ function ProfilePage() {
                     <Link to="#" className="text-dark text-decoration-none"><span className="fw-bold">{userProfile.followerCount}</span> <span className="text-muted">Người theo dõi</span></Link>
                   </div>
                   {showAlert && !userProfile.isPremium && (
-                      <div className="alert alert-success d-flex align-items-start" role="alert">
+                      <div className="alert alert-light d-flex align-items-start border border-dark rounded-3" role="alert">
                         <div>
-                          <h6 className="alert-heading mb-1">Bạn chưa đăng kí premium tài khoản <FaCheckCircle className="text-primary" /></h6>
-                          <p className="mb-2">Hãy đăng kí premium tài khoản để sử dụng tính năng ưu tiên trả lời, phân tích, duyệt xem không có quảng cáo, v.v. Nâng cấp hồ sơ ngay.</p>
-                          <Button variant="dark" className="rounded-pill px-4 fw-bold" onClick={handlePremiumClick}>premium</Button>
+                          <h6 className="alert-heading mb-1">Bạn chưa đăng ký premium tài khoản <FaCheckCircle className="text-dark" /></h6>
+                          <p className="mb-2">Hãy đăng ký premium tài khoản để sử dụng tính năng ưu tiên trả lời, phân tích, duyệt xem không có quảng cáo, v.v. Nâng cấp hồ sơ ngay.</p>
+                          <Button variant="dark" className="rounded-pill px-4 fw-bold" onClick={handlePremiumClick}>Premium</Button>
                         </div>
                         <Button variant="link" className="ms-auto text-dark p-0" onClick={() => setShowAlert(false)}>×</Button>
                       </div>
@@ -269,7 +269,7 @@ function ProfilePage() {
                 {renderActiveTabContent()}
               </Col>
 
-              <Col xs={0} sm={0} md={0} lg={3} xl={3} className="d-none d-lg-block border-start border-end">
+              <Col xs={0} sm={0} md={0} lg={3} className="d-none d-lg-block border-start p-0">
                 <SidebarRight />
               </Col>
             </Row>

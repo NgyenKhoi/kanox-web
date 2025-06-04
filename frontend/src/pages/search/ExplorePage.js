@@ -44,7 +44,7 @@ function ExplorePage() {
   };
 
   return (
-      <div className="d-flex min-vh-100 bg-light">
+      <div className="d-flex min-vh-100" style={{ backgroundColor: "#fff" }}>
         <div className="d-none d-lg-block">
           <SidebarLeft />
         </div>
@@ -53,17 +53,17 @@ function ExplorePage() {
           <div className="sticky-top bg-white border-bottom py-2" style={{ zIndex: 1020 }}>
             <Container fluid>
               <Row>
-                <Col xs={12} sm={12} md={12} lg={{ span: 6, offset: 3 }} xl={{ span: 6, offset: 3 }} className="px-md-0 border-start border-end mt-5 pt-1 mt-lg-0 pt-lg-0">
+                <Col xs={12} sm={12} md={12} lg={6} xl={6} className="px-md-0 border-start border-end mt-5 pt-1 mt-lg-0 pt-lg-0">
                   <InputGroup className="me-3">
-                    <InputGroup.Text className="bg-light border-0 rounded-pill ps-3">
+                    <InputGroup.Text className="bg-white border border-dark rounded-pill ps-3">
                       <FaSearch className="text-muted" />
                     </InputGroup.Text>
-                    <Form.Control type="text" placeholder="Tìm kiếm" className="bg-light border-0 rounded-pill py-2" style={{ height: "auto" }} />
+                    <Form.Control type="text" placeholder="Tìm kiếm" className="bg-white border border-dark rounded-pill py-2" style={{ height: "auto" }} />
                   </InputGroup>
                 </Col>
               </Row>
               <Row>
-                <Col xs={12} sm={12} md={12} lg={{ span: 6, offset: 3 }} xl={{ span: 6, offset: 3 }} className="px-md-0 border-start border-end">
+                <Col xs={12} sm={12} md={12} lg={6} xl={6} className="px-md-0 border-start border-end">
                   <Nav variant="underline" className="mt-2 profile-tabs nav-justified explore-tabs">
                     <Nav.Item><Nav.Link onClick={() => setActiveTab("for-you")} className={`text-dark fw-bold ${activeTab === "for-you" ? "active" : ""}`}>Cho Bạn</Nav.Link></Nav.Item>
                     <Nav.Item><Nav.Link onClick={() => setActiveTab("trending")} className={`text-dark fw-bold ${activeTab === "trending" ? "active" : ""}`}>Đang phổ biến</Nav.Link></Nav.Item>
@@ -78,10 +78,10 @@ function ExplorePage() {
 
           <Container fluid className="flex-grow-1">
             <Row className="h-100">
-              <Col xs={12} sm={12} md={12} lg={8} xl={7} className="px-md-0 border-start border-end">
+              <Col xs={12} sm={12} md={12} lg={6} xl={6} className="px-md-0 border-start border-end">
                 {renderTabContent()}
               </Col>
-              <Col xs={0} sm={0} md={0} lg={4} xl={3} className="d-none d-lg-block border-start border-end">
+              <Col xs={0} sm={0} md={0} lg={3} className="d-none d-lg-block border-start p-0">
                 <SidebarRight trendingTopics={trendingTopics} suggestedFollows={suggestedFollows} />
               </Col>
             </Row>
