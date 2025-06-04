@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { Container, Row, Col, Spinner } from "react-bootstrap";
 import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const VerifyEmailPage = () => {
   const [searchParams] = useSearchParams();
@@ -42,16 +44,23 @@ const VerifyEmailPage = () => {
   }, [searchParams, navigate]);
 
   return (
-    <div className="d-flex flex-column justify-content-center align-items-center vh-100 bg-light">
-      <ToastContainer />
-      {verifying ? (
-        <h3>Đang xác thực tài khoản...</h3>
-      ) : verified ? (
-        <h3>✅ Tài khoản đã được xác thực! Đang chuyển hướng...</h3>
-      ) : (
-        <h3>❌ Xác thực thất bại.</h3>
-      )}
-    </div>
+      <Container fluid className="d-flex flex-column min-vh-100 bg-light text-black">
+        <ToastContainer />
+        <Row className="flex-grow-1 justify-content-center align-items-center">
+          <Col xs={12} sm={10} md={8} lg={6} xl={5} className="text-center">
+            {verifying ? (
+                <div>
+                  <Spinner animation="border" role="status" className="mb-3" />
+                  <h3>Đang xác thực tài khoản...</h3>
+                </div>
+            ) : verified ? (
+                <h3>✅ Tài khoản đã được xác thực! Đang chuyển hướng...</h3>
+            ) : (
+                <h3>❌ Xác thực thất bại.</h3>
+            )}
+          </Col>
+        </Row>
+      </Container>
   );
 };
 
