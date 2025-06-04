@@ -1,7 +1,8 @@
 package com.example.social_media.controller;
 
 import com.example.social_media.config.URLConfig;
-import com.example.social_media.dto.*;
+import com.example.social_media.dto.authentication.*;
+import com.example.social_media.dto.user.UserDto;
 import com.example.social_media.entity.User;
 import com.example.social_media.exception.EmailAlreadyExistsException;
 import com.example.social_media.exception.InvalidTokenException;

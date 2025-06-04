@@ -1,6 +1,4 @@
-package com.example.social_media.dto;
-
-import com.example.social_media.entity.User;
+package com.example.social_media.dto.authentication;
 
 public class GoogleLoginRequestDto {
     private String idToken;

@@ -1,4 +1,4 @@
-package com.example.social_media.dto;
+package com.example.social_media.dto.user;
 
 import com.example.social_media.entity.User;
 

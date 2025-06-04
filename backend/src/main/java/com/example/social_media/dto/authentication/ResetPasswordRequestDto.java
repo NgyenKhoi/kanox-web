@@ -1,4 +1,4 @@
-package com.example.social_media.dto;
+package com.example.social_media.dto.authentication;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;

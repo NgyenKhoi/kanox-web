@@ -1,6 +1,4 @@
-package com.example.social_media.dto;
-
-import java.time.Instant;
+package com.example.social_media.dto.message;
 
 public class ChatDto {
     private Integer id;

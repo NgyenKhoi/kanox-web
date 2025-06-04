@@ -1,20 +1,22 @@
 package com.example.social_media.service;
 
 import com.example.social_media.config.URLConfig;
+import com.example.social_media.dto.authentication.RegisterRequestDto;
 import com.example.social_media.entity.User;
 import com.example.social_media.entity.VerificationToken;
-import com.example.social_media.repository.UserRepository;
-import com.example.social_media.dto.RegisterRequestDto;
 import com.example.social_media.exception.EmailAlreadyExistsException;
-import com.example.social_media.exception.UserNotFoundException;
 import com.example.social_media.exception.InvalidPasswordException;
+import com.example.social_media.exception.UserNotFoundException;
+import com.example.social_media.repository.UserRepository;
 import com.example.social_media.repository.VerificationTokenRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.time.*;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Optional;
 import java.util.UUID;
 

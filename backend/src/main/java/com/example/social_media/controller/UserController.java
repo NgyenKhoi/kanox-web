@@ -1,8 +1,8 @@
 package com.example.social_media.controller;
 
 import com.example.social_media.config.URLConfig;
-import com.example.social_media.dto.UserProfileDto;
-import com.example.social_media.dto.UserUpdateProfileDto;
+import com.example.social_media.dto.user.UserProfileDto;
+import com.example.social_media.dto.user.UserUpdateProfileDto;
 import com.example.social_media.service.UserProfileService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

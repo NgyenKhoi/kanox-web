@@ -1,4 +1,4 @@
-package com.example.social_media.dto;
+package com.example.social_media.dto.message;
 
 import java.time.Instant;
 

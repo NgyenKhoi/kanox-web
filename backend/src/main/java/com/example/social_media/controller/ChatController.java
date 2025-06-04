@@ -1,7 +1,7 @@
 package com.example.social_media.controller;
 
-import com.example.social_media.dto.ChatDto;
-import com.example.social_media.dto.MessageDto;
+import com.example.social_media.dto.message.ChatDto;
+import com.example.social_media.dto.message.MessageDto;
 import com.example.social_media.entity.Chat;
 import com.example.social_media.entity.Message;
 import com.example.social_media.entity.MessageType;

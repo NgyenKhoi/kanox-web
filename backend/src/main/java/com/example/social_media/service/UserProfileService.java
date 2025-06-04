@@ -1,7 +1,7 @@
 package com.example.social_media.service;
 
-import com.example.social_media.dto.UserProfileDto;
-import com.example.social_media.dto.UserUpdateProfileDto;
+import com.example.social_media.dto.user.UserProfileDto;
+import com.example.social_media.dto.user.UserUpdateProfileDto;
 import com.example.social_media.entity.User;
 import com.example.social_media.repository.FollowRepository;
 import com.example.social_media.repository.UserRepository;

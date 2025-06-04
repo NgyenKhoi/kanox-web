@@ -1,6 +1,6 @@
 package com.example.social_media.controller;
 
-import com.example.social_media.dto.SignalMessageDto;
+import com.example.social_media.dto.message.SignalMessageDto;
 import com.example.social_media.repository.ChatMemberRepository;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
