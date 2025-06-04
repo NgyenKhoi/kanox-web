@@ -39,6 +39,7 @@ function ProfilePage() {
     const fetchUserProfile = async () => {
       setLoading(true);
       if (!currentUser || !token) {
+        console.log("No currentUser or token, using default profile");
         setUserProfile(defaultUserProfile);
         setLoading(false);
         return;
@@ -50,11 +51,14 @@ function ProfilePage() {
         });
 
         if (!response.ok) {
+          console.log("API response not ok, using default profile");
           setUserProfile(defaultUserProfile);
+          setLoading(false);
           return;
         }
 
         const data = await response.json();
+        console.log("API data:", data);
         setUserProfile({
           ...data,
           banner: data.banner || "https://source.unsplash.com/1200x400/?nature,water",
@@ -64,6 +68,7 @@ function ProfilePage() {
           isPremium: data.isPremium || false,
         });
       } catch (error) {
+        console.error("Error fetching profile:", error);
         setUserProfile(defaultUserProfile);
       } finally {
         setLoading(false);
@@ -71,7 +76,7 @@ function ProfilePage() {
     };
 
     fetchUserProfile();
-  }, []);
+  }, [currentUser, token]);
 
   const sampleTweets = [
     { id: 1, user: { name: userProfile?.displayName || "Người dùng Test", username: userProfile?.username || "testuser", avatar: userProfile?.avatar || "https://via.placeholder.com/50" }, content: "Xin chào từ tài khoản ảo! #TestAccount", imageUrl: null, timestamp: new Date("2025-05-28T00:00:00Z"), comments: 0, retweets: 0, likes: 0 },
@@ -113,90 +118,131 @@ function ProfilePage() {
       return;
     }
     const fullDataToSend = { ...userProfile, ...updatedData };
-    await fetch(`${process.env.REACT_APP_API_URL}/user/profile/${currentUser.username}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify(fullDataToSend),
-    });
-    setUserProfile(fullDataToSend);
+    try {
+      await fetch(`${process.env.REACT_APP_API_URL}/user/profile/${currentUser.username}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(fullDataToSend),
+      });
+      setUserProfile(fullDataToSend);
+    } catch (error) {
+      console.error("Error saving profile:", error);
+    }
   };
 
   const handlePremiumClick = () => navigate("/premium");
 
-  const renderPostsContent = () => (
-      <div className="mt-0 border-top">
-        {sampleTweets.map((tweet) => (
-            <TweetCard key={tweet.id} tweet={tweet} />
-        ))}
-        {sampleTweets.length === 0 && <p className="text-muted text-center mt-4 p-4">Không có bài đăng nào.</p>}
-      </div>
-  );
+  const renderPostsContent = () => {
+    console.log("Rendering posts:", sampleTweets);
+    return (
+        <div className="mt-0 border-top">
+          {sampleTweets.length > 0 ? (
+              sampleTweets.map((tweet) => (
+                  <TweetCard key={tweet.id} tweet={tweet} />
+              ))
+          ) : (
+              <p className="text-dark text-center mt-4 p-4">Không có bài đăng nào.</p>
+          )}
+        </div>
+    );
+  };
 
-  const renderRepliesContent = () => (
-      <div className="mt-0 border-top">
-        {sampleReplies.map((tweet) => (
-            <TweetCard key={tweet.id} tweet={tweet} />
-        ))}
-        {sampleReplies.length === 0 && <p className="text-muted text-center p-4 mt-2">Không có phản hồi nào.</p>}
-      </div>
-  );
+  const renderRepliesContent = () => {
+    console.log("Rendering replies:", sampleReplies);
+    return (
+        <div className="mt-0 border-top">
+          {sampleReplies.length > 0 ? (
+              sampleReplies.map((tweet) => (
+                  <TweetCard key={tweet.id} tweet={tweet} />
+              ))
+          ) : (
+              <p className="text-dark text-center p-4 mt-2">Không có phản hồi nào.</p>
+          )}
+        </div>
+    );
+  };
 
-  const renderMediaContent = () => (
-      <div className="mt-0 border-top">
-        {sampleMedia.map((media) => (
-            <TweetCard key={media.id} tweet={media} />
-        ))}
-        {sampleMedia.length === 0 && <p className="text-muted text-center p-4 mt-2">Không có phương tiện nào.</p>}
-      </div>
-  );
+  const renderMediaContent = () => {
+    console.log("Rendering media:", sampleMedia);
+    return (
+        <div className="mt-0 border-top">
+          {sampleMedia.length > 0 ? (
+              sampleMedia.map((media) => (
+                  <TweetCard key={media.id} tweet={media} />
+              ))
+          ) : (
+              <p className="text-dark text-center p-4 mt-2">Không có phương tiện nào.</p>
+          )}
+        </div>
+    );
+  };
 
-  const renderLikesContent = () => (
-      <div className="mt-0 border-top">
-        {sampleLikes.map((tweet) => (
-            <TweetCard key={tweet.id} tweet={tweet} />
-        ))}
-        {sampleLikes.length === 0 && <p className="text-muted text-center p-4 mt-4">Không có lượt thích nào.</p>}
-      </div>
-  );
+  const renderLikesContent = () => {
+    console.log("Rendering likes:", sampleLikes);
+    return (
+        <div className="mt-0 border-top">
+          {sampleLikes.length > 0 ? (
+              sampleLikes.map((tweet) => (
+                  <TweetCard key={tweet.id} tweet={tweet} />
+              ))
+          ) : (
+              <p className="text-dark text-center p-4 mt-4">Không có lượt thích nào.</p>
+          )}
+        </div>
+    );
+  };
 
-  const renderHighlightsContent = () => (
-      <div className="mt-0 border-top">
-        {sampleHighlights.map((highlight) => (
-            <TweetCard key={highlight.id} tweet={highlight} />
-        ))}
-        {sampleHighlights.length === 0 && <p className="text-muted text-center p-4">Không có sự kiện nổi bật nào.</p>}
-      </div>
-  );
+  const renderHighlightsContent = () => {
+    console.log("Rendering highlights:", sampleHighlights);
+    return (
+        <div className="mt-0 border-top">
+          {sampleHighlights.length > 0 ? (
+              sampleHighlights.map((highlight) => (
+                  <TweetCard key={highlight.id} tweet={highlight} />
+              ))
+          ) : (
+              <p className="text-dark text-center p-4">Không có sự kiện nổi bật nào.</p>
+          )}
+        </div>
+    );
+  };
 
-  const renderArticlesContent = () => (
-      <div className="mt-0 border-top">
-        {sampleArticles.map((article) => (
-            <div key={article.id} className="border-bottom p-3 d-flex align-items-start justify-content-between">
-              <div className="d-flex align-items-center mb-3">
-                <Image src={article.user.avatar} roundedCircle width={30} height={40} className="me-2" />
-                <div className="d-flex flex-column">
-                  <span className="fw-bold">{article.user.name}</span>
-                  <span className="d-none d-sm-inline">
-                <span className="text-light small">@{article.user.username}</span>
-              </span>
-                </div>
-              </div>
-              <h5 className="fw-bold mb-1">{article.title}</h5>
-              {article.imageUrl && (
-                  <Image src={article.imageUrl} fluid className="rounded mb-3" style={{ maxHeight: "500px", objectFit: "cover" }} />
-              )}
-              <p className="text-light text-muted small">{article.content.substring(0, 150)}...</p>
-              <div className="d-flex justify-content-between text-muted small">
-                <span>{new Date(article.timestamp).toLocaleDateString("en-US")}</span>
-                <span>{article.readTime}</span>
-              </div>
-            </div>
-        ))}
-        {sampleArticles.length === 0 && <p className="text-muted text-center p-4">Không có bài viết nào.</p>}
-      </div>
-  );
+  const renderArticlesContent = () => {
+    console.log("Rendering articles:", sampleArticles);
+    return (
+        <div className="mt-0 border-top">
+          {sampleArticles.length > 0 ? (
+              sampleArticles.map((article) => (
+                  <div key={article.id} className="border-bottom p-3 d-flex align-items-start justify-content-between">
+                    <div className="d-flex align-items-center mb-3">
+                      <Image src={article.user.avatar} roundedCircle width={30} height={40} className="me-2" />
+                      <div className="d-flex flex-column">
+                        <span className="fw-bold text-dark">{article.user.name}</span>
+                        <span className="d-none d-sm-inline">
+                    <span className="text-secondary small">@{article.user.username}</span>
+                  </span>
+                      </div>
+                    </div>
+                    <h5 className="fw-bold mb-1 text-dark">{article.title}</h5>
+                    {article.imageUrl && (
+                        <Image src={article.imageUrl} fluid className="rounded mb-3" style={{ maxHeight: "500px", objectFit: "cover" }} />
+                    )}
+                    <p className="text-dark small">{article.content.substring(0, 150)}...</p>
+                    <div className="d-flex justify-content-between text-secondary small">
+                      <span>{new Date(article.timestamp).toLocaleDateString("en-US")}</span>
+                      <span>{article.readTime}</span>
+                    </div>
+                  </div>
+              ))
+          ) : (
+              <p className="text-dark text-center p-4">Không có bài viết nào.</p>
+          )}
+        </div>
+    );
+  };
 
   const renderActiveTabContent = () => {
+    console.log("Active tab:", activeTab);
     switch (activeTab) {
       case "posts": return renderPostsContent();
       case "replies": return renderRepliesContent();
@@ -216,6 +262,14 @@ function ProfilePage() {
     );
   }
 
+  if (!userProfile) {
+    return (
+        <div className="text-center p-4">
+          <p className="text-dark">Không thể tải thông tin hồ sơ. Vui lòng thử lại sau.</p>
+        </div>
+    );
+  }
+
   return (
       <Container fluid className="min-vh-100 p-0">
         <div className="sticky-top">
@@ -227,8 +281,8 @@ function ProfilePage() {
                     <FaArrowLeft size={20} />
                   </Link>
                   <div className="d-flex flex-column">
-                    <h5 className="mb-0 fw-bold">{userProfile?.name}</h5>
-                    <span className="text-light small">{userProfile?.postCount || 0} posts</span>
+                    <h5 className="mb-0 fw-bold text-dark">{userProfile?.name}</h5>
+                    <span className="text-dark small">{userProfile?.postCount || 0} posts</span>
                   </div>
                 </div>
               </Col>
@@ -258,56 +312,56 @@ function ProfilePage() {
                     Chỉnh sửa
                   </Button>
                 </div>
-                <h4 className="mb-0 fw-bold">{userProfile?.displayName || "Người dùng Test"}</h4>
-                <p className="text-light small mb-2">@{userProfile?.username || "testuser"}</p>
-                {userProfile?.bio && <p className="mb-2">{userProfile.bio}</p>}
+                <h4 className="mb-0 fw-bold text-dark">{userProfile?.displayName || "Người dùng Test"}</h4>
+                <p className="text-dark small mb-2">@{userProfile?.username || "testuser"}</p>
+                {userProfile?.bio && <p className="mb-2 text-dark">{userProfile.bio}</p>}
                 {userProfile?.location && (
-                    <p className="text-light small d-flex align-items-center mb-2">
+                    <p className="text-secondary small d-flex align-items-center mb-2">
                       <FaMapMarkerAlt size={16} className="me-2" /> {userProfile.location}
                     </p>
                 )}
                 {userProfile?.website && (
-                    <p className="text-light small d-flex align-items-center mb-2">
+                    <p className="text-secondary small d-flex align-items-center mb-2">
                       <FaLink size={16} className="me-2" />
                       <a
                           href={userProfile.website}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-decoration-none text-muted"
+                          className="text-decoration-none text-primary"
                       >
                         {userProfile.website}
                       </a>
                     </p>
                 )}
-                <p className="text-light small d-flex align-items-center mb-2">
+                <p className="text-secondary small d-flex align-items-center mb-2">
                   <FaCalendarAlt size={16} className="me-2" /> Ngày sinh:{" "}
                   {userProfile?.dateOfBirth
                       ? new Date(userProfile.dateOfBirth).toLocaleDateString("vi-VN")
                       : "Chưa cập nhật"}
                 </p>
                 {userProfile?.gender !== undefined && (
-                    <p className="text-light small d-flex align-items-center mb-2">
+                    <p className="text-secondary small d-flex align-items-center mb-2">
                       <FaEllipsisH size={16} className="me-2" />
                       Giới tính: {userProfile.gender === 0 ? "Nam" : userProfile.gender === "1" ? "Nữ" : "Khác"}
                     </p>
                 )}
                 <div className="d-flex mb-3">
                   <Link to="#" className="me-3 text-dark text-decoration-none">
-                    <span className="fw-bold">{userProfile?.followeeCount || 0}</span>{" "}
-                    <span className="text-light small">Đang theo dõi</span>
+                    <span className="fw-bold text-dark">{userProfile?.followeeCount || 0}</span>{" "}
+                    <span className="text-secondary small">Đang theo dõi</span>
                   </Link>
                   <Link to="#" className="text-dark text-decoration-none">
-                    <span className="fw-bold">{userProfile?.followerCount || 0}</span>{" "}
-                    <span className="text-light small">Người theo dõi</span>
+                    <span className="fw-bold text-dark">{userProfile?.followerCount || 0}</span>{" "}
+                    <span className="text-secondary small">Người theo dõi</span>
                   </Link>
                 </div>
                 {showAlert && !userProfile?.isPremium && (
                     <div className="alert alert-light d-flex align-items-start border border-light rounded-3 p-3" role="alert">
                       <div>
-                        <h6 className="fw-bold mb-1">
+                        <h6 className="fw-bold text-dark mb-1">
                           Bạn chưa đăng ký premium tài khoản <FaCheckCircle className="text-dark" />
                         </h6>
-                        <p className="text-light small mb-2">
+                        <p className="text-secondary small mb-2">
                           Hãy đăng ký premium tài khoản để sử dụng tính năng ưu tiên trả lời, phân tích, duyệt
                           xem không có quảng cáo, v.v. Nâng cấp hồ sơ ngay.
                         </p>
