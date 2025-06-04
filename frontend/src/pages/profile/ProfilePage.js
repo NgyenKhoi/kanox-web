@@ -43,19 +43,20 @@ function ProfilePage() {
   useEffect(() => {
   const fetchUserProfile = async () => {
     const token = localStorage.getItem("token");
-    const currentUsername = localStorage.getItem("username");
+    const userJson = localStorage.getItem("user");
+    const currentUser = userJson ? JSON.parse(userJson) : null;
 
-    if (!currentUsername || !token) {
+    if (!currentUser || !token) {
       setUserProfile(defaultUserProfile);
       console.warn(
-        "Không tìm thấy username hoặc token trong localStorage. Đang sử dụng dữ liệu profile mặc định."
+        "Không tìm thấy user hoặc token trong localStorage. Đang sử dụng dữ liệu profile mặc định."
       );
       return;
     }
 
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/user/profile/${username}`,
+        `${process.env.REACT_APP_API_URL}/user/profile/${currentUser.username}`,
         {
           headers: {
             "Content-Type": "application/json",
@@ -89,7 +90,7 @@ function ProfilePage() {
   };
 
   fetchUserProfile();
-}, [username]);
+}, []);
 
   const sampleTweets = [
     {
