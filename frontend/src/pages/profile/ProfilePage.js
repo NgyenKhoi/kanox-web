@@ -90,7 +90,7 @@ function ProfilePage() {
   };
 
   fetchUserProfile();
-}, []);
+}, [currentUser.username]);
 
   const sampleTweets = [
     {
@@ -579,16 +579,6 @@ function ProfilePage() {
                     : "Khác"}
                 </p>
               )}
-                <p className="text-muted d-flex align-items-center mb-2">
-                  <FaCalendarAlt size={16} className="me-2" />
-                  Ngày sinh{" "}
-                  {userProfile.dateOfBirth
-                    ? new Date(userProfile.dateOfBirth).toLocaleDateString(
-                        "vi-VN"
-                      )
-                    : "Chưa cập nhật"}
-                </p>
-
                 <div className="d-flex mb-3">
                   <Link to="#" className="me-3 text-dark text-decoration-none">
                     <span className="fw-bold">{userProfile.followeeCount}</span>{" "}
