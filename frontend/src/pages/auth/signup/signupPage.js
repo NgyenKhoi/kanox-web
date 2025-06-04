@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useContext } from "react";
 import { Container, Row, Col, Button, Spinner } from "react-bootstrap";
 import { FcGoogle } from "react-icons/fc";
-import { FaApple } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import CreateAccountModal from "../login/CreateAccountModal";
 import LoginModal from "../login/LoginModal";
@@ -35,7 +34,7 @@ const SignupPage = () => {
     setLoading(true);
     try {
       const idToken = credentialResponse.credential;
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/auth/register-google`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/auth/login-google`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ idToken }),
@@ -63,9 +62,6 @@ const SignupPage = () => {
     toast.error("Đăng ký Google thất bại hoặc bị hủy.");
   };
 
-  const handleAppleRegister = () => {
-    toast.info("Tính năng đăng ký bằng Apple đang phát triển!");
-  };
 
   return (
       <Container fluid className="d-flex flex-column min-vh-100 bg-white text-black">
@@ -100,16 +96,7 @@ const SignupPage = () => {
                   theme="outline"
                   disabled={loading}
               />
-              <Button
-                  variant="outline-dark"
-                  className="d-flex align-items-center justify-content-center py-2 rounded-pill fw-bold"
-                  onClick={handleAppleRegister}
-                  disabled={loading}
-              >
-                <FaApple className="me-2" size={24} />
-                Đăng ký với Apple
-              </Button>
-
+              
               <div className="d-flex align-items-center my-3">
                 <hr className="flex-grow-1 border-secondary" />
                 <span className="mx-2 text-muted">HOẶC</span>
