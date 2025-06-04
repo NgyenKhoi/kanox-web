@@ -123,16 +123,14 @@ function ProfilePage() {
 
   const handlePremiumClick = () => navigate("/premium");
 
-  const renderPostsContent = () => {
-    return (
-        <div className="mt-0 border-top">
-          {sampleTweets.map((tweet) => (
-              <TweetCard key={tweet.id} tweet={tweet} />
-          ))}
-          {sampleTweets.length === 0 && <p className="text-muted text-center mt-4 p-4">Không có bài đăng nào.</p>}
-        </div>
-    );
-  };
+  const renderPostsContent = () => (
+      <div className="mt-0 border-top">
+        {sampleTweets.map((tweet) => (
+            <TweetCard key={tweet.id} tweet={tweet} />
+        ))}
+        {sampleTweets.length === 0 && <p className="text-muted text-center mt-4 p-4">Không có bài đăng nào.</p>}
+      </div>
+  );
 
   const renderRepliesContent = () => (
       <div className="mt-0 border-top">
@@ -173,19 +171,21 @@ function ProfilePage() {
   const renderArticlesContent = () => (
       <div className="mt-0 border-top">
         {sampleArticles.map((article) => (
-            <div key={article.id} className="border-bottom p-3 hover-bg-light">
-              <div className="d-flex align-items-center mb-2">
-                <Image src={article.user.avatar} roundedCircle width={40} height={40} className="me-2" />
+            <div key={article.id} className="border-bottom p-3 d-flex align-items-start justify-content-between">
+              <div className="d-flex align-items-center mb-3">
+                <Image src={article.user.avatar} roundedCircle width={30} height={40} className="me-2" />
                 <div className="d-flex flex-column">
                   <span className="fw-bold">{article.user.name}</span>
-                  <span className="text-muted small">@{article.user.username}</span>
+                  <span className="d-none d-sm-inline">
+                <span className="text-light small">@{article.user.username}</span>
+              </span>
                 </div>
               </div>
               <h5 className="fw-bold mb-1">{article.title}</h5>
               {article.imageUrl && (
-                  <Image src={article.imageUrl} fluid className="rounded mb-2" style={{ maxHeight: "200px", objectFit: "cover" }} />
+                  <Image src={article.imageUrl} fluid className="rounded mb-3" style={{ maxHeight: "500px", objectFit: "cover" }} />
               )}
-              <p className="text-muted small">{article.content.substring(0, 150)}...</p>
+              <p className="text-light text-muted small">{article.content.substring(0, 150)}...</p>
               <div className="d-flex justify-content-between text-muted small">
                 <span>{new Date(article.timestamp).toLocaleDateString("en-US")}</span>
                 <span>{article.readTime}</span>
@@ -211,87 +211,184 @@ function ProfilePage() {
   if (loading) {
     return (
         <div className="d-flex justify-content-center align-items-center min-vh-100">
-          <Spinner animation="border" role="status" style={{ color: "#000" }} />
+          <Spinner animation="border" role="status" />
         </div>
     );
   }
 
   return (
-      <>
-        <div className="d-none d-lg-block">
-          <SidebarLeft />
-        </div>
-
-        <div className="d-flex flex-column flex-grow-1">
-          <div className="sticky-top bg-white border-bottom py-2" style={{ zIndex: 1020 }}>
-            <Container fluid>
-              <Row>
-                <Col xs={12} sm={12} md={12} lg={12} xl={12} className="mx-auto d-flex align-items-center ps-md-0">
-                  <div className="d-flex align-items-center">
-                    <Link to="/" className="btn btn-link-primary text-dark me-3">
-                      <FaArrowLeft size={20} />
-                    </Link>
-                    <div className="d-flex flex-column">
-                      <h5 className="mb-0 fw-bold">{userProfile.name}</h5>
-                      <p className="text-muted small mb-0">{userProfile.postCount} posts</p>
-                    </div>
+      <Container fluid className="min-vh-100 p-0">
+        <div className="sticky-top">
+          <Container fluid className="bg-white border-bottom py-2" style={{ zIndex: 1020 }}>
+            <Row>
+              <Col xs={12} sm={12} md={12} lg={12} xl={12} className="mx-auto d-flex align-items-center ps-md-5">
+                <div className="d-flex align-items-center">
+                  <Link to="/" className="btn btn-light me-3">
+                    <FaArrowLeft size={20} />
+                  </Link>
+                  <div className="d-flex flex-column">
+                    <h5 className="mb-0 fw-bold">{userProfile?.name}</h5>
+                    <span className="text-light small">{userProfile?.postCount || 0} posts</span>
                   </div>
-                </Col>
-              </Row>
-            </Container>
-          </div>
-
-          <Container fluid className="flex-grow-1">
-            <Row className="h-100">
-              <Col xs={12} sm={12} md={12} lg={6} xl={6} className="px-md-0 border-start border-end">
-                <Image src={userProfile?.banner} fluid className="w-100 border-bottom" style={{ height: "200px", objectFit: "cover" }} />
-                <div className="position-relative p-3">
-                  <div className="d-flex justify-content-between align-items-end mb-3">
-                    <Image src={userProfile.avatar} roundedCircle className="border border-white border-4" style={{ width: "130px", height: "130px", objectFit: "cover", marginTop: "-75px", zIndex: "2" }} />
-                    <Button variant="outline-dark" className="rounded-pill fw-bold px-3 py-2" onClick={handleEditClick}>Chỉnh sửa hồ sơ</Button>
-                  </div>
-                  <h4 className="mb-0 fw-bold">{userProfile.displayName}</h4>
-                  <p className="text-muted mb-2">@{userProfile.username}</p>
-                  {userProfile.bio && <p className="mb-2">{userProfile.bio}</p>}
-                  {userProfile.location && <p className="text-muted d-flex align-items-center mb-2"><FaMapMarkerAlt size={16} className="me-2" /> {userProfile.location}</p>}
-                  {userProfile.website && <p className="text-muted d-flex align-items-center mb-2"><FaLink size={16} className="me-2" /><a href={userProfile.website} target="_blank" rel="noopener noreferrer" className="text-decoration-none text-muted">{userProfile.website}</a></p>}
-                  <p className="text-muted d-flex align-items-center mb-2"><FaCalendarAlt size={16} className="me-2" /> Ngày sinh {userProfile.dateOfBirth ? new Date(userProfile.dateOfBirth).toLocaleDateString("vi-VN") : "Chưa cập nhật"}</p>
-                  {userProfile.gender !== undefined && <p className="text-muted d-flex align-items-center mb-2"><FaEllipsisH size={16} className="me-2" /> Giới tính: {userProfile.gender === 0 ? "Nam" : userProfile.gender === 1 ? "Nữ" : "Khác"}</p>}
-                  <div className="d-flex mb-3">
-                    <Link to="#" className="me-3 text-dark text-decoration-none"><span className="fw-bold">{userProfile.followeeCount}</span> <span className="text-muted">Đang theo dõi</span></Link>
-                    <Link to="#" className="text-dark text-decoration-none"><span className="fw-bold">{userProfile.followerCount}</span> <span className="text-muted">Người theo dõi</span></Link>
-                  </div>
-                  {showAlert && !userProfile.isPremium && (
-                      <div className="alert alert-light d-flex align-items-start border border-dark rounded-3" role="alert">
-                        <div>
-                          <h6 className="alert-heading mb-1">Bạn chưa đăng ký premium tài khoản <FaCheckCircle className="text-dark" /></h6>
-                          <p className="mb-2">Hãy đăng ký premium tài khoản để sử dụng tính năng ưu tiên trả lời, phân tích, duyệt xem không có quảng cáo, v.v. Nâng cấp hồ sơ ngay.</p>
-                          <Button variant="dark" className="rounded-pill px-4 fw-bold" onClick={handlePremiumClick}>Premium</Button>
-                        </div>
-                        <Button variant="link" className="ms-auto text-dark p-0" onClick={() => setShowAlert(false)}>×</Button>
-                      </div>
-                  )}
-                  <Nav variant="underline" className="mt-4 profile-tabs nav-justified">
-                    <Nav.Item><Nav.Link onClick={() => setActiveTab("posts")} className={`text-dark fw-bold ${activeTab === "posts" ? "active" : ""}`}>Bài đăng</Nav.Link></Nav.Item>
-                    <Nav.Item><Nav.Link onClick={() => setActiveTab("replies")} className={`text-dark fw-bold ${activeTab === "replies" ? "active" : ""}`}>Các phản hồi</Nav.Link></Nav.Item>
-                    <Nav.Item><Nav.Link onClick={() => setActiveTab("media")} className={`text-dark fw-bold ${activeTab === "media" ? "active" : ""}`}>Phương tiện</Nav.Link></Nav.Item>
-                    <Nav.Item><Nav.Link onClick={() => setActiveTab("likes")} className={`text-dark fw-bold ${activeTab === "likes" ? "active" : ""}`}>Lượt thích</Nav.Link></Nav.Item>
-                    <Nav.Item><Nav.Link onClick={() => setActiveTab("highlights")} className={`text-dark fw-bold ${activeTab === "highlights" ? "active" : ""}`}>Sự kiện nổi bật</Nav.Link></Nav.Item>
-                    <Nav.Item><Nav.Link onClick={() => setActiveTab("articles")} className={`text-dark fw-bold ${activeTab === "articles" ? "active" : ""}`}>Bài viết</Nav.Link></Nav.Item>
-                  </Nav>
                 </div>
-                {renderActiveTabContent()}
-              </Col>
-
-              <Col xs={0} sm={0} md={0} lg={3} className="d-none d-lg-block border-start p-0">
-                <SidebarRight />
               </Col>
             </Row>
           </Container>
         </div>
 
-        <EditProfileModal show={showEditModal} handleClose={handleCloseEditModal} userProfile={userProfile} onSave={handleSaveProfile} username={username} />
-      </>
+        <Container fluid className="flex-grow-1">
+          <Row className="h-100">
+            {/* SidebarLeft */}
+            <Col xs={0} sm={0} md={0} lg={3} className="d-none d-lg-block p-0">
+              <SidebarLeft />
+            </Col>
+
+            {/* Nội dung chính */}
+            <Col xs={12} sm={12} md={12} lg={6} xl={6} className="px-md-0 border-start border-end border-dark">
+              <Image src={userProfile?.banner || "https://via.placeholder.com/1200x400?text=Banner"} fluid className="w-100 border-bottom" style={{ height: "200px", objectFit: "cover" }} />
+              <div className="position-relative p-3">
+                <div className="d-flex justify-content-between align-items-end mb-3">
+                  <Image
+                      src={userProfile?.avatar || "https://via.placeholder.com/150?text=Avatar"}
+                      roundedCircle
+                      className="border border-white border-4"
+                      style={{ width: "130px", height: "130px", objectFit: "cover", marginTop: "-75px", zIndex: "2" }}
+                  />
+                  <Button variant="primary" className="rounded-pill fw-bold px-3 py-2" onClick={handleEditClick}>
+                    Chỉnh sửa
+                  </Button>
+                </div>
+                <h4 className="mb-0 fw-bold">{userProfile?.displayName || "Người dùng Test"}</h4>
+                <p className="text-light small mb-2">@{userProfile?.username || "testuser"}</p>
+                {userProfile?.bio && <p className="mb-2">{userProfile.bio}</p>}
+                {userProfile?.location && (
+                    <p className="text-light small d-flex align-items-center mb-2">
+                      <FaMapMarkerAlt size={16} className="me-2" /> {userProfile.location}
+                    </p>
+                )}
+                {userProfile?.website && (
+                    <p className="text-light small d-flex align-items-center mb-2">
+                      <FaLink size={16} className="me-2" />
+                      <a
+                          href={userProfile.website}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-decoration-none text-muted"
+                      >
+                        {userProfile.website}
+                      </a>
+                    </p>
+                )}
+                <p className="text-light small d-flex align-items-center mb-2">
+                  <FaCalendarAlt size={16} className="me-2" /> Ngày sinh:{" "}
+                  {userProfile?.dateOfBirth
+                      ? new Date(userProfile.dateOfBirth).toLocaleDateString("vi-VN")
+                      : "Chưa cập nhật"}
+                </p>
+                {userProfile?.gender !== undefined && (
+                    <p className="text-light small d-flex align-items-center mb-2">
+                      <FaEllipsisH size={16} className="me-2" />
+                      Giới tính: {userProfile.gender === 0 ? "Nam" : userProfile.gender === "1" ? "Nữ" : "Khác"}
+                    </p>
+                )}
+                <div className="d-flex mb-3">
+                  <Link to="#" className="me-3 text-dark text-decoration-none">
+                    <span className="fw-bold">{userProfile?.followeeCount || 0}</span>{" "}
+                    <span className="text-light small">Đang theo dõi</span>
+                  </Link>
+                  <Link to="#" className="text-dark text-decoration-none">
+                    <span className="fw-bold">{userProfile?.followerCount || 0}</span>{" "}
+                    <span className="text-light small">Người theo dõi</span>
+                  </Link>
+                </div>
+                {showAlert && !userProfile?.isPremium && (
+                    <div className="alert alert-light d-flex align-items-start border border-light rounded-3 p-3" role="alert">
+                      <div>
+                        <h6 className="fw-bold mb-1">
+                          Bạn chưa đăng ký premium tài khoản <FaCheckCircle className="text-dark" />
+                        </h6>
+                        <p className="text-light small mb-2">
+                          Hãy đăng ký premium tài khoản để sử dụng tính năng ưu tiên trả lời, phân tích, duyệt
+                          xem không có quảng cáo, v.v. Nâng cấp hồ sơ ngay.
+                        </p>
+                        <Button variant="dark" className="rounded-pill px-4 py-2 fw-bold" onClick={handlePremiumClick}>
+                          Premium
+                        </Button>
+                      </div>
+                      <Button variant="link" className="ms-auto text-dark p-0" onClick={() => setShowAlert(false)}>
+                        ×
+                      </Button>
+                    </div>
+                )}
+                <Nav variant="tabs" className="mt-4 profile-tabs nav-justified">
+                  <Nav.Item>
+                    <Nav.Link
+                        onClick={() => setActiveTab("posts")}
+                        className={`text-dark fw-bold ${activeTab === "posts" ? "active" : ""}`}
+                    >
+                      Bài đăng
+                    </Nav.Link>
+                  </Nav.Item>
+                  <Nav.Item>
+                    <Nav.Link
+                        onClick={() => setActiveTab("replies")}
+                        className={`text-dark fw-bold ${activeTab === "replies" ? "active" : ""}`}
+                    >
+                      Các phản hồi
+                    </Nav.Link>
+                  </Nav.Item>
+                  <Nav.Item>
+                    <Nav.Link
+                        onClick={() => setActiveTab("media")}
+                        className={`text-dark fw-bold ${activeTab === "media" ? "active" : ""}`}
+                    >
+                      Phương tiện
+                    </Nav.Link>
+                  </Nav.Item>
+                  <Nav.Item>
+                    <Nav.Link
+                        onClick={() => setActiveTab("likes")}
+                        className={`text-dark fw-bold ${activeTab === "likes" ? "active" : ""}`}
+                    >
+                      Lượt thích
+                    </Nav.Link>
+                  </Nav.Item>
+                  <Nav.Item>
+                    <Nav.Link
+                        onClick={() => setActiveTab("highlights")}
+                        className={`text-dark fw-bold ${activeTab === "highlights" ? "active" : ""}`}
+                    >
+                      Sự kiện nổi bật
+                    </Nav.Link>
+                  </Nav.Item>
+                  <Nav.Item>
+                    <Nav.Link
+                        onClick={() => setActiveTab("articles")}
+                        className={`text-dark fw-bold ${activeTab === "articles" ? "active" : ""}`}
+                    >
+                      Bài viết
+                    </Nav.Link>
+                  </Nav.Item>
+                </Nav>
+                {renderActiveTabContent()}
+              </div>
+            </Col>
+
+            {/* SidebarRight */}
+            <Col xs={0} sm={0} md={0} lg={3} className="d-none d-lg-block border-start p-0">
+              <SidebarRight />
+            </Col>
+          </Row>
+        </Container>
+
+        <EditProfileModal
+            show={showEditModal}
+            handleClose={handleCloseEditModal}
+            userProfile={userProfile}
+            onSave={handleSaveProfile}
+            username={username}
+        />
+      </Container>
   );
 }
 
