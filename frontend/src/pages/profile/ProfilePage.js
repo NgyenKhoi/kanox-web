@@ -41,9 +41,10 @@ function ProfilePage() {
   };
   const userJson = localStorage.getItem("user");
   const currentUser = userJson ? JSON.parse(userJson) : null;
+  const token = localStorage.getItem("token");
   useEffect(() => {
     const fetchUserProfile = async () => {
-      const token = localStorage.getItem("token");
+      
 
       if (!currentUser || !token) {
         setUserProfile(defaultUserProfile);
@@ -306,13 +307,27 @@ function ProfilePage() {
   const handleEditClick = () => setShowEditModal(true);
   const handleCloseEditModal = () => setShowEditModal(false);
 
-  const handleSaveProfile = (updatedData) => {
-    setUserProfile((prevProfile) => ({
-      ...prevProfile,
-      ...updatedData,
-    }));
-    console.log("Profile updated:", updatedData);
+const handleSaveProfile = async (updatedData) => {
+  if (!token) {
+    console.error("Không tìm thấy token, không thể cập nhật profile.");
+    return;
+  }
+  const fullDataToSend = {
+    ...userProfile,
+    ...updatedData
   };
+
+    await fetch(`/user/profile/${currentUser.username}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(fullDataToSend),
+  });
+
+  setUserProfile(fullDataToSend);
+};
 
   const handlePremiumClick = () => {
     navigate("/premium");
