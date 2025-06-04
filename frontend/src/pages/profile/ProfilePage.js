@@ -317,7 +317,7 @@ const handleSaveProfile = async (updatedData) => {
     ...updatedData
   };
 
-    await fetch(`/user/profile/${currentUser.username}`, {
+    await fetch(`${process.env.REACT_APP_API_URL}/user/profile/${currentUser.username}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
