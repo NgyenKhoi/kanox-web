@@ -1,65 +1,54 @@
 import React, { useState } from "react";
-import { Container, Form, Button, Row, Col } from "react-bootstrap";
-import { useNavigate } from "react-router-dom";
+import { Modal, Button, Form, Spinner } from "react-bootstrap";
+import { X as XCloseIcon } from "react-bootstrap-icons";
 import KLogoSvg from "../../../components/svgs/KSvg";
-import { toast, ToastContainer } from "react-toastify";
+import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-const CompleteProfilePage = () => {
-  const navigate = useNavigate();
+const apiBase = process.env.REACT_APP_API_URL;
 
-  const [formData, setFormData] = useState({
-    displayName: "",
-    phoneNumber: "",
-    bio: "",
-    gender: "",
-    day: "",
-    month: "",
-    year: "",
-  });
-
+const ForgotPasswordModal = ({ show, handleClose }) => {
+  const [identifier, setIdentifier] = useState(""); // Email or username
   const [loading, setLoading] = useState(false);
+  const [step, setStep] = useState(1); // Step 1: Nhập email, Step 2: Xác nhận thành công
+  const [errors, setErrors] = useState({});
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+  const handleInputChange = (e) => {
+    const value = e.target.value;
+    setIdentifier(value);
+    if (errors.identifier) {
+      setErrors((prevErrors) => {
+        const newErrors = { ...prevErrors };
+        delete newErrors.identifier;
+        return newErrors;
+      });
+    }
   };
 
-  const handleSubmit = async (e) => {
+  const validateForm = () => {
+    let newErrors = {};
+    if (!identifier) newErrors.identifier = "Email là bắt buộc.";
+    else if (!/\S+@\S+\.\S+/.test(identifier))
+      newErrors.identifier = "Email không hợp lệ.";
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmitEmail = async (e) => {
     e.preventDefault();
     setLoading(true);
 
-    const tempRegister = JSON.parse(localStorage.getItem("tempRegister"));
-    if (!tempRegister) {
-      toast.error(
-        "Thông tin tài khoản tạm không tồn tại. Vui lòng đăng ký lại."
-      );
+    if (!validateForm()) {
       setLoading(false);
       return;
     }
 
-    const fullProfile = {
-      username: tempRegister.username,
-      email: tempRegister.email,
-      password: tempRegister.password,
-      day: Number(formData.day),
-      month: Number(formData.month),
-      year: Number(formData.year),
-      displayName: formData.displayName,
-      phoneNumber: formData.phoneNumber,
-      bio: formData.bio,
-      gender: formData.gender,
-    };
-
     try {
-      const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/auth/register`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(fullProfile),
-        }
-      );
+      const response = await fetch(`${apiBase}/auth/forgot-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: identifier }),
+      });
 
       const contentType = response.headers.get("content-type");
       let data;
@@ -71,142 +60,122 @@ const CompleteProfilePage = () => {
       }
 
       if (response.ok) {
-        localStorage.removeItem("tempRegister");
-        toast.success(data.message || "Đăng ký thành công!");
-        navigate("/home");
+        toast.success(
+            data.message || "Yêu cầu khôi phục mật khẩu đã được gửi thành công!"
+        );
+        setStep(2); // Chuyển sang bước 2 để hiển thị thông báo thành công
       } else {
-        toast.error(data.message || "Đăng ký thất bại. Vui lòng thử lại!");
+        toast.error(data.message || "Đã xảy ra lỗi. Vui lòng thử lại!");
         if (data.errors && Object.keys(data.errors).length > 0) {
           const errorDetails = Object.values(data.errors).join(", ");
           toast.error(`${data.message} - Chi tiết: ${errorDetails}`);
         }
       }
     } catch (error) {
-      toast.error("Lỗi kết nối đến máy chủ.");
+      toast.error("Lỗi kết nối. Vui lòng thử lại sau!");
     } finally {
       setLoading(false);
     }
   };
 
+  if (!show) return null;
+
   return (
-    <Container
-      fluid
-      className="d-flex flex-column min-vh-100 bg-white text-black"
-    >
-      <ToastContainer position="top-right" />
-      <Row className="flex-grow-1 justify-content-center align-items-center">
-        <Col xs={12} sm={10} md={8} lg={6} xl={5} className="p-4">
-          <div className="text-center mb-4">
-            <KLogoSvg style={{ height: "100px", width: "auto" }} fill="black" />
-          </div>
-          <h2 className="mb-4 text-center">Hoàn thành hồ sơ của bạn</h2>
-
-          <Form onSubmit={handleSubmit}>
-            <Form.Group className="mb-3" controlId="formDisplayName">
-              <Form.Label>Tên hiển thị</Form.Label>
-              <Form.Control
-                type="text"
-                placeholder="Nhập tên hiển thị của bạn"
-                name="displayName"
-                value={formData.displayName}
-                onChange={handleChange}
-              />
-            </Form.Group>
-
-            <Form.Group className="mb-3" controlId="formPhoneNumber">
-              <Form.Label>
-                Số điện thoại <span className="text-danger">*</span>
-              </Form.Label>
-              <Form.Control
-                type="tel"
-                placeholder="Nhập số điện thoại của bạn"
-                name="phoneNumber"
-                value={formData.phoneNumber}
-                onChange={handleChange}
-              />
-            </Form.Group>
-
-            <Form.Group className="mb-3" controlId="formBio">
-              <Form.Label>Tiểu sử</Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={3}
-                placeholder="Viết một chút về bản thân bạn"
-                name="bio"
-                value={formData.bio}
-                onChange={handleChange}
-              />
-            </Form.Group>
-
-            <Form.Group className="mb-3" controlId="formGender">
-              <Form.Label>
-                Giới tính <span className="text-danger">*</span>
-              </Form.Label>
-              <Form.Select
-                name="gender"
-                value={formData.gender}
-                onChange={handleChange}
+      <>
+        <ToastContainer />
+        <Modal show={show} onHide={handleClose} centered size="lg">
+          <Modal.Body
+              className="p-4 rounded-3"
+              style={{ backgroundColor: "#fff", color: "#000", borderRadius: "15px" }}
+          >
+            <div className="d-flex justify-content-between align-items-center mb-4">
+              <Button
+                  variant="link"
+                  onClick={handleClose}
+                  className="p-0"
+                  style={{ color: "#000", fontSize: "1.5rem" }}
               >
-                <option value="">-- Chọn giới tính --</option>
-                <option value="0">Nam</option>
-                <option value="1">Nữ</option>
-                <option value="2">Khác</option>
-              </Form.Select>
-            </Form.Group>
+                <XCloseIcon />
+              </Button>
+              <div style={{ width: "100px", height: "100px" }}>
+                <KLogoSvg className="w-100 h-100" fill="black" />
+              </div>
+              <div style={{ width: "30px" }}></div>
+            </div>
 
-            <Row className="mb-4">
-              <Form.Label>
-                Ngày sinh <span className="text-danger">*</span>
-              </Form.Label>
-              <Col xs={4}>
-                <Form.Control
-                  type="number"
-                  placeholder="Ngày"
-                  name="day"
-                  value={formData.day}
-                  onChange={handleChange}
-                  min={1}
-                  max={31}
-                />
-              </Col>
-              <Col xs={4}>
-                <Form.Control
-                  type="number"
-                  placeholder="Tháng"
-                  name="month"
-                  value={formData.month}
-                  onChange={handleChange}
-                  min={1}
-                  max={12}
-                />
-              </Col>
-              <Col xs={4}>
-                <Form.Control
-                  type="number"
-                  placeholder="Năm"
-                  name="year"
-                  value={formData.year}
-                  onChange={handleChange}
-                  min={1900}
-                  max={new Date().getFullYear()}
-                />
-              </Col>
-            </Row>
+            <h3 className="fw-bold mb-4 text-center">Quên mật khẩu</h3>
 
-            <Button
-              variant="primary"
-              type="submit"
-              className="w-100 py-2 rounded-pill fw-bold"
-              style={{ backgroundColor: "#000", borderColor: "#000" }}
-              disabled={loading}
-            >
-              {loading ? "Đang gửi..." : "Tiếp theo"}
-            </Button>
-          </Form>
-        </Col>
-      </Row>
-    </Container>
+            {step === 1 && (
+                <Form onSubmit={handleSubmitEmail}>
+                  <Form.Group className="mb-4">
+                    <Form.Label>Email <span className="text-danger">*</span></Form.Label>
+                    <Form.Control
+                        type="email"
+                        placeholder="Nhập email của bạn"
+                        value={identifier}
+                        onChange={handleInputChange}
+                        className="py-3 px-3 rounded-3"
+                        style={{ fontSize: "1.1rem", borderColor: "#ccc" }}
+                        isInvalid={!!errors.identifier}
+                        disabled={loading}
+                    />
+                    <Form.Control.Feedback type="invalid">
+                      {errors.identifier}
+                    </Form.Control.Feedback>
+                  </Form.Group>
+                  <Button
+                      type="submit"
+                      variant="dark"
+                      className="py-3 rounded-pill fw-bold w-100"
+                      style={{
+                        backgroundColor: "#000",
+                        borderColor: "#000",
+                        fontSize: "1.1rem",
+                      }}
+                      disabled={loading || !identifier}
+                  >
+                    {loading ? (
+                        <>
+                          <Spinner
+                              as="span"
+                              animation="border"
+                              size="sm"
+                              role="status"
+                              className="me-2"
+                          />
+                          Đang xử lý...
+                        </>
+                    ) : (
+                        "Gửi yêu cầu"
+                    )}
+                  </Button>
+                </Form>
+            )}
+
+            {step === 2 && (
+                <div className="text-center">
+                  <p className="mb-4" style={{ fontSize: "1.1rem", color: "#000" }}>
+                    Yêu cầu khôi phục mật khẩu đã được gửi thành công! Vui lòng kiểm
+                    tra email của bạn.
+                  </p>
+                  <Button
+                      variant="dark"
+                      className="py-3 rounded-pill fw-bold w-100"
+                      style={{
+                        backgroundColor: "#000",
+                        borderColor: "#000",
+                        fontSize: "1.1rem",
+                      }}
+                      onClick={handleClose}
+                  >
+                    Đóng
+                  </Button>
+                </div>
+            )}
+          </Modal.Body>
+        </Modal>
+      </>
   );
 };
 
-export default CompleteProfilePage;
+export default ForgotPasswordModal;

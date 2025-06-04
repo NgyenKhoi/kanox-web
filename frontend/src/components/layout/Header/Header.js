@@ -1,35 +1,40 @@
-// src/components/layout/Header/Header.jsx
 import React from "react";
-import { Navbar, Container, Image } from "react-bootstrap";
-import { FaTwitter, FaSearch } from "react-icons/fa"; // Dùng FaTwitter tạm thời cho logo X
+import { Navbar, Container, Image, Button } from "react-bootstrap";
+import { FaTwitter, FaSearch, FaPlus } from "react-icons/fa";
 import { Link } from "react-router-dom";
 
 function Header() {
   return (
-    <Navbar
-      bg="white"
-      expand="lg"
-      className="border-bottom shadow-sm fixed-top d-lg-none"
-    >
-      {" "}
-      <Container className="d-flex justify-content-between align-items-center">
-        {/* Avatar người dùng ở góc trái trên mobile */}
-        <Image
-          src="https://via.placeholder.com/40" // Thay bằng ảnh avatar thật
-          alt="User Avatar"
-          roundedCircle
-          width={40}
-          height={40}
-          className="me-2"
-        />
+      <Navbar
+          expand="lg"
+          className="border-bottom shadow-sm fixed-top bg-primary d-md-none"
+      >
+        <Container className="d-flex justify-content-between align-items-center">
+          <Image
+              src="https://via.placeholder.com/40"
+              alt="User Avatar"
+              roundedCircle
+              width={40}
+              height={40}
+              className="me-2"
+          />
 
-        <Navbar.Brand as={Link} to="/Home" className="mx-auto">
-          <FaTwitter size={30} className="text-dark" />{" "}
-        </Navbar.Brand>
+          <Navbar.Brand as={Link} to="/Home" className="mx-auto">
+            <FaTwitter size={30} className="text-white" />
+          </Navbar.Brand>
 
-        <FaSearch size={20} className="text-secondary" />
-      </Container>
-    </Navbar>
+          <div className="d-flex align-items-center">
+            <Button
+                variant="outline-light"
+                className="rounded-circle p-1 ms-2 d-md-none"
+                onClick={() => window.location.href = "/create-story"}
+            >
+              <FaPlus size={16} color="#fff" />
+            </Button>
+            <FaSearch size={20} className="text-white ms-2" />
+          </div>
+        </Container>
+      </Navbar>
   );
 }
 
