@@ -1,4 +1,4 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import { Modal, Button, Form, Spinner } from "react-bootstrap";
 import { X as XCloseIcon } from "react-bootstrap-icons";
 import ForgotPasswordModal from "./ForgotPasswordModal";
@@ -13,18 +13,31 @@ import { AuthContext } from "../../../context/AuthContext";
 const LoginModal = ({ show, handleClose, onShowLogin }) => {
   const { setUser } = useContext(AuthContext);
   const navigate = useNavigate();
+
   const [loginIdentifier, setLoginIdentifier] = useState("");
   const [password, setPassword] = useState("");
-  const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
-  const [showJoinXModal, setShowJoinXModal] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
+  const [showJoinXModal, setShowJoinXModal] = useState(false);
+
+  // ✅ Reset form khi đóng modal
+  useEffect(() => {
+    if (!show) {
+      setLoginIdentifier("");
+      setPassword("");
+      setRememberMe(false);
+      setErrors({});
+      setLoading(false);
+    }
+  }, [show]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     if (name === "loginIdentifier") setLoginIdentifier(value);
     else if (name === "password") setPassword(value);
+
     if (errors[name]) {
       setErrors((prevErrors) => {
         const newErrors = { ...prevErrors };
@@ -40,9 +53,7 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
 
   const validateForm = () => {
     let newErrors = {};
-    if (!loginIdentifier)
-      newErrors.loginIdentifier =
-        "Email, số điện thoại hoặc tên người dùng là bắt buộc.";
+    if (!loginIdentifier) newErrors.loginIdentifier = "Email, số điện thoại hoặc tên người dùng là bắt buộc.";
     if (!password) newErrors.password = "Mật khẩu là bắt buộc.";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -58,25 +69,17 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
     }
 
     try {
-      const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/auth/login`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            identifier: loginIdentifier,
-            password: password,
-          }),
-        }
-      );
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          identifier: loginIdentifier,
+          password: password,
+        }),
+      });
 
       const contentType = response.headers.get("content-type");
-      let data;
-      if (contentType && contentType.includes("application/json")) {
-        data = await response.json();
-      } else {
-        data = { message: await response.text() };
-      }
+      let data = contentType?.includes("application/json") ? await response.json() : { message: await response.text() };
 
       if (response.ok) {
         const { token, user } = data;
@@ -84,6 +87,7 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
         const storage = rememberMe ? localStorage : sessionStorage;
         storage.setItem("user", JSON.stringify(user));
         storage.setItem("token", token);
+
         toast.success("Đăng nhập thành công! Đang chuyển hướng...");
         handleClose();
         setTimeout(() => navigate("/home"), 2000);
@@ -101,21 +105,19 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
     setLoading(true);
     try {
       const idToken = credentialResponse.credential;
-      const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/auth/login-google`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ idToken }),
-        }
-      );
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/auth/login-google`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken }),
+      });
 
       const data = await response.json();
       if (response.ok) {
         const { token, user } = data;
-        const storage = rememberMe ? localStorage : sessionStorage; // <-- sửa ở đây
-        storage.setItem("user", JSON.stringify(user));
-        storage.setItem("token", token);
+        setUser(user);
+        localStorage.setItem("user", JSON.stringify(user)); // ✅ Không phụ thuộc rememberMe
+        localStorage.setItem("token", token);
+
         toast.success("Đăng nhập bằng Google thành công! Đang chuyển hướng...");
         handleClose();
         setTimeout(() => navigate("/home"), 2000);
@@ -138,24 +140,16 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
     setShowForgotPasswordModal(true);
   };
 
-  const handleCloseForgotPasswordModal = () =>
-    setShowForgotPasswordModal(false);
-
   const handleShowJoinXModal = () => {
     handleClose();
     setShowJoinXModal(true);
   };
 
-  const handleCloseJoinXModal = () => setShowJoinXModal(false);
-
   return (
     <>
       <ToastContainer />
       <Modal show={show} onHide={handleClose} centered size="lg">
-        <Modal.Body
-          className="p-4 rounded-3"
-          style={{ backgroundColor: "#fff", color: "#000" }}
-        >
+        <Modal.Body className="p-4 rounded-3" style={{ backgroundColor: "#fff", color: "#000" }}>
           <div className="d-flex justify-content-between align-items-center mb-4">
             <Button
               variant="link"
@@ -172,10 +166,7 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
           </div>
 
           <h3 className="fw-bold mb-4 text-center">Đăng nhập vào KaNox</h3>
-          <div
-            className="d-flex flex-column gap-3 mx-auto"
-            style={{ maxWidth: "300px" }}
-          >
+          <div className="d-flex flex-column gap-3 mx-auto" style={{ maxWidth: "300px" }}>
             <GoogleLogin
               onSuccess={handleGoogleLoginSuccess}
               onError={handleGoogleLoginError}
@@ -205,10 +196,9 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
                   style={{ fontSize: "1.1rem", borderColor: "#ccc" }}
                   isInvalid={!!errors.loginIdentifier}
                 />
-                <Form.Control.Feedback type="invalid">
-                  {errors.loginIdentifier}
-                </Form.Control.Feedback>
+                <Form.Control.Feedback type="invalid">{errors.loginIdentifier}</Form.Control.Feedback>
               </Form.Group>
+
               <Form.Group className="mb-3">
                 <Form.Control
                   type="password"
@@ -220,10 +210,9 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
                   style={{ fontSize: "1.1rem", borderColor: "#ccc" }}
                   isInvalid={!!errors.password}
                 />
-                <Form.Control.Feedback type="invalid">
-                  {errors.password}
-                </Form.Control.Feedback>
+                <Form.Control.Feedback type="invalid">{errors.password}</Form.Control.Feedback>
               </Form.Group>
+
               <Form.Group className="mb-3">
                 <Form.Check
                   type="checkbox"
@@ -233,26 +222,17 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
                   onChange={handleRememberMeChange}
                 />
               </Form.Group>
+
               <Button
                 type="submit"
                 variant="dark"
                 className="py-3 rounded-pill fw-bold w-100"
-                style={{
-                  backgroundColor: "#000",
-                  borderColor: "#000",
-                  fontSize: "1.1rem",
-                }}
+                style={{ backgroundColor: "#000", borderColor: "#000", fontSize: "1.1rem" }}
                 disabled={loading}
               >
                 {loading ? (
                   <>
-                    <Spinner
-                      as="span"
-                      animation="border"
-                      size="sm"
-                      role="status"
-                      className="me-2"
-                    />
+                    <Spinner as="span" animation="border" size="sm" role="status" className="me-2" />
                     Đang xử lý...
                   </>
                 ) : (
@@ -287,15 +267,8 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
         </Modal.Body>
       </Modal>
 
-      <ForgotPasswordModal
-        show={showForgotPasswordModal}
-        handleClose={handleCloseForgotPasswordModal}
-      />
-      <JoinXModal
-        show={showJoinXModal}
-        handleClose={handleCloseJoinXModal}
-        onShowLoginModal={onShowLogin}
-      />
+      <ForgotPasswordModal show={showForgotPasswordModal} handleClose={() => setShowForgotPasswordModal(false)} />
+      <JoinXModal show={showJoinXModal} handleClose={() => setShowJoinXModal(false)} onShowLoginModal={onShowLogin} />
     </>
   );
 };
