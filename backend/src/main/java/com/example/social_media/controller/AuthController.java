@@ -235,6 +235,11 @@ public class AuthController {
 
         } catch (IllegalStateException e) {
             logger.error("Illegal state during Google login: {}", e.getMessage());
+            if (e.getMessage().contains("Email đã tồn tại") ||
+                    e.getMessage().contains("Username đã tồn tại") ||
+                    e.getMessage().contains("Email đã được liên kết")) {
+                return ResponseEntity.status(409).body(Map.of("error", e.getMessage()));
+            }
             return ResponseEntity.status(400).body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
             logger.error("Unexpected error in Google login: ", e);

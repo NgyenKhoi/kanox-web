@@ -183,72 +183,104 @@ public class AuthService {
     }
 
     public User loginOrRegisterGoogleUser(String googleId, String email, String name) {
-        logger.info("Checking for user with googleId: {}, email: {}", googleId, email);
-        Optional<User> userOpt = userRepository.findByEmail(email);
+        logger.info("Processing Google login for email: {}, googleId: {}", email, googleId);
+
+        // Kiểm tra user với status = true
+        Optional<User> userOpt = userRepository.findByEmailAndStatusTrue(email);
         if (userOpt.isPresent()) {
             User existingUser = userOpt.get();
-            logger.info("User found with email: {}, username: {}", email, existingUser.getUsername());
+            logger.info("Active user found with email: {}, username: {}", email, existingUser.getUsername());
             if (existingUser.getGoogleId() == null) {
-                logger.info("Updating googleId for existing user: {}", email);
+                logger.info("Linking Google ID to existing active user: {}", email);
                 existingUser.setGoogleId(googleId);
                 try {
                     userRepository.save(existingUser);
                     logger.info("Updated googleId for user: {}", existingUser.getUsername());
                 } catch (Exception e) {
                     logger.error("Error updating googleId for user: {}", email, e);
-                    throw new IllegalStateException("Cannot update user with googleId: " + e.getMessage());
+                    throw new IllegalStateException("Không thể liên kết Google ID với tài khoản hiện có: " + e.getMessage());
                 }
+            } else if (!existingUser.getGoogleId().equals(googleId)) {
+                logger.warn("Email {} is already linked to another Google account", email);
+                throw new IllegalStateException("Email đã được liên kết với một tài khoản Google khác");
             }
             return existingUser;
         }
 
+        // Kiểm tra user với status = false (tùy chọn: kích hoạt lại)
+        Optional<User> inactiveUserOpt = userRepository.findByEmail(email);
+        if (inactiveUserOpt.isPresent()) {
+            User inactiveUser = inactiveUserOpt.get();
+            if (!inactiveUser.getStatus()) {
+                logger.info("Inactive user found with email: {}, attempting to reactivate", email);
+                inactiveUser.setStatus(true);
+                inactiveUser.setGoogleId(googleId);
+                try {
+                    userRepository.save(inactiveUser);
+                    logger.info("Reactivated user with email: {}", email);
+                    return inactiveUser;
+                } catch (Exception e) {
+                    logger.error("Error reactivating user with email: {}", email, e);
+                    throw new IllegalStateException("Không thể kích hoạt lại tài khoản: " + e.getMessage());
+                }
+            }
+        }
+
+        // Tạo user mới nếu không tìm thấy
         logger.info("Creating new user with email: {}", email);
-        // Tạo username duy nhất
         String baseUsername = (name != null && !name.isEmpty()) ? name.replaceAll("\\s+", "").toLowerCase() : email.split("@")[0].toLowerCase();
+        if (baseUsername.length() > 30) baseUsername = baseUsername.substring(0, 30);
         String finalUsername = baseUsername;
         int i = 1;
         while (userRepository.existsByUsername(finalUsername)) {
-            finalUsername = baseUsername + i;
+            String suffix = String.valueOf(i);
+            if (baseUsername.length() + suffix.length() > 30) {
+                finalUsername = baseUsername.substring(0, 30 - suffix.length()) + suffix;
+            } else {
+                finalUsername = baseUsername + suffix;
+            }
             i++;
         }
 
-        // Tạo user mới
         User newUser = new User();
         newUser.setUsername(finalUsername);
         newUser.setEmail(email);
         newUser.setGoogleId(googleId);
         newUser.setPassword(passwordEncoder.encode(UUID.randomUUID().toString().substring(0, 8)));
-        newUser.setStatus(true); // Đặt status là true (bắt buộc)
-        newUser.setProfilePrivacySetting("default"); // Gán giá trị mặc định
-        newUser.setIsAdmin(false); // Gán giá trị mặc định
+        newUser.setStatus(true);
+        newUser.setProfilePrivacySetting("default");
+        newUser.setIsAdmin(false);
 
-        // Lưu user
         try {
             User savedUser = userRepository.save(newUser);
             logger.info("New user created: {}", savedUser.getUsername());
 
-            // Gửi email mật khẩu tạm
             try {
                 String tempPassword = UUID.randomUUID().toString().substring(0, 8);
                 savedUser.setPassword(passwordEncoder.encode(tempPassword));
-                userRepository.save(savedUser); // Cập nhật mật khẩu mới
+                userRepository.save(savedUser);
                 mailService.sendTemporaryPasswordEmail(email, tempPassword);
                 logger.info("Temporary password email sent to: {}", email);
             } catch (Exception e) {
                 logger.error("Failed to send temporary password email to {}: {}", email, e.getMessage());
-                // Không ném lỗi để đảm bảo user đã được tạo
             }
 
             return savedUser;
         } catch (DataIntegrityViolationException e) {
-            logger.error("Database error saving user with email: {}", email, e);
-            throw new IllegalStateException("Cannot create user: duplicate email, username, or other constraint violation");
+            logger.error("Database error saving user with email: {}, detail: {}", email, e.getMessage());
+            if (e.getMessage().contains("email")) {
+                throw new IllegalStateException("Email đã tồn tại: " + email);
+            } else if (e.getMessage().contains("username")) {
+                throw new IllegalStateException("Username đã tồn tại: " + finalUsername);
+            } else {
+                throw new IllegalStateException("Không thể tạo user: vi phạm ràng buộc dữ liệu - " + e.getMessage());
+            }
         } catch (ConstraintViolationException e) {
-            logger.error("Constraint violation saving user with email: {}", email, e);
-            throw new IllegalStateException("Cannot create user: missing required fields or invalid data");
+            logger.error("Constraint violation saving user with email: {}, detail: {}", email, e.getMessage());
+            throw new IllegalStateException("Không thể tạo user: dữ liệu không hợp lệ - " + e.getMessage());
         } catch (Exception e) {
-            logger.error("Unexpected error saving user with email: {}", email, e);
-            throw new IllegalStateException("Cannot create user: " + e.getMessage());
+            logger.error("Unexpected error saving user with email: {}, detail: {}", email, e.getMessage());
+            throw new IllegalStateException("Không thể tạo user: " + e.getMessage());
         }
     }
 }
