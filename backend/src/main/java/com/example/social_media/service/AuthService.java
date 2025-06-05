@@ -228,25 +228,26 @@ public class AuthService {
 
         // Tạo user mới nếu không tìm thấy
         logger.info("Creating new user with email: {}", email);
-        String baseUsername = (name != null && !name.isEmpty()) ? name.replaceAll("\\s+", "").toLowerCase() : email.split("@")[0].toLowerCase();
-        if (baseUsername.length() > 30) baseUsername = baseUsername.substring(0, 30);
-        String finalUsername = baseUsername;
-        int i = 1;
-        while (userRepository.existsByUsername(finalUsername)) {
-            String suffix = String.valueOf(i);
-            if (baseUsername.length() + suffix.length() > 30) {
-                finalUsername = baseUsername.substring(0, 30 - suffix.length()) + suffix;
-            } else {
-                finalUsername = baseUsername + suffix;
-            }
-            i++;
+        String baseUsername = email.split("@")[0].toLowerCase();
+
+// Giới hạn 30 ký tự
+        baseUsername = baseUsername.length() > 30 ? baseUsername.substring(0, 30) : baseUsername;
+
+        String username = baseUsername;
+        int suffix = 1;
+
+        while (userRepository.existsByUsername(username)) {
+            String suffixStr = String.valueOf(suffix++);
+            int maxLength = 30 - suffixStr.length();
+            username = baseUsername.substring(0, Math.min(baseUsername.length(), maxLength)) + suffixStr;
         }
 
+        String tempPassword = UUID.randomUUID().toString().substring(0, 8);
         User newUser = new User();
-        newUser.setUsername(finalUsername);
+        newUser.setUsername(username);
         newUser.setEmail(email);
         newUser.setGoogleId(googleId);
-        newUser.setPassword(passwordEncoder.encode(UUID.randomUUID().toString().substring(0, 8)));
+        newUser.setPassword(passwordEncoder.encode(tempPassword));
         newUser.setStatus(true);
         newUser.setProfilePrivacySetting("default");
         newUser.setIsAdmin(false);
@@ -256,9 +257,6 @@ public class AuthService {
             logger.info("New user created: {}", savedUser.getUsername());
 
             try {
-                String tempPassword = UUID.randomUUID().toString().substring(0, 8);
-                savedUser.setPassword(passwordEncoder.encode(tempPassword));
-                userRepository.save(savedUser);
                 mailService.sendTemporaryPasswordEmail(email, tempPassword);
                 logger.info("Temporary password email sent to: {}", email);
             } catch (Exception e) {
@@ -271,7 +269,7 @@ public class AuthService {
             if (e.getMessage().contains("email")) {
                 throw new IllegalStateException("Email đã tồn tại: " + email);
             } else if (e.getMessage().contains("username")) {
-                throw new IllegalStateException("Username đã tồn tại: " + finalUsername);
+                throw new IllegalStateException("Username đã tồn tại: " + username);
             } else {
                 throw new IllegalStateException("Không thể tạo user: vi phạm ràng buộc dữ liệu - " + e.getMessage());
             }

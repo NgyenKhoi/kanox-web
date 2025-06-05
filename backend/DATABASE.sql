@@ -16,12 +16,11 @@
     --GO
 
     --AUTHENTICATION
-
     CREATE TABLE tblUser (
         id INT PRIMARY KEY IDENTITY(1, 1),
         email NVARCHAR(50) NOT NULL UNIQUE,
-        username VARCHAR(30) NOT NULL UNIQUE,
-        phone_number VARCHAR(12) UNIQUE null,
+        username NVARCHAR(30) NOT NULL UNIQUE,
+        phone_number VARCHAR(12) UNIQUE null,	
         password VARCHAR(255) NOT NULL,
         persistent_cookie VARCHAR(255),
         google_id VARCHAR(255),
