@@ -1,11 +1,20 @@
+// src/components/layout/SidebarRight/SidebarRight.jsx
 import React, { useState } from "react";
-import { Card, ListGroup, Button, Form, Nav, Image } from "react-bootstrap";
-import { FaSearch, FaEllipsisH } from "react-icons/fa";
-import { Link, useNavigate } from "react-router-dom";
+import {
+  Card,
+  ListGroup,
+  Button,
+  Form,
+  FormControl,
+  Nav,
+  Image,
+} from "react-bootstrap";
+import { FaSearch } from "react-icons/fa";
+import { Link, useNavigate } from "react-router-dom"; // Import useNavigate
 
 function SidebarRight() {
-  const [showFullFooter, setShowFullFooter] = useState(false);
-  const navigate = useNavigate();
+  const [showFullFooter, setShowFullFooter] = useState(false); // State để kiểm soát việc hiển thị footer đầy đủ
+  const navigate = useNavigate(); // Khởi tạo useNavigate
 
   const trends = [
     {
@@ -34,24 +43,27 @@ function SidebarRight() {
       id: 1,
       name: "Ayii",
       username: "Ayiiyiii",
-      avatar: "https://via.placeholder.com/40?text=Ayii",
+      avatar: "https://via.placeholder.com/40",
     },
     {
       id: 2,
       name: "無一",
       username: "cero_09051",
-      avatar: "https://via.placeholder.com/40?text=無一",
+      avatar: "https://via.placeholder.com/40",
     },
     {
       id: 3,
       name: "Dilibay ✨💛",
       username: "Dilibay_heaven",
-      avatar: "https://via.placeholder.com/40?text=Dilibay",
+      avatar: "https://via.placeholder.com/40",
     },
   ];
 
+  // Các liên kết footer đầy đủ (được lấy từ Footer.jsx)
   const fullFooterLinks = [
     { to: "/about", text: "Giới thiệu" },
+    // { to: "/download-app", text: "Tải ứng dụng X" },
+    // { to: "/grok", text: "Grok" },
     { to: "/help-center", text: "Trung tâm Trợ giúp" },
     { to: "/terms", text: "Điều khoản Dịch vụ" },
     { to: "/privacy", text: "Chính sách Riêng tư" },
@@ -59,77 +71,67 @@ function SidebarRight() {
     { to: "/accessibility", text: "Khả năng truy cập" },
     { to: "/ads-info", text: "Thông tin quảng cáo" },
     { to: "/blog", text: "Blog" },
+    // { to: "/careers", text: "Nghề nghiệp" },
+    // { to: "/brand-resources", text: "Tài nguyên thương hiệu" },
     { to: "/ads", text: "Quảng cáo" },
+    // { to: "/marketing", text: "Tiếp thị" },
     { to: "/business", text: "KaNox dành cho doanh nghiệp" },
     { to: "/developers", text: "Nhà phát triển" },
     { to: "/directory", text: "Danh mục" },
     { to: "/settings", text: "Cài đặt" },
   ];
 
-  const defaultFooterLinks = fullFooterLinks.slice(0, 5);
+  // Các liên kết footer mặc định hiển thị
+  const defaultFooterLinks = fullFooterLinks.slice(0, 5); // Hiển thị 5 mục đầu tiên
 
+  // Hàm xử lý khi click nút "Đăng ký" của gói Premium
   const handleSubscribePremiumClick = () => {
-    navigate("/premium");
+    navigate("/premium"); // Chuyển hướng đến trang /premium
   };
 
   return (
-      <div
-          className="p-3 pt-2 d-none d-lg-block position-sticky top-0"
-          style={{
-            height: "100vh",
-            overflowY: "auto",
-            backgroundColor: "#fff",
-            scrollbarWidth: "none", /* Ẩn thanh cuộn trên Firefox */
-          }}
-      >
-        {/* Ẩn thanh cuộn trên Webkit (Chrome, Safari) */}
-        <style>
-          {`
-          div::-webkit-scrollbar {
-            display: none; /* Ẩn thanh cuộn */
-          }
-        `}
-        </style>
-
-        <Form className="mb-4 sticky-top bg-white" style={{ top: "0", zIndex: 1020 }}>
+      <div className="p-3 pt-2 d-none d-lg-block">
+        {/* Thanh tìm kiếm - Cố định (sticky) */}
+        <Form
+            className="d-flex mb-3 mt-2 sticky-top bg-light"
+            style={{ top: "0", zIndex: 1020 }}
+        >
           <div className="position-relative w-100">
             <FaSearch
                 className="position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"
                 size={18}
             />
-            <Form.Control
+            <FormControl
                 type="search"
                 placeholder="Tìm kiếm"
-                className="rounded-pill ps-5 bg-white border border-dark shadow-sm"
+                className="rounded-pill ps-5 bg-light border-0"
                 aria-label="Search"
-                style={{ height: "48px", fontSize: "1rem", color: "#000" }}
+                style={{ minHeight: "40px" }}
             />
           </div>
         </Form>
 
-        <Card className="mb-4 rounded-3 shadow-sm border border-dark">
-          <Card.Body className="p-4">
-            <h5 className="fw-bold mb-3" style={{ color: "#000" }}>
-              Đăng ký gói Premium
-            </h5>
-            <p className="mb-3" style={{ color: "#000", fontSize: "0.95rem" }}>
-              Đăng ký để mở khóa các tính năng mới và nhận chia sẻ doanh thu nếu bạn là người sáng tạo nội dung.
+        {/* Đăng ký gói Premium */}
+        <Card className="mb-3 rounded-4 bg-light-blue border-0">
+          <Card.Body>
+            <h5 className="fw-bold">Đăng ký gói Premium</h5>
+            <p className="mb-2">
+              Đăng ký để mở khóa các tính năng mới và nếu đủ điều kiện, bạn sẽ
+              được nhận một khoản chia sẻ doanh thu cho người sáng tạo nội dung.
             </p>
             <Button
                 variant="dark"
-                className="rounded-pill px-4 py-2 fw-bold"
-                onClick={handleSubscribePremiumClick}
+                className="rounded-pill px-4 fw-bold"
+                onClick={handleSubscribePremiumClick} // Thêm onClick event ở đây
             >
               Đăng ký
             </Button>
           </Card.Body>
         </Card>
 
-        <Card className="mb-4 rounded-3 shadow-sm border border-dark">
-          <Card.Header
-              className="fw-bold bg-white border-0 p-4 pb-2"
-              style={{ color: "#000" }}
-          >
+        {/* Những điều đang diễn ra (Trends) */}
+        <Card className="mb-3 rounded-4 shadow-sm border-0">
+          <Card.Header className="fw-bold bg-white border-bottom-0 p-3">
             Những điều đang diễn ra
           </Card.Header>
           <ListGroup variant="flush">
@@ -137,63 +139,49 @@ function SidebarRight() {
                 <ListGroup.Item
                     key={trend.id}
                     action
-                    className="d-flex flex-column align-items-start py-3 px-4 border-0"
-                    style={{ backgroundColor: "transparent" }}
+                    className="d-flex flex-column align-items-start py-2 px-3 border-0 hover-bg-light"
                 >
-                  <div className="d-flex justify-content-between w-100">
-                    <div>
-                      <small style={{ color: "#666", fontSize: "0.85rem" }}>{trend.name}</small>
-                      <h6 className="mb-1 fw-bold" style={{ color: "#000" }}>{trend.title}</h6>
-                      <small style={{ color: "#666", fontSize: "0.85rem" }}>{trend.tweets}</small>
-                    </div>
-                    <Button variant="link" className="text-dark p-0">
-                      <FaEllipsisH size={16} />
-                    </Button>
-                  </div>
+                  <small className="text-muted">{trend.name}</small>
+                  <h6 className="mb-0 fw-bold">{trend.title}</h6>
+                  <small className="text-muted">{trend.tweets}</small>
                 </ListGroup.Item>
             ))}
             <ListGroup.Item
                 action
-                className="py-2 px-4 fw-bold border-0"
-                style={{ color: "#000" }}
+                className="text-primary py-2 px-3 fw-bold border-0 hover-bg-light"
             >
               Hiển thị thêm
             </ListGroup.Item>
           </ListGroup>
         </Card>
 
-        <Card className="mb-4 rounded-3 shadow-sm border border-dark">
-          <Card.Header
-              className="fw-bold bg-white border-0 p-4 pb-2"
-              style={{ color: "#000" }}
-          >
+        {/* Gợi ý theo dõi (Who to follow) */}
+        <Card className="mb-3 rounded-4 shadow-sm border-0">
+          <Card.Header className="fw-bold bg-white border-bottom-0 p-3">
             Gợi ý theo dõi
           </Card.Header>
           <ListGroup variant="flush">
             {suggestedUsers.map((user) => (
                 <ListGroup.Item
                     key={user.id}
-                    className="d-flex align-items-center py-3 px-4 border-0"
-                    style={{ backgroundColor: "transparent" }}
+                    className="d-flex align-items-center py-2 px-3 border-0"
                 >
                   <Image
                       src={user.avatar}
                       alt={user.name}
-                      width="40"
-                      height="40"
+                      width="48"
+                      height="48"
                       roundedCircle
-                      className="me-3 border border-dark"
+                      className="me-3"
                   />
                   <div className="d-flex flex-column flex-grow-1">
-                <span className="fw-bold" style={{ fontSize: "0.95rem", color: "#000" }}>
-                  {user.name}
-                </span>
-                    <span style={{ fontSize: "0.85rem", color: "#666" }}>@{user.username}</span>
+                    <span className="fw-bold">{user.name}</span>
+                    <span className="text-muted small">@{user.username}</span>
                   </div>
                   <Button
-                      variant="outline-dark"
+                      variant="dark"
                       size="sm"
-                      className="col-auto rounded-pill px-3 py-1 fw-bold"
+                      className="rounded-pill px-3 fw-bold"
                   >
                     Theo dõi
                   </Button>
@@ -201,48 +189,53 @@ function SidebarRight() {
             ))}
             <ListGroup.Item
                 action
-                className="py-2 px-4 fw-bold border-0"
-                style={{ color: "#000" }}
+                className="text-primary py-2 px-3 fw-bold border-0 hover-bg-light"
             >
               Hiển thị thêm
             </ListGroup.Item>
           </ListGroup>
         </Card>
 
-        <div className="px-3">
+        {/* Footer chính thức của SidebarRight - Giờ có chức năng ẩn/hiện */}
+        <div className="p-3">
           <Nav className="flex-wrap">
+            {/* Hiển thị các liên kết mặc định */}
             {defaultFooterLinks.map((link, index) => (
                 <Nav.Link
                     key={index}
                     as={Link}
                     to={link.to}
-                    className="text-muted small me-3 my-1 p-0"
-                    style={{ fontSize: "0.85rem", color: "#666" }}
+                    className="text-muted small me-2 my-1 p-0"
                 >
                   {link.text}
                 </Nav.Link>
             ))}
+
+            {/* Nếu showFullFooter là true, hiển thị phần còn lại */}
             {showFullFooter &&
-                fullFooterLinks.slice(defaultFooterLinks.length).map((link, index) => (
-                    <Nav.Link
-                        key={`full-${index}`}
-                        as={Link}
-                        to={link.to}
-                        className="text-muted small me-3 my-1 p-0"
-                        style={{ fontSize: "0.85rem", color: "#666" }}
-                    >
-                      {link.text}
-                    </Nav.Link>
-                ))}
+                fullFooterLinks
+                    .slice(defaultFooterLinks.length)
+                    .map((link, index) => (
+                        <Nav.Link
+                            key={`full-${index}`}
+                            as={Link}
+                            to={link.to}
+                            className="text-muted small me-2 my-1 p-0"
+                        >
+                          {link.text}
+                        </Nav.Link>
+                    ))}
+
+            {/* Nút "Thêm..." hoặc "Ẩn bớt" */}
             <Nav.Link
                 onClick={() => setShowFullFooter(!showFullFooter)}
-                className="text-muted small mep-0 my-1"
-                style={{ fontSize: "0.85rem", color: "#666" }}
+                className="text-muted small me-2 my-1 p-0 cursor-pointer" // Thêm cursor-pointer cho dễ nhìn
             >
               {showFullFooter ? "Ẩn bớt" : "Thêm..."}
             </Nav.Link>
-            <span className="text-muted small my-1 p-0" style={{ color: "#666", fontSize: "0.85rem" }}>
-            © 2025 KaNox Corp.
+
+            <span className="text-muted small mx-2 my-1 p-0">
+            &copy; 2025 KaNox Corp.
           </span>
           </Nav>
         </div>

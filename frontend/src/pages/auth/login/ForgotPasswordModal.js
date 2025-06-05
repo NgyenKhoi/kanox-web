@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Modal, Button, Form, Spinner } from "react-bootstrap";
+import { Modal, Button, Form } from "react-bootstrap";
 import { X as XCloseIcon } from "react-bootstrap-icons";
 import KLogoSvg from "../../../components/svgs/KSvg";
 import { ToastContainer, toast } from "react-toastify";
@@ -11,37 +11,14 @@ const ForgotPasswordModal = ({ show, handleClose }) => {
   const [identifier, setIdentifier] = useState(""); // Email or username
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1); // Step 1: Nhập email, Step 2: Xác nhận thành công
-  const [errors, setErrors] = useState({});
 
   const handleInputChange = (e) => {
-    const value = e.target.value;
-    setIdentifier(value);
-    if (errors.identifier) {
-      setErrors((prevErrors) => {
-        const newErrors = { ...prevErrors };
-        delete newErrors.identifier;
-        return newErrors;
-      });
-    }
-  };
-
-  const validateForm = () => {
-    let newErrors = {};
-    if (!identifier) newErrors.identifier = "Email là bắt buộc.";
-    else if (!/\S+@\S+\.\S+/.test(identifier))
-      newErrors.identifier = "Email không hợp lệ.";
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    setIdentifier(e.target.value);
   };
 
   const handleSubmitEmail = async (e) => {
     e.preventDefault();
     setLoading(true);
-
-    if (!validateForm()) {
-      setLoading(false);
-      return;
-    }
 
     try {
       const response = await fetch(`${apiBase}/auth/forgot-password`, {
@@ -50,13 +27,14 @@ const ForgotPasswordModal = ({ show, handleClose }) => {
         body: JSON.stringify({ email: identifier }),
       });
 
+      // Kiểm tra kiểu content-type của response
       const contentType = response.headers.get("content-type");
       let data;
 
       if (contentType && contentType.includes("application/json")) {
-        data = await response.json();
+        data = await response.json(); // Parse JSON nếu là JSON
       } else {
-        data = { message: await response.text() };
+        data = { message: await response.text() }; // Nếu là plain text (trường hợp thành công)
       }
 
       if (response.ok) {
@@ -107,8 +85,7 @@ const ForgotPasswordModal = ({ show, handleClose }) => {
 
             {step === 1 && (
                 <Form onSubmit={handleSubmitEmail}>
-                  <Form.Group className="mb-4">
-                    <Form.Label>Email <span className="text-danger">*</span></Form.Label>
+                  <Form.Group className="mb-3">
                     <Form.Control
                         type="email"
                         placeholder="Nhập email của bạn"
@@ -116,12 +93,8 @@ const ForgotPasswordModal = ({ show, handleClose }) => {
                         onChange={handleInputChange}
                         className="py-3 px-3 rounded-3"
                         style={{ fontSize: "1.1rem", borderColor: "#ccc" }}
-                        isInvalid={!!errors.identifier}
                         disabled={loading}
                     />
-                    <Form.Control.Feedback type="invalid">
-                      {errors.identifier}
-                    </Form.Control.Feedback>
                   </Form.Group>
                   <Button
                       type="submit"
@@ -134,20 +107,7 @@ const ForgotPasswordModal = ({ show, handleClose }) => {
                       }}
                       disabled={loading || !identifier}
                   >
-                    {loading ? (
-                        <>
-                          <Spinner
-                              as="span"
-                              animation="border"
-                              size="sm"
-                              role="status"
-                              className="me-2"
-                          />
-                          Đang xử lý...
-                        </>
-                    ) : (
-                        "Gửi yêu cầu"
-                    )}
+                    {loading ? "Đang xử lý..." : "Gửi yêu cầu"}
                   </Button>
                 </Form>
             )}

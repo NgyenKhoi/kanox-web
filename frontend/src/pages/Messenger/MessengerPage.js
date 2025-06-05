@@ -1,51 +1,63 @@
-import React, { useState, useEffect, useContext } from "react";
-import { Container, Row, Col, InputGroup, Form, Button, ListGroup, Spinner } from "react-bootstrap";
-import { FaSearch, FaEnvelope, FaPenSquare, FaCog } from "react-icons/fa";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
-import SidebarLeft from "../../components/layout/SidebarLeft/SidebarLeft";
-import Chat from "../../components/Chat";
-import { AuthContext } from "../../context/AuthContext";
+import React, { useState, useEffect, useContext } from 'react';
+import {
+  Container,
+  Row,
+  Col,
+  InputGroup,
+  Form,
+  Button,
+  // Image, // Comment vì không cần Image để hiển thị avatar nữa
+  ListGroup,
+} from 'react-bootstrap';
+import { FaSearch, FaEnvelope, FaPenSquare, FaCog } from 'react-icons/fa';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import SidebarLeft from '../../components/layout/SidebarLeft/SidebarLeft';
+import Chat from '../../components/Chat';
+import { AuthContext } from '../../context/AuthContext';
 
 function MessengerPage() {
   const { token, user } = useContext(AuthContext);
   const [chats, setChats] = useState([]);
   const [selectedChatId, setSelectedChatId] = useState(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     if (!token || !user) {
-      toast.error("Vui lòng đăng nhập để xem tin nhắn.");
-      setLoading(false);
+      toast.error('Vui lòng đăng nhập để xem tin nhắn.');
       return;
     }
 
     fetch(`${process.env.REACT_APP_API_URL}/chats`, {
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", Accept: "application/json" },
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
     })
         .then(async (response) => {
-          const contentType = response.headers.get("content-type");
+          const contentType = response.headers.get('content-type');
           let data;
-          if (contentType && contentType.includes("application/json")) {
+          if (contentType && contentType.includes('application/json')) {
             data = await response.json();
           } else {
-            throw new Error("Phản hồi không phải JSON");
+            throw new Error('Phản hồi không phải JSON');
           }
           if (response.ok) {
             setChats(data);
           } else {
-            throw new Error(data.message || "Lỗi khi tải danh sách chat.");
+            throw new Error(data.message || 'Lỗi khi tải danh sách chat.');
           }
         })
         .catch((err) => {
-          toast.error(err.message || "Lỗi khi tải danh sách chat.");
-        })
-        .finally(() => setLoading(false));
+          toast.error(err.message || 'Lỗi khi tải danh sách chat.');
+        });
   }, [token, user]);
 
   const filteredChats = chats.filter(
-      (chat) => chat.name.toLowerCase().includes(searchQuery.toLowerCase()) || chat.lastMessage?.toLowerCase().includes(searchQuery.toLowerCase())
+      (chat) =>
+          chat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          chat.lastMessage?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -57,7 +69,10 @@ function MessengerPage() {
           </div>
 
           <div className="d-flex flex-column flex-grow-1 border-start border-end bg-white">
-            <div className="sticky-top bg-white border-bottom py-2" style={{ zIndex: 1020 }}>
+            <div
+                className="sticky-top bg-white border-bottom py-2"
+                style={{ zIndex: 1020 }}
+            >
               <Container fluid>
                 <Row className="align-items-center">
                   <Col xs={6} className="text-start">
@@ -79,40 +94,44 @@ function MessengerPage() {
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="bg-light border-0 rounded-pill py-2"
-                      style={{ height: "auto" }}
+                      style={{ height: 'auto' }}
                   />
                 </InputGroup>
               </Container>
             </div>
 
             <div className="d-flex flex-grow-1">
-              <div className="border-end overflow-auto" style={{ flexBasis: "350px", flexShrink: 0 }}>
-                {loading ? (
-                    <div className="d-flex justify-content-center py-4">
-                      <Spinner animation="border" role="status" />
-                    </div>
-                ) : (
-                    <ListGroup variant="flush">
-                      {filteredChats.map((chat) => (
-                          <ListGroup.Item
-                              key={chat.id}
-                              action
-                              active={selectedChatId === chat.id}
-                              onClick={() => setSelectedChatId(chat.id)}
-                              className="d-flex align-items-center p-3 border-bottom hover-bg-light"
-                          >
-                            <div className="flex-grow-1">
-                              <p className="fw-bold mb-0">{chat.name}</p>
-                              <p className="text-muted small mb-0">{chat.lastMessage}</p>
-                            </div>
-                          </ListGroup.Item>
-                      ))}
-                      {filteredChats.length === 0 && <p className="text-muted text-center p-4">Không có cuộc trò chuyện nào.</p>}
-                    </ListGroup>
-                )}
+              <div
+                  className="border-end overflow-auto"
+                  style={{ flexBasis: '350px', flexShrink: 0 }}
+              >
+                <ListGroup variant="flush">
+                  {filteredChats.map((chat) => (
+                      <ListGroup.Item
+                          key={chat.id}
+                          action
+                          active={selectedChatId === chat.id}
+                          onClick={() => setSelectedChatId(chat.id)}
+                          className="d-flex align-items-center p-3 border-bottom hover-bg-light"
+                      >
+                        {/* Comment phần hiển thị avatar */}
+                        {/* <Image
+                      src={chat.avatar || 'https://via.placeholder.com/40'}
+                      roundedCircle
+                      className="me-2"
+                      style={{ width: '40px', height: '40px' }}
+                    /> */}
+                        <div className="flex-grow-1">
+                          <p className="fw-bold mb-0">{chat.name}</p>
+                          <p className="text-muted small mb-0">{chat.lastMessage}</p>
+                        </div>
+                      </ListGroup.Item>
+                  ))}
+                </ListGroup>
                 <div className="p-3 border-top text-center">
                   <Button variant="link" className="text-primary fw-bold">
-                    <FaPenSquare className="me-2" /> Tin nhắn mới
+                    <FaPenSquare className="me-2" />
+                    Tin nhắn mới
                   </Button>
                 </div>
               </div>
@@ -122,12 +141,19 @@ function MessengerPage() {
                     <Chat chatId={selectedChatId} />
                 ) : (
                     <div className="d-flex flex-column justify-content-center align-items-center p-3 flex-grow-1">
-                      <FaEnvelope className="text-muted mb-3" style={{ fontSize: "5rem" }} />
+                      <FaEnvelope
+                          className="text-muted mb-3"
+                          style={{ fontSize: '5rem' }}
+                      />
                       <h4 className="fw-bold mb-2">Tin nhắn của bạn</h4>
                       <p className="text-muted text-center mb-4">
-                        Chọn một người để hiển thị cuộc trò chuyện của họ hoặc bắt đầu một cuộc trò chuyện mới.
+                        Chọn một người để hiển thị cuộc trò chuyện của họ hoặc bắt đầu
+                        một cuộc trò chuyện mới.
                       </p>
-                      <Button variant="primary" className="rounded-pill px-4 py-2">
+                      <Button
+                          variant="primary"
+                          className="rounded-pill px-4 py-2"
+                      >
                         Tin nhắn mới
                       </Button>
                     </div>
@@ -136,7 +162,7 @@ function MessengerPage() {
             </div>
           </div>
 
-          <div className="d-none d-lg-block" style={{ width: "350px" }} />
+          <div className="d-none d-lg-block" style={{ width: '350px' }} />
         </div>
       </>
   );
