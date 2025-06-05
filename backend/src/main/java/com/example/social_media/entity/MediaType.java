@@ -6,32 +6,33 @@ import jakarta.validation.constraints.Size;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
 
-import java.time.Instant;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Entity
-@Table(name = "tblReport", schema = "dbo")
-public class Report {
+@Table(name = "tblMediaType", schema = "dbo")
+public class MediaType {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
     private Integer id;
 
+    @Size(max = 50)
     @NotNull
-    @Column(name = "target_id", nullable = false)
-    private Integer targetId;
+    @Column(name = "name", nullable = false, length = 50)
+    private String name;
 
     @Size(max = 255)
     @Nationalized
-    @Column(name = "reason")
-    private String reason;
-
-    @ColumnDefault("getdate()")
-    @Column(name = "report_time")
-    private Instant reportTime;
+    @Column(name = "description")
+    private String description;
 
     @ColumnDefault("1")
     @Column(name = "status")
     private Boolean status;
+
+    @OneToMany(mappedBy = "mediaType")
+    private Set<Media> tblMedia = new LinkedHashSet<>();
 
     public Integer getId() {
         return id;
@@ -41,28 +42,20 @@ public class Report {
         this.id = id;
     }
 
-    public Integer getTargetId() {
-        return targetId;
+    public String getName() {
+        return name;
     }
 
-    public void setTargetId(Integer targetId) {
-        this.targetId = targetId;
+    public void setName(String name) {
+        this.name = name;
     }
 
-    public String getReason() {
-        return reason;
+    public String getDescription() {
+        return description;
     }
 
-    public void setReason(String reason) {
-        this.reason = reason;
-    }
-
-    public Instant getReportTime() {
-        return reportTime;
-    }
-
-    public void setReportTime(Instant reportTime) {
-        this.reportTime = reportTime;
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     public Boolean getStatus() {
@@ -71,6 +64,14 @@ public class Report {
 
     public void setStatus(Boolean status) {
         this.status = status;
+    }
+
+    public Set<Media> getTblMedia() {
+        return tblMedia;
+    }
+
+    public void setTblMedia(Set<Media> tblMedia) {
+        this.tblMedia = tblMedia;
     }
 
 }

@@ -13,6 +13,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.DateTimeException;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -25,11 +26,11 @@ public class AuthService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    private final PasswordResetService passwordResetService;
+    private final MailService mailService;
     private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
 
-    public AuthService(PasswordResetService passwordResetService) {
-        this.passwordResetService = passwordResetService;
+    public AuthService(MailService mailService) {
+        this.mailService = mailService;
     }
 
     public Optional<User> loginByEmail(String email, String rawPassword) {
@@ -82,7 +83,6 @@ public class AuthService {
         return token;
     }
 
-
     public boolean forgotPassword(String email) {
         logger.info("Processing forgot password for email: {}", email);
 
@@ -92,7 +92,7 @@ public class AuthService {
             return false;
         }
         try {
-            passwordResetService.sendResetToken(email);
+            mailService.sendResetToken(email);
             logger.info("Password reset token sent to email: {}", email);
             return true;
         } catch (Exception e) {
@@ -106,18 +106,102 @@ public class AuthService {
                 .orElseThrow(() -> new UserNotFoundException("Người dùng không tồn tại")));
     }
 
-
     public User register(RegisterRequestDto dto) {
-        if (userRepository.existsByEmail(dto.getEmail())) {
-            throw new EmailAlreadyExistsException("Email đã được sử dụng");
+        logger.info("Starting registration process for user: {}", dto.getUsername());
+        try {
+            // Validate username format
+            if (!dto.getUsername().matches("^[A-Za-z0-9]+$")) {
+                throw new IllegalArgumentException("Username chỉ được chứa chữ cái và số");
+            }
+
+            // Validate email format
+            if (!dto.getEmail().matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
+                throw new IllegalArgumentException("Email không hợp lệ");
+            }
+
+            // Validate password strength
+            if (!dto.getPassword().matches("^(?=.*[A-Z])(?=.*[!@#$%^&*()_+=.])(?=.{8,}).*$")) {
+                throw new IllegalArgumentException("Mật khẩu phải dài ít nhất 8 ký tự, chứa ít nhất 1 chữ cái in hoa và 1 ký tự đặc biệt");
+            }
+
+            // Check if username exists
+            if (userRepository.existsByUsername(dto.getUsername())) {
+                throw new IllegalArgumentException("Username đã tồn tại");
+            }
+
+            // Check if email exists
+            if (userRepository.existsByEmail(dto.getEmail())) {
+                throw new EmailAlreadyExistsException("Email đã được sử dụng");
+            }
+
+            logger.info("Creating new user with username: {}", dto.getUsername());
+            User user = new User();
+            user.setUsername(dto.getUsername());
+            user.setEmail(dto.getEmail());
+            user.setPassword(passwordEncoder.encode(dto.getPassword()));
+            
+            // Validate and set date of birth
+            try {
+                LocalDate dob = LocalDate.of(dto.getYear(), dto.getMonth(), dto.getDay());
+                user.setDateOfBirth(dob);
+            } catch (DateTimeException e) {
+                throw new IllegalArgumentException("Ngày sinh không hợp lệ");
+            }
+
+            user.setDisplayName(dto.getDisplayName());
+            user.setPhoneNumber(dto.getPhoneNumber());
+            user.setBio(dto.getBio());
+            
+            // Convert gender string to short
+            Short genderValue;
+            String genderStr = dto.getGender().toUpperCase();
+            switch (genderStr) {
+                case "MALE":
+                    genderValue = 0;
+                    break;
+                case "FEMALE":
+                    genderValue = 1;
+                    break;
+                case "OTHER":
+                default:
+                    genderValue = 2;
+                    break;
+            }
+            user.setGender(genderValue);
+            
+            user.setStatus(true);
+            
+            logger.info("Saving user to database: {}", user.getUsername());
+            User savedUser = userRepository.save(user);
+            logger.info("User registered successfully: {}", savedUser.getUsername());
+            return savedUser;
+        } catch (Exception e) {
+            logger.error("Error during user registration: ", e);
+            throw e;
         }
-        User user = new User();
-        user.setUsername(dto.getUsername());
-        user.setEmail(dto.getEmail());
-        user.setPassword(passwordEncoder.encode(dto.getPassword()));
-        LocalDate dob = LocalDate.of(dto.getYear(), dto.getMonth(), dto.getDay());
-        user.setDateOfBirth(dob);
-        user.setStatus(true);
-        return userRepository.save(user);
+    }
+
+    public User loginOrRegisterGoogleUser(String googleId, String email, String name) {
+        Optional<User> userOpt = userRepository.findByEmail(email);
+        //check if login google have the same email as existing user
+        if (userOpt.isPresent()) {
+            User existingUser = userOpt.get();
+
+            // user dont have google id will set into here
+            if (existingUser.getGoogleId() == null) {
+                existingUser.setGoogleId(googleId);
+                userRepository.save(existingUser); // cập nhật nếu muốn
+            }
+
+            return existingUser;
+        }
+        String tempPassword = UUID.randomUUID().toString().substring(0, 8);
+        User newUser = new User();
+        newUser.setUsername(name);
+        newUser.setEmail(email);
+        newUser.setGoogleId(googleId);
+        newUser.setPassword(passwordEncoder.encode(tempPassword));
+        mailService.sendTemporaryPasswordEmail(email, tempPassword);
+        return userRepository.save(newUser);
     }
 }

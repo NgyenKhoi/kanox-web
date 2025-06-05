@@ -1,25 +1,34 @@
 package com.example.social_media.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
 
 import java.time.Instant;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "tblStory", schema = "dbo")
 public class Story {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
     private Integer id;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @NotNull
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+
+    @ColumnDefault("getdate()")
+    @Column(name = "created_at")
     private Instant createdAt;
 
-    @Column(name = "expire_time", nullable = false)
+    @ColumnDefault("dateadd(hour, 24, [created_at])")
+    @Column(name = "expire_time")
     private Instant expireTime;
 
     @Size(max = 255)
@@ -27,15 +36,8 @@ public class Story {
     @Column(name = "caption")
     private String caption;
 
-    @Size(max = 255)
-    @Column(name = "media_url")
-    private String mediaUrl;
-
-    @Size(max = 10)
-    @Column(name = "media_type", length = 10)
-    private String mediaType;
-
     @Size(max = 20)
+    @ColumnDefault("'default'")
     @Column(name = "privacy_setting", length = 20)
     private String privacySetting;
 
@@ -43,18 +45,15 @@ public class Story {
     @Column(name = "background_color", length = 50)
     private String backgroundColor;
 
-    @Column(name = "status", columnDefinition = "bit default 1")
+    @ColumnDefault("1")
+    @Column(name = "status")
     private Boolean status;
 
-    public Story() {
-        Instant now = Instant.now();
-        this.createdAt = now;
-        this.expireTime = now.plusSeconds(24 * 3600); // +24 hours
-        this.privacySetting = "default";
-        this.status = true;
-    }
+    @OneToMany(mappedBy = "story")
+    private Set<StoryReply> tblStoryReplies = new LinkedHashSet<>();
 
-    // getters và setters ...
+    @OneToMany(mappedBy = "story")
+    private Set<StoryViewer> storyViewers = new LinkedHashSet<>();
 
     public Integer getId() {
         return id;
@@ -62,6 +61,14 @@ public class Story {
 
     public void setId(Integer id) {
         this.id = id;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
     }
 
     public Instant getCreatedAt() {
@@ -88,22 +95,6 @@ public class Story {
         this.caption = caption;
     }
 
-    public String getMediaUrl() {
-        return mediaUrl;
-    }
-
-    public void setMediaUrl(String mediaUrl) {
-        this.mediaUrl = mediaUrl;
-    }
-
-    public String getMediaType() {
-        return mediaType;
-    }
-
-    public void setMediaType(String mediaType) {
-        this.mediaType = mediaType;
-    }
-
     public String getPrivacySetting() {
         return privacySetting;
     }
@@ -127,4 +118,21 @@ public class Story {
     public void setStatus(Boolean status) {
         this.status = status;
     }
+
+    public Set<StoryReply> getTblStoryReplies() {
+        return tblStoryReplies;
+    }
+
+    public void setTblStoryReplies(Set<StoryReply> tblStoryReplies) {
+        this.tblStoryReplies = tblStoryReplies;
+    }
+
+    public Set<StoryViewer> getTblStoryViewers() {
+        return storyViewers;
+    }
+
+    public void setTblStoryViewers(Set<StoryViewer> storyViewers) {
+        this.storyViewers = storyViewers;
+    }
+
 }

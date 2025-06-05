@@ -4,6 +4,9 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
 import org.hibernate.annotations.ColumnDefault;
 
+import java.util.LinkedHashSet;
+import java.util.Set;
+
 @Entity
 @Table(name = "tblNotificationType", schema = "dbo")
 public class NotificationType {
@@ -23,6 +26,9 @@ public class NotificationType {
     @ColumnDefault("1")
     @Column(name = "status")
     private Boolean status;
+
+    @OneToMany(mappedBy = "type")
+    private Set<Notification> tblNotifications = new LinkedHashSet<>();
 
     public Integer getId() {
         return id;
@@ -54,6 +60,14 @@ public class NotificationType {
 
     public void setStatus(Boolean status) {
         this.status = status;
+    }
+
+    public Set<Notification> getTblNotifications() {
+        return tblNotifications;
+    }
+
+    public void setTblNotifications(Set<Notification> tblNotifications) {
+        this.tblNotifications = tblNotifications;
     }
 
 }

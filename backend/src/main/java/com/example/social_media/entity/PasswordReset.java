@@ -21,7 +21,8 @@ public class PasswordReset {
     private User user;
 
     @Size(max = 255)
-    @Column(name = "token")
+    @NotNull
+    @Column(name = "token", nullable = false)
     private String token;
 
     @Column(name = "token_expire_time")

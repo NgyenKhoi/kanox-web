@@ -16,7 +16,7 @@ function EditProfileModal({
     bio: "",
     location: "",
     website: "",
-    dob: "", // Date of Birth (YYYY-MM-DD format for input type="date")
+    dateOfBirth: "", // Date of Birth (YYYY-MM-DD format for input type="date")
     avatar: "",
     banner: "",
     gender: "", // "0" for Female, "1" for Male, "2" for Other, "" for not set

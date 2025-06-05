@@ -10,7 +10,7 @@ import java.util.Objects;
 
 @Embeddable
 public class CustomPrivacyListMemberId implements Serializable {
-    private static final long serialVersionUID = 1379077660404867382L;
+    private static final long serialVersionUID = 3172477486269009181L;
     @NotNull
     @Column(name = "list_id", nullable = false)
     private Integer listId;

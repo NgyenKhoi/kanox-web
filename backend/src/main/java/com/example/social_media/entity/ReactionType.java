@@ -4,6 +4,9 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
 import org.hibernate.annotations.ColumnDefault;
 
+import java.util.LinkedHashSet;
+import java.util.Set;
+
 @Entity
 @Table(name = "tblReactionType", schema = "dbo")
 public class ReactionType {
@@ -23,6 +26,9 @@ public class ReactionType {
     @ColumnDefault("1")
     @Column(name = "status")
     private Boolean status;
+
+    @OneToMany(mappedBy = "reactionType")
+    private Set<Reaction> tblReactions = new LinkedHashSet<>();
 
     public Integer getId() {
         return id;
@@ -54,6 +60,14 @@ public class ReactionType {
 
     public void setStatus(Boolean status) {
         this.status = status;
+    }
+
+    public Set<Reaction> getTblReactions() {
+        return tblReactions;
+    }
+
+    public void setTblReactions(Set<Reaction> tblReactions) {
+        this.tblReactions = tblReactions;
     }
 
 }

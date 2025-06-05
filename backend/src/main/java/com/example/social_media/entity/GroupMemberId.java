@@ -10,7 +10,7 @@ import java.util.Objects;
 
 @Embeddable
 public class GroupMemberId implements Serializable {
-    private static final long serialVersionUID = 7477303620355718641L;
+    private static final long serialVersionUID = 3928471398628742606L;
     @NotNull
     @Column(name = "group_id", nullable = false)
     private Integer groupId;

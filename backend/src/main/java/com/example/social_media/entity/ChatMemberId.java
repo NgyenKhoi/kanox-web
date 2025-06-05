@@ -10,7 +10,7 @@ import java.util.Objects;
 
 @Embeddable
 public class ChatMemberId implements Serializable {
-    private static final long serialVersionUID = -2141724179141859847L;
+    private static final long serialVersionUID = -6640992898122848089L;
     @NotNull
     @Column(name = "chat_id", nullable = false)
     private Integer chatId;

@@ -10,7 +10,7 @@ import java.util.Objects;
 
 @Embeddable
 public class FollowId implements Serializable {
-    private static final long serialVersionUID = -2954597996796944415L;
+    private static final long serialVersionUID = -3370012840200336137L;
     @NotNull
     @Column(name = "follower_id", nullable = false)
     private Integer followerId;

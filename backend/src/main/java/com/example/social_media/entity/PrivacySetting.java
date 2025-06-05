@@ -1,9 +1,6 @@
 package com.example.social_media.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
 import org.hibernate.annotations.ColumnDefault;
 
@@ -15,6 +12,11 @@ public class PrivacySetting {
     @Id
     @Column(name = "user_id", nullable = false)
     private Integer id;
+
+    @MapsId
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User tblUser;
 
     @Size(max = 20)
     @ColumnDefault("'public'")
@@ -51,6 +53,14 @@ public class PrivacySetting {
 
     public void setId(Integer id) {
         this.id = id;
+    }
+
+    public User getTblUser() {
+        return tblUser;
+    }
+
+    public void setTblUser(User tblUser) {
+        this.tblUser = tblUser;
     }
 
     public String getPostViewer() {

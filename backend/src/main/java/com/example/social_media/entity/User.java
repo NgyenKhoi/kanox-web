@@ -28,7 +28,7 @@ public class User {
     private String username;
 
     @Size(max = 12)
-    @Column(name = "phone_number", nullable = false, length = 12)
+    @Column(name = "phone_number", length = 12)
     private String phoneNumber;
 
     @Size(max = 255)
@@ -72,7 +72,7 @@ public class User {
     @NotNull
     @ColumnDefault("1")
     @Column(name = "status", nullable = false)
-    private Boolean status = false;
+    private Boolean status = true;
 
     public Integer getId() {
         return id;

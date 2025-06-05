@@ -7,6 +7,8 @@ import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
 
 import java.time.Instant;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "tblComment", schema = "dbo")
@@ -47,6 +49,9 @@ public class Comment {
     @ColumnDefault("1")
     @Column(name = "status")
     private Boolean status;
+
+    @OneToMany(mappedBy = "parentComment")
+    private Set<Comment> tblComments = new LinkedHashSet<>();
 
     public Integer getId() {
         return id;
@@ -110,6 +115,14 @@ public class Comment {
 
     public void setStatus(Boolean status) {
         this.status = status;
+    }
+
+    public Set<Comment> getTblComments() {
+        return tblComments;
+    }
+
+    public void setTblComments(Set<Comment> tblComments) {
+        this.tblComments = tblComments;
     }
 
 }

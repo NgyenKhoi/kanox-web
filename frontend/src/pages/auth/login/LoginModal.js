@@ -9,7 +9,7 @@ import { useNavigate } from "react-router-dom";
 import KLogoSvg from "../../../components/svgs/KSvg";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-
+import { GoogleLogin } from "@react-oauth/google";
 const LoginModal = ({ show, handleClose, onShowLogin }) => {
   const navigate = useNavigate();
 
@@ -25,25 +25,35 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          identifier: loginIdentifier,
-          password: password,
-        }),
-      });
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/auth/login`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            identifier: loginIdentifier,
+            password: password,
+          }),
+        }
+      );
 
-      const data = await response.json();
+      const contentType = response.headers.get("content-type");
+      let data;
+      if (contentType && contentType.includes("application/json")) {
+        data = await response.json();
+      } else {
+        data = { message: await response.text() };
+      }
 
       if (response.ok) {
         const { token, user } = data;
         localStorage.setItem("token", token);
-        localStorage.setItem("username", data.user.username);
-        console.log("User:", user);
-        toast.success("Đăng nhập thành công! Đang chuyển hướng...");
+        localStorage.setItem("username", user.username);
+        toast.success(
+          data.message || "Đăng nhập thành công! Đang chuyển hướng..."
+        );
         handleClose();
-        setTimeout(() => navigate("/home"), 2000); // Delay for toast visibility
+        setTimeout(() => navigate("/home"), 2000);
       } else {
         toast.error(data.message || "Đăng nhập thất bại. Vui lòng thử lại!");
       }
@@ -52,11 +62,48 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
     }
   };
 
+  const handleGoogleLoginSuccess = async (credentialResponse) => {
+    try {
+      // credentialResponse chứa access token hoặc id_token
+      const idToken = credentialResponse.credential;
+
+      // Gửi idToken lên backend để xác thực và lấy token JWT
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/auth/login-google`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ idToken }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        const { token, user } = data;
+        localStorage.setItem("token", token);
+        localStorage.setItem("username", user.username);
+        toast.success("Đăng nhập bằng Google thành công! Đang chuyển hướng...");
+        handleClose();
+        setTimeout(() => navigate("/home"), 2000);
+      } else {
+        toast.error(data.message || "Đăng nhập Google thất bại.");
+      }
+    } catch (error) {
+      toast.error("Lỗi đăng nhập Google. Vui lòng thử lại.");
+    }
+  };
+
+  const handleGoogleLoginError = () => {
+    toast.error("Đăng nhập Google thất bại hoặc bị hủy.");
+  };
+
   const handleShowForgotPasswordModal = () => {
     handleClose();
     setShowForgotPasswordModal(true);
   };
-  const handleCloseForgotPasswordModal = () => setShowForgotPasswordModal(false);
+  const handleCloseForgotPasswordModal = () =>
+    setShowForgotPasswordModal(false);
 
   const handleShowJoinXModal = () => {
     handleClose();
@@ -65,112 +112,126 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
   const handleCloseJoinXModal = () => setShowJoinXModal(false);
 
   return (
-      <>
-        <ToastContainer />
-        <Modal show={show} onHide={handleClose} centered size="lg">
-          <Modal.Body
-              className="p-4 rounded-3"
-              style={{ backgroundColor: "#fff", color: "#000", borderRadius: "15px" }}
+    <>
+      <ToastContainer />
+      <Modal show={show} onHide={handleClose} centered size="lg">
+        <Modal.Body
+          className="p-4 rounded-3"
+          style={{
+            backgroundColor: "#fff",
+            color: "#000",
+            borderRadius: "15px",
+          }}
+        >
+          <div className="d-flex justify-content-between align-items-center mb-4">
+            <Button
+              variant="link"
+              onClick={handleClose}
+              className="p-0"
+              style={{ color: "#000", fontSize: "1.5rem" }}
+            >
+              <XCloseIcon />
+            </Button>
+            <div style={{ width: "100px", height: "100px" }}>
+              <KLogoSvg className="w-100 h-100" fill="black" />
+            </div>
+            <div style={{ width: "30px" }}></div>
+          </div>
+
+          <h3 className="fw-bold mb-4 text-center">Đăng nhập vào KaNox</h3>
+          <div
+            className="d-flex flex-column gap-3 mx-auto"
+            style={{ maxWidth: "300px" }}
           >
-            <div className="d-flex justify-content-between align-items-center mb-4">
-              <Button
-                  variant="link"
-                  onClick={handleClose}
-                  className="p-0"
-                  style={{ color: "#000", fontSize: "1.5rem" }}
-              >
-                <XCloseIcon />
-              </Button>
-              <div style={{ width: "100px", height: "100px" }}>
-                <KLogoSvg className="w-100 h-100" fill="black" />
-              </div>
-              <div style={{ width: "30px" }}></div>
+            {/* Thay nút Google bằng GoogleLogin component */}
+            <GoogleLogin
+              onSuccess={handleGoogleLoginSuccess}
+              onError={handleGoogleLoginError}
+              useOneTap
+              size="large"
+              shape="pill"
+              text="continue_with"
+              theme="outline"
+            />
+
+            <div className="d-flex align-items-center my-3">
+              <hr className="flex-grow-1 border-secondary" />
+              <span className="mx-2 text-muted">hoặc</span>
+              <hr className="flex-grow-1 border-secondary" />
             </div>
 
-            <h3 className="fw-bold mb-4 text-center">Đăng nhập vào KaNox</h3>
-
-            <div className="d-flex flex-column gap-3 mx-auto" style={{ maxWidth: "300px" }}>
+            <Form onSubmit={handleSubmit}>
+              <Form.Group className="mb-3">
+                <Form.Control
+                  type="text"
+                  placeholder="Số điện thoại, email hoặc tên người dùng"
+                  name="loginIdentifier"
+                  value={loginIdentifier}
+                  onChange={handleInputChange}
+                  className="py-3 px-3 rounded-3"
+                  style={{ fontSize: "1.1rem", borderColor: "#ccc" }}
+                />
+              </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Control
+                  type="password"
+                  placeholder="Mật khẩu"
+                  name="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="py-3 px-3 rounded-3"
+                  style={{ fontSize: "1.1rem", borderColor: "#ccc" }}
+                />
+              </Form.Group>
               <Button
-                  variant="outline-secondary"
-                  className="d-flex align-items-center justify-content-center py-2 rounded-pill fw-bold"
-                  style={{ borderColor: "#e0e0e0", color: "#000" }}
+                type="submit"
+                variant="dark"
+                className="py-3 rounded-pill fw-bold w-100"
+                style={{
+                  backgroundColor: "#000",
+                  borderColor: "#000",
+                  fontSize: "1.1rem",
+                }}
+                disabled={!loginIdentifier || !password}
               >
-              <span
-                  className="bg-light rounded-circle p-1 me-2 d-flex align-items-center justify-content-center"
-                  style={{ width: "30px", height: "30px" }}
-              >
-                <FcGoogle size={20} />
-              </span>
-                Đăng nhập với Google
+                Tiếp theo
               </Button>
+            </Form>
 
-              <div className="d-flex align-items-center my-3">
-                <hr className="flex-grow-1 border-secondary" />
-                <span className="mx-2 text-muted">hoặc</span>
-                <hr className="flex-grow-1 border-secondary" />
-              </div>
+            <Button
+              variant="outline-secondary"
+              className="py-3 rounded-pill fw-bold w-100 mt-2"
+              style={{ borderColor: "#e0e0e0", color: "#000" }}
+              onClick={handleShowForgotPasswordModal}
+            >
+              Quên mật khẩu?
+            </Button>
 
-              <Form onSubmit={handleSubmit}>
-                <Form.Group className="mb-3">
-                  <Form.Control
-                      type="text"
-                      placeholder="Số điện thoại, email hoặc tên người dùng"
-                      name="loginIdentifier"
-                      value={loginIdentifier}
-                      onChange={handleInputChange}
-                      className="py-3 px-3 rounded-3"
-                      style={{ fontSize: "1.1rem", borderColor: "#ccc" }}
-                  />
-                </Form.Group>
-                <Form.Group className="mb-3">
-                  <Form.Control
-                      type="password"
-                      placeholder="Mật khẩu"
-                      name="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="py-3 px-3 rounded-3"
-                      style={{ fontSize: "1.1rem", borderColor: "#ccc" }}
-                  />
-                </Form.Group>
-                <Button
-                    type="submit"
-                    variant="dark"
-                    className="py-3 rounded-pill fw-bold w-100"
-                    style={{ backgroundColor: "#000", borderColor: "#000", fontSize: "1.1rem" }}
-                    disabled={!loginIdentifier || !password}
-                >
-                  Tiếp theo
-                </Button>
-              </Form>
-
+            <p className="text-muted small mt-5 text-center">
+              Không có tài khoản?{" "}
               <Button
-                  variant="outline-secondary"
-                  className="py-3 rounded-pill fw-bold w-100 mt-2"
-                  style={{ borderColor: "#e0e0e0", color: "#000" }}
-                  onClick={handleShowForgotPasswordModal}
+                variant="link"
+                className="p-0 fw-bold text-decoration-none"
+                style={{ color: "#1A8CD8" }}
+                onClick={handleShowJoinXModal}
               >
-                Quên mật khẩu?
+                Đăng ký
               </Button>
+            </p>
+          </div>
+        </Modal.Body>
+      </Modal>
 
-              <p className="text-muted small mt-5 text-center">
-                Không có tài khoản?{" "}
-                <Button
-                    variant="link"
-                    className="p-0 fw-bold text-decoration-none"
-                    style={{ color: "#1A8CD8" }}
-                    onClick={handleShowJoinXModal}
-                >
-                  Đăng ký
-                </Button>
-              </p>
-            </div>
-          </Modal.Body>
-        </Modal>
-
-        <ForgotPasswordModal show={showForgotPasswordModal} handleClose={handleCloseForgotPasswordModal} />
-        <JoinXModal show={showJoinXModal} handleClose={handleCloseJoinXModal} onShowLoginModal={onShowLogin} />
-      </>
+      <ForgotPasswordModal
+        show={showForgotPasswordModal}
+        handleClose={handleCloseForgotPasswordModal}
+      />
+      <JoinXModal
+        show={showJoinXModal}
+        handleClose={handleCloseJoinXModal}
+        onShowLoginModal={onShowLogin}
+      />
+    </>
   );
 };
 

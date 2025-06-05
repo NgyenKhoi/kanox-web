@@ -3,33 +3,43 @@ package com.example.social_media.controller;
 import com.example.social_media.config.URLConfig;
 import com.example.social_media.dto.*;
 import com.example.social_media.entity.User;
+import com.example.social_media.exception.EmailAlreadyExistsException;
+import com.example.social_media.exception.InvalidTokenException;
+import com.example.social_media.exception.TokenExpiredException;
 import com.example.social_media.jwt.JwtService;
 import com.example.social_media.service.AuthService;
-import com.example.social_media.service.PasswordResetService;
+import com.example.social_media.service.MailService;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.http.javanet.NetHttpTransport;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Optional;
 import java.util.HashMap;
+import java.util.List;
+import com.google.api.client.json.gson.GsonFactory;
 import java.util.Map;
-
-import org.slf4j.Logger;
+import java.time.LocalDate;
+import java.time.DateTimeException;
+import java.util.Optional;
 
 @RestController
 @RequestMapping(URLConfig.AUTH_BASE)
 public class AuthController {
 
     private final AuthService authService;
-    private final PasswordResetService passwordResetService;
+    private final MailService mailService;
     private final JwtService jwtService;
-
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
-    public AuthController(AuthService authService, PasswordResetService passwordResetService, JwtService jwtService) {
+    public AuthController(AuthService authService,
+                          MailService mailService,
+                          JwtService jwtService
+                          ) {
         this.authService = authService;
-        this.passwordResetService = passwordResetService;
+        this.mailService = mailService;
         this.jwtService = jwtService;
     }
 
@@ -73,26 +83,93 @@ public class AuthController {
             }
         }
         @PostMapping(URLConfig.RESET_PASSWORD)
-            public ResponseEntity<?> resetPassword (@RequestBody ResetPasswordRequestDto request){
-                if (request.getToken() == null || request.getNewPassword() == null) {
-                    throw new IllegalArgumentException("Token and newPassword are required");
-                }
-                try {
-                    passwordResetService.resetPassword(request.getToken(), request.getNewPassword());
-                    return ResponseEntity.ok("Đặt lại mật khẩu thành công.");
-                } catch (IllegalArgumentException e) {
-                    throw e; // Let GlobalExceptionHandle handle it
-                } catch (Exception e) {
-                    throw new RuntimeException("Có lỗi xảy ra, vui lòng thử lại sau.", e);
-                }
+        public ResponseEntity<Map<String, Object>> resetPassword(@RequestBody @Valid ResetPasswordRequestDto request) {
+            if (request.getToken() == null || request.getNewPassword() == null) {
+                throw new IllegalArgumentException("Token and newPassword are required");
             }
-            @PostMapping(URLConfig.REGISTER)
-            public ResponseEntity<?> register (@RequestBody @Valid RegisterRequestDto dto){
-                try {
-                    User createdUser = authService.register(dto);
-                    return ResponseEntity.ok(createdUser);
-                } catch (Exception e) {
-                    throw new IllegalArgumentException("Registration failed: " + e.getMessage());
-                }
+
+            try {
+                mailService.resetPassword(request.getToken(), request.getNewPassword());
+                Map<String, Object> response = new HashMap<>();
+                response.put("status", "success");
+                response.put("message", "Đặt lại mật khẩu thành công.");
+                return ResponseEntity.ok(response);
+            } catch (InvalidTokenException e) {
+                throw e;
+            } catch (TokenExpiredException e) {
+                throw e;
+            } catch (Exception e) {
+                logger.error("Unexpected error during password reset: ", e);
+                throw new IllegalStateException("Không thể đặt lại mật khẩu: " + e.getMessage(), e);
             }
         }
+            @PostMapping(URLConfig.REGISTER)
+            public ResponseEntity<?> register(@RequestBody @Valid RegisterRequestDto dto) {
+                logger.info("Received registration request for username: {}", dto.getUsername());
+                try {
+                    // Validate date of birth
+                    try {
+                        LocalDate.of(dto.getYear(), dto.getMonth(), dto.getDay());
+                    } catch (DateTimeException e) {
+                        logger.error("Invalid date of birth: {}-{}-{}", dto.getYear(), dto.getMonth(), dto.getDay());
+                        return ResponseEntity.badRequest().body(Map.of(
+                            "message", "Ngày sinh không hợp lệ",
+                            "errors", Map.of("dob", "Ngày sinh không hợp lệ")
+                        ));
+                    }
+
+                    User createdUser = authService.register(dto);
+                    logger.info("User registered successfully with ID: {}", createdUser.getId());
+                    return ResponseEntity.ok(Map.of(
+                        "message", "Đăng ký thành công",
+                        "user", createdUser
+                    ));
+                } catch (EmailAlreadyExistsException e) {
+                    logger.warn("Registration failed: Email already exists - {}", dto.getEmail());
+                    return ResponseEntity.badRequest().body(Map.of(
+                        "message", e.getMessage(),
+                        "errors", Map.of("email", e.getMessage())
+                    ));
+                } catch (Exception e) {
+                    logger.error("Registration failed for username {}: {}", dto.getUsername(), e.getMessage(), e);
+                    return ResponseEntity.badRequest().body(Map.of(
+                        "message", "Đăng ký thất bại: " + e.getMessage()
+                    ));
+                }
+            }
+    //add login google here
+    @PostMapping(URLConfig.LOGIN_GOOGLE)
+    public ResponseEntity<?> loginWithGoogleIdToken(@RequestBody GoogleLoginRequestDto request) {
+        try {
+            if (request.getIdToken() == null || request.getIdToken().isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "idToken is required"));
+            }
+
+            // Xác minh idToken
+            GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
+                    .setAudience(List.of("233866118973-t26ue94egg2v1reebqpe684kglf0bjej.apps.googleusercontent.com"))
+                    .build();
+
+            GoogleIdToken idToken = verifier.verify(request.getIdToken());
+            if (idToken == null) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Invalid ID token"));
+            }
+
+            GoogleIdToken.Payload payload = idToken.getPayload();
+            String email = payload.getEmail();
+            String name = (String) payload.get("name");
+            String googleId = payload.getSubject();
+
+            User user = authService.loginOrRegisterGoogleUser(googleId, email, name);
+            String token = jwtService.generateToken(user.getUsername());
+
+            return ResponseEntity.ok(Map.of(
+                    "token", token,
+                    "user", new UserDto(user)
+            ));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", "Google login failed: " + e.getMessage()));
+        }
+    }
+}

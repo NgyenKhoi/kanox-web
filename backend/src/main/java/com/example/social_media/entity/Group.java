@@ -1,11 +1,14 @@
 package com.example.social_media.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
 
 import java.time.Instant;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "tblGroup", schema = "dbo")
@@ -14,6 +17,11 @@ public class Group {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
     private Integer id;
+
+    @NotNull
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "owner_id", nullable = false)
+    private User owner;
 
     @Size(max = 100)
     @Nationalized
@@ -33,12 +41,23 @@ public class Group {
     @Column(name = "status")
     private Boolean status;
 
+    @OneToMany(mappedBy = "group")
+    private Set<GroupMember> tblGroupMembers = new LinkedHashSet<>();
+
     public Integer getId() {
         return id;
     }
 
     public void setId(Integer id) {
         this.id = id;
+    }
+
+    public User getOwner() {
+        return owner;
+    }
+
+    public void setOwner(User owner) {
+        this.owner = owner;
     }
 
     public String getName() {
@@ -71,6 +90,14 @@ public class Group {
 
     public void setStatus(Boolean status) {
         this.status = status;
+    }
+
+    public Set<GroupMember> getTblGroupMembers() {
+        return tblGroupMembers;
+    }
+
+    public void setTblGroupMembers(Set<GroupMember> tblGroupMembers) {
+        this.tblGroupMembers = tblGroupMembers;
     }
 
 }
