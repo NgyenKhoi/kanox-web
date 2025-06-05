@@ -11,6 +11,8 @@ import NotificationPage from "./pages/Notifications/NotificationPage";
 import MessengerPage from "./pages/Messenger/MessengerPage";
 import LoadingPage from "./components/common/Loading/LoadingPage";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import VerifyEmailPage from "./pages/auth/login/VerifyEmailPage";
+import { AuthProvider } from "./context/AuthContext";
 
 function App() {
   const [isLoading, setIsLoading] = useState(true); // Khởi tạo state isLoading
@@ -40,6 +42,7 @@ function App() {
           <Route path="/explore" element={<ExplorePage />} />
           <Route path="/notifications" element={<NotificationPage />} />{" "}
           <Route path="/messages" element={<MessengerPage />} />{" "}
+          <Route path="/verify-email" element={<VerifyEmailPage />} />
           {/* Route for Notifications */}
           {/* Route cho trang đặt lại mật khẩu */}
           {/* Trang mặc định là SignupPage */}

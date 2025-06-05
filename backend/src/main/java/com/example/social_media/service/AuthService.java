@@ -1,41 +1,51 @@
 package com.example.social_media.service;
 
+import com.example.social_media.config.URLConfig;
+import com.example.social_media.dto.authentication.RegisterRequestDto;
 import com.example.social_media.entity.User;
-import com.example.social_media.repository.UserRepository;
-import com.example.social_media.dto.RegisterRequestDto;
+import com.example.social_media.entity.VerificationToken;
 import com.example.social_media.exception.EmailAlreadyExistsException;
-import com.example.social_media.exception.UserNotFoundException;
 import com.example.social_media.exception.InvalidPasswordException;
+import com.example.social_media.exception.UserNotFoundException;
+import com.example.social_media.repository.UserRepository;
+import com.example.social_media.repository.VerificationTokenRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
-import java.time.DateTimeException;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Optional;
 import java.util.UUID;
 
 @Service
 public class AuthService {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
+
+    private final VerificationTokenRepository verificationTokenRepository;
 
     private final MailService mailService;
     private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
 
-    public AuthService(MailService mailService) {
+    public AuthService(MailService mailService, UserRepository userRepository, PasswordEncoder passwordEncoder, VerificationTokenRepository verificationTokenRepository) {
         this.mailService = mailService;
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.verificationTokenRepository = verificationTokenRepository;
+    }
+
+    public Optional<User> getUserByUsername(String username) {
+        return userRepository.findByUsername(username);
     }
 
     public Optional<User> loginByEmail(String email, String rawPassword) {
         Optional<User> userOpt = userRepository.findByEmailAndStatusTrue(email);
-        if (!userOpt.isPresent()) {
+        if (userOpt.isEmpty()) {
             throw new UserNotFoundException("Người dùng không tồn tại hoặc bị vô hiệu hóa");
         }
         User user = userOpt.get();
@@ -47,7 +57,7 @@ public class AuthService {
 
     public Optional<User> loginByUsername(String username, String rawPassword) {
         Optional<User> userOpt = userRepository.findByUsernameAndStatusTrue(username);
-        if (!userOpt.isPresent()) {
+        if (userOpt.isEmpty()) {
             throw new UserNotFoundException("Người dùng không tồn tại hoặc bị vô hiệu hóa");
         }
         User user = userOpt.get();
@@ -73,15 +83,6 @@ public class AuthService {
         userRepository.save(user);
     }
 
-    public String rememberMe(User user) {
-        if (user == null) {
-            throw new UserNotFoundException("Người dùng không tồn tại");
-        }
-        String token = UUID.randomUUID().toString();
-        user.setPersistentCookie(token);
-        userRepository.save(user);
-        return token;
-    }
 
     public boolean forgotPassword(String email) {
         logger.info("Processing forgot password for email: {}", email);
@@ -107,78 +108,76 @@ public class AuthService {
     }
 
     public User register(RegisterRequestDto dto) {
-        logger.info("Starting registration process for user: {}", dto.getUsername());
-        try {
-            // Validate username format
-            if (!dto.getUsername().matches("^[A-Za-z0-9]+$")) {
-                throw new IllegalArgumentException("Username chỉ được chứa chữ cái và số");
-            }
+        Logger logger = LoggerFactory.getLogger(this.getClass());
 
-            // Validate email format
-            if (!dto.getEmail().matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
-                throw new IllegalArgumentException("Email không hợp lệ");
-            }
+        logger.info("Bắt đầu đăng ký user với username: {}", dto.getUsername());
 
-            // Validate password strength
-            if (!dto.getPassword().matches("^(?=.*[A-Z])(?=.*[!@#$%^&*()_+=.])(?=.{8,}).*$")) {
-                throw new IllegalArgumentException("Mật khẩu phải dài ít nhất 8 ký tự, chứa ít nhất 1 chữ cái in hoa và 1 ký tự đặc biệt");
-            }
-
-            // Check if username exists
-            if (userRepository.existsByUsername(dto.getUsername())) {
-                throw new IllegalArgumentException("Username đã tồn tại");
-            }
-
-            // Check if email exists
-            if (userRepository.existsByEmail(dto.getEmail())) {
-                throw new EmailAlreadyExistsException("Email đã được sử dụng");
-            }
-
-            logger.info("Creating new user with username: {}", dto.getUsername());
-            User user = new User();
-            user.setUsername(dto.getUsername());
-            user.setEmail(dto.getEmail());
-            user.setPassword(passwordEncoder.encode(dto.getPassword()));
-            
-            // Validate and set date of birth
-            try {
-                LocalDate dob = LocalDate.of(dto.getYear(), dto.getMonth(), dto.getDay());
-                user.setDateOfBirth(dob);
-            } catch (DateTimeException e) {
-                throw new IllegalArgumentException("Ngày sinh không hợp lệ");
-            }
-
-            user.setDisplayName(dto.getDisplayName());
-            user.setPhoneNumber(dto.getPhoneNumber());
-            user.setBio(dto.getBio());
-            
-            // Convert gender string to short
-            Short genderValue;
-            String genderStr = dto.getGender().toUpperCase();
-            switch (genderStr) {
-                case "MALE":
-                    genderValue = 0;
-                    break;
-                case "FEMALE":
-                    genderValue = 1;
-                    break;
-                case "OTHER":
-                default:
-                    genderValue = 2;
-                    break;
-            }
-            user.setGender(genderValue);
-            
-            user.setStatus(true);
-            
-            logger.info("Saving user to database: {}", user.getUsername());
-            User savedUser = userRepository.save(user);
-            logger.info("User registered successfully: {}", savedUser.getUsername());
-            return savedUser;
-        } catch (Exception e) {
-            logger.error("Error during user registration: ", e);
-            throw e;
+        if (userRepository.existsByUsername(dto.getUsername())) {
+            logger.warn("Username đã tồn tại: {}", dto.getUsername());
+            throw new IllegalArgumentException("Username đã tồn tại");
         }
+        if (userRepository.existsByEmail(dto.getEmail())) {
+            logger.warn("Email đã được sử dụng: {}", dto.getEmail());
+            throw new EmailAlreadyExistsException("Email đã được sử dụng");
+        }
+
+        // Xóa token cũ theo email (nếu có)
+        Optional<VerificationToken> existingTokenOpt = verificationTokenRepository.findByEmail(dto.getEmail());
+        existingTokenOpt.ifPresent(verificationTokenRepository::delete);
+
+        String token = UUID.randomUUID().toString();
+        logger.info("Tạo token xác thực: {}", token);
+
+        VerificationToken verificationToken = new VerificationToken();
+        verificationToken.setToken(token);
+        verificationToken.setUsername(dto.getUsername());
+        verificationToken.setEmail(dto.getEmail());
+        verificationToken.setPassword(passwordEncoder.encode(dto.getPassword()));
+        verificationToken.setPhoneNumber(dto.getPhoneNumber() != null ? dto.getPhoneNumber() : "");
+
+        Instant now = Instant.now();
+        verificationToken.setCreatedDate(now);
+        Instant expiry = LocalDateTime.now().plusDays(1)
+                .atZone(ZoneId.systemDefault())
+                .toInstant();
+        verificationToken.setExpiryDate(expiry);
+
+        verificationTokenRepository.save(verificationToken);
+        logger.info("Lưu VerificationToken thành công cho username: {}", dto.getUsername());
+
+        // Gửi email xác thực
+        String verificationLink = URLConfig.EMAIL_VERIFICATION + token;
+        mailService.sendVerificationEmail(dto.getEmail(), verificationLink);
+        logger.info("Email xác thực đã được gửi đến: {}", dto.getEmail());
+
+        // Trả về null để client biết cần xác thực email trước
+        return null;
+    }
+
+    public User verifyToken(String token) {
+        VerificationToken verificationToken = verificationTokenRepository.findByToken(token);
+        if (verificationToken == null) {
+            throw new IllegalArgumentException("Token không tồn tại hoặc đã bị xoá.");
+        }
+
+        if (verificationToken.getExpiryDate().isBefore(Instant.now())) {
+            verificationTokenRepository.delete(verificationToken);
+            throw new IllegalArgumentException("Token đã hết hạn.");
+        }
+
+        User user = new User();
+        user.setUsername(verificationToken.getUsername());
+        user.setEmail(verificationToken.getEmail());
+        user.setPassword(verificationToken.getPassword());
+        user.setPhoneNumber(verificationToken.getPhoneNumber());
+        user.setStatus(true);
+
+        User savedUser = userRepository.save(user);
+
+        // Xóa token sau khi xác thực thành công
+        verificationTokenRepository.delete(verificationToken);
+
+        return savedUser;
     }
 
     public User loginOrRegisterGoogleUser(String googleId, String email, String name) {
@@ -187,17 +186,25 @@ public class AuthService {
         if (userOpt.isPresent()) {
             User existingUser = userOpt.get();
 
-            // user dont have google id will set into here
+            // user don't have Google id will set into here
             if (existingUser.getGoogleId() == null) {
                 existingUser.setGoogleId(googleId);
-                userRepository.save(existingUser); // cập nhật nếu muốn
+                userRepository.save(existingUser);
             }
 
             return existingUser;
         }
         String tempPassword = UUID.randomUUID().toString().substring(0, 8);
+        //take username from google login
         User newUser = new User();
-        newUser.setUsername(name);
+        String baseUsername = name.replaceAll("\\s+", "").toLowerCase();
+        String finalUsername = baseUsername;
+        int i = 1;
+        while (userRepository.existsByUsername(finalUsername)) {
+            finalUsername = baseUsername + i;
+            i++;
+        }
+        newUser.setUsername(finalUsername);
         newUser.setEmail(email);
         newUser.setGoogleId(googleId);
         newUser.setPassword(passwordEncoder.encode(tempPassword));

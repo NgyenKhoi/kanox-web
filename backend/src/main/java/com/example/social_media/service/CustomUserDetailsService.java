@@ -34,4 +34,10 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .roles("USER")
                 .build();
     }
+
+    // Thêm phương thức để lấy User object
+    public User getUserByUsername(String username) {
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new UserNotFoundException("Người dùng không tồn tại với username: " + username));
+    }
 }

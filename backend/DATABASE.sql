@@ -21,7 +21,7 @@
         id INT PRIMARY KEY IDENTITY(1, 1),
         email NVARCHAR(50) NOT NULL UNIQUE,
         username VARCHAR(30) NOT NULL UNIQUE,
-        phone_number VARCHAR(12) UNIQUE,
+        phone_number VARCHAR(12) UNIQUE null,
         password VARCHAR(255) NOT NULL,
         persistent_cookie VARCHAR(255),
         google_id VARCHAR(255),
@@ -33,6 +33,20 @@
         profile_privacy_setting VARCHAR(20) CHECK (profile_privacy_setting IN ('public', 'friends', 'only_me', 'custom', 'default')) DEFAULT 'default',
         status BIT NOT NULL DEFAULT 1
     );
+	--table for temporary save token to verify if email exists or not
+	CREATE TABLE tblVerificationToken (
+    id INT  PRIMARY KEY IDENTITY(1,1),
+    email NVARCHAR(255) NOT NULL,
+    username NVARCHAR(50) NOT NULL,
+	password VARCHAR(255) NOT NULL,  -- password đã mã hóa (hash)
+    phone_number NVARCHAR(20) NOT NULL,
+    token NVARCHAR(255) NOT NULL,
+    expiry_date DATETIME NOT NULL,
+    created_date DATETIME NOT NULL DEFAULT GETDATE(),
+	CONSTRAINT UQ_VerificationToken_Email UNIQUE(email)
+);
+-- Tạo index để tìm token nhanh
+CREATE UNIQUE INDEX IDX_VerificationToken_Token ON VerificationToken(Token);
 
     CREATE TRIGGER trg_InsertPrivacySettings
     ON tblUser
