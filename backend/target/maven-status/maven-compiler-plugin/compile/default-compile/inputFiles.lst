@@ -20,12 +20,14 @@ D:\social-media\backend\src\main\java\com\example\social_media\entity\BannedKeyw
 D:\social-media\backend\src\main\java\com\example\social_media\entity\PostTag.java
 D:\social-media\backend\src\main\java\com\example\social_media\controller\GroupController.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\FollowId.java
+D:\social-media\backend\src\main\java\com\example\social_media\service\MediaService.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\ReactionType.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\PrivacySetting.java
 D:\social-media\backend\src\main\java\com\example\social_media\dto\message\MessageDto.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\ContentPrivacy.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\Media.java
 D:\social-media\backend\src\main\java\com\example\social_media\dto\message\SignalMessageDto.java
+D:\social-media\backend\src\main\java\com\example\social_media\config\GcsConfig.java
 D:\social-media\backend\src\main\java\com\example\social_media\repository\MessageTypeRepository.java
 D:\social-media\backend\src\main\java\com\example\social_media\dto\user\UserDto.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\SavedPost.java
@@ -33,6 +35,7 @@ D:\social-media\backend\src\main\java\com\example\social_media\repository\Passwo
 D:\social-media\backend\src\main\java\com\example\social_media\entity\Block.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\Group.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\HiddenPost.java
+D:\social-media\backend\src\main\java\com\example\social_media\repository\MediaRepository.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\FriendSuggestionId.java
 D:\social-media\backend\src\main\java\com\example\social_media\jwt\JwtAuthenticationFilter.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\StoryViewer.java
@@ -74,6 +77,7 @@ D:\social-media\backend\src\main\java\com\example\social_media\service\CustomUse
 D:\social-media\backend\src\main\java\com\example\social_media\entity\GroupMember.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\ReactionId.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\MediaType.java
+D:\social-media\backend\src\main\java\com\example\social_media\service\GcsService.java
 D:\social-media\backend\src\main\java\com\example\social_media\exception\InvalidTokenException.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\ContentPolicy.java
 D:\social-media\backend\src\main\java\com\example\social_media\repository\FollowRepository.java
