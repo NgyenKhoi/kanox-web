@@ -139,45 +139,44 @@ CREATE UNIQUE INDEX IDX_VerificationToken_Token ON VerificationToken(Token);
     );
 
 
-    CREATE TRIGGER trg_ValidateContentPrivacy
-    ON tblContentPrivacy
-    AFTER INSERT, UPDATE
-    AS
+    CREATE OR ALTER TRIGGER trg_ValidateContentPrivacy
+ON tblContentPrivacy
+AFTER INSERT, UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @invalid_content TABLE (content_id INT, content_type_id INT);
+    DECLARE @error_msg NVARCHAR(4000) = '';
+
+    INSERT INTO @invalid_content (content_id, content_type_id)
+    SELECT i.content_id, i.content_type_id
+    FROM inserted i
+    WHERE
+        (i.content_type_id = 1 AND NOT EXISTS (SELECT 1 FROM tblPost WHERE id = i.content_id AND status = 1))
+        OR (i.content_type_id = 2 AND NOT EXISTS (SELECT 1 FROM tblComment WHERE id = i.content_id AND status = 1))
+        OR (i.content_type_id = 3 AND NOT EXISTS (SELECT 1 FROM tblStory WHERE id = i.content_id AND status = 1))
+        OR (i.content_type_id = 4 AND NOT EXISTS (SELECT 1 FROM tblUser WHERE id = i.content_id AND status = 1))
+        OR (i.content_type_id = 5 AND NOT EXISTS (SELECT 1 FROM tblMedia WHERE id = i.content_id AND status = 1))
+        OR (i.content_type_id = 6 AND NOT EXISTS (SELECT 1 FROM tblGroup WHERE id = i.content_id AND status = 1))
+        OR (i.content_type_id = 7 AND NOT EXISTS (SELECT 1 FROM tblPage WHERE id = i.content_id AND status = 1))
+        OR (i.content_type_id = 8 AND NOT EXISTS (SELECT 1 FROM tblMessage WHERE id = i.content_id AND status = 1))
+        OR (i.content_type_id = 9 AND NOT EXISTS (SELECT 1 FROM tblCallSession WHERE id = i.content_id AND status = 1))
+        OR (i.content_type_id = 10 AND NOT EXISTS (SELECT 1 FROM tblNotification WHERE id = i.content_id AND status_id = 1))
+        OR (i.content_type_id = 11 AND NOT EXISTS (SELECT 1 FROM tblReport WHERE id = i.content_id AND status = 1));
+
+    IF EXISTS (SELECT 1 FROM @invalid_content)
     BEGIN
-        SET NOCOUNT ON;
+        SELECT @error_msg = @error_msg + 'Invalid content_id ' + CAST(content_id AS NVARCHAR(10)) +
+                            ' for content_type_id ' + CAST(content_type_id AS NVARCHAR(10)) + '; '
+        FROM @invalid_content;
 
-        -- Declare variables
-        DECLARE @invalid_content TABLE (content_id INT, content_type_id INT);
-        DECLARE @error_msg NVARCHAR(4000) = '';
+        IF @error_msg = ''
+            SET @error_msg = 'Invalid content detected in tblContentPrivacy.';
 
-        -- Collect invalid content entries
-        INSERT INTO @invalid_content (content_id, content_type_id)
-        SELECT i.content_id, i.content_type_id
-        FROM inserted i
-        WHERE
-            (i.content_type_id = 1 AND NOT EXISTS (SELECT 1 FROM tblPost WHERE id = i.content_id AND status = 1))
-            OR (i.content_type_id = 2 AND NOT EXISTS (SELECT 1 FROM tblComment WHERE id = i.content_id AND status = 1))
-            OR (i.content_type_id = 3 AND NOT EXISTS (SELECT 1 FROM tblStory WHERE id = i.content_id AND status = 1))
-            OR (i.content_type_id = 4 AND NOT EXISTS (SELECT 1 FROM tblUser WHERE id = i.content_id AND status = 1));
-
-        -- Check for invalid content
-        IF EXISTS (SELECT 1 FROM @invalid_content)
-        BEGIN
-            --ස
-
-            -- Aggregate error messages for all invalid rows
-            SELECT @error_msg = @error_msg + 'Invalid content_id ' + CAST(content_id AS NVARCHAR(10)) +
-                                ' for content_type_id ' + CAST(content_type_id AS NVARCHAR(10)) + '; '
-            FROM @invalid_content;
-
-            -- Ensure error message is not empty
-            IF @error_msg = ''
-                SET @error_msg = 'Invalid content detected in tblContentPrivacy.';
-
-            -- Throw error without rolling back to avoid transaction issues
-            THROW 50001, @error_msg, 1;
-        END
-    END;
+        THROW 50001, @error_msg, 1;
+    END
+END;
 
     -----------------------PROC FOR UPDATE USER PROFILE----------------------------------
 
@@ -1613,7 +1612,20 @@ CREATE TABLE tblSession (
             SET @exists = 1;
         ELSE IF @target_type_id = 4 AND EXISTS (SELECT 1 FROM tblUser WHERE id = @target_id AND status = 1)
             SET @exists = 1;
-        -- Tiếp tục với các bảng khác tùy vào dữ liệu add vào
+        ELSE IF @target_type_id = 5 AND EXISTS (SELECT 1 FROM tblMedia WHERE id = @target_id AND status = 1)
+			SET @exists = 1;
+		ELSE IF @target_type_id = 6 AND EXISTS (SELECT 1 FROM tblGroup WHERE id = @target_id AND status = 1)
+			SET @exists = 1;
+		ELSE IF @target_type_id = 7 AND EXISTS (SELECT 1 FROM tblPage WHERE id = @target_id AND status = 1)
+			SET @exists = 1;
+		ELSE IF @target_type_id = 8 AND EXISTS (SELECT 1 FROM tblMessage WHERE id = @target_id AND status = 1)
+			SET @exists = 1;
+		ELSE IF @target_type_id = 9 AND EXISTS (SELECT 1 FROM tblCallSession WHERE id = @target_id AND status = 1)
+			SET @exists = 1;
+		ELSE IF @target_type_id = 10 AND EXISTS (SELECT 1 FROM tblNotification WHERE id = @target_id AND status_id = 1)
+			SET @exists = 1;
+		ELSE IF @target_type_id = 11 AND EXISTS (SELECT 1 FROM tblReport WHERE id = @target_id AND status = 1)
+			SET @exists = 1;
 
         SET @is_valid = @exists;
     END;
@@ -1952,6 +1964,7 @@ CREATE TABLE tblSession (
     ('Comment', 'COMMENT'),
     ('Story', 'STORY'),
     ('Profile', 'PROFILE'),
+	('Media', 'MEDIA'),
     ('Group', 'GROUP'),
     ('Page', 'PAGE'),
     ('Message', 'MESSAGE'),

@@ -197,17 +197,21 @@ public class AuthController {
     @PostMapping(URLConfig.LOGIN_GOOGLE)
     public ResponseEntity<?> loginWithGoogleIdToken(@RequestBody GoogleLoginRequestDto request) {
         try {
+            logger.info("Received Google login request with idToken: {}", request.getIdToken());
             if (request.getIdToken() == null || request.getIdToken().isEmpty()) {
+                logger.warn("idToken is null or empty");
                 return ResponseEntity.badRequest().body(Map.of("error", "idToken is required"));
             }
 
             // Xác minh idToken
+            logger.info("Verifying idToken with clientId: {}", URLConfig.GOOGLE_LOGIN_CLIENT_ID);
             GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
                     .setAudience(List.of(URLConfig.GOOGLE_LOGIN_CLIENT_ID))
                     .build();
 
             GoogleIdToken idToken = verifier.verify(request.getIdToken());
             if (idToken == null) {
+                logger.warn("Invalid ID token");
                 return ResponseEntity.badRequest().body(Map.of("error", "Invalid ID token"));
             }
 
@@ -215,16 +219,30 @@ public class AuthController {
             String email = payload.getEmail();
             String name = (String) payload.get("name");
             String googleId = payload.getSubject();
+            logger.info("Google payload - email: {}, name: {}, googleId: {}", email, name, googleId);
 
+            logger.info("Calling loginOrRegisterGoogleUser for email: {}", email);
             User user = authService.loginOrRegisterGoogleUser(googleId, email, name);
+            logger.info("User retrieved/created: {}", user.getUsername());
+
             String token = jwtService.generateToken(user.getUsername());
+            logger.info("Generated JWT token for user: {}", user.getUsername());
 
             return ResponseEntity.ok(Map.of(
                     "token", token,
                     "user", new UserDto(user)
             ));
 
+        } catch (IllegalStateException e) {
+            logger.error("Illegal state during Google login: {}", e.getMessage());
+            if (e.getMessage().contains("Email đã tồn tại") ||
+                    e.getMessage().contains("Username đã tồn tại") ||
+                    e.getMessage().contains("Email đã được liên kết")) {
+                return ResponseEntity.status(409).body(Map.of("error", e.getMessage()));
+            }
+            return ResponseEntity.status(400).body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
+            logger.error("Unexpected error in Google login: ", e);
             return ResponseEntity.status(500).body(Map.of("error", "Google login failed: " + e.getMessage()));
         }
     }
