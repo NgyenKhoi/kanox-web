@@ -12,7 +12,7 @@ import { Link, useParams, useNavigate } from "react-router-dom";
 import TweetCard from "../../components/posts/TweetCard/TweetCard";
 import EditProfileModal from "../../components/profile/EditProfileModal";
 import SidebarLeft from "../../components/layout/SidebarLeft/SidebarLeft";
-import SidebarRight from "../../components/layout/SidebarRight/SidebarRight";
+import SidebarRight from "../../components/layout/SidebarRight/SidebarRight"; 
 import { AuthContext } from "../../context/AuthContext";
 
 function ProfilePage() {
@@ -23,6 +23,7 @@ function ProfilePage() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("posts");
   const [showPremiumAlert, setShowPremiumAlert] = useState(true);
+  const { username } = useParams();
 
   const defaultUserProfile = {
     name: "User Testing",
@@ -57,7 +58,7 @@ function ProfilePage() {
         }
 
         const response = await fetch(
-          `${process.env.REACT_APP_API_URL}/user/profile/${user.username}`,
+          `${process.env.REACT_APP_API_URL}/user/profile/${username}`,
           {
             headers: {
               "Content-Type": "application/json",
@@ -105,7 +106,7 @@ function ProfilePage() {
     try {
       const updatedProfile = { ...userProfile, ...updatedData };
       const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/user/profile/${user.username}`,
+        `${process.env.REACT_APP_API_URL}/user/profile/${username}`,
         {
           method: "PUT",
           headers: {
