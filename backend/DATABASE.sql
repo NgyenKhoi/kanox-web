@@ -1933,6 +1933,7 @@ CREATE TABLE tblSession (
     );
     CREATE TABLE tblMedia (
         id INT PRIMARY KEY IDENTITY(1, 1),
+		owner_id INT FOREIGN KEY REFERENCES tblUser(id),
         target_id INT NOT NULL, -- ID của nội dung (post, story, message, v.v.)
         target_type_id INT NOT NULL FOREIGN KEY REFERENCES tblTargetType(id), -- Loại nội dung
         media_type_id INT NOT NULL FOREIGN KEY REFERENCES tblMediaType(id), -- Loại media
