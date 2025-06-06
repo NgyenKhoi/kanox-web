@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from "react";
+import React, { useState, useContext, useEffect, useCallback } from "react";
 import { Modal, Button, Form, Spinner } from "react-bootstrap";
 import { X as XCloseIcon } from "react-bootstrap-icons";
 import ForgotPasswordModal from "./ForgotPasswordModal";
@@ -22,7 +22,6 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
   const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
   const [showJoinXModal, setShowJoinXModal] = useState(false);
 
-  // ✅ Reset form khi đóng modal
   useEffect(() => {
     if (!show) {
       setLoginIdentifier("");
@@ -33,143 +32,113 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
     }
   }, [show]);
 
-  const handleInputChange = (e) => {
+  const handleInputChange = useCallback((e) => {
     const { name, value } = e.target;
     if (name === "loginIdentifier") setLoginIdentifier(value);
-    else if (name === "password") setPassword(value);
+    if (name === "password") setPassword(value);
 
     if (errors[name]) {
-      setErrors((prevErrors) => {
-        const newErrors = { ...prevErrors };
+      setErrors((prev) => {
+        const newErrors = { ...prev };
         delete newErrors[name];
         return newErrors;
       });
     }
-  };
-
-  const handleRememberMeChange = (e) => {
-    setRememberMe(e.target.checked);
-  };
+  }, [errors]);
 
   const validateForm = () => {
-    let newErrors = {};
+    const newErrors = {};
     if (!loginIdentifier) newErrors.loginIdentifier = "Email, số điện thoại hoặc tên người dùng là bắt buộc.";
     if (!password) newErrors.password = "Mật khẩu là bắt buộc.";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
+  const storeUserSession = (user, token, remember) => {
+    setUser(user);
+    const storage = remember ? localStorage : sessionStorage;
+    storage.setItem("user", JSON.stringify(user));
+    storage.setItem("token", token);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validateForm()) return;
+
     setLoading(true);
-
-    if (!validateForm()) {
-      setLoading(false);
-      return;
-    }
-
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/auth/login`, {
+      const res = await fetch(`${process.env.REACT_APP_API_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          identifier: loginIdentifier,
-          password: password,
-        }),
+        body: JSON.stringify({ identifier: loginIdentifier, password }),
       });
 
-      const contentType = response.headers.get("content-type");
-      let data = contentType?.includes("application/json") ? await response.json() : { message: await response.text() };
+      const contentType = res.headers.get("content-type");
+      const data = contentType?.includes("application/json")
+        ? await res.json()
+        : { message: await res.text() };
 
-      if (response.ok) {
-        const { token, user } = data;
-        setUser(user);
-        const storage = rememberMe ? localStorage : sessionStorage;
-        storage.setItem("user", JSON.stringify(user));
-        storage.setItem("token", token);
-
+      if (res.ok) {
+        storeUserSession(data.user, data.token, rememberMe);
         toast.success("Đăng nhập thành công! Đang chuyển hướng...");
         handleClose();
         setTimeout(() => navigate("/home"), 2000);
       } else {
         toast.error(data.message || "Đăng nhập thất bại. Vui lòng thử lại!");
       }
-    } catch (err) {
+    } catch {
       toast.error("Lỗi kết nối. Vui lòng thử lại sau!");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGoogleLoginSuccess = async (credentialResponse) => {
+  const handleGoogleLoginSuccess = async ({ credential }) => {
     setLoading(true);
     try {
-      const idToken = credentialResponse.credential;
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/auth/login-google`, {
+      const res = await fetch(`${process.env.REACT_APP_API_URL}/auth/login-google`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idToken }),
+        body: JSON.stringify({ idToken: credential }),
       });
 
-      const data = await response.json();
-      if (response.ok) {
-        const { token, user } = data;
-        setUser(user);
-        localStorage.setItem("user", JSON.stringify(user)); // ✅ Không phụ thuộc rememberMe
-        localStorage.setItem("token", token);
-
+      const data = await res.json();
+      if (res.ok) {
+        storeUserSession(data.user, data.token, true); // Google login mặc định dùng localStorage
         toast.success("Đăng nhập bằng Google thành công! Đang chuyển hướng...");
         handleClose();
         setTimeout(() => navigate("/home"), 2000);
       } else {
         toast.error(data.message || "Đăng nhập Google thất bại.");
       }
-    } catch (error) {
+    } catch {
       toast.error("Lỗi đăng nhập Google. Vui lòng thử lại.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGoogleLoginError = () => {
-    toast.error("Đăng nhập Google thất bại hoặc bị hủy.");
-  };
-
-  const handleShowForgotPasswordModal = () => {
-    handleClose();
-    setShowForgotPasswordModal(true);
-  };
-
-  const handleShowJoinXModal = () => {
-    handleClose();
-    setShowJoinXModal(true);
-  };
-
   return (
     <>
       <ToastContainer />
       <Modal show={show} onHide={handleClose} centered size="lg">
-        <Modal.Body className="p-4 rounded-3" style={{ backgroundColor: "#fff", color: "#000" }}>
+        <Modal.Body className="p-4 rounded-3 bg-white text-black">
           <div className="d-flex justify-content-between align-items-center mb-4">
-            <Button
-              variant="link"
-              onClick={handleClose}
-              className="p-0"
-              style={{ color: "#000", fontSize: "1.5rem" }}
-            >
+            <Button variant="link" onClick={handleClose} className="p-0 text-black fs-3">
               <XCloseIcon />
             </Button>
-            <div style={{ width: "100px", height: "100px" }}>
+            <div style={{ width: 100, height: 100 }}>
               <KLogoSvg className="w-100 h-100" fill="black" />
             </div>
-            <div style={{ width: "30px" }}></div>
+            <div style={{ width: 30 }}></div>
           </div>
 
           <h3 className="fw-bold mb-4 text-center">Đăng nhập vào KaNox</h3>
-          <div className="d-flex flex-column gap-3 mx-auto" style={{ maxWidth: "300px" }}>
+
+          <div className="d-flex flex-column gap-3 mx-auto" style={{ maxWidth: 300 }}>
             <GoogleLogin
               onSuccess={handleGoogleLoginSuccess}
-              onError={handleGoogleLoginError}
+              onError={() => toast.error("Đăng nhập Google thất bại hoặc bị hủy.")}
               useOneTap
               size="large"
               shape="pill"
@@ -194,7 +163,7 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
                   onChange={handleInputChange}
                   className="py-3 px-3 rounded-3"
                   style={{ fontSize: "1.1rem", borderColor: "#ccc" }}
-                  isInvalid={!!errors.loginIdentifier}
+                  isInvalid={Boolean(errors.loginIdentifier)}
                 />
                 <Form.Control.Feedback type="invalid">{errors.loginIdentifier}</Form.Control.Feedback>
               </Form.Group>
@@ -208,7 +177,7 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
                   onChange={handleInputChange}
                   className="py-3 px-3 rounded-3"
                   style={{ fontSize: "1.1rem", borderColor: "#ccc" }}
-                  isInvalid={!!errors.password}
+                  isInvalid={Boolean(errors.password)}
                 />
                 <Form.Control.Feedback type="invalid">{errors.password}</Form.Control.Feedback>
               </Form.Group>
@@ -219,7 +188,7 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
                   id="rememberMe"
                   label="Ghi nhớ đăng nhập"
                   checked={rememberMe}
-                  onChange={handleRememberMeChange}
+                  onChange={(e) => setRememberMe(e.target.checked)}
                 />
               </Form.Group>
 
@@ -227,7 +196,7 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
                 type="submit"
                 variant="dark"
                 className="py-3 rounded-pill fw-bold w-100"
-                style={{ backgroundColor: "#000", borderColor: "#000", fontSize: "1.1rem" }}
+                style={{ fontSize: "1.1rem" }}
                 disabled={loading}
               >
                 {loading ? (
@@ -244,8 +213,10 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
             <Button
               variant="outline-secondary"
               className="py-3 rounded-pill fw-bold w-100 mt-2"
-              style={{ borderColor: "#e0e0e0", color: "#000" }}
-              onClick={handleShowForgotPasswordModal}
+              onClick={() => {
+                handleClose();
+                setShowForgotPasswordModal(true);
+              }}
               disabled={loading}
             >
               Quên mật khẩu?
@@ -257,7 +228,10 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
                 variant="link"
                 className="p-0 fw-bold text-decoration-none"
                 style={{ color: "#1A8CD8" }}
-                onClick={handleShowJoinXModal}
+                onClick={() => {
+                  handleClose();
+                  setShowJoinXModal(true);
+                }}
                 disabled={loading}
               >
                 Đăng ký
