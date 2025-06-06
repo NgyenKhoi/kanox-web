@@ -8,13 +8,14 @@ import KLogoSvg from "../../../components/svgs/KSvg";
 import React, { useEffect, useState, useContext } from "react";
 import { AuthContext } from "../../../context/AuthContext";
 
-const SignupPage = () => {
+  const SignupPage = () => {
   const [showCreateAccountModal, setShowCreateAccountModal] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const navigate = useNavigate();
   const { user } = useContext(AuthContext); // 👈 Dùng AuthContext
 
   useEffect(() => {
+    console.log("User from context:", user);
     if (user) {
       // Nếu đã có user trong context → chuyển hướng đến home
       navigate("/home");
@@ -28,102 +29,105 @@ const SignupPage = () => {
   const handleCloseLoginModal = () => setShowLoginModal(false);
 
   return (
-      <Container
-          fluid
-          className="d-flex flex-column min-vh-100 bg-white text-black"
-      >
-        <Row className="flex-grow-1 w-100">
-          <Col
-              xs={12}
-              lg={6}
-              className="d-flex align-items-center justify-content-center p-3"
+    <Container
+      fluid
+      className="d-flex flex-column min-vh-100 bg-white text-black"
+    >
+      <Row className="flex-grow-1 w-100">
+        <Col
+          xs={12}
+          lg={6}
+          className="d-flex align-items-center justify-content-center p-3"
+        >
+          <div style={{ maxWidth: "600px", width: "100%" }}>
+            <KLogoSvg className="w-100 h-auto" fill="black" />
+          </div>
+        </Col>
+
+        <Col
+          xs={12}
+          lg={6}
+          className="d-flex flex-column justify-content-center align-items-start p-4"
+        >
+          <h1 className="display-4 fw-bold mb-4">Đang diễn ra ngay bây giờ</h1>
+          <h2 className="mb-4">Tham gia ngay.</h2>
+
+          <div
+            className="d-flex flex-column gap-3 w-100"
+            style={{ maxWidth: "300px" }}
           >
-            <div style={{ maxWidth: "600px", width: "100%" }}>
-              <KLogoSvg className="w-100 h-auto" fill="black" />
+              <GoogleLogin
+                  onSuccess={handleGoogleRegisterSuccess}
+                  onError={handleGoogleRegisterError}
+                  useOneTap
+                  size="large"
+                  shape="pill"
+                  text="signup_with"
+                  theme="outline"
+                  disabled={loading}
+              />
+
+            <div className="d-flex align-items-center my-3">
+              <hr className="flex-grow-1 border-secondary" />
+              <span className="mx-2 text-muted">HOẶC</span>
+              <hr className="flex-grow-1 border-secondary" />
             </div>
-          </Col>
 
-          <Col
-              xs={12}
-              lg={6}
-              className="d-flex flex-column justify-content-center align-items-start p-4"
-          >
-            <h1 className="display-4 fw-bold mb-4">Đang diễn ra ngay bây giờ</h1>
-            <h2 className="mb-4">Tham gia ngay.</h2>
-
-            <div
-                className="d-flex flex-column gap-3 w-100"
-                style={{ maxWidth: "300px" }}
+            <Button
+              variant="primary"
+              className="py-2 rounded-pill fw-bold"
+              style={{ backgroundColor: "#1A8CD8", borderColor: "#1A8CD8" }}
+              onClick={handleShowCreateAccountModal}
             >
-              <Button
-                  variant="outline-dark"
-                  className="d-flex align-items-center justify-content-center py-2 rounded-pill fw-bold"
+              Tạo tài khoản
+            </Button>
+
+            <p className="text-muted small mt-2">
+              Khi đăng ký, bạn đã đồng ý với{" "}
+              <a
+                href="/terms"
+                className="text-decoration-none"
+                style={{ color: "#1A8CD8" }}
               >
-                <FcGoogle className="me-2" size={24} />
-                Đăng nhập với Google
-              </Button>
-
-              <div className="d-flex align-items-center my-3">
-                <hr className="flex-grow-1 border-secondary" />
-                <span className="mx-2 text-muted">HOẶC</span>
-                <hr className="flex-grow-1 border-secondary" />
-              </div>
-
-              <Button
-                  variant="primary"
-                  className="py-2 rounded-pill fw-bold"
-                  style={{ backgroundColor: "#1A8CD8", borderColor: "#1A8CD8" }}
-                  onClick={handleShowCreateAccountModal}
+                Điều khoản Dịch vụ
+              </a>{" "}
+              và{" "}
+              <a
+                href="/privacy"
+                className="text-decoration-none"
+                style={{ color: "#1A8CD8" }}
               >
-                Tạo tài khoản
-              </Button>
+                Chính sách Quyền riêng tư
+              </a>
+              , gồm cả Sử dụng Cookie.
+            </p>
 
-              <p className="text-muted small mt-2">
-                Khi đăng ký, bạn đã đồng ý với{" "}
-                <a
-                    href="/terms"
-                    className="text-decoration-none"
-                    style={{ color: "#1A8CD8" }}
-                >
-                  Điều khoản Dịch vụ
-                </a>{" "}
-                và{" "}
-                <a
-                    href="/privacy"
-                    className="text-decoration-none"
-                    style={{ color: "#1A8CD8" }}
-                >
-                  Chính sách Quyền riêng tư
-                </a>
-                , gồm cả Sử dụng Cookie.
-              </p>
+            <h5 className="mt-5 mb-3">Đã có tài khoản?</h5>
+            <Button
+              variant="outline-primary"
+              className="py-2 rounded-pill btn-white-border fw-bold"
+              style={{ color: "#1A8CD8", borderColor: "#1A8CD8" }}
+              onClick={handleShowLoginModal}
+            >
+              Đăng nhập
+            </Button>
+          </div>
+        </Col>
+      </Row>
 
-              <h5 className="mt-5 mb-3">Đã có tài khoản?</h5>
-              <Button
-                  variant="outline-primary"
-                  className="py-2 rounded-pill btn-white-border fw-bold"
-                  style={{ color: "#1A8CD8", borderColor: "#1A8CD8" }}
-                  onClick={handleShowLoginModal}
-              >
-                Đăng nhập
-              </Button>
-            </div>
-          </Col>
-        </Row>
+      <CreateAccountModal
+        show={showCreateAccountModal}
+        handleClose={handleCloseCreateAccountModal}
+      />
 
-        <CreateAccountModal
-            show={showCreateAccountModal}
-            handleClose={handleCloseCreateAccountModal}
-        />
+      <LoginModal
+        show={showLoginModal}
+        handleClose={handleCloseLoginModal}
+        onShowLogin={handleShowLoginModal}
+      />
 
-        <LoginModal
-            show={showLoginModal}
-            handleClose={handleCloseLoginModal}
-            onShowLogin={handleShowLoginModal}
-        />
-
-        <Footer />
-      </Container>
+      <Footer />
+    </Container>
   );
 };
 
