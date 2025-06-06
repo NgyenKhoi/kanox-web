@@ -7,6 +7,7 @@ import Footer from "../../../components/layout/Footer/Footer";
 import KLogoSvg from "../../../components/svgs/KSvg";
 import React, { useEffect, useState, useContext } from "react";
 import { AuthContext } from "../../../context/AuthContext";
+import { GoogleLogin } from "@react-oauth/google";
 
   const SignupPage = () => {
   const [showCreateAccountModal, setShowCreateAccountModal] = useState(false);
