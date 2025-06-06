@@ -1,4 +1,4 @@
-  import React, { useState, useEffect } from "react";
+  import React, { useState, useEffect,useContext} from "react";
   import { Container, Row, Col, Image, Button, Nav } from "react-bootstrap";
   import {
     FaArrowLeft,
@@ -14,7 +14,7 @@
   import SidebarLeft from "../../components/layout/SidebarLeft/SidebarLeft";
   // Import SidebarRight nếu bạn muốn nó hiển thị trên trang ProfilePage
   import SidebarRight from "../../components/layout/SidebarRight/SidebarRight";
-  import { AuthContext } from "../../../context/AuthContext";
+  import { AuthContext } from "../../context/AuthContext";
 
   function ProfilePage() {
     const [showAlert, setShowAlert] = useState(true);
