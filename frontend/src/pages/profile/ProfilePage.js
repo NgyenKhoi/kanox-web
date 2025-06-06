@@ -20,7 +20,6 @@ function ProfilePage() {
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const { user } = useContext(AuthContext);
-  const { username } = useParams();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("posts");
   const [showPremiumAlert, setShowPremiumAlert] = useState(true);
@@ -58,7 +57,7 @@ function ProfilePage() {
         }
 
         const response = await fetch(
-          `${process.env.REACT_APP_API_URL}/user/profile/${username}`,
+          `${process.env.REACT_APP_API_URL}/user/profile/${user.username}`,
           {
             headers: {
               "Content-Type": "application/json",
