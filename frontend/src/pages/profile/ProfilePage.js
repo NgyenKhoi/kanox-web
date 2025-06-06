@@ -88,7 +88,7 @@ function ProfilePage() {
     };
 
     fetchUserProfile();
-  }, [user, username]);
+  }, [user?.username]);
 
   const handleSaveProfile = async (updatedData) => {
     if (!user) {
@@ -319,7 +319,7 @@ function ProfilePage() {
         handleClose={handleCloseEditModal}
         userProfile={userProfile}
         onSave={handleSaveProfile}
-        username={username}
+        username={user.username}
       />
     </Container>
   );
