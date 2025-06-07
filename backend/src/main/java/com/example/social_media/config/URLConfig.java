@@ -17,6 +17,11 @@ public class URLConfig {
     // User Management URLs
     public static final String USER_MANAGEMENT_BASE = "/api/user";
     public static final String PROFILE = "/profile/{username}";
+    // Post Management URLs
+    public static final String POST_BASE = "/api/posts";
+    public static final String NEWSFEED = "/newsfeed";
+    // Upload Management URLs
+    public static final String UPLOAD_BASE = "/api/upload";
     // Chat URLs
     public static final String CHAT_MESSAGES = "/chat/{chatId}/messages";
     // Frontend URLs

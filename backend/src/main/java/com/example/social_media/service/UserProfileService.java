@@ -1,8 +1,10 @@
 package com.example.social_media.service;
 
 import com.example.social_media.dto.user.UserProfileDto;
+import com.example.social_media.dto.user.UserTagDto;
 import com.example.social_media.dto.user.UserUpdateProfileDto;
 import com.example.social_media.entity.User;
+import com.example.social_media.exception.UserNotFoundException;
 import com.example.social_media.repository.FollowRepository;
 import com.example.social_media.repository.UserRepository;
 import org.springframework.stereotype.Service;
@@ -62,5 +64,10 @@ public class UserProfileService {
                 followerCount,
                 followeeCount
         );
+    }
+    public UserTagDto getUserTagByUsername(String username) {
+        User user = userRepository.findByUsernameAndStatusTrue(username)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        return new UserTagDto(user);
     }
 }
