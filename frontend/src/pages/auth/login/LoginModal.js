@@ -16,7 +16,6 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
 
   const [loginIdentifier, setLoginIdentifier] = useState("");
   const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
@@ -26,7 +25,6 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
     if (!show) {
       setLoginIdentifier("");
       setPassword("");
-      setRememberMe(false);
       setErrors({});
       setLoading(false);
     }
@@ -59,10 +57,10 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const storeUserSession = (user, token, remember) => {
-    setUser(user, remember);
-    const storage = remember ? localStorage : sessionStorage;
-    storage.setItem("token", token);
+  const storeUserSession = (user, token) => {
+    setUser(user);
+    localStorage.setItem("token", token); // Lưu token vào localStorage
+    localStorage.setItem("refreshToken", localStorage.getItem("refreshToken") || ""); // Đảm bảo refreshToken tồn tại
   };
 
   const handleSubmit = async (e) => {
@@ -83,7 +81,7 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
         : { message: await res.text() };
 
       if (res.ok) {
-        storeUserSession(data.user, data.token, rememberMe);
+        storeUserSession(data.user, data.token);
         toast.success("Đăng nhập thành công! Đang chuyển hướng...");
         handleClose();
         setTimeout(() => navigate("/home"), 2000);
@@ -111,7 +109,10 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
 
       const data = await res.json();
       if (res.ok) {
-        storeUserSession(data.user, data.token, true); // Google login mặc định dùng localStorage
+        const { token, refreshToken, user } = data;
+        setUser(user);
+        localStorage.setItem("token", token); // Lưu token vào localStorage
+        localStorage.setItem("refreshToken", refreshToken); // Lưu refreshToken vào localStorage
         toast.success("Đăng nhập bằng Google thành công! Đang chuyển hướng...");
         handleClose();
         setTimeout(() => navigate("/home"), 2000);
@@ -202,16 +203,6 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
                 </Form.Control.Feedback>
               </Form.Group>
 
-              <Form.Group className="mb-3">
-                <Form.Check
-                  type="checkbox"
-                  id="rememberMe"
-                  label="Ghi nhớ đăng nhập"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                />
-              </Form.Group>
-
               <Button
                 type="submit"
                 variant="dark"
@@ -231,7 +222,7 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
                     Đang xử lý...
                   </>
                 ) : (
-                  "Tiếp theo"
+                  "Tiếp tục"
                 )}
               </Button>
             </Form>

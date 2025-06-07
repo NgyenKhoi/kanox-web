@@ -15,24 +15,22 @@ const SignupPage = () => {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
-
   const { user, setUser, token, logout } = useContext(AuthContext);
 
   useEffect(() => {
-  const checkAndNavigate = async () => {
-    if (user && token) {
-      navigate("/home");
-    } else if (token && !user) {
-      await new Promise((resolve) => setTimeout(resolve, 500)); // Chờ 500ms
-      if (!user) {
-        console.log("Token tồn tại nhưng user không, gọi logout...", { user, token });
-        logout();
+    const checkAndNavigate = async () => {
+      if (user && token) {
+        navigate("/home");
+      } else if (token && !user) {
+        await new Promise((resolve) => setTimeout(resolve, 500)); // Chờ 500ms
+        if (!user) {
+          console.log("Token tồn tại nhưng user không, gọi logout...", { user, token });
+          logout();
+        }
       }
-    }
-  };
-  checkAndNavigate();
-}, [user, token, navigate, logout]);
+    };
+    checkAndNavigate();
+  }, [user, token, navigate, logout]);
 
   const handleShowCreateAccountModal = () => setShowCreateAccountModal(true);
   const handleCloseCreateAccountModal = () => setShowCreateAccountModal(false);
@@ -52,13 +50,11 @@ const SignupPage = () => {
 
       const data = await response.json();
       if (response.ok) {
-        const { token, refreshToken, user } = data; // Giả sử backend trả về refreshToken
-        setUser(user, rememberMe);
-        if (rememberMe) {
-          localStorage.setItem("refreshToken", refreshToken); // Lưu refresh token nếu rememberMe
-        }
+        const { token, refreshToken, user } = data;
+        setUser(user); // Không cần rememberMe
+        localStorage.setItem("token", token); // Lưu token vào localStorage
+        localStorage.setItem("refreshToken", refreshToken); // Lưu refreshToken vào localStorage
         toast.success("Đăng nhập bằng Google thành công! Đang chuyển hướng...");
-        handleCloseLoginModal();
         setTimeout(() => navigate("/home"), 2000);
       } else {
         toast.error(data.message || "Đăng nhập Google thất bại.");
@@ -88,14 +84,6 @@ const SignupPage = () => {
           <h2 className="mb-4">Tham gia ngay.</h2>
 
           <div className="d-flex flex-column gap-3 w-100" style={{ maxWidth: "300px" }}>
-            <Form.Check
-              type="checkbox"
-              id="rememberMe"
-              label="Nhớ tôi"
-              checked={rememberMe}
-              onChange={(e) => setRememberMe(e.target.checked)}
-              className="mb-3"
-            />
             <GoogleLogin
               onSuccess={handleGoogleLoginSuccess}
               onError={handleGoogleLoginError}
