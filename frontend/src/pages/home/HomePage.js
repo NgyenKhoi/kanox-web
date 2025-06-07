@@ -58,7 +58,8 @@ function HomePage() {
               >
                 <span>Trang chủ</span>
               </div>
-              <TweetInput postOnSuccess={fetchPosts} />
+              <TweetInput postOnSuccess={(newPost) => setPosts((prev) => [newPost, ...prev])} />
+
               {loading ? (
                   <div className="d-flex justify-content-center py-4">
                     <Spinner animation="border" role="status" style={{ color: "#000" }} />

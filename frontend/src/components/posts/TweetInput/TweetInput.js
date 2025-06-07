@@ -84,7 +84,8 @@ function TweetInput({ onPostSuccess }) {
       setTaggedUserIds([]);
       setStatus("public");
       setError(null);
-      if (onPostSuccess) onPostSuccess();
+      const newPost = await response.json();
+      if (onPostSuccess) onPostSuccess(newPost);
     } catch (err) {
       setError(err.message);
     } finally {
