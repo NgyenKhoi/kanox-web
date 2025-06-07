@@ -229,10 +229,12 @@ public class AuthController {
             logger.info("User retrieved/created: {}", user.getUsername());
 
             String token = jwtService.generateToken(user.getUsername());
-            logger.info("Generated JWT token for user: {}", user.getUsername());
+            String refreshToken = jwtService.generateRefreshToken(user.getUsername());
+            logger.info("Generated JWT token and refresh token for user: {}", user.getUsername());
 
             return ResponseEntity.ok(Map.of(
                     "token", token,
+                    "refreshToken", refreshToken, // Thêm refreshToken vào response
                     "user", new UserDto(user)
             ));
 
