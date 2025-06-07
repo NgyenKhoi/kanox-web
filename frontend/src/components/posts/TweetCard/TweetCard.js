@@ -4,8 +4,8 @@ import {
   FaRegComment, FaRetweet, FaRegHeart, FaShareAlt, FaEllipsisH, FaSave, FaFlag, FaEdit, FaTrash, FaSmile, FaUser
 } from "react-icons/fa";
 import moment from "moment";
-import { AuthContext } from "../../context/AuthContext";
-import EditPostModal from "../../components/posts/EditPostModal";
+import { AuthContext } from "../../../context/AuthContext";
+import EditPostModal from "../TweetInput/EditPostModal";
 
 function TweetCard({ tweet, onPostUpdate }) {
   const { user } = useContext(AuthContext);

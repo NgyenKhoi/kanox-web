@@ -13,14 +13,13 @@ function ProfilePage() {
   const { username } = useParams();
   const navigate = useNavigate();
 
-
   const [userProfile, setUserProfile] = useState(null);
   const [activeTab, setActiveTab] = useState("posts");
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showPremiumAlert, setShowPremiumAlert] = useState(true);
+  const [error, setError] = useState(null);
 
   // Dữ liệu mặc định nếu không có user
   const defaultUserProfile = {
@@ -34,125 +33,82 @@ function ProfilePage() {
     followeeCount: 123,
     followerCount: 456,
     postCount: 789,
-    banner: "https://source.unsplash.com/1200x400/?abstract,tech",
-    avatar: "https://source.unsplash.com/150x150/?person,face",
     isPremium: false,
     gender: 0,
   };
 
-  // Dữ liệu mẫu cho các tab
+  // Dữ liệu mẫu cho các tab (loại bỏ imageUrl và avatar)
   const sampleData = {
-    posts: [
-      { id: 1, user: { name: userProfile?.displayName || "Người dùng Test", username: userProfile?.username || "testuser", avatar: userProfile?.avatar }, content: "Xin chào từ tài khoản ảo! #TestAccount", imageUrl: null, timestamp: new Date("2025-05-28T00:00:00Z"), comments: 0, retweets: 0, likes: 0 },
-      { id: 2, user: { name: userProfile?.displayName || "Người dùng Test", username: userProfile?.username || "testuser", avatar: userProfile?.avatar }, content: "Đang thử nghiệm giao diện Profile Page. Trông khá ổn!", imageUrl: "https://via.placeholder.com/600x400/000000/ffffff?text=Mock+Image", timestamp: new Date("2025-05-29T10:00:00Z"), comments: 2, retweets: 1, likes: 5 },
-      { id: 3, user: { name: userProfile?.displayName || "Người dùng Test", username: userProfile?.username || "testuser", avatar: userProfile?.avatar }, content: "React là một thư viện tuyệt vời để xây dựng UI.", imageUrl: null, timestamp: new Date("2025-05-30T14:30:00Z"), comments: 1, retweets: 0, likes: 3 },
-    ],
+    posts: [], // Dùng dữ liệu từ API thay vì mẫu
     shares: [
-      { id: 201, user: { name: userProfile?.displayName || "Người dùng Test", username: userProfile?.username || "testuser", avatar: userProfile?.avatar }, content: "Chia sẻ bài đăng này vì quá hay! #Motivation", imageUrl: "https://source.unsplash.com/600x400/?sunset", timestamp: new Date("2025-05-27T18:00:00Z"), comments: 3, retweets: 2, likes: 10 },
-      { id: 202, user: { name: userProfile?.displayName || "Người dùng Test", username: userProfile?.username || "testuser", avatar: userProfile?.avatar }, content: "Một bài đăng thú vị về nghệ thuật! #Art", imageUrl: "https://source.unsplash.com/600x400/?abstract", timestamp: new Date("2025-05-25T11:00:00Z"), comments: 1, retweets: 0, likes: 7 },
+      { id: 201, user: { name: userProfile?.displayName || "Người dùng Test", username: userProfile?.username || "testuser" }, content: "Chia sẻ bài đăng này vì quá hay! #Motivation", timestamp: new Date("2025-05-27T18:00:00Z"), comments: 3, retweets: 2, likes: 10 },
+      { id: 202, user: { name: userProfile?.displayName || "Người dùng Test", username: userProfile?.username || "testuser" }, content: "Một bài đăng thú vị về nghệ thuật! #Art", timestamp: new Date("2025-05-25T11:00:00Z"), comments: 1, retweets: 0, likes: 7 },
     ],
     savedArticles: [
-      { id: 301, user: { name: "Người dùng Khác 1", username: "otheruser1", avatar: "https://via.placeholder.com/50" }, content: "Bài đăng rất hay! Rất đồng ý. #GoodVibes", imageUrl: null, timestamp: new Date("2025-05-29T09:00:00Z"), comments: 0, retweets: 0, likes: 0 },
-      { id: 302, user: { name: "Người dùng Khác 2", username: "otheruser2", avatar: "https://via.placeholder.com/50" }, content: "Hình ảnh này đẹp quá! Tuyệt vời. #Nature", imageUrl: "https://source.unsplash.com/600x400/?mountain", timestamp: new Date("2025-05-28T16:00:00Z"), comments: 1, retweets: 0, likes: 0 },
+      { id: 301, user: { name: "Người dùng Khác 1", username: "otheruser1" }, content: "Bài đăng rất hay! Rất đồng ý. #GoodVibes", timestamp: new Date("2025-05-29T09:00:00Z"), comments: 0, retweets: 0, likes: 0 },
+      { id: 302, user: { name: "Người dùng Khác 2", username: "otheruser2" }, content: "Hình ảnh này đẹp quá! Tuyệt vời. #Nature", timestamp: new Date("2025-05-28T16:00:00Z"), comments: 1, retweets: 0, likes: 0 },
     ],
-  };
-
-  const fetchProfileAndPosts = () => {
-    async () => {
-      try {
-        const token = await localStorage.getItem("token");
-        const profileResponse = await fetch(
-            `${process.env.REACT_APP_PROFILE_URL}/api/users/profile/${username}`,
-            {
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-            }
-        );
-        if (!profileResponse.ok()) {
-          throw new Error("Failed to fetch profile!");
-        }
-        const profileData = await profileResponse.json();
-        setUserProfile(profileData);
-
-        const postsResponse = await fetch(
-            `${process.env.REACT_APP_PROFILE_POSTS_URL}/user/posts/user/${username}`,
-            {
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-            }
-        );
-        if (!postsResponse.ok()) {
-          const errorData = await postsResponse.json();
-          throw new Error(errorData.message || "Failed to fetch posts!");
-        }
-        const postsData = await postsResponse.json();
-        setPosts(postsData);
-      } catch (err) {
-        setError(err.message);
-        setUserProfile(null);
-      } finally {
-        setLoading(false);
-      }
-    })();
   };
 
   // Fetch hồ sơ người dùng
-  // useEffect(() => {
-  //   const fetchProfile = async () => {
-  //     setLoading(true);
-  //
-  //     if (!user) {
-  //       setUserProfile(defaultUserProfile);
-  //       setLoading(false);
-  //       return;
-  //     }
-  //
-  //     if (username && user.username !== username) {
-  //       navigate(`/profile/${user.username}`);
-  //       return;
-  //     }
-  //
-  //     try {
-  //       const token = localStorage.getItem("token");
-  //       const response = await fetch(`${process.env.REACT_APP_API_URL}/user/profile/${user.username}`, {
-  //         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-  //       });
-  //
-  //       if (!response.ok) {
-  //         setUserProfile(defaultUserProfile);
-  //         setLoading(false);
-  //         return;
-  //       }
-  //
-  //       const data = await response.json();
-  //       setUserProfile({
-  //         ...data,
-  //         banner: data.banner || "https://source.unsplash.com/1200x400/?nature,water",
-  //         avatar: data.avatar || "https://source.unsplash.com/150x150/?portrait",
-  //         postCount: data.postCount || 0,
-  //         website: data.website || "",
-  //         isPremium: data.isPremium || false,
-  //       });
-  //     } catch (error) {
-  //       console.error("Error fetching profile:", error);
-  //       setUserProfile(defaultUserProfile);
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   };
-  //
-  //   fetchProfile();
-  // }, [user, username, navigate]);
-
   useEffect(() => {
-    if (user && username) {
-      fetchProfileAndPosts();
-    }
-  }, [user, username]);
+    const fetchProfile = async () => {
+      setLoading(true);
+
+      if (!user) {
+        setUserProfile(defaultUserProfile);
+        setPosts([]);
+        setLoading(false);
+        return;
+      }
+
+      if (username && user.username !== username) {
+        navigate(`/profile/${user.username}`);
+        return;
+      }
+
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/user/profile/${username}`, {
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        });
+
+        if (!response.ok) {
+          setUserProfile(defaultUserProfile);
+          setLoading(false);
+          return;
+        }
+
+        const data = await response.json();
+        setUserProfile({
+          ...data,
+          banner: data.banner || "https://source.unsplash.com/1200x400/?nature,water",
+          avatar: data.avatar || "https://source.unsplash.com/150x150/?portrait",
+          postCount: data.postCount || 0,
+          website: data.website || "",
+          isPremium: data.isPremium || false,
+        });
+        const postsResponse = await fetch(`${process.env.REACT_APP_API_URL}/posts/user/${username}`, {
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        });
+
+        if (!postsResponse.ok) {
+          throw new Error("Không thể lấy bài đăng!");
+        }
+
+        const postsData = await postsResponse.json();
+        setPosts(postsData);
+      } catch (error) {
+        console.error("Error fetching profile:", error);
+        setUserProfile(defaultUserProfile);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, [user, username, navigate]);
+
   // Xử lý chỉnh sửa hồ sơ
   const handleEditProfile = async (updatedData) => {
     if (!user) {
@@ -164,7 +120,7 @@ function ProfilePage() {
     const updatedProfile = { ...userProfile, ...updatedData };
 
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/user/profile/${user.username}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/user/profile/${username}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(updatedProfile),
@@ -181,16 +137,66 @@ function ProfilePage() {
 
   // Xử lý tab content
   const renderTabContent = () => {
+    if (activeTab === "posts") {
+      return posts.length > 0 ? (
+          posts.map((item) => (
+              <TweetCard
+                  key={item.id}
+                  tweet={item}
+                  onPostUpdate={() => fetchProfileAndPosts()} // Thêm callback để làm mới bài đăng
+              />
+          ))
+      ) : (
+          <p className="text-dark text-center p-4">Không có bài đăng nào.</p>
+      );
+    }
+
     const data = sampleData[activeTab] || [];
     return data.length > 0 ? (
         data.map((item) => <TweetCard key={item.id} tweet={item} />)
     ) : (
         <p className="text-dark text-center p-4">
-          {activeTab === "posts" && "Không có bài đăng nào."}
           {activeTab === "shares" && "Không có bài chia sẻ nào."}
           {activeTab === "savedArticles" && "Không có bài viết đã lưu nào."}
         </p>
     );
+  };
+
+  // Thêm hàm fetchProfileAndPosts để dùng trong onPostUpdate
+  const fetchProfileAndPosts = async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const profileResponse = await fetch(`${process.env.REACT_APP_API_URL}/api/users/profile/${username}`, {
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      });
+
+      if (!profileResponse.ok) {
+        throw new Error("Không thể lấy thông tin hồ sơ!");
+      }
+
+      const profileData = await profileResponse.json();
+      setUserProfile({
+        ...profileData,
+        postCount: profileData.postCount || 0,
+        website: profileData.website || "",
+        isPremium: profileData.isPremium || false,
+      });
+
+      const postsResponse = await fetch(`${process.env.REACT_APP_API_URL}/api/posts/user/${username}`, {
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      });
+
+      if (!postsResponse.ok) {
+        throw new Error("Không thể lấy bài đăng!");
+      }
+
+      const postsData = await postsResponse.json();
+      setPosts(postsData);
+    } catch (error) {
+      console.error("Error refreshing data:", error);
+      setError(error.message);
+    }
   };
 
   if (loading) {
@@ -216,7 +222,7 @@ function ProfilePage() {
           <Container fluid>
             <Row>
               <Col xs={12} lg={12} className="mx-auto d-flex align-items-center ps-md-5">
-                <Link to="/" className="btn btn-light me-3">
+                <Link to="/home" className="btn btn-light me-3">
                   <FaArrowLeft size={20} />
                 </Link>
                 <div>

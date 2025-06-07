@@ -4,7 +4,7 @@ import {
   FaPollH, FaSmile, FaCalendarAlt, FaUserFriends, FaUser
 } from "react-icons/fa";
 import { useContext } from "react";
-import { AuthContext } from "../../context/AuthContext";
+import { AuthContext } from "../../../context/AuthContext";
 
 function TweetInput({ onPostSuccess }) {
   const { user } = useContext(AuthContext);

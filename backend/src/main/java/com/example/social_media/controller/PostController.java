@@ -3,7 +3,7 @@ package com.example.social_media.controller;
 import com.example.social_media.config.URLConfig;
 import com.example.social_media.dto.post.PostRequestDto;
 import com.example.social_media.dto.post.PostResponseDto;
-import com.example.social_media.exception.BadRequestException;
+import com.example.social_media.exception.RegistrationException;
 import com.example.social_media.jwt.JwtService;
 import com.example.social_media.service.PostService;
 import jakarta.validation.Valid;
@@ -36,7 +36,7 @@ public class PostController {
             PostResponseDto responseDto = postService.createPost(dto, username);
             return ResponseEntity.ok(responseDto);
         } catch (IllegalArgumentException e) {
-            throw new BadRequestException(e.getMessage());
+            throw new RegistrationException(e.getMessage());
         }
     }
 
@@ -48,7 +48,7 @@ public class PostController {
             List<PostResponseDto> posts = postService.getAllPosts(username);
             return ResponseEntity.ok(posts);
         } catch (IllegalArgumentException e) {
-            throw new BadRequestException(e.getMessage());
+            throw new RegistrationException(e.getMessage());
         }
     }
 
@@ -61,7 +61,7 @@ public class PostController {
             List<PostResponseDto> posts = postService.getPostsByUsername(username, currentUsername);
             return ResponseEntity.ok(posts);
         } catch (IllegalArgumentException e) {
-            throw new BadRequestException(e.getMessage());
+            throw new RegistrationException(e.getMessage());
         }
     }
 }

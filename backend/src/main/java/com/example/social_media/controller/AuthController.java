@@ -16,6 +16,7 @@ import com.google.api.client.http.javanet.NetHttpTransport;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
@@ -226,10 +227,12 @@ public class AuthController {
             logger.info("User retrieved/created: {}", user.getUsername());
 
             String token = jwtService.generateToken(user.getUsername());
-            logger.info("Generated JWT token for user: {}", user.getUsername());
+            String refreshToken = jwtService.generateRefreshToken(user.getUsername());
+            logger.info("Generated JWT token and refresh token for user: {}", user.getUsername());
 
             return ResponseEntity.ok(Map.of(
                     "token", token,
+                    "refreshToken", refreshToken, // Thêm refreshToken vào response
                     "user", new UserDto(user)
             ));
 
@@ -244,6 +247,68 @@ public class AuthController {
         } catch (Exception e) {
             logger.error("Unexpected error in Google login: ", e);
             return ResponseEntity.status(500).body(Map.of("error", "Google login failed: " + e.getMessage()));
+        }
+    }
+    @PostMapping(URLConfig.REFRESH_TOKEN)
+    public ResponseEntity<?> refreshToken(@RequestHeader("Authorization") String refreshToken) {
+        if (refreshToken != null && refreshToken.startsWith("Bearer ")) {
+            String token = refreshToken.substring(7);
+            String newToken = jwtService.refreshToken(token);
+
+            if (newToken != null) {
+                String username = jwtService.extractUsername(token);
+                User user = authService.getUserByUsername(username)
+                        .orElseThrow(() -> new RuntimeException("User not found"));
+
+                return ResponseEntity.ok(new ResponseDto("Token refreshed successfully", newToken, user));
+            }
+        }
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ResponseDto("Invalid refresh token", null, null));
+    }
+
+    @PostMapping(URLConfig.CHECK_TOKEN)
+    public ResponseEntity<?> checkToken(@RequestHeader("Authorization") String authHeader) {
+        logger.info("Received check-token request with header: {}", authHeader);
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            logger.warn("Missing or invalid Authorization header");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Missing or invalid Authorization header"));
+        }
+
+        String token = authHeader.substring(7);
+        String username;
+
+        try {
+            username = jwtService.extractUsername(token);
+            logger.info("Extracted username from token: {}", username);
+        } catch (Exception e) {
+            logger.error("Failed to extract username from token: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Invalid token: " + e.getMessage()));
+        }
+
+        Optional<User> userOpt;
+        try {
+            userOpt = authService.getUserByUsername(username);
+            logger.info("User lookup result: {}", userOpt.isPresent());
+        } catch (Exception e) {
+            logger.error("Failed to retrieve user by username {}: {}", username, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("message", "Error retrieving user: " + e.getMessage()));
+        }
+
+        if (userOpt.isPresent()) {
+            try {
+                jwtService.extractAllClaims(token); // Kiểm tra token hợp lệ
+                logger.info("Token is valid for user: {}", username);
+                return ResponseEntity.ok(Map.of(
+                        "token", token,
+                        "user", new UserDto(userOpt.get())
+                ));
+            } catch (Exception e) {
+                logger.warn("Token expired or invalid for user {}: {}", username, e.getMessage(), e);
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Token expired or invalid: " + e.getMessage()));
+            }
+        } else {
+            logger.warn("User not found for username: {}", username);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "User not found"));
         }
     }
 }

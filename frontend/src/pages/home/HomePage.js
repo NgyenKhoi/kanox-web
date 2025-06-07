@@ -3,9 +3,9 @@ import { Container, Row, Col, Spinner } from "react-bootstrap";
 import Header from "../../components/layout/Header/Header";
 import SidebarLeft from "../../components/layout/SidebarLeft/SidebarLeft";
 import SidebarRight from "../../components/layout/SidebarRight/SidebarRight";
-import TweetInput from "../../components/posts/inputTweetInput";
-import TweetCard from "./TweetCard/TweetCard";
-import { AuthContext } from "../context/AuthContext";
+import TweetInput from "../../components/posts/TweetInput/TweetInput";
+import TweetCard from "../../components/posts/TweetCard/TweetCard";
+import { AuthContext } from "../../context/AuthContext";
 
 function HomePage() {
   const { user } = useContext(AuthContext);
@@ -13,38 +13,37 @@ function HomePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const fetchPosts = () => {
-    async () => {
-      if (!user) return;
-      setLoading(true);
-      try {
-        const token = await localStorage.getItem("token");
-        const response = await fetch(
-            `${process.env.REACT_APP_API_URL}/posts/newsfeed`,
-            {
-              headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${token}`,
-              },
-            });
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || "Failed to fetch posts!");
-        }
-        const data = await response.json();
-        setPosts(data);
-      } catch (err) {
-        setError(err.message);
+  const fetchPosts = async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      const token = await localStorage.getItem("token");
+      const response = await fetch(
+          `${process.env.REACT_APP_API_URL}/posts/newsfeed`,
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          }
+      );
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to fetch posts!");
       }
-      setLoading(false);
-    })();
+      const data = await response.json();
+      setPosts(data);
+    } catch (err) {
+      setError(err.message);
+    }
+    setLoading(false);
   };
 
   useEffect(() => {
     fetchPosts();
   }, [user]);
 
-  if (return (
+  return (
       <div className="d-flex flex-column min-vh-100" style={{ backgroundColor: "#fff" }}>
         <Header />
         <Container fluid className="flex-grow-1">
@@ -57,7 +56,7 @@ function HomePage() {
                   className="sticky-top bg-white border-bottom fw-bold fs-5 px-3 py-2 d-flex justify-content-between align-items-center"
                   style={{ zIndex: 1020 }}
               >
-                <span> Trang chủ</span>
+                <span>Trang chủ</span>
               </div>
               <TweetInput postOnSuccess={fetchPosts} />
               {loading ? (
