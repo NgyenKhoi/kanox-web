@@ -17,20 +17,9 @@ const SignupPage = () => {
   const [loading, setLoading] = useState(false);
   const { user, setUser, token, logout } = useContext(AuthContext);
 
-  useEffect(() => {
-    const checkAndNavigate = async () => {
-      if (user && token) {
-        navigate("/home");
-      } else if (token && !user) {
-        await new Promise((resolve) => setTimeout(resolve, 500)); // Chờ 500ms
-        if (!user) {
-          console.log("Token tồn tại nhưng user không, gọi logout...", { user, token });
-          logout();
-        }
-      }
-    };
-    checkAndNavigate();
-  }, [user, token, navigate, logout]);
+  if (user && token) {
+    return <Navigate to="/home" replace />;
+  }
 
   const handleShowCreateAccountModal = () => setShowCreateAccountModal(true);
   const handleCloseCreateAccountModal = () => setShowCreateAccountModal(false);
@@ -42,11 +31,14 @@ const SignupPage = () => {
     setLoading(true);
     try {
       const idToken = credentialResponse.credential;
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/auth/login-google`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idToken }),
-      });
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/auth/login-google`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ idToken }),
+        }
+      );
 
       const data = await response.json();
       if (response.ok) {
@@ -55,7 +47,7 @@ const SignupPage = () => {
         localStorage.setItem("token", token); // Lưu token vào localStorage
         localStorage.setItem("refreshToken", refreshToken); // Lưu refreshToken vào localStorage
         toast.success("Đăng nhập bằng Google thành công! Đang chuyển hướng...");
-        setTimeout(() => navigate("/home"), 2000);
+        navigate("/home");
       } else {
         toast.error(data.message || "Đăng nhập Google thất bại.");
       }
@@ -71,19 +63,33 @@ const SignupPage = () => {
   };
 
   return (
-    <Container fluid className="d-flex flex-column min-vh-100 bg-white text-black">
+    <Container
+      fluid
+      className="d-flex flex-column min-vh-100 bg-white text-black"
+    >
       <Row className="flex-grow-1 w-100">
-        <Col xs={12} lg={6} className="d-flex align-items-center justify-content-center p-3">
+        <Col
+          xs={12}
+          lg={6}
+          className="d-flex align-items-center justify-content-center p-3"
+        >
           <div style={{ maxWidth: "600px", width: "100%" }}>
             <KLogoSvg className="w-100 h-auto" fill="black" />
           </div>
         </Col>
 
-        <Col xs={12} lg={6} className="d-flex flex-column justify-content-center align-items-start p-4">
+        <Col
+          xs={12}
+          lg={6}
+          className="d-flex flex-column justify-content-center align-items-start p-4"
+        >
           <h1 className="display-4 fw-bold mb-4">Đang diễn ra ngay bây giờ</h1>
           <h2 className="mb-4">Tham gia ngay.</h2>
 
-          <div className="d-flex flex-column gap-3 w-100" style={{ maxWidth: "300px" }}>
+          <div
+            className="d-flex flex-column gap-3 w-100"
+            style={{ maxWidth: "300px" }}
+          >
             <GoogleLogin
               onSuccess={handleGoogleLoginSuccess}
               onError={handleGoogleLoginError}
@@ -112,11 +118,19 @@ const SignupPage = () => {
 
             <p className="text-muted small mt-2">
               Khi đăng ký, bạn đã đồng ý với{" "}
-              <a href="/terms" className="text-decoration-none" style={{ color: "#1A8CD8" }}>
+              <a
+                href="/terms"
+                className="text-decoration-none"
+                style={{ color: "#1A8CD8" }}
+              >
                 Điều khoản Dịch vụ
               </a>{" "}
               và{" "}
-              <a href="/privacy" className="text-decoration-none" style={{ color: "#1A8CD8" }}>
+              <a
+                href="/privacy"
+                className="text-decoration-none"
+                style={{ color: "#1A8CD8" }}
+              >
                 Chính sách Quyền riêng tư
               </a>
               , gồm cả Sử dụng Cookie.
