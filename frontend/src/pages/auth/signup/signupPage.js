@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useContext } from "react";
-import { Container, Row, Col, Button } from "react-bootstrap";
+import { Container, Row, Col, Button, Form } from "react-bootstrap";
 import { FcGoogle } from "react-icons/fc";
 import { useNavigate } from "react-router-dom";
 import CreateAccountModal from "../login/CreateAccountModal";
@@ -8,21 +8,25 @@ import Footer from "../../../components/layout/Footer/Footer";
 import KLogoSvg from "../../../components/svgs/KSvg";
 import { AuthContext } from "../../../context/AuthContext";
 import { GoogleLogin } from "@react-oauth/google";
-import { toast } from "react-toastify"; // ✅ Thêm dòng này
+import { toast } from "react-toastify";
 
 const SignupPage = () => {
   const [showCreateAccountModal, setShowCreateAccountModal] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
 
-  const { user, setUser } = useContext(AuthContext); // ✅ Thêm setUser
+  const { user, setUser, token, logout } = useContext(AuthContext);
 
   useEffect(() => {
-    if (user) {
+    if (user && token) {
       navigate("/home");
+    } else if (!user && token) {
+      // Token tồn tại nhưng user không, có thể token hết hạn hoặc không hợp lệ
+      logout();
     }
-  }, [user, navigate]);
+  }, [user, token, navigate, logout]);
 
   const handleShowCreateAccountModal = () => setShowCreateAccountModal(true);
   const handleCloseCreateAccountModal = () => setShowCreateAccountModal(false);
@@ -42,13 +46,13 @@ const SignupPage = () => {
 
       const data = await response.json();
       if (response.ok) {
-        const { token, user } = data;
-        setUser(user);
-        localStorage.setItem("user", JSON.stringify(user));
-        localStorage.setItem("token", token);
-
+        const { token, refreshToken, user } = data; // Giả sử backend trả về refreshToken
+        setUser(user, rememberMe);
+        if (rememberMe) {
+          localStorage.setItem("refreshToken", refreshToken); // Lưu refresh token nếu rememberMe
+        }
         toast.success("Đăng nhập bằng Google thành công! Đang chuyển hướng...");
-        handleCloseLoginModal(); // ✅ Hoặc handleCloseCreateAccountModal()
+        handleCloseLoginModal();
         setTimeout(() => navigate("/home"), 2000);
       } else {
         toast.error(data.message || "Đăng nhập Google thất bại.");
@@ -78,6 +82,14 @@ const SignupPage = () => {
           <h2 className="mb-4">Tham gia ngay.</h2>
 
           <div className="d-flex flex-column gap-3 w-100" style={{ maxWidth: "300px" }}>
+            <Form.Check
+              type="checkbox"
+              id="rememberMe"
+              label="Nhớ tôi"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              className="mb-3"
+            />
             <GoogleLogin
               onSuccess={handleGoogleLoginSuccess}
               onError={handleGoogleLoginError}

@@ -13,10 +13,13 @@ import com.example.social_media.service.MailService;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.List;
@@ -245,5 +248,21 @@ public class AuthController {
             logger.error("Unexpected error in Google login: ", e);
             return ResponseEntity.status(500).body(Map.of("error", "Google login failed: " + e.getMessage()));
         }
+    }
+    @PostMapping(URLConfig.REFRESH_TOKEN)
+    public ResponseEntity<?> refreshToken(@RequestHeader("Authorization") String refreshToken) {
+        if (refreshToken != null && refreshToken.startsWith("Bearer ")) {
+            String token = refreshToken.substring(7);
+            String newToken = jwtService.refreshToken(token);
+
+            if (newToken != null) {
+                String username = jwtService.extractUsername(token);
+                User user = authService.getUserByUsername(username)
+                        .orElseThrow(() -> new RuntimeException("User not found"));
+
+                return ResponseEntity.ok(new ResponseDto("Token refreshed successfully", newToken, user));
+            }
+        }
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ResponseDto("Invalid refresh token", null, null));
     }
 }
