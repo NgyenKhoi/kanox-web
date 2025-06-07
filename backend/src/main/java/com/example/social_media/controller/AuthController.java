@@ -13,13 +13,11 @@ import com.example.social_media.service.MailService;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.List;
@@ -270,32 +268,46 @@ public class AuthController {
 
     @PostMapping(URLConfig.CHECK_TOKEN)
     public ResponseEntity<?> checkToken(@RequestHeader("Authorization") String authHeader) {
+        logger.info("Received check-token request with header: {}", authHeader);
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            logger.warn("Missing or invalid Authorization header");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Missing or invalid Authorization header"));
         }
-        String token = authHeader.substring(7); // Bỏ "Bearer "
+
+        String token = authHeader.substring(7);
         String username;
 
         try {
             username = jwtService.extractUsername(token);
+            logger.info("Extracted username from token: {}", username);
         } catch (Exception e) {
-            logger.warn("Invalid token: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Invalid token"));
+            logger.error("Failed to extract username from token: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Invalid token: " + e.getMessage()));
         }
 
-        Optional<User> userOpt = authService.getUserByUsername(username);
+        Optional<User> userOpt;
+        try {
+            userOpt = authService.getUserByUsername(username);
+            logger.info("User lookup result: {}", userOpt.isPresent());
+        } catch (Exception e) {
+            logger.error("Failed to retrieve user by username {}: {}", username, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("message", "Error retrieving user: " + e.getMessage()));
+        }
+
         if (userOpt.isPresent()) {
             try {
-                jwtService.extractAllClaims(token);
+                jwtService.extractAllClaims(token); // Kiểm tra token hợp lệ
+                logger.info("Token is valid for user: {}", username);
                 return ResponseEntity.ok(Map.of(
                         "token", token,
                         "user", new UserDto(userOpt.get())
                 ));
             } catch (Exception e) {
-                logger.warn("Token expired or invalid for user {}: {}", username, e.getMessage());
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Token expired or invalid"));
+                logger.warn("Token expired or invalid for user {}: {}", username, e.getMessage(), e);
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Token expired or invalid: " + e.getMessage()));
             }
         } else {
+            logger.warn("User not found for username: {}", username);
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "User not found"));
         }
     }
