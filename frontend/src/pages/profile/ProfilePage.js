@@ -72,7 +72,7 @@ function ProfilePage() {
 
       try {
         const token = localStorage.getItem("token");
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/user/profile/${user.username}`, {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/user/profile/${username}`, {
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         });
 
@@ -113,7 +113,7 @@ function ProfilePage() {
     const updatedProfile = { ...userProfile, ...updatedData };
 
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/user/profile/${user.username}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/user/profile/${username}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(updatedProfile),
