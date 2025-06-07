@@ -13,9 +13,12 @@ function ProfilePage() {
   const { username } = useParams();
   const navigate = useNavigate();
 
+
   const [userProfile, setUserProfile] = useState(null);
   const [activeTab, setActiveTab] = useState("posts");
+  const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showPremiumAlert, setShowPremiumAlert] = useState(true);
 
@@ -54,54 +57,102 @@ function ProfilePage() {
     ],
   };
 
-  // Fetch hồ sơ người dùng
-  useEffect(() => {
-    const fetchProfile = async () => {
-      setLoading(true);
-
-      if (!user) {
-        setUserProfile(defaultUserProfile);
-        setLoading(false);
-        return;
-      }
-
-      if (username && user.username !== username) {
-        navigate(`/profile/${user.username}`);
-        return;
-      }
-
+  const fetchProfileAndPosts = () => {
+    async () => {
       try {
-        const token = localStorage.getItem("token");
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/user/profile/${user.username}`, {
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        });
-
-        if (!response.ok) {
-          setUserProfile(defaultUserProfile);
-          setLoading(false);
-          return;
+        const token = await localStorage.getItem("token");
+        const profileResponse = await fetch(
+            `${process.env.REACT_APP_PROFILE_URL}/api/users/profile/${username}`,
+            {
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+            }
+        );
+        if (!profileResponse.ok()) {
+          throw new Error("Failed to fetch profile!");
         }
+        const profileData = await profileResponse.json();
+        setUserProfile(profileData);
 
-        const data = await response.json();
-        setUserProfile({
-          ...data,
-          banner: data.banner || "https://source.unsplash.com/1200x400/?nature,water",
-          avatar: data.avatar || "https://source.unsplash.com/150x150/?portrait",
-          postCount: data.postCount || 0,
-          website: data.website || "",
-          isPremium: data.isPremium || false,
-        });
-      } catch (error) {
-        console.error("Error fetching profile:", error);
-        setUserProfile(defaultUserProfile);
+        const postsResponse = await fetch(
+            `${process.env.REACT_APP_PROFILE_POSTS_URL}/user/posts/user/${username}`,
+            {
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+            }
+        );
+        if (!postsResponse.ok()) {
+          const errorData = await postsResponse.json();
+          throw new Error(errorData.message || "Failed to fetch posts!");
+        }
+        const postsData = await postsResponse.json();
+        setPosts(postsData);
+      } catch (err) {
+        setError(err.message);
+        setUserProfile(null);
       } finally {
         setLoading(false);
       }
-    };
+    })();
+  };
 
-    fetchProfile();
-  }, [user, username, navigate]);
+  // Fetch hồ sơ người dùng
+  // useEffect(() => {
+  //   const fetchProfile = async () => {
+  //     setLoading(true);
+  //
+  //     if (!user) {
+  //       setUserProfile(defaultUserProfile);
+  //       setLoading(false);
+  //       return;
+  //     }
+  //
+  //     if (username && user.username !== username) {
+  //       navigate(`/profile/${user.username}`);
+  //       return;
+  //     }
+  //
+  //     try {
+  //       const token = localStorage.getItem("token");
+  //       const response = await fetch(`${process.env.REACT_APP_API_URL}/user/profile/${user.username}`, {
+  //         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+  //       });
+  //
+  //       if (!response.ok) {
+  //         setUserProfile(defaultUserProfile);
+  //         setLoading(false);
+  //         return;
+  //       }
+  //
+  //       const data = await response.json();
+  //       setUserProfile({
+  //         ...data,
+  //         banner: data.banner || "https://source.unsplash.com/1200x400/?nature,water",
+  //         avatar: data.avatar || "https://source.unsplash.com/150x150/?portrait",
+  //         postCount: data.postCount || 0,
+  //         website: data.website || "",
+  //         isPremium: data.isPremium || false,
+  //       });
+  //     } catch (error) {
+  //       console.error("Error fetching profile:", error);
+  //       setUserProfile(defaultUserProfile);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+  //
+  //   fetchProfile();
+  // }, [user, username, navigate]);
 
+  useEffect(() => {
+    if (user && username) {
+      fetchProfileAndPosts();
+    }
+  }, [user, username]);
   // Xử lý chỉnh sửa hồ sơ
   const handleEditProfile = async (updatedData) => {
     if (!user) {
