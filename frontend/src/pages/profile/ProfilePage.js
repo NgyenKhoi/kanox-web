@@ -165,7 +165,7 @@ function ProfilePage() {
           <Container fluid>
             <Row>
               <Col xs={12} lg={12} className="mx-auto d-flex align-items-center ps-md-5">
-                <Link to="/" className="btn btn-light me-3">
+                <Link to="/home" className="btn btn-light me-3">
                   <FaArrowLeft size={20} />
                 </Link>
                 <div>
