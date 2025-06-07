@@ -267,4 +267,36 @@ public class AuthController {
         }
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ResponseDto("Invalid refresh token", null, null));
     }
+
+    @PostMapping(URLConfig.CHECK_TOKEN)
+    public ResponseEntity<?> checkToken(@RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Missing or invalid Authorization header"));
+        }
+        String token = authHeader.substring(7); // Bỏ "Bearer "
+        String username;
+
+        try {
+            username = jwtService.extractUsername(token);
+        } catch (Exception e) {
+            logger.warn("Invalid token: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Invalid token"));
+        }
+
+        Optional<User> userOpt = authService.getUserByUsername(username);
+        if (userOpt.isPresent()) {
+            try {
+                jwtService.extractAllClaims(token);
+                return ResponseEntity.ok(Map.of(
+                        "token", token,
+                        "user", new UserDto(userOpt.get())
+                ));
+            } catch (Exception e) {
+                logger.warn("Token expired or invalid for user {}: {}", username, e.getMessage());
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Token expired or invalid"));
+            }
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "User not found"));
+        }
+    }
 }

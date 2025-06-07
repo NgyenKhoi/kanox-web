@@ -6,7 +6,9 @@ export const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [user, setUserState] = useState(null);
   const [token, setToken] = useState(localStorage.getItem("token") || null);
-  const [refreshToken, setRefreshToken] = useState(localStorage.getItem("refreshToken") || null);
+  const [refreshToken, setRefreshToken] = useState(
+    localStorage.getItem("refreshToken") || null
+  );
   const [rememberMe, setRememberMe] = useState(
     localStorage.getItem("rememberMe") === "true" || false
   );
@@ -38,8 +40,10 @@ export const AuthProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    const savedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
-    const savedToken = localStorage.getItem("token") || sessionStorage.getItem("token");
+    const savedUser =
+      localStorage.getItem("user") || sessionStorage.getItem("user");
+    const savedToken =
+      localStorage.getItem("token") || sessionStorage.getItem("token");
     const savedRefreshToken = localStorage.getItem("refreshToken");
 
     if (savedUser && savedToken) {
@@ -60,24 +64,39 @@ export const AuthProvider = ({ children }) => {
     const checkTokenValidity = async () => {
       if (token) {
         try {
-          const response = await fetch(`${process.env.REACT_APP_API_URL}/api/auth/check-token`, {
-            method: "POST",
-            headers: { "Authorization": `Bearer ${token}`, "Refresh-Token": `Bearer ${refreshToken}` },
-          });
+          const response = await fetch(
+            `${process.env.REACT_APP_API_URL}/auth/check-token`,
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Refresh-Token": `Bearer ${refreshToken}`,
+              },
+            }
+          );
           if (response.ok) {
             const data = await response.json();
             setToken(data.token); // Cập nhật token mới nếu có
             const storage = rememberMe ? localStorage : sessionStorage;
             storage.setItem("token", data.token);
+            if (data.user) {
+              setUserState(data.user); // Cập nhật user từ response
+            }
           } else if (response.status === 401 && refreshToken) {
-            // Thử refresh token
             await refreshAccessToken();
           } else {
             logout();
           }
         } catch (error) {
           console.error("Lỗi kiểm tra token:", error);
-          logout();
+          if (refreshToken) {
+            const success = await refreshAccessToken();
+            if (!success) {
+              logout();
+            }
+          } else {
+            logout();
+          }
         }
       }
     };
@@ -89,10 +108,13 @@ export const AuthProvider = ({ children }) => {
 
   const refreshAccessToken = async () => {
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/auth/refresh-token`, {
-        method: "POST",
-        headers: { "Authorization": `Bearer ${refreshToken}` },
-      });
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/auth/refresh-token`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${refreshToken}` },
+        }
+      );
       if (response.ok) {
         const data = await response.json();
         setToken(data.token);
@@ -129,7 +151,9 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, setUser, token, rememberMe, setRememberMe, logout }}>
+    <AuthContext.Provider
+      value={{ user, setUser, token, rememberMe, setRememberMe, logout }}
+    >
       {children}
     </AuthContext.Provider>
   );

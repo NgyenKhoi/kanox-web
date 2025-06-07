@@ -20,13 +20,19 @@ const SignupPage = () => {
   const { user, setUser, token, logout } = useContext(AuthContext);
 
   useEffect(() => {
+  const checkAndNavigate = async () => {
     if (user && token) {
       navigate("/home");
-    } else if (!user && token) {
-      // Token tồn tại nhưng user không, có thể token hết hạn hoặc không hợp lệ
-      logout();
+    } else if (token && !user) {
+      await new Promise((resolve) => setTimeout(resolve, 500)); // Chờ 500ms
+      if (!user) {
+        console.log("Token tồn tại nhưng user không, gọi logout...", { user, token });
+        logout();
+      }
     }
-  }, [user, token, navigate, logout]);
+  };
+  checkAndNavigate();
+}, [user, token, navigate, logout]);
 
   const handleShowCreateAccountModal = () => setShowCreateAccountModal(true);
   const handleCloseCreateAccountModal = () => setShowCreateAccountModal(false);

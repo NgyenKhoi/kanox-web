@@ -13,6 +13,7 @@ public class URLConfig {
     public static final String EMAIL_VERIFICATION = "https://kanox-web.netlify.app/verify-email?token=";
     public static final String ME = "/me";
     public static final String REFRESH_TOKEN = "/refresh-token";
+    public static final String CHECK_TOKEN = "/check-token";
     // User Management URLs
     public static final String USER_MANAGEMENT_BASE = "/api/user";
     public static final String PROFILE = "/profile/{username}";
