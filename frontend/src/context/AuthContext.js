@@ -6,7 +6,9 @@ export const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [user, setUserState] = useState(null);
   const [token, setToken] = useState(localStorage.getItem("token") || null);
-  const [refreshToken, setRefreshToken] = useState(localStorage.getItem("refreshToken") || null);
+  const [refreshToken, setRefreshToken] = useState(
+    localStorage.getItem("refreshToken") || null
+  );
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -53,10 +55,13 @@ export const AuthProvider = ({ children }) => {
 
     const checkTokenValidity = async () => {
       try {
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/auth/check-token`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const response = await fetch(
+          `${process.env.REACT_APP_API_URL}/auth/check-token`,
+          {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
         const data = await response.json();
         if (response.ok) {
           setToken(data.token);
@@ -78,10 +83,13 @@ export const AuthProvider = ({ children }) => {
 
     const refreshAccessToken = async () => {
       try {
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/auth/refresh-token`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${refreshToken}` },
-        });
+        const response = await fetch(
+          `${process.env.REACT_APP_API_URL}/auth/refresh-token`,
+          {
+            method: "POST",
+            headers: { Authorization: `Bearer ${refreshToken}` },
+          }
+        );
         if (response.ok) {
           const data = await response.json();
           setToken(data.token);
