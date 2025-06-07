@@ -10,6 +10,19 @@ import java.time.Instant;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
+@NamedStoredProcedureQuery(
+        name = "sp_CreatePost",
+        procedureName = "sp_CreatePost",
+        parameters = {
+                @StoredProcedureParameter(mode = ParameterMode.IN, name = "owner_id", type = Integer.class),
+                @StoredProcedureParameter(mode = ParameterMode.IN, name = "content", type = String.class),
+                @StoredProcedureParameter(mode = ParameterMode.IN, name = "privacy_setting", type = String.class),
+                @StoredProcedureParameter(mode = ParameterMode.IN, name = "media_urls", type = String.class),
+                @StoredProcedureParameter(mode = ParameterMode.IN, name = "tagged_user_ids", type = String.class),
+                @StoredProcedureParameter(mode = ParameterMode.IN, name = "custom_list_id", type = Integer.class),
+                @StoredProcedureParameter(mode = ParameterMode.OUT, name = "new_post_id", type = Integer.class)
+        }
+)
 @Entity
 @Table(name = "tblPost", schema = "dbo")
 public class Post {
