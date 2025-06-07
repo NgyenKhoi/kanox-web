@@ -47,4 +47,10 @@ public interface PostRepository extends JpaRepository<Post, Integer> {
         ORDER BY p.created_at DESC
     """, nativeQuery = true)
     List<Post> findNewsfeedPosts(@Param("userId") Integer userId);
+
+    @Query("SELECT p FROM Post p WHERE p.status = true AND p.owner.status = true ORDER BY p.createdAt DESC")
+    List<Post> findAllActivePosts();
+
+    @Query("SELECT p FROM Post p WHERE p.owner.username = :username AND p.status = true ORDER BY p.createdAt DESC")
+    List<Post> findActivePostsByUsername(String username);
 }

@@ -5,8 +5,8 @@ import com.example.social_media.dto.post.PostResponseDto;
 import com.example.social_media.dto.user.UserTagDto;
 import com.example.social_media.entity.Post;
 import com.example.social_media.entity.PostTag;
-import com.example.social_media.exception.BadRequestException;
-import com.example.social_media.exception.NotFoundException;
+import com.example.social_media.exception.RegistrationException;
+import com.example.social_media.exception.UserNotFoundException;
 import com.example.social_media.repository.ContentPrivacyRepository;
 import com.example.social_media.repository.PostRepository;
 import com.example.social_media.repository.PostTagRepository;
@@ -39,17 +39,19 @@ public class PostService {
         logger.info("Creating post for user: {}", username);
 
         var user = userRepository.findByUsernameAndStatusTrue(username)
-                .orElseThrow(() -> new NotFoundException("User not found or inactive"));
+                .orElseThrow(() -> new UserNotFoundException("User not found or inactive"));
 
         String taggedUserIds = dto.getTaggedUserIds() != null ? String.join(",", dto.getTaggedUserIds().stream().map(String::valueOf).toList()) : null;
 
-        postRepository.createPost(user.getId(), dto.getContent(), dto.getPrivacySetting(), null, taggedUserIds, dto.getCustomListId());
+        Integer newPostId = postRepository.createPost(
+                user.getId(), dto.getContent(), dto.getPrivacySetting(), null, taggedUserIds, dto.getCustomListId());
 
-        var posts = postRepository.findActivePostsByUsername(username);
-        if (posts.isEmpty()) {
-            throw new BadRequestException("Failed to create post");
+        if (newPostId == null) {
+            throw new RegistrationException("Failed to create post");
         }
-        Post latestPost = posts.get(0);
+
+        Post latestPost = postRepository.findById(newPostId)
+                .orElseThrow(() -> new RegistrationException("Post creation failed - not found"));
 
         return convertToDto(latestPost);
     }
@@ -58,7 +60,7 @@ public class PostService {
         logger.info("Fetching all posts for user: {}", username);
 
         var user = userRepository.findByUsernameAndStatusTrue(username)
-                .orElseThrow(() -> new NotFoundException("User not found or inactive"));
+                .orElseThrow(() -> new UserNotFoundException("User not found or inactive"));
 
         List<Post> posts = postRepository.findAllActivePosts();
         return posts.stream()
@@ -71,7 +73,7 @@ public class PostService {
         logger.info("Fetching posts for username: {} by user: {}", targetUsername, currentUsername);
 
         var currentUser = userRepository.findByUsernameAndStatusTrue(currentUsername)
-                .orElseThrow(() -> new NotFoundException("Current user not found or inactive"));
+                .orElseThrow(() -> new UserNotFoundException("Current user not found or inactive"));
 
         List<Post> posts = postRepository.findActivePostsByUsername(targetUsername);
         return posts.stream()
