@@ -2,6 +2,7 @@ import React, { useEffect, useState, useContext } from "react";
 import { Container, Row, Col, Button, Form } from "react-bootstrap";
 import { FcGoogle } from "react-icons/fc";
 import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import CreateAccountModal from "../login/CreateAccountModal";
 import LoginModal from "../login/LoginModal";
 import Footer from "../../../components/layout/Footer/Footer";
