@@ -1,4 +1,3 @@
-
 import { createContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -8,24 +7,31 @@ export const AuthProvider = ({ children }) => {
   const [user, setUserState] = useState(null);
   const [token, setToken] = useState(localStorage.getItem("token") || null);
   const [refreshToken, setRefreshToken] = useState(localStorage.getItem("refreshToken") || null);
+  const [rememberMe, setRememberMe] = useState(
+    localStorage.getItem("rememberMe") === "true" || false
+  );
   const navigate = useNavigate();
 
-  const setUser = (userObj, rememberMe = false) => {
+  const setUser = (userObj, rememberMeValue = rememberMe) => {
     setUserState(userObj);
-    const storage = rememberMe ? localStorage : sessionStorage;
+    setRememberMe(rememberMeValue); // Cập nhật trạng thái rememberMe
+    const storage = rememberMeValue ? localStorage : sessionStorage;
     if (userObj) {
       storage.setItem("user", JSON.stringify(userObj));
-      if (rememberMe) {
-        localStorage.setItem("token", token); // Lưu token nếu rememberMe
-        localStorage.setItem("refreshToken", refreshToken); // Lưu refresh token nếu có
+      storage.setItem("token", token); // Lưu token
+      if (rememberMeValue) {
+        localStorage.setItem("refreshToken", refreshToken); // Lưu refresh token nếu rememberMe
+        localStorage.setItem("rememberMe", "true"); // Lưu trạng thái rememberMe
       } else {
         sessionStorage.setItem("token", token);
-        sessionStorage.removeItem("refreshToken"); // Không lưu refresh token nếu không rememberMe
+        localStorage.removeItem("refreshToken"); // Xóa refresh token nếu không rememberMe
+        localStorage.removeItem("rememberMe"); // Xóa trạng thái rememberMe
       }
     } else {
       localStorage.removeItem("user");
       localStorage.removeItem("token");
       localStorage.removeItem("refreshToken");
+      localStorage.removeItem("rememberMe");
       sessionStorage.removeItem("user");
       sessionStorage.removeItem("token");
     }
@@ -61,8 +67,8 @@ export const AuthProvider = ({ children }) => {
           if (response.ok) {
             const data = await response.json();
             setToken(data.token); // Cập nhật token mới nếu có
-            if (rememberMe) localStorage.setItem("token", data.token);
-            else sessionStorage.setItem("token", data.token);
+            const storage = rememberMe ? localStorage : sessionStorage;
+            storage.setItem("token", data.token);
           } else if (response.status === 401 && refreshToken) {
             // Thử refresh token
             await refreshAccessToken();
@@ -70,7 +76,7 @@ export const AuthProvider = ({ children }) => {
             logout();
           }
         } catch (error) {
-          console.error("Error checking token:", error);
+          console.error("Lỗi kiểm tra token:", error);
           logout();
         }
       }
@@ -79,7 +85,7 @@ export const AuthProvider = ({ children }) => {
     checkTokenValidity();
     const interval = setInterval(checkTokenValidity, 5 * 60 * 1000); // Kiểm tra mỗi 5 phút
     return () => clearInterval(interval);
-  }, [token, refreshToken, navigate]);
+  }, [token, refreshToken, navigate, rememberMe]);
 
   const refreshAccessToken = async () => {
     try {
@@ -91,15 +97,18 @@ export const AuthProvider = ({ children }) => {
         const data = await response.json();
         setToken(data.token);
         setUser(data.user ? JSON.parse(data.user) : user); // Cập nhật user nếu có
-        if (localStorage.getItem("user")) localStorage.setItem("token", data.token);
-        else sessionStorage.setItem("token", data.token);
+        if (rememberMe) {
+          localStorage.setItem("token", data.token);
+        } else {
+          sessionStorage.setItem("token", data.token);
+        }
         return true;
       } else {
         logout();
         return false;
       }
     } catch (error) {
-      console.error("Refresh token failed:", error);
+      console.error("Lỗi refresh token:", error);
       logout();
       return false;
     }
@@ -109,16 +118,18 @@ export const AuthProvider = ({ children }) => {
     setUserState(null);
     setToken(null);
     setRefreshToken(null);
+    setRememberMe(false);
     localStorage.removeItem("user");
     localStorage.removeItem("token");
     localStorage.removeItem("refreshToken");
+    localStorage.removeItem("rememberMe");
     sessionStorage.removeItem("user");
     sessionStorage.removeItem("token");
     navigate("/signup");
   };
 
   return (
-    <AuthContext.Provider value={{ user, setUser, token, logout }}>
+    <AuthContext.Provider value={{ user, setUser, token, rememberMe, setRememberMe, logout }}>
       {children}
     </AuthContext.Provider>
   );
