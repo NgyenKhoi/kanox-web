@@ -3,6 +3,8 @@ package com.example.social_media.service;
 import com.example.social_media.dto.post.PostRequestDto;
 import com.example.social_media.dto.post.PostResponseDto;
 import com.example.social_media.dto.user.UserTagDto;
+import com.example.social_media.entity.ContentPrivacy;
+import com.example.social_media.entity.ContentPrivacyId;
 import com.example.social_media.entity.Post;
 import com.example.social_media.entity.PostTag;
 import com.example.social_media.exception.RegistrationException;
@@ -56,6 +58,16 @@ public class PostService {
         Post latestPost = postRepository.findById(newPostId)
                 .orElseThrow(() -> new RegistrationException("Post creation failed - not found"));
 
+        // Tạo ContentPrivacy cho post mới
+        ContentPrivacy contentPrivacy = new ContentPrivacy();
+        ContentPrivacyId id = new ContentPrivacyId();
+        id.setContentId(newPostId);
+        id.setContentTypeId(1); // Giả định content_type_id = 1 cho tblPost
+        contentPrivacy.setId(id);
+        contentPrivacy.setPrivacySetting(dto.getPrivacySetting());
+        contentPrivacy.setStatus(true);
+        contentPrivacyRepository.save(contentPrivacy);
+
         return convertToDto(latestPost);
     }
 
@@ -73,9 +85,22 @@ public class PostService {
             throw new UnauthorizedException("You are not authorized to update this post");
         }
 
-        // Validate privacy setting
-        contentPrivacyRepository.findByPrivacySetting(dto.getPrivacySetting())
-                .orElseThrow(() -> new IllegalArgumentException("Invalid privacy setting"));
+        // Validate and update privacy setting
+        ContentPrivacy existingPrivacy = contentPrivacyRepository.findByContentIdAndContentTypeId(postId, 1)
+                .orElseGet(() -> {
+                    ContentPrivacy newPrivacy = new ContentPrivacy();
+                    ContentPrivacyId id = new ContentPrivacyId();
+                    id.setContentId(postId);
+                    id.setContentTypeId(1); // Giả định content_type_id = 1 cho tblPost
+                    newPrivacy.setId(id);
+                    newPrivacy.setPrivacySetting(dto.getPrivacySetting());
+                    newPrivacy.setStatus(true);
+                    return newPrivacy;
+                });
+        if (!existingPrivacy.getPrivacySetting().equals(dto.getPrivacySetting())) {
+            existingPrivacy.setPrivacySetting(dto.getPrivacySetting());
+            contentPrivacyRepository.save(existingPrivacy);
+        }
 
         // Update post
         post.setContent(dto.getContent());
@@ -87,7 +112,7 @@ public class PostService {
         if (dto.getTaggedUserIds() != null) {
             for (Integer taggedUserId : dto.getTaggedUserIds()) {
                 var taggedUser = userRepository.findById(taggedUserId)
-                        .orElseThrow(() -> new UserNotFoundException("Tagged user not found"));
+                        .orElseThrow(() -> new UserNotFoundException("Tagged user not found: " + taggedUserId));
                 PostTag postTag = new PostTag();
                 postTag.setPost(post);
                 postTag.setTaggedUser(taggedUser);

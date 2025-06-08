@@ -9,7 +9,9 @@ import java.util.Optional;
 
 @Repository
 public interface ContentPrivacyRepository extends JpaRepository<ContentPrivacy, Integer> {
-    Optional<ContentPrivacy> findByPrivacySetting(String privacySetting);
+    @Query("SELECT cp FROM ContentPrivacy cp WHERE cp.id.contentId = :contentId AND cp.id.contentTypeId = :contentTypeId")
+    Optional<ContentPrivacy> findByContentIdAndContentTypeId(Integer contentId, Integer contentTypeId);
+
     @Query(value = "CALL sp_CheckContentAccess(:userId, :contentId, :contentTypeId, @hasAccess)", nativeQuery = true)
     void checkContentAccess(Integer userId, Integer contentId, Integer contentTypeId);
 }
