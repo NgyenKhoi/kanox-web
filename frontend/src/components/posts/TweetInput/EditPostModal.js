@@ -19,7 +19,7 @@ function EditPostModal({ show, onHide, post, onSave }) {
             setFormData({
                 content: post.content || "",
                 privacySetting: post.privacySetting || "public",
-                taggedUserIds: post.userTags ? post.userTags.map(tag => tag.id) : [],
+                taggedUserIds: post.taggedUsers ? post.taggedUsers.map(tag => parseInt(tag.id)) : [], // Parse ID thành Integer
                 tagInput: "",
             });
         }
@@ -36,11 +36,11 @@ function EditPostModal({ show, onHide, post, onSave }) {
 
     const handleAddTag = async () => {
         const tagInput = formData.tagInput.trim();
-        if (tagInput && !formData.taggedUserIds.includes(tagInput)) {
+        if (tagInput && !formData.taggedUserIds.includes(parseInt(tagInput))) {
             try {
-                const token = await localStorage.getItem("Authorization");
+                const token = localStorage.getItem("token");
                 const response = await fetch(
-                    `${process.env.REACT_APP_API_URL}/users/username/${tagInput}`,
+                    `${process.env.REACT_APP_API_URL}/users/${tagInput}`,
                     {
                         headers: {
                             Authorization: `Bearer ${token}`,
@@ -49,16 +49,19 @@ function EditPostModal({ show, onHide, post, onSave }) {
                 );
 
                 if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error("Tag user error:", response.status, errorText);
                     throw new Error("Không tìm thấy người dùng!");
                 }
                 const data = await response.json();
                 setFormData((prev) => ({
                     ...prev,
-                    taggedUserIds: [...prev.taggedUserIds, data.id],
+                    taggedUserIds: [...prev.taggedUserIds, parseInt(data.id)], // Parse ID thành Integer
                     tagInput: "",
                 }));
             } catch (err) {
                 setError(err.message);
+                console.error("Tag user exception:", err);
             }
         }
     };
@@ -85,9 +88,10 @@ function EditPostModal({ show, onHide, post, onSave }) {
 
         try {
             setLoading(true);
-            const token = await localStorage.getItem("Authorization");
+            const token = localStorage.getItem("token");
             const response = await fetch(
-                `${process.env.REACT_APP_API_URL}/posts/${post.id}`,
+                `${process.env.REACT_APP_API_URL}
+                /posts/${post.id}`,
                 {
                     method: "PUT",
                     headers: {
@@ -101,13 +105,30 @@ function EditPostModal({ show, onHide, post, onSave }) {
                     }),
                 }
             );
+
+            console.log("Update post response:", response.status, await response.text());
+
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || "Không thể cập nhật bài đăng!");
+                let errorData;
+                try {
+                    errorData = await response.json();
+                } catch {
+                    throw new Error(`Lỗi server: ${response.status} - ${await response.text() || "No response body"}`);
+                }
+                throw new Error(errorData.message || `Không thể cập nhật bài đăng! (Status: ${response.status})`);
             }
+
+            let responseData = {};
+            try {
+                responseData = await response.json();
+            } catch {
+                console.warn("Response body is empty or not JSON");
+            }
+
             onSave();
         } catch (err) {
             setError(err.message);
+            console.error("Update post exception:", err);
         } finally {
             setLoading(false);
         }

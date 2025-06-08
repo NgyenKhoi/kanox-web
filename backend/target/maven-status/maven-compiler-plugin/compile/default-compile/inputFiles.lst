@@ -9,6 +9,7 @@ D:\SWP391\kanox-web\backend\src\main\java\com\example\social_media\config\URLCon
 D:\SWP391\kanox-web\backend\src\main\java\com\example\social_media\repository\PostRepository.java
 D:\SWP391\kanox-web\backend\src\main\java\com\example\social_media\dto\authentication\PasswordResetDto.java
 D:\SWP391\kanox-web\backend\src\main\java\com\example\social_media\dto\post\PostResponseDto.java
+D:\SWP391\kanox-web\backend\src\main\java\com\example\social_media\entity\Report.java
 D:\SWP391\kanox-web\backend\src\main\java\com\example\social_media\mapper\DocumentMapper.java
 D:\SWP391\kanox-web\backend\src\main\java\com\example\social_media\entity\Page.java
 D:\SWP391\kanox-web\backend\src\main\java\com\example\social_media\service\GroupMemberService.java
@@ -57,6 +58,8 @@ D:\SWP391\kanox-web\backend\src\main\java\com\example\social_media\entity\Hidden
 D:\SWP391\kanox-web\backend\src\main\java\com\example\social_media\entity\Follow.java
 D:\SWP391\kanox-web\backend\src\main\java\com\example\social_media\repository\ContentPrivacyRepository.java
 D:\SWP391\kanox-web\backend\src\main\java\com\example\social_media\controller\PostController.java
+D:\SWP391\kanox-web\backend\src\main\java\com\example\social_media\controller\SearchController.java
+D:\SWP391\kanox-web\backend\src\main\java\com\example\social_media\exception\UnauthorizedException.java
 D:\SWP391\kanox-web\backend\src\main\java\com\example\social_media\dto\user\UserUpdateProfileDto.java
 D:\SWP391\kanox-web\backend\src\main\java\com\example\social_media\entity\BannedKeyword.java
 D:\SWP391\kanox-web\backend\src\main\java\com\example\social_media\entity\SavedPost.java

@@ -7,6 +7,7 @@ import com.example.social_media.entity.Post;
 import com.example.social_media.entity.PostTag;
 import com.example.social_media.exception.RegistrationException;
 import com.example.social_media.exception.UserNotFoundException;
+import com.example.social_media.exception.UnauthorizedException;
 import com.example.social_media.repository.ContentPrivacyRepository;
 import com.example.social_media.repository.PostRepository;
 import com.example.social_media.repository.PostTagRepository;
@@ -14,6 +15,7 @@ import com.example.social_media.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -35,6 +37,7 @@ public class PostService {
         this.contentPrivacyRepository = contentPrivacyRepository;
     }
 
+    @Transactional
     public PostResponseDto createPost(PostRequestDto dto, String username) {
         logger.info("Creating post for user: {}", username);
 
@@ -54,6 +57,46 @@ public class PostService {
                 .orElseThrow(() -> new RegistrationException("Post creation failed - not found"));
 
         return convertToDto(latestPost);
+    }
+
+    @Transactional
+    public PostResponseDto updatePost(Integer postId, PostRequestDto dto, String username) {
+        logger.info("Updating post {} for user: {}", postId, username);
+
+        var user = userRepository.findByUsernameAndStatusTrue(username)
+                .orElseThrow(() -> new UserNotFoundException("User not found or inactive"));
+
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new UserNotFoundException("Post not found"));
+
+        if (!post.getOwner().getId().equals(user.getId())) {
+            throw new UnauthorizedException("You are not authorized to update this post");
+        }
+
+        // Validate privacy setting
+        contentPrivacyRepository.findByPrivacySetting(dto.getPrivacySetting())
+                .orElseThrow(() -> new IllegalArgumentException("Invalid privacy setting"));
+
+        // Update post
+        post.setContent(dto.getContent());
+        post.setPrivacySetting(dto.getPrivacySetting());
+        postRepository.save(post);
+
+        // Update tags
+        postTagRepository.deleteByPostId(postId);
+        if (dto.getTaggedUserIds() != null) {
+            for (Integer taggedUserId : dto.getTaggedUserIds()) {
+                var taggedUser = userRepository.findById(taggedUserId)
+                        .orElseThrow(() -> new UserNotFoundException("Tagged user not found"));
+                PostTag postTag = new PostTag();
+                postTag.setPost(post);
+                postTag.setTaggedUser(taggedUser);
+                postTag.setStatus(true);
+                postTagRepository.save(postTag);
+            }
+        }
+
+        return convertToDto(post);
     }
 
     public List<PostResponseDto> getAllPosts(String username) {

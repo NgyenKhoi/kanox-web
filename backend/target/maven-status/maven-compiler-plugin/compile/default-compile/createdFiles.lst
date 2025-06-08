@@ -69,8 +69,10 @@ com\example\social_media\entity\ContentPrivacy.class
 com\example\social_media\exception\InvalidPasswordException.class
 com\example\social_media\config\WebSocketConfig$1.class
 com\example\social_media\service\ElasticsearchSearchService.class
+com\example\social_media\controller\SearchController.class
 com\example\social_media\entity\CustomPrivacyListMember.class
 com\example\social_media\entity\StoryViewerId.class
+com\example\social_media\entity\Report.class
 com\example\social_media\repository\PostTagRepository.class
 com\example\social_media\document\PageDocument.class
 com\example\social_media\entity\ChatMemberId.class
@@ -93,6 +95,7 @@ com\example\social_media\service\GcsService.class
 com\example\social_media\config\GcsConfig.class
 com\example\social_media\entity\Story.class
 com\example\social_media\repository\UserRepository.class
+com\example\social_media\exception\UnauthorizedException.class
 com\example\social_media\repository\VerificationTokenRepository.class
 com\example\social_media\repository\PostRepository.class
 com\example\social_media\entity\MediaType.class
