@@ -19,7 +19,7 @@ function EditPostModal({ show, onHide, post, onSave }) {
             setFormData({
                 content: post.content || "",
                 privacySetting: post.privacySetting || "public",
-                taggedUserIds: post.taggedUsers ? post.taggedUsers.map(tag => parseInt(tag.id)) : [], // Parse ID thành Integer
+                taggedUserIds: post.taggedUsers ? post.taggedUsers.map(tag => parseInt(tag.id)) : [],
                 tagInput: "",
             });
         }
@@ -48,15 +48,16 @@ function EditPostModal({ show, onHide, post, onSave }) {
                     }
                 );
 
+                const responseText = await response.text();
+                console.log("Tag user response:", response.status, responseText);
+
                 if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error("Tag user error:", response.status, errorText);
                     throw new Error("Không tìm thấy người dùng!");
                 }
-                const data = await response.json();
+                const data = JSON.parse(responseText);
                 setFormData((prev) => ({
                     ...prev,
-                    taggedUserIds: [...prev.taggedUserIds, parseInt(data.id)], // Parse ID thành Integer
+                    taggedUserIds: [...prev.taggedUserIds, parseInt(data.id)],
                     tagInput: "",
                 }));
             } catch (err) {
@@ -90,8 +91,7 @@ function EditPostModal({ show, onHide, post, onSave }) {
             setLoading(true);
             const token = localStorage.getItem("token");
             const response = await fetch(
-                `${process.env.REACT_APP_API_URL}
-                /posts/${post.id}`,
+                `${process.env.REACT_APP_API_URL}/posts/${post.id}`,
                 {
                     method: "PUT",
                     headers: {
@@ -106,21 +106,23 @@ function EditPostModal({ show, onHide, post, onSave }) {
                 }
             );
 
-            console.log("Update post response:", response.status, await response.text());
+            // Đọc body một lần và lưu
+            const responseText = await response.text();
+            console.log("Update post response:", response.status, responseText);
 
             if (!response.ok) {
                 let errorData;
                 try {
-                    errorData = await response.json();
+                    errorData = JSON.parse(responseText); // Sử dụng responseText đã lưu
                 } catch {
-                    throw new Error(`Lỗi server: ${response.status} - ${await response.text() || "No response body"}`);
+                    throw new Error(`Lỗi server: ${response.status} - ${responseText || "No response body"}`);
                 }
                 throw new Error(errorData.message || `Không thể cập nhật bài đăng! (Status: ${response.status})`);
             }
 
             let responseData = {};
             try {
-                responseData = await response.json();
+                responseData = JSON.parse(responseText); // Sử dụng responseText đã lưu
             } catch {
                 console.warn("Response body is empty or not JSON");
             }
