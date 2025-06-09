@@ -37,7 +37,7 @@ function ExplorePage() {
     try {
       setIsSyncing(true);
       const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/sync-users`,
+        `${process.env.REACT_APP_API_URL}/search/sync-users`,
         {
           method: "POST",
           headers: {
