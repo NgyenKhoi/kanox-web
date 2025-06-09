@@ -14,6 +14,7 @@ com\example\social_media\controller\UploadController.class
 com\example\social_media\entity\HiddenPostId.class
 com\example\social_media\exception\GlobalExceptionHandle.class
 com\example\social_media\repository\document_repository\PostDocumentRepository.class
+com\example\social_media\service\DataSyncService.class
 com\example\social_media\entity\BlockId.class
 com\example\social_media\SocialMediaApplication.class
 com\example\social_media\entity\MessageType.class

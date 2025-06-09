@@ -20,6 +20,7 @@ public class URLConfig {
     // Post Management URLs
     public static final String POST_BASE = "/api/posts";
     public static final String NEWSFEED = "/newsfeed";
+    public static final String USER_POST = "/user/{username}";
     // Upload Management URLs
     public static final String UPLOAD_BASE = "/api/upload";
     // Chat URLs
@@ -29,6 +30,9 @@ public class URLConfig {
 
     //Search URLs
     public static final String SEARCH_BASE = "/api/search";
-    //some id config (ex: google...)
+    public static final String SEARCH_USER = "/users";
+    public static final String SEARCH_POST = "/posts";
+    public static final String SEARCH_GROUP = "/groups";
+    public static final String SEARCH_PAGE = "/pages";
     public static final String GOOGLE_LOGIN_CLIENT_ID = "233866118973-t26ue94egg2v1reebqpe684kglf0bjej.apps.googleusercontent.com";
 }

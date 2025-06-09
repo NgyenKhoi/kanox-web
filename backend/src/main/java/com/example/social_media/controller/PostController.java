@@ -9,8 +9,6 @@ import com.example.social_media.exception.UserNotFoundException;
 import com.example.social_media.jwt.JwtService;
 import com.example.social_media.service.PostService;
 import jakarta.validation.Valid;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,7 +17,6 @@ import java.util.List;
 @RestController
 @RequestMapping(URLConfig.POST_BASE)
 public class PostController {
-    private static final Logger logger = LoggerFactory.getLogger(PostController.class);
 
     private final PostService postService;
     private final JwtService jwtService;
@@ -72,7 +69,7 @@ public class PostController {
         }
     }
 
-    @GetMapping("/user/{username}")
+    @GetMapping(URLConfig.USER_POST)
     public ResponseEntity<?> getPostsByUsername(@PathVariable String username,
                                                 @RequestHeader("Authorization") String authHeader) {
         try {
