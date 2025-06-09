@@ -43,9 +43,7 @@ const SignupPage = () => {
       const data = await response.json();
       if (response.ok) {
         const { token, refreshToken, user } = data;
-        setUser(user); // Không cần rememberMe
-        localStorage.setItem("token", token); // Lưu token vào localStorage
-        localStorage.setItem("refreshToken", refreshToken); // Lưu refreshToken vào localStorage
+         setUser(user, token, refreshToken);
         toast.success("Đăng nhập bằng Google thành công! Đang chuyển hướng...");
         navigate("/home");
       } else {

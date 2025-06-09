@@ -12,12 +12,18 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  const setUser = (userObj) => {
+  const setUser = (userObj, newToken = null, newRefreshToken = null) => {
     setUserState(userObj);
     if (userObj) {
       localStorage.setItem("user", JSON.stringify(userObj));
-      localStorage.setItem("token", token);
-      localStorage.setItem("refreshToken", refreshToken);
+      if (newToken) {
+        setToken(newToken);
+        localStorage.setItem("token", newToken);
+      }
+      if (newRefreshToken) {
+        setRefreshToken(newRefreshToken);
+        localStorage.setItem("refreshToken", newRefreshToken);
+      }
     } else {
       localStorage.removeItem("user");
       localStorage.removeItem("token");
