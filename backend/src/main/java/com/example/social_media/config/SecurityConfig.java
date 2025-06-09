@@ -62,6 +62,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**", "/ws/**", "/actuator/**", "/oauth2/**", "/login/oauth2/**", "/auth/**").permitAll()
                         .anyRequest().authenticated()
                 )
+                .formLogin(form -> form
+                        .loginPage("/login") // Tùy chọn: nếu không có, Spring sẽ dùng login mặc định
+                        .permitAll()
+                )
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 );
 
