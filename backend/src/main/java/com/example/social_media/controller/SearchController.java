@@ -56,13 +56,8 @@ public class SearchController {
     }
 
     @PostMapping("/sync-users")
-    public ResponseEntity<String> syncAllUsersToElasticsearch() {
-        try {
-            dataSyncService.syncAllUsersToElasticsearch();
-            return ResponseEntity.ok("Đã đồng bộ toàn bộ user sang Elasticsearch");
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(500).body("Lỗi khi đồng bộ dữ liệu user sang Elasticsearch");
-        }
+    public ResponseEntity<String> syncAllUsers() {
+        dataSyncService.syncAllUsersToElasticsearch();
+        return ResponseEntity.ok("Đã đồng bộ tất cả users vào Elasticsearch.");
     }
 }

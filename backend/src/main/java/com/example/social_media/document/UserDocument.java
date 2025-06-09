@@ -1,6 +1,8 @@
 package com.example.social_media.document;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.elasticsearch.annotations.Document;
+import org.springframework.data.elasticsearch.annotations.Field;
+import org.springframework.data.elasticsearch.annotations.FieldType;
 
 @Document(indexName = "user")
 public class UserDocument {
@@ -9,6 +11,7 @@ public class UserDocument {
 
     private String email;
     private String username;
+    @Field(type = FieldType.Text)
     private String displayName;
     private String phoneNumber;
     private String bio;
