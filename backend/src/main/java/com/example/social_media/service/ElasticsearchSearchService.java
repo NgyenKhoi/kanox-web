@@ -40,11 +40,11 @@ public class ElasticsearchSearchService {
     public List<UserDocument> searchUsers(String keyword) throws IOException {
         BoolQuery.Builder boolQuery = new BoolQuery.Builder()
                 .should(q -> q.match(m -> m
-                        .field("username")
+                        .field("displayName")
                         .query(keyword)
                         .boost(2.0f))) // Ưu tiên khớp chính xác
                 .should(q -> q.match(m -> m
-                        .field("username")
+                        .field("displayName")
                         .query(keyword)
                         .fuzziness("AUTO"))) // Khớp mờ
                 .minimumShouldMatch("1");
