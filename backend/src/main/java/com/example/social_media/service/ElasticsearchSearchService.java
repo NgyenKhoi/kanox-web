@@ -5,6 +5,8 @@ import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
+import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
+import co.elastic.clients.elasticsearch.indices.ExistsRequest;
 import com.example.social_media.document.*;
 import com.example.social_media.repository.document_repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,22 +39,48 @@ public class ElasticsearchSearchService {
         this.elasticsearchClient = elasticsearchClient;
     }
 
+    public void ensureIndexExists(String indexName) throws IOException {
+        try {
+            boolean exists = elasticsearchClient.indices()
+                    .exists(ExistsRequest.of(e -> e.index(indexName)))
+                    .value();
+
+            if (!exists) {
+                System.out.println("Index " + indexName + " không tồn tại, đang tạo...");
+                CreateIndexRequest createRequest = CreateIndexRequest.of(c -> c
+                        .index(indexName)
+                        .settings(s -> s
+                                .numberOfShards("1")
+                                .numberOfReplicas("1"))
+                );
+                elasticsearchClient.indices().create(createRequest);
+                System.out.println("Index " + indexName + " đã được tạo.");
+            } else {
+                System.out.println("Index " + indexName + " đã tồn tại.");
+            }
+        } catch (IOException e) {
+            System.err.println("Lỗi khi kiểm tra/tạo index " + indexName + ": " + e.getMessage());
+            throw e;
+        }
+    }
     public List<UserDocument> searchUsers(String keyword) throws IOException {
+        ensureIndexExists("user");
+
         BoolQuery.Builder boolQuery = new BoolQuery.Builder()
                 .should(q -> q.match(m -> m
                         .field("displayName")
                         .query(keyword)
-                        .boost(2.0f))) // Ưu tiên khớp chính xác
+                        .boost(2.0f)))
                 .should(q -> q.match(m -> m
                         .field("displayName")
                         .query(keyword)
-                        .fuzziness("AUTO"))) // Khớp mờ
+                        .fuzziness("AUTO")))
                 .minimumShouldMatch("1");
 
         Query query = new Query(boolQuery.build());
 
         SearchRequest searchRequest = SearchRequest.of(s -> s
-                .index("user") // Cập nhật index thành "user" theo @Document
+                .index("user")
                 .query(query));
 
         SearchResponse<UserDocument> searchResponse = elasticsearchClient.search(searchRequest, UserDocument.class);

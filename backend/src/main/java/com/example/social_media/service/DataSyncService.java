@@ -21,7 +21,9 @@ public class DataSyncService {
     public void syncUserToElasticsearch(Integer userId) {
         userRepo.findById(userId).ifPresent(user -> {
             UserDocument userDoc = mapper.toUserDocument(user);
+            System.out.println("Syncing user to Elasticsearch: " + userDoc.getDisplayName());
             userDocRepo.save(userDoc);
+            System.out.println("Saved userDoc to ES");
         });
     }
 }
