@@ -60,7 +60,7 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**", "/ws/**", "/actuator/**", "/oauth2/**", "/login/oauth2/**", "/auth/**").permitAll()
+                        .requestMatchers("/api/auth/**", "/ws/**", "/actuator/**", "/oauth2/**", "/login/oauth2/**", "/auth/**", "/favicon.ico").permitAll()
                         .anyRequest().authenticated()
                 )
                 .formLogin(AbstractAuthenticationFilterConfigurer::permitAll
