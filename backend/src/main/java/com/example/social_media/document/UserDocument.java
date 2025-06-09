@@ -1,10 +1,12 @@
 package com.example.social_media.document;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
 
 @Document(indexName = "user")
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class UserDocument {
     @Id
     private String id;
