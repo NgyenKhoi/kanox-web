@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useCallback } from "react";
 import {
   Container,
   Row,
@@ -23,8 +23,10 @@ function ExplorePage() {
   const [activeTab, setActiveTab] = useState("for-you");
   const [searchKeyword, setSearchKeyword] = useState("");
   const [searchResults, setSearchResults] = useState([]);
+  const [otherResults, setOtherResults] = useState([]); // Kết quả API thứ 2
   const [isLoading, setIsLoading] = useState(false);
 
+  // Debounce function (useCallback + useRef alternative not strictly necessary here)
   const debounce = (func, delay) => {
     let timeoutId;
     return (...args) => {
@@ -32,21 +34,19 @@ function ExplorePage() {
       timeoutId = setTimeout(() => func(...args), delay);
     };
   };
-  // Tìm kiếm người dùng sử dụng fetch với biến môi trường
+
+  // API 1: Tìm kiếm người dùng
   const searchUsers = async (keyword) => {
     if (!keyword.trim()) {
       setSearchResults([]);
-      setIsLoading(false);
       return;
     }
 
-    setIsLoading(true);
     try {
-      console.log("Token từ context:", token);
       const response = await fetch(
-        `${
-          process.env.REACT_APP_API_URL
-        }/search/users?keyword=${encodeURIComponent(keyword)}`,
+        `${process.env.REACT_APP_API_URL}/search/users?keyword=${encodeURIComponent(
+          keyword
+        )}`,
         {
           method: "GET",
           headers: {
@@ -58,29 +58,75 @@ function ExplorePage() {
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(
-          `Lỗi khi gọi API tìm kiếm (Mã: ${response.status}) - ${errorText}`
+          `Lỗi API tìm kiếm người dùng (Mã: ${response.status}) - ${errorText}`
         );
       }
       const data = await response.json();
       setSearchResults(data);
     } catch (error) {
-      console.error("Tìm kiếm thất bại:", error.message, error.stack);
-      toast.error(
-        "Không thể tìm kiếm người dùng. Vui lòng thử lại sau. Chi tiết: " +
-          error.message
+      console.error("Lỗi tìm kiếm người dùng:", error);
+      toast.error("Không thể tìm kiếm người dùng: " + error.message);
+    }
+  };
+
+  // API 2: Giả sử là tìm kiếm bài viết, tin tức hoặc nội dung khác
+  const searchOther = async (keyword) => {
+    if (!keyword.trim()) {
+      setOtherResults([]);
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/search/other?keyword=${encodeURIComponent(
+          keyword
+        )}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
+        }
       );
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `Lỗi API tìm kiếm thứ hai (Mã: ${response.status}) - ${errorText}`
+        );
+      }
+      const data = await response.json();
+      setOtherResults(data);
+    } catch (error) {
+      console.error("Lỗi tìm kiếm API thứ hai:", error);
+      toast.error("Không thể tìm kiếm dữ liệu khác: " + error.message);
+    }
+  };
+
+  // Hàm gọi đồng thời 2 API
+  const searchBothApis = async (keyword) => {
+    if (!keyword.trim()) {
+      setSearchResults([]);
+      setOtherResults([]);
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await Promise.all([searchUsers(keyword), searchOther(keyword)]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Debounced search
-  const debouncedSearch = debounce(searchUsers, 300);
+  // Tạo debounce cho hàm searchBothApis
+  const debouncedSearch = useCallback(debounce(searchBothApis, 300), [token]);
 
-  // Theo dõi thay đổi từ khóa tìm kiếm
+  // useEffect theo dõi searchKeyword
   useEffect(() => {
     debouncedSearch(searchKeyword);
-  }, [searchKeyword]);
+  }, [searchKeyword, debouncedSearch]);
 
   const trendingTopics = [
     {
@@ -158,9 +204,7 @@ function ExplorePage() {
               <div>
                 <p className="text-muted small mb-0">{topic.category}</p>
                 <h6 className="fw-bold mb-0">{topic.title}</h6>
-                <p className="text-muted small mb-0">
-                  {topic.posts} N bài đăng
-                </p>
+                <p className="text-muted small mb-0">{topic.posts} N bài đăng</p>
               </div>
               <Button variant="link" className="text-dark p-0">
                 <FaEllipsisH />
@@ -199,7 +243,8 @@ function ExplorePage() {
                     onChange={(e) => setSearchKeyword(e.target.value)}
                   />
                 </InputGroup>
-                {/* Dropdown kết quả tìm kiếm */}
+
+                {/* Dropdown kết quả tìm kiếm người dùng */}
                 {searchKeyword && (
                   <ListGroup
                     className="position-absolute w-100 mt-1 shadow-sm"
@@ -220,14 +265,11 @@ function ExplorePage() {
                           action
                           className="d-flex align-items-center"
                           onClick={() => {
-                            // Xử lý khi nhấp vào người dùng (ví dụ: chuyển hướng đến trang hồ sơ)
                             console.log("Đã chọn người dùng:", user);
                           }}
                         >
                           <Image
-                            src={
-                              user.avatar || "https://via.placeholder.com/40"
-                            }
+                            src={user.avatar || "https://via.placeholder.com/40"}
                             roundedCircle
                             width={30}
                             height={30}
@@ -235,21 +277,49 @@ function ExplorePage() {
                           />
                           <div>
                             <strong>{user.displayName || user.username}</strong>
-                            <p className="text-muted small mb-0">
-                              @{user.username}
-                            </p>
+                            <p className="text-muted small mb-0">@{user.username}</p>
                           </div>
                         </ListGroup.Item>
                       ))
                     ) : (
-                      <ListGroup.Item>
-                        Không tìm thấy người dùng.
-                      </ListGroup.Item>
+                      <ListGroup.Item>Không tìm thấy người dùng.</ListGroup.Item>
+                    )}
+                  </ListGroup>
+                )}
+
+                {/* Dropdown kết quả tìm kiếm API thứ 2 */}
+                {searchKeyword && !isLoading && (
+                  <ListGroup
+                    className="position-absolute w-100 mt-1 shadow-sm"
+                    style={{
+                      zIndex: 999,
+                      maxHeight: "200px",
+                      overflowY: "auto",
+                      top: "350px", // hoặc điều chỉnh vị trí phù hợp để không chồng lên trên dropdown người dùng
+                    }}
+                  >
+                    {otherResults.length > 0 ? (
+                      otherResults.map((item, idx) => (
+                        <ListGroup.Item
+                          key={item.id || idx}
+                          action
+                          onClick={() => {
+                            console.log("Chọn mục từ API thứ 2:", item);
+                          }}
+                        >
+                          {/* Hiển thị tuỳ chỉnh theo cấu trúc dữ liệu trả về */}
+                          <strong>{item.title || item.name || "Không có tên"}</strong>
+                          <p className="text-muted small mb-0">{item.description || ""}</p>
+                        </ListGroup.Item>
+                      ))
+                    ) : (
+                      <ListGroup.Item>Không tìm thấy dữ liệu khác.</ListGroup.Item>
                     )}
                   </ListGroup>
                 )}
               </Col>
             </Row>
+
             <Row>
               <Col xs={12} lg={6} className="mx-auto px-md-0">
                 <Nav

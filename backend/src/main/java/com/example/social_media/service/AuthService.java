@@ -26,19 +26,19 @@ import java.util.UUID;
 public class AuthService {
 
     private final UserRepository userRepository;
-
     private final PasswordEncoder passwordEncoder;
-
     private final VerificationTokenRepository verificationTokenRepository;
-
     private final MailService mailService;
     private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
+    private final DataSyncService dataSyncService;
 
-    public AuthService(MailService mailService, UserRepository userRepository, PasswordEncoder passwordEncoder, VerificationTokenRepository verificationTokenRepository) {
+
+    public AuthService(MailService mailService, UserRepository userRepository, PasswordEncoder passwordEncoder, VerificationTokenRepository verificationTokenRepository, DataSyncService dataSyncService) {
         this.mailService = mailService;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.verificationTokenRepository = verificationTokenRepository;
+        this.dataSyncService = dataSyncService;
     }
 
     public Optional<User> getUserByUsername(String username) {
@@ -175,10 +175,8 @@ public class AuthService {
         user.setStatus(true);
 
         User savedUser = userRepository.save(user);
-
-        // Xóa token sau khi xác thực thành công
+        dataSyncService.syncUserToElasticsearch(savedUser.getId());
         verificationTokenRepository.delete(verificationToken);
-
         return savedUser;
     }
 
@@ -255,7 +253,7 @@ public class AuthService {
         try {
             User savedUser = userRepository.save(newUser);
             logger.info("New user created: {}", savedUser.getUsername());
-
+            dataSyncService.syncUserToElasticsearch(savedUser.getId());
             try {
                 mailService.sendTemporaryPasswordEmail(email, tempPassword);
                 logger.info("Temporary password email sent to: {}", email);
