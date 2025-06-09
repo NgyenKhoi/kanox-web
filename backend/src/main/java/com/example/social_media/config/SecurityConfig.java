@@ -63,7 +63,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**", "/ws/**", "/actuator/**", "/oauth2/**", "/login/oauth2/**", "/auth/**", "/favicon.ico").permitAll()
                         .anyRequest().authenticated()
                 )
-                .formLogin(AbstractAuthenticationFilterConfigurer::permitAll
+                .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 );
 
         http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
