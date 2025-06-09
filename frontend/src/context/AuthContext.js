@@ -12,12 +12,18 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  const setUser = (userObj) => {
+  const setUser = (userObj, newToken = null, newRefreshToken = null) => {
     setUserState(userObj);
     if (userObj) {
       localStorage.setItem("user", JSON.stringify(userObj));
-      localStorage.setItem("token", token);
-      localStorage.setItem("refreshToken", refreshToken);
+      if (newToken) {
+        setToken(newToken);
+        localStorage.setItem("token", newToken);
+      }
+      if (newRefreshToken) {
+        setRefreshToken(newRefreshToken);
+        localStorage.setItem("refreshToken", newRefreshToken);
+      }
     } else {
       localStorage.removeItem("user");
       localStorage.removeItem("token");
@@ -50,7 +56,7 @@ export const AuthProvider = ({ children }) => {
       if (savedToken) {
         await checkTokenValidity();
       }
-      setLoading(false); // Hoàn tất khởi tạo
+      setLoading(false);
     };
 
     const checkTokenValidity = async () => {
@@ -111,7 +117,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     initializeAuth();
-    const interval = setInterval(checkTokenValidity, 5 * 60 * 1000); // Kiểm tra mỗi 5 phút
+    const interval = setInterval(checkTokenValidity, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, [token, refreshToken]);
 
