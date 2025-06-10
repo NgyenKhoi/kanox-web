@@ -12,21 +12,25 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  const setUser = (userObj) => {
+  const setUser = (userObj, newToken = null, newRefreshToken = null) => {
     setUserState(userObj);
     if (userObj) {
+      if (newToken) {
+        setToken(newToken);
+        localStorage.setItem("token", newToken);
+      }
+      if (newRefreshToken) {
+        setRefreshToken(newRefreshToken);
+        localStorage.setItem("refreshToken", newRefreshToken);
+      }
       localStorage.setItem("user", JSON.stringify(userObj));
-      localStorage.setItem("token", token);
-      localStorage.setItem("refreshToken", refreshToken);
     } else {
-      localStorage.removeItem("user");
-      localStorage.removeItem("token");
-      localStorage.removeItem("refreshToken");
-      sessionStorage.removeItem("user");
-      sessionStorage.removeItem("token");
+      setToken(null);
+      setRefreshToken(null);
+      localStorage.clear();
+      sessionStorage.clear();
     }
   };
-
   useEffect(() => {
     const initializeAuth = async () => {
       const savedUser = localStorage.getItem("user");
@@ -66,6 +70,7 @@ export const AuthProvider = ({ children }) => {
         if (response.ok) {
           setToken(data.token);
           localStorage.setItem("token", data.token);
+          setUser(data.user, data.token, refreshToken);
           if (data.user) {
             setUserState(data.user);
             localStorage.setItem("user", JSON.stringify(data.user));
@@ -94,6 +99,7 @@ export const AuthProvider = ({ children }) => {
           const data = await response.json();
           setToken(data.token);
           localStorage.setItem("token", data.token);
+          setUser(data.user, data.token, refreshToken);
           if (data.user) {
             setUserState(data.user);
             localStorage.setItem("user", JSON.stringify(data.user));

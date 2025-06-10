@@ -125,10 +125,7 @@ function ProfilePage() {
 
       // Nếu không có user, sử dụng defaultUserProfile
       if (!user) {
-        setUserProfile(defaultUserProfile);
-        setPosts([]);
-        setLoading(false);
-        navigate("/signup"); // Chuyển hướng đến đăng nhập
+        navigate("/signup");
         return;
       }
 
@@ -145,7 +142,7 @@ function ProfilePage() {
         }
 
         const response = await fetch(
-          `${process.env.REACT_APP_API_URL}/user/profile/${username}`,
+          `${process.env.REACT_APP_API_URL}/user/profile/${user.username}`,
           {
             headers: {
               "Content-Type": "application/json",
