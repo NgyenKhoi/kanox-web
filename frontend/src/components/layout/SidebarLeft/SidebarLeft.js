@@ -1,5 +1,5 @@
-import React, { useState, useContext, useEffect } from "react"; // Thêm useState
-import { Nav, Button, Dropdown, Offcanvas } from "react-bootstrap";
+import React, { useState, useContext } from "react";
+import { Nav, Button, Offcanvas } from "react-bootstrap";
 import {
   FaHome,
   FaSearch,
@@ -13,287 +13,408 @@ import {
   FaRegPlusSquare,
   FaBars,
   FaPlusCircle,
-  FaMoon,
-  FaSun,
-  FaUserPlus, // Icon cho "Tìm kiếm bạn bè" nếu muốn
 } from "react-icons/fa";
 import { BsStars } from "react-icons/bs";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import KLogoSvg from "../../svgs/KSvg";
-import { AuthContext } from "../../../context/AuthContext";
-import CreatePostModal from "../../components/post/CreatePostModal"; // Import CreatePostModal
-import "./SidebarLeft.css";
+import { AuthContext } from "../../context/AuthContext";
 
-function SidebarLeft({ onToggleDarkMode, isDarkMode, onNewPost }) {
-  // Thêm onNewPost
-  const { user, logout } = useContext(AuthContext);
+function SidebarLeft() {
+  const { user } = useContext(AuthContext);
   const navigate = useNavigate();
-  const location = useLocation();
   const [showOffcanvas, setShowOffcanvas] = useState(false);
-  const [showCreatePostModal, setShowCreatePostModal] = useState(false); // State cho modal đăng bài
 
-  const handleCloseOffcanvas = () => setShowOffcanvas(false);
-  const handleShowOffcanvas = () => setShowOffcanvas(true);
+  const handleClose = () => setShowOffcanvas(false);
+  const handleShow = () => setShowOffcanvas(true);
 
-  const handleShowCreatePostModal = () => {
-    // Hàm mở modal
-    setShowCreatePostModal(true);
-    handleCloseOffcanvas(); // Đóng offcanvas nếu đang mở
-  };
-  const handleCloseCreatePostModal = () => setShowCreatePostModal(false); // Hàm đóng modal
-
-  // Define sidebar tabs
-  const mainTabs = [
-    { icon: <FaHome size={24} />, label: "Trang chủ", path: "/home" },
-    {
-      icon: <FaSearch size={24} />,
-      label: "Tìm kiếm người dùng",
-      path: "/search-users",
-    },
-    { icon: <FaSearch size={24} />, label: "Khám phá", path: "/explore" },
-    { icon: <FaBell size={24} />, label: "Thông báo", path: "/notifications" },
-    { icon: <FaEnvelope size={24} />, label: "Tin nhắn", path: "/messages" },
-    { icon: <FaUserAlt size={24} />, label: "Cộng đồng", path: "/communities" },
-    { icon: <BsStars size={24} />, label: "Premium", path: "/premium" },
-    {
-      icon: <FaUserAlt size={24} />,
-      label: "Hồ sơ",
-      path: `/profile/${user?.id || "default"}`,
-      protected: true,
-    },
-  ];
-
-  const additionalTabs = [
-    {
-      icon: <FaRegPlusSquare size={24} />,
-      label: "Tạo Story",
-      path: "/create-story",
-      protected: true,
-    },
-    {}, // Dùng để tạo Divider
-    { icon: <FaLock size={24} />, label: "Cài đặt Bảo mật", path: "/settings" },
-    {
-      icon: <FaTrash size={24} />,
-      label: "Xóa Tài khoản",
-      path: "/delete-account",
-      protected: true,
-    },
-    {
-      icon: <FaSignOutAlt size={24} />,
-      label: "Đăng xuất",
-      path: "/logout",
-      protected: true,
-      action: "logout",
-    },
-  ];
-
-  const handleNavLinkClick = (tab) => {
-    handleCloseOffcanvas();
-
-    if (tab.action === "logout") {
-      logout();
-      navigate("/login");
-      return;
-    }
-
-    if (tab.protected && !user) {
-      navigate("/login");
+  const handleProtectedClick = (path) => {
+    if (!user) {
+      navigate("/");
     } else {
-      navigate(tab.path);
+      navigate(path);
     }
   };
-
-  const isLinkActive = (path) => {
-    if (
-      path.startsWith("/profile/") &&
-      location.pathname.startsWith("/profile/")
-    ) {
-      return true;
-    }
-    if (
-      path === "/home" &&
-      (location.pathname === "/" || location.pathname === "/home")
-    ) {
-      return true;
-    }
-    return location.pathname === path;
-  };
-
-  const renderSidebarContent = () => (
-    <>
-      <Nav className="flex-column mb-auto">
-        {mainTabs.map((tab, index) =>
-          tab.label ? (
-            <Nav.Item key={tab.label || index} className="mb-1">
-              <Nav.Link
-                onClick={() => handleNavLinkClick(tab)}
-                className={`d-flex align-items-center text-dark py-2 px-3 rounded-pill sidebar-nav-link ${
-                  isLinkActive(tab.path) ? "active-sidebar-link" : ""
-                }`}
-              >
-                <span className="me-3">{tab.icon}</span>
-                <span className="fs-5 d-none d-lg-inline">
-                  {tab.label}
-                </span>{" "}
-              </Nav.Link>
-            </Nav.Item>
-          ) : null
-        )}
-
-        <Dropdown className="mt-2 sidebar-more-dropdown">
-          <Dropdown.Toggle
-            as={Nav.Link}
-            className="d-flex align-items-center text-dark py-2 px-3 rounded-pill sidebar-nav-link"
-          >
-            <span className="me-3">
-              <FaEllipsisH size={24} />
-            </span>
-            <span className="fs-5 d-none d-lg-inline">Thêm</span>{" "}
-          </Dropdown.Toggle>
-
-          <Dropdown.Menu className="sidebar-dropdown-menu">
-            {additionalTabs.map((tab, index) =>
-              tab.label ? (
-                <Dropdown.Item
-                  key={tab.label || index}
-                  onClick={() => handleNavLinkClick(tab)}
-                  className="d-flex align-items-center py-2 px-3 sidebar-dropdown-item"
-                >
-                  <span className="me-3">{tab.icon}</span>
-                  {tab.label}
-                </Dropdown.Item>
-              ) : (
-                <Dropdown.Divider key={`divider-${index}`} />
-              )
-            )}
-          </Dropdown.Menu>
-        </Dropdown>
-      </Nav>
-
-      {/* NÚT ĐĂNG - Gọi modal thay vì navigate trực tiếp */}
-      <Button
-        variant="primary"
-        className="rounded-pill mt-3 py-3 fw-bold sidebar-post-button d-none d-lg-block"
-        onClick={handleShowCreatePostModal} // Đã đổi
-      >
-        Đăng
-      </Button>
-      {/* Floating action button for small screens */}
-      <Button
-        variant="primary"
-        className="sidebar-fab d-lg-none rounded-circle p-3 shadow"
-        onClick={handleShowCreatePostModal} // Đã đổi
-      >
-        <FaPlusCircle size={24} />
-      </Button>
-
-      <div className="mt-auto pt-3">
-        <Dropdown drop="up" className="w-100">
-          <Dropdown.Toggle
-            as="div"
-            className="d-flex align-items-center p-2 rounded-pill hover-bg-light cursor-pointer w-100"
-            style={{ backgroundColor: isDarkMode ? "#222" : "#f8f9fa" }}
-          >
-            <img
-              src={user?.avatar || "https://via.placeholder.com/40"}
-              alt="User Avatar"
-              className="rounded-circle me-2"
-              style={{ width: "40px", height: "40px", objectFit: "cover" }}
-            />
-            <div className="d-none d-lg-block flex-grow-1">
-              <div className="fw-bold text-dark">
-                {user?.name || "Người dùng"}
-              </div>
-              <div className="text-muted small">
-                @{user?.username || "username"}
-              </div>
-            </div>
-            <FaEllipsisH className="ms-auto me-2 text-dark d-none d-lg-block" />
-          </Dropdown.Toggle>
-          <Dropdown.Menu className="sidebar-user-dropdown-menu">
-            <Dropdown.Item
-              onClick={() => navigate(`/profile/${user?.id || "default"}`)}
-            >
-              Xem hồ sơ
-            </Dropdown.Item>
-            <Dropdown.Item
-              onClick={() => handleNavLinkClick({ action: "logout" })}
-            >
-              <FaSignOutAlt className="me-2" /> Đăng xuất
-            </Dropdown.Item>
-          </Dropdown.Menu>
-        </Dropdown>
-      </div>
-    </>
-  );
 
   return (
     <>
+      {/* Nút toggle sidebar trên mobile */}
       <Button
-        variant="light"
-        className="d-md-none position-fixed top-0 start-0 m-3 z-3"
-        onClick={handleShowOffcanvas}
+        variant="link"
+        className="d-md-none position-fixed top-0 start-0 m-3 text-dark"
+        onClick={handleShow}
+        style={{ zIndex: 1050 }}
       >
         <FaBars size={24} />
       </Button>
 
+      {/* Sidebar cho desktop */}
       <div
-        className="d-none d-md-flex flex-column flex-shrink-0 pt-2 pb-3 ps-3 pe-0 border-end sidebar-left-container"
+        className="d-none d-md-flex flex-column flex-shrink-0 pt-2 pb-3 ps-3 pe-0 sticky-top border-end"
         style={{
           width: "280px",
           height: "100vh",
-          position: "sticky",
-          top: 0,
           overflowY: "auto",
+          backgroundColor: "#fff",
+          scrollbarWidth: "none",
         }}
       >
-        <div className="d-flex justify-content-between align-items-center mb-3 px-3">
-          <Link to="/home" className="d-block me-auto">
-            <KLogoSvg width="50px" height="50px" />
+        <style>
+          {`
+            div::-webkit-scrollbar {
+              display: none;
+            }
+          `}
+        </style>
+
+        <div className="d-flex flex-column align-items-start">
+          <Link to="/Home" className="d-none d-md-block mb-3 ms-2 mt-2">
+            <KLogoSvg width="40px" height="40px" />
           </Link>
-          <Button
-            variant="link"
-            onClick={onToggleDarkMode}
-            className="text-dark p-0 toggle-dark-mode-button"
-          >
-            {isDarkMode ? <FaSun size={20} /> : <FaMoon size={20} />}
-          </Button>
+
+          <Nav className="flex-column mb-auto">
+            <Nav.Item className="mb-1">
+              <Nav.Link
+                as={Link}
+                to="/Home"
+                onClick={() => handleProtectedClick("/HomePage")}
+                className="d-flex align-items-center text-dark py-2 px-3 rounded-pill fw-bold"
+              >
+                <FaHome size={24} className="me-3" />
+                <span className="fs-5 d-none d-md-block">Trang chủ</span>
+              </Nav.Link>
+            </Nav.Item>
+            <Nav.Item className="mb-1">
+              <Nav.Link
+                onClick={() => handleProtectedClick("/explore")}
+                className="d-flex align-items-center text-dark py-2 px-3 rounded-pill"
+              >
+                <FaSearch size={24} className="me-3" />
+                <span className="fs-5 d-none d-md-block">Khám phá</span>
+              </Nav.Link>
+            </Nav.Item>
+            <Nav.Item className="mb-1">
+              <Nav.Link
+                onClick={() => handleProtectedClick("/notifications")}
+                className="d-flex align-items-center text-dark py-2 px-3 rounded-pill"
+              >
+                <FaBell size={24} className="me-3" />
+                <span className="fs-5 d-none d-md-block">Thông báo</span>
+              </Nav.Link>
+            </Nav.Item>
+            <Nav.Item className="mb-1">
+              <Nav.Link
+                onClick={() => handleProtectedClick("/messages")}
+                className="d-flex align-items-center text-dark py-2 px-3 rounded-pill"
+              >
+                <FaEnvelope size={24} className="me-3" />
+                <span className="fs-5 d-none d-md-block">Tin nhắn</span>
+              </Nav.Link>
+            </Nav.Item>
+            <Nav.Item className="mb-1">
+              <Nav.Link
+                onClick={() => handleProtectedClick("/grok")}
+                className="d-flex align-items-center text-dark py-2 px-3 rounded-pill"
+              >
+                <BsRocketTakeoff size={24} className="me-3" />
+              </Nav.Link>
+            </Nav.Item>
+            <Nav.Item className="mb-1">
+              <Nav.Link
+                onClick={() => handleProtectedClick("/communities")}
+                className="d-flex align-items-center text-dark py-2 px-3 rounded-pill"
+              >
+                <FaUserAlt size={24} className="me-3" />
+                <span className="fs-5 d-none d-md-block">Cộng đồng</span>
+              </Nav.Link>
+            </Nav.Item>
+            <Nav.Item className="mb-1">
+              <Nav.Link
+                onClick={() => handleProtectedClick("/premium")}
+                className="d-flex align-items-center text-dark py-2 px-3 rounded-pill"
+              >
+                <BsStars size={24} className="me-3" />
+                <span className="fs-5 d-none d-md-block">Premium</span>
+              </Nav.Link>
+            </Nav.Item>
+            <Nav.Item className="mb-1">
+              <Nav.Link
+                onClick={() =>
+                  handleProtectedClick(`/profile/${user?.username || ""}`)
+                }
+                className="d-flex align-items-center text-dark py-2 px-3 rounded-pill"
+              >
+                <FaUserAlt size={24} className="me-3" />
+                <span className="fs-5 d-none d-md-block">Hồ sơ</span>
+              </Nav.Link>
+            </Nav.Item>
+            <Nav.Item className="mb-1">
+              <Nav.Link
+                onClick={() => handleProtectedClick("/create-story")}
+                className="d-flex align-items-center text-dark py-2 px-3 rounded-pill"
+              >
+                <FaRegPlusSquare size={24} className="me-3" />
+                <span className="fs-5 d-none d-md-block">Tạo Story</span>
+              </Nav.Link>
+            </Nav.Item>
+            <Nav.Item className="mb-1">
+              <Nav.Link
+                onClick={() => handleProtectedClick("/settings")}
+                className="d-flex align-items-center text-dark py-2 px-3 rounded-pill"
+              >
+                <FaLock size={24} className="me-3" />
+                <span className="fs-5 d-none d-md-block">Cài đặt Bảo mật</span>
+              </Nav.Link>
+            </Nav.Item>
+            <Nav.Item className="mb-1">
+              <Nav.Link
+                onClick={() => handleProtectedClick("/delete-account")}
+                className="d-flex align-items-center text-dark py-2 px-3 rounded-pill"
+              >
+                <FaTrash size={24} className="me-3" />
+                <span className="fs-5 d-none d-md-block">Xóa Tài khoản</span>
+              </Nav.Link>
+            </Nav.Item>
+            <Nav.Item className="mb-1">
+              <Nav.Link
+                onClick={() => handleProtectedClick("/more")}
+                className="d-flex align-items-center text-dark py-2 px-3 rounded-pill"
+              >
+                <FaEllipsisH size={24} className="me-3" />
+                <span className="fs-5 d-none d-md-block">Thêm</span>
+              </Nav.Link>
+            </Nav.Item>
+            {user && (
+              <Nav.Item className="mb-1">
+                <Nav.Link
+                  onClick={() => handleProtectedClick("/logout")}
+                  className="d-flex align-items-center text-dark py-2 px-3 rounded-pill"
+                >
+                  <FaSignOutAlt size={24} className="me-3" />
+                  <span className="fs-5 d-none d-md-block">Đăng xuất</span>
+                </Nav.Link>
+              </Nav.Item>
+            )}
+
+            <Button
+              variant="dark"
+              className="rounded-pill mt-3 py-3 fw-bold w-75 d-none d-md-block ms-3"
+              onClick={() => handleProtectedClick("/create-post")}
+            >
+              Đăng
+            </Button>
+
+            {!user && (
+              <Button
+                variant="outline-dark"
+                className="mt-4 w-75 fw-bold ms-3"
+                onClick={() => navigate("/signup")}
+              >
+                Đăng nhập
+              </Button>
+            )}
+          </Nav>
         </div>
-        {renderSidebarContent()}
       </div>
 
+      {/* Off-canvas sidebar cho mobile */}
       <Offcanvas
         show={showOffcanvas}
-        onHide={handleCloseOffcanvas}
-        placement="start"
-        className="sidebar-offcanvas"
+        onHide={handleClose}
+        className="d-md-none"
       >
         <Offcanvas.Header closeButton>
-          <Offcanvas.Title className="d-flex align-items-center">
-            <Link to="/home" className="d-block me-auto">
-              <KLogoSvg width="50px" height="50px" />
+          <Offcanvas.Title>
+            <Link to="/Home" onClick={handleClose}>
+              <KLogoSvg width="40px" height="40px" />
             </Link>
-            <Button
-              variant="link"
-              onClick={onToggleDarkMode}
-              className="text-dark p-0 toggle-dark-mode-button"
-            >
-              {isDarkMode ? <FaSun size={20} /> : <FaMoon size={20} />}
-            </Button>
           </Offcanvas.Title>
         </Offcanvas.Header>
-        <Offcanvas.Body className="d-flex flex-column">
-          {renderSidebarContent()}
+        <Offcanvas.Body>
+          <Nav className="flex-column">
+            <Nav.Item className="mb-1">
+              <Nav.Link
+                as={Link}
+                to="/Home"
+                onClick={() => {
+                  handleProtectedClick("/HomePage");
+                  handleClose();
+                }}
+                className="d-flex align-items-center text-dark py-2 px-3 rounded-pill fw-bold"
+              >
+                <FaHome size={24} className="me-3" />
+                <span className="fs-5">Trang chủ</span>
+              </Nav.Link>
+            </Nav.Item>
+            <Nav.Item className="mb-1">
+              <Nav.Link
+                onClick={() => {
+                  handleProtectedClick("/explore");
+                  handleClose();
+                }}
+                className="d-flex align-items-center text-dark py-2 px-3 rounded-pill"
+              >
+                <FaSearch size={24} className="me-3" />
+                <span className="fs-5">Khám phá</span>
+              </Nav.Link>
+            </Nav.Item>
+            <Nav.Item className="mb-1">
+              <Nav.Link
+                onClick={() => {
+                  handleProtectedClick("/notifications");
+                  handleClose();
+                }}
+                className="d-flex align-items-center text-dark py-2 px-3 rounded-pill"
+              >
+                <FaBell size={24} className="me-3" />
+                <span className="fs-5">Thông báo</span>
+              </Nav.Link>
+            </Nav.Item>
+            <Nav.Item className="mb-1">
+              <Nav.Link
+                onClick={() => {
+                  handleProtectedClick("/messages");
+                  handleClose();
+                }}
+                className="d-flex align-items-center text-dark py-2 px-3 rounded-pill"
+              >
+                <FaEnvelope size={24} className="me-3" />
+                <span className="fs-5">Tin nhắn</span>
+              </Nav.Link>
+            </Nav.Item>
+            <Nav.Item className="mb-1">
+              <Nav.Link
+                onClick={() => {
+                  handleProtectedClick("/grok");
+                  handleClose();
+                }}
+                className="d-flex align-items-center text-dark py-2 px-3 rounded-pill"
+              >
+                <BsRocketTakeoff size={24} className="me-3" />
+                <span className="fs-5">Grok</span>
+              </Nav.Link>
+            </Nav.Item>
+            <Nav.Item className="mb-1">
+              <Nav.Link
+                onClick={() => {
+                  handleProtectedClick("/communities");
+                  handleClose();
+                }}
+                className="d-flex align-items-center text-dark py-2 px-3 rounded-pill"
+              >
+                <FaUserAlt size={24} className="me-3" />
+                <span className="fs-5">Cộng đồng</span>
+              </Nav.Link>
+            </Nav.Item>
+            <Nav.Item className="mb-1">
+              <Nav.Link
+                onClick={() => {
+                  handleProtectedClick("/premium");
+                  handleClose();
+                }}
+                className="d-flex align-items-center text-dark py-2 px-3 rounded-pill"
+              >
+                <BsStars size={24} className="me-3" />
+                <span className="fs-5">Premium</span>
+              </Nav.Link>
+            </Nav.Item>
+            <Nav.Item className="mb-1">
+              <Nav.Link
+                onClick={() => {
+                  handleProtectedClick(`/profile/${user?.username || ""}`);
+                  handleClose();
+                }}
+                className="d-flex align-items-center text-dark py-2 px-3 rounded-pill"
+              >
+                <FaUserAlt size={24} className="me-3" />
+                <span className="fs-5">Hồ sơ</span>
+              </Nav.Link>
+            </Nav.Item>
+            <Nav.Item className="mb-1">
+              <Nav.Link
+                onClick={() => {
+                  handleProtectedClick("/create-story");
+                  handleClose();
+                }}
+                className="d-flex align-items-center text-dark py-2 px-3 rounded-pill"
+              >
+                <FaRegPlusSquare size={24} className="me-3" />
+                <span className="fs-5">Tạo Story</span>
+              </Nav.Link>
+            </Nav.Item>
+            <Nav.Item className="mb-1">
+              <Nav.Link
+                onClick={() => {
+                  handleProtectedClick("/settings");
+                  handleClose();
+                }}
+                className="d-flex align-items-center text-dark py-2 px-3 rounded-pill"
+              >
+                <FaLock size={24} className="me-3" />
+                <span className="fs-5">Cài đặt Bảo mật</span>
+              </Nav.Link>
+            </Nav.Item>
+            <Nav.Item className="mb-1">
+              <Nav.Link
+                onClick={() => {
+                  handleProtectedClick("/delete-account");
+                  handleClose();
+                }}
+                className="d-flex align-items-center text-dark py-2 px-3 rounded-pill"
+              >
+                <FaTrash size={24} className="me-3" />
+                <span className="fs-5">Xóa Tài khoản</span>
+              </Nav.Link>
+            </Nav.Item>
+            <Nav.Item className="mb-1">
+              <Nav.Link
+                onClick={() => {
+                  handleProtectedClick("/more");
+                  handleClose();
+                }}
+                className="d-flex align-items-center text-dark py-2 px-3 rounded-pill"
+              >
+                <FaEllipsisH size={24} className="me-3" />
+                <span className="fs-5">Thêm</span>
+              </Nav.Link>
+            </Nav.Item>
+            {user && (
+              <Nav.Item className="mb-1">
+                <Nav.Link
+                  onClick={() => {
+                    handleProtectedClick("/logout");
+                    handleClose();
+                  }}
+                  className="d-flex align-items-center text-dark py-2 px-3 rounded-pill"
+                >
+                  <FaSignOutAlt size={24} className="me-3" />
+                  <span className="fs-5">Đăng xuất</span>
+                </Nav.Link>
+              </Nav.Item>
+            )}
+            {!user && (
+              <Button
+                variant="outline-dark"
+                className="mt-4 w-100 fw-bold"
+                onClick={() => {
+                  navigate("/");
+                  handleClose();
+                }}
+              >
+                Đăng nhập
+              </Button>
+            )}
+          </Nav>
         </Offcanvas.Body>
       </Offcanvas>
 
-      {/* RENDER MODAL ĐĂNG BÀI Ở ĐÂY */}
-      {/* onNewPost sẽ được truyền từ App.js xuống */}
-      <CreatePostModal
-        show={showCreatePostModal}
-        handleClose={handleCloseCreatePostModal}
-        handlePostSubmit={onNewPost}
-      />
+      {/* Nút Create Story/Post trên mobile */}
+      <Button
+        variant="link"
+        onClick={onToggleDarkMode}
+        className="text-dark p-0 toggle-dark-mode-button"
+      >
+        {isDarkMode ? <FaSun size={20} /> : <FaMoon size={20} />}
+      </Button>
     </>
   );
 }
