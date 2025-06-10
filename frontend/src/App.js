@@ -96,7 +96,7 @@ function App() {
                 {/* Main Application Routes */}
                 <Route path="/home" element={<HomePage />} />
                 {/* <Route path="/profile/:username" element={<ProfilePage />} /> */}
-                <Route path="/profile/:userId" element={<ProfilePage />} />
+                <Route path="/profile/:username" element={<ProfilePage />} />
                 <Route path="/profile/me" element={<ProfilePage />} />
                 <Route path="/explore" element={<ExplorePage />} />
                 <Route path="/notifications" element={<NotificationPage />} />
