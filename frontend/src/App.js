@@ -4,7 +4,6 @@ import "./styles/theme.css"; // New CSS file for theme-related styles
 
 // Import all necessary page components
 import SignupPage from "./pages/auth/signup/signupPage";
-import LoginPage from "./pages/auth/login/LoginPage";
 import HomePage from "./pages/home/HomePage";
 import ProfilePage from "./pages/profile/ProfilePage";
 import ResetPasswordPage from "./pages/auth/login/ResetPasswordPage";
@@ -73,7 +72,6 @@ function App() {
             <div className="main-content flex-grow-1">
               <Routes>
                 <Route path="/signup" element={<SignupPage />} />
-                <Route path="/login" element={<LoginPage />} />
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
                 <Route path="/verify-email" element={<VerifyEmailPage />} />
                 {/* Main Application Routes */}
