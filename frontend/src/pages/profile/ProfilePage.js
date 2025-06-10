@@ -7,6 +7,7 @@ import {
   Button,
   Nav,
   Spinner,
+  CloseButton,
 } from "react-bootstrap";
 import {
   FaArrowLeft,
@@ -437,7 +438,7 @@ function ProfilePage() {
 
               {/* Premium Alert */}
               {showPremiumAlert && !userProfile.isPremium && (
-                <div className="alert alert-light d-flex align-items-start border border-light rounded-3 p-3">
+                <div className="alert alert-success d-flex align-items-start border border-success rounded-3 p-3">
                   <div>
                     <h6 className="fw-bold text-dark mb-1">
                       Bạn chưa đăng ký tài khoản Premium{" "}
@@ -455,13 +456,12 @@ function ProfilePage() {
                       Premium
                     </Button>
                   </div>
-                  <Button
+
+                  <CloseButton
                     variant="link"
                     className="ms-auto text-dark p-0"
                     onClick={() => setShowPremiumAlert(false)}
-                  >
-                    ×
-                  </Button>
+                  />
                 </div>
               )}
 

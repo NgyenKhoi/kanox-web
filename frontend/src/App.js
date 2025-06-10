@@ -14,6 +14,7 @@ import LoadingPage from "./components/common/Loading/LoadingPage";
 import VerifyEmailPage from "./pages/auth/login/VerifyEmailPage";
 import CommunityPage from "./pages/community/CommunityPage"; // Import CommunityPage
 import CommunityDetail from "./pages/community/CommunityDetail"; // Import CommunityDetail
+import CreatePostModal from "./components/posts/CreatePostModal/CreatePostModal";
 
 // Import SidebarLeft and SidebarRight if they are part of the main layout
 import SidebarLeft from "./components/layout/SidebarLeft/SidebarLeft";
@@ -25,6 +26,7 @@ import { AuthProvider } from "./context/AuthContext";
 function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [isDarkMode, setIsDarkMode] = useState(false); // State for dark mode
+  const [showCreatePostModal, setShowCreatePostModal] = useState(false);
 
   useEffect(() => {
     const savedMode = localStorage.getItem("darkMode");
@@ -57,6 +59,20 @@ function App() {
     setIsDarkMode((prevMode) => !prevMode);
   };
 
+  const handleOpenCreatePostModal = () => {
+    setShowCreatePostModal(true);
+  };
+
+  const handleCloseCreatePostModal = () => {
+    setShowCreatePostModal(false);
+  };
+
+  const handlePostSuccess = (newPost) => {
+    handleCloseCreatePostModal();
+    // eslint-disable-next-line no-undef
+    toast.success("Đăng bài thành công!"); // Use toast here
+  };
+
   return (
     <Router>
       <AuthProvider>
@@ -71,8 +87,9 @@ function App() {
 
             <div className="main-content flex-grow-1">
               <Routes>
-                {/* Set SignupPage as the default route */}
-                <Route path="/" element={<SignupPage />} />
+                {/* Set SignupPage as the default route 
+                SignupPage*/}
+                <Route path="/" element={<HomePage />} />
                 {/* Authentication Routes */}
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
                 <Route path="/verify-email" element={<VerifyEmailPage />} />
@@ -96,6 +113,11 @@ function App() {
             </div>
           </div>
         )}
+        <CreatePostModal
+          show={showCreatePostModal}
+          handleClose={handleCloseCreatePostModal}
+          onPostSuccess={handlePostSuccess}
+        />
       </AuthProvider>
     </Router>
   );

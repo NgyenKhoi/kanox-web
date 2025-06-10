@@ -1,0 +1,26 @@
+{"users": [
+    {
+      "id": "user1",
+      "username": "alice",
+      "password": "password123",
+      "name": "Alice Wonderland",
+      "email": "alice@example.com",
+      "avatar": "https://via.placeholder.com/150/FF5733/FFFFFF?text=A"
+    },
+    {
+      "id": "user2",
+      "username": "bob",
+      "password": "securepwd456",
+      "name": "Bob The Builder",
+      "email": "bob@example.com",
+      "avatar": "https://via.placeholder.com/150/33FF57/FFFFFF?text=B"
+    },
+    {
+      "id": "user3",
+      "username": "charlie",
+      "password": "mysecret789",
+      "name": "Charlie Chaplin",
+      "email": "charlie@example.com",
+      "avatar": "https://via.placeholder.com/150/3357FF/FFFFFF?text=C"
+    }
+  ]}

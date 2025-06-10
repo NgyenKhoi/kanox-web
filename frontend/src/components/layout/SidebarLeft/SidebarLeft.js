@@ -22,7 +22,7 @@ import KLogoSvg from "../../svgs/KSvg";
 import { AuthContext } from "../../../context/AuthContext";
 import "./SidebarLeft.css"; // Import the CSS file
 
-function SidebarLeft({ onToggleDarkMode, isDarkMode }) {
+function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
   const { user, logout } = useContext(AuthContext); // Assuming logout function exists in AuthContext
   const navigate = useNavigate();
   const location = useLocation();
@@ -61,13 +61,6 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode }) {
       label: "Xóa Tài khoản",
       path: "/delete-account",
       protected: true,
-    },
-    {
-      icon: <FaSignOutAlt size={24} />,
-      label: "Đăng xuất",
-      path: "/logout",
-      protected: true,
-      action: "logout",
     },
   ];
 
@@ -156,7 +149,7 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode }) {
         className="rounded-pill mt-3 py-3 fw-bold sidebar-post-button d-none d-lg-block" // Show only on large screens
         onClick={() => {
           handleCloseOffcanvas();
-          navigate("/create-post");
+          onShowCreatePost();
         }}
       >
         Đăng
@@ -167,7 +160,7 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode }) {
         className="sidebar-fab d-lg-none rounded-circle p-3 shadow" // Show only on small screens, added shadow
         onClick={() => {
           handleCloseOffcanvas();
-          navigate("/create-post");
+          onShowCreatePost();
         }}
       >
         <FaPlusCircle size={24} />
