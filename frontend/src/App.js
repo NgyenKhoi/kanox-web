@@ -89,7 +89,7 @@ function App() {
               <Routes>
                 {/* Set SignupPage as the default route 
                 SignupPage*/}
-                <Route path="/" element={<HomePage />} />
+                <Route path="/" element={<SignupPage />} />
                 {/* Authentication Routes */}
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
                 <Route path="/verify-email" element={<VerifyEmailPage />} />
