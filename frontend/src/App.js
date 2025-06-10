@@ -4,7 +4,6 @@ import "./styles/theme.css"; // New CSS file for theme-related styles
 
 // Import all necessary page components
 import SignupPage from "./pages/auth/signup/signupPage";
-import LoginPage from "./pages/auth/login/LoginPage";
 import HomePage from "./pages/home/HomePage";
 import ProfilePage from "./pages/profile/ProfilePage";
 import ResetPasswordPage from "./pages/auth/login/ResetPasswordPage";
@@ -76,14 +75,8 @@ function App() {
                 {/* Set SignupPage as the default route */}
                 <Route path="/" element={<SignupPage />} />
                 {/* Authentication Routes */}
-                <Route path="/signup" element={<SignupPage />} />
-                <Route path="/login" element={<LoginPage />} />
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
                 <Route path="/verify-email" element={<VerifyEmailPage />} />
-                <Route
-                  path="/complete-profile"
-                  element={<CompleteProfilePage />}
-                />
                 {/* Main Application Routes */}
                 <Route path="/home" element={<HomePage />} />
                 {/* <Route path="/profile/:username" element={<ProfilePage />} /> */}

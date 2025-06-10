@@ -49,21 +49,21 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode }) {
 
   const additionalTabs = [
     {
-      icon: <FaRegPlusSquare size={24} />,
       label: "Tạo Story",
       path: "/create-story",
       protected: true,
     },
-    {},
-    { icon: <FaLock size={24} />, label: "Cài đặt Bảo mật", path: "/settings" },
     {
-      icon: <FaTrash size={24} />,
+      label: "Tìm kiếm người dùng",
+      path: "/explore",
+    },
+    { label: "Cài đặt Bảo mật", path: "/settings" },
+    {
       label: "Xóa Tài khoản",
       path: "/delete-account",
       protected: true,
     },
     {
-      icon: <FaSignOutAlt size={24} />,
       label: "Đăng xuất",
       path: "/logout",
       protected: true,
