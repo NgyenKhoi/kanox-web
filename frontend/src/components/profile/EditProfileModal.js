@@ -4,7 +4,13 @@ import { FaCamera, FaTimes, FaLock, FaTrash, FaPalette } from "react-icons/fa";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-function EditProfileModal({ show, handleClose, userProfile, onSave, username }) {
+function EditProfileModal({
+  show,
+  handleClose,
+  userProfile,
+  onSave,
+  username,
+}) {
   const [formData, setFormData] = useState({
     displayName: "",
     bio: "",
@@ -29,8 +35,8 @@ function EditProfileModal({ show, handleClose, userProfile, onSave, username }) 
         location: userProfile.location || "",
         website: userProfile.website || "",
         dateOfBirth: userProfile.dateOfBirth
-            ? new Date(userProfile.dateOfBirth).toISOString().split("T")[0]
-            : "",
+          ? new Date(userProfile.dateOfBirth).toISOString().split("T")[0]
+          : "",
         gender: userProfile.gender != null ? String(userProfile.gender) : "",
         avatar: userProfile.avatar || "",
         banner: userProfile.banner || "",
@@ -50,8 +56,12 @@ function EditProfileModal({ show, handleClose, userProfile, onSave, username }) 
     if (formData.bio.length > 160) {
       newErrors.bio = "Tiểu sử không được vượt quá 160 ký tự.";
     }
-    if (formData.website && !/^https?:\/\/[^\s/$.?#].[^\s]*$/.test(formData.website)) {
-      newErrors.website = "Định dạng trang web không hợp lệ (phải bắt đầu bằng http:// hoặc https://).";
+    if (
+      formData.website &&
+      !/^https?:\/\/[^\s/$.?#].[^\s]*$/.test(formData.website)
+    ) {
+      newErrors.website =
+        "Định dạng trang web không hợp lệ (phải bắt đầu bằng http:// hoặc https://).";
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -87,7 +97,7 @@ function EditProfileModal({ show, handleClose, userProfile, onSave, username }) 
     return new Promise((resolve) => {
       setTimeout(() => {
         resolve(
-            `https://via.placeholder.com/150x150/0000FF/FFFFFF?text=${file.name}`
+          `https://via.placeholder.com/150x150/0000FF/FFFFFF?text=${file.name}`
         );
       }, 500);
     });
@@ -124,15 +134,15 @@ function EditProfileModal({ show, handleClose, userProfile, onSave, username }) 
       payload.gender = payload.gender ? Number(payload.gender) : null;
 
       const response = await fetch(
-          `${process.env.REACT_APP_API_URL}/user/profile/${username}`,
-          {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify(payload),
-          }
+        `${process.env.REACT_APP_API_URL}/user/profile/${username}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+        }
       );
 
       if (!response.ok) {
@@ -141,12 +151,12 @@ function EditProfileModal({ show, handleClose, userProfile, onSave, username }) 
       }
 
       const updatedProfileResponse = await fetch(
-          `${process.env.REACT_APP_API_URL}/user/profile/${username}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
+        `${process.env.REACT_APP_API_URL}/user/profile/${username}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
       if (!updatedProfileResponse.ok) {
         throw new Error("Lỗi khi tải lại hồ sơ sau cập nhật.");
@@ -165,7 +175,11 @@ function EditProfileModal({ show, handleClose, userProfile, onSave, username }) 
   };
 
   const handleDeleteAccount = () => {
-    if (window.confirm("Bạn có chắc chắn muốn xóa tài khoản? Hành động này không thể hoàn tác!")) {
+    if (
+      window.confirm(
+        "Bạn có chắc chắn muốn xóa tài khoản? Hành động này không thể hoàn tác!"
+      )
+    ) {
       alert("Chuyển hướng đến trang xóa tài khoản..."); // Giả lập, có thể thay bằng navigate
     }
   };
@@ -187,229 +201,252 @@ function EditProfileModal({ show, handleClose, userProfile, onSave, username }) 
   ];
 
   return (
-      <>
-        <ToastContainer
-            position="top-center"
-            autoClose={3000}
-            hideProgressBar={false}
-            newestOnTop={false}
-            closeOnClick
-            rtl={false}
-            pauseOnFocusLoss
-            draggable
-            pauseOnHover
-        />
-        <Modal show={show} onHide={handleClose} fullscreen="sm-down" centered size="lg">
-          <Modal.Header className="d-flex justify-content-between align-items-center border-bottom-0 pb-0">
-            <div className="d-flex align-items-center">
-              <Button
-                  variant="link"
-                  className="text-dark p-0 me-3"
-                  onClick={handleClose}
-              >
-                <FaTimes size={24} />
-              </Button>
-              <Modal.Title className="fw-bold fs-5">Chỉnh sửa hồ sơ</Modal.Title>
-            </div>
+    <>
+      <ToastContainer
+        position="top-center"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+      />
+      <Modal
+        show={show}
+        onHide={handleClose}
+        fullscreen="sm-down"
+        centered
+        size="lg"
+      >
+        <Modal.Header className="d-flex justify-content-between align-items-center border-bottom-0 pb-0">
+          <div className="d-flex align-items-center">
             <Button
-                variant="dark"
-                className="rounded-pill px-4 py-1 fw-bold"
-                onClick={handleSave}
-                disabled={loading}
+              variant="link"
+              className="text-dark p-0 me-3"
+              onClick={handleClose}
             >
-              {loading ? (
-                  <>
-                    <Spinner
-                        as="span"
-                        animation="border"
-                        size="sm"
-                        role="status"
-                        aria-hidden="true"
-                        className="me-2"
-                    />
-                    Đang lưu...
-                  </>
-              ) : (
-                  "Lưu"
-              )}
+              <FaTimes size={24} />
             </Button>
-          </Modal.Header>
-
-          <Modal.Body className="p-3">
-            <div className="mb-4">
-              <h6 className="fw-bold mb-3">Ảnh bìa và đại diện</h6>
-              <div className="position-relative mb-4">
-                <Image
-                    src={
-                        formData.banner ||
-                        "https://source.unsplash.com/1200x400/?nature,water"
-                    }
-                    fluid
-                    className="w-100 rounded-3"
-                    style={{ height: "200px", objectFit: "cover" }}
+            <Modal.Title className="fw-bold fs-5">Chỉnh sửa hồ sơ</Modal.Title>
+          </div>
+          <Button
+            variant="dark"
+            className="rounded-pill px-4 py-1 fw-bold"
+            onClick={handleSave}
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <Spinner
+                  as="span"
+                  animation="border"
+                  size="sm"
+                  role="status"
+                  aria-hidden="true"
+                  className="me-2"
                 />
-                <div
-                    className="position-absolute top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center"
-                    style={{ backgroundColor: "rgba(0,0,0,0.3)" }}
-                >
-                  <label
-                      htmlFor="banner-upload"
-                      className="btn btn-dark rounded-circle me-2 d-flex align-items-center justify-content-center"
-                  >
-                    <FaCamera size={18} />
-                    <input
-                        type="file"
-                        id="banner-upload"
-                        className="d-none"
-                        accept="image/*"
-                        onChange={(e) => handleImageChange("banner", e)}
-                    />
-                  </label>
-                  {formData.banner && (
-                      <Button
-                          variant="dark"
-                          className="rounded-circle d-flex align-items-center justify-content-center"
-                          onClick={() => handleClearImage("banner")}
-                      >
-                        <FaTimes size={18} />
-                      </Button>
-                  )}
-                </div>
-              </div>
+                Đang lưu...
+              </>
+            ) : (
+              "Lưu"
+            )}
+          </Button>
+        </Modal.Header>
 
-              <div className="position-relative" style={{ marginTop: "-75px", marginLeft: "20px" }}>
-                <Image
-                    src={
-                        formData.avatar ||
-                        "https://source.unsplash.com/150x150/?portrait"
-                    }
-                    roundedCircle
-                    className="border border-white border-4"
-                    style={{ width: "130px", height: "130px", objectFit: "cover" }}
-                />
+        <Modal.Body className="p-3">
+          <div className="mb-4">
+            <h6 className="fw-bold mb-3">Ảnh bìa và đại diện</h6>
+            <div className="position-relative mb-4">
+              <Image
+                src={
+                  formData.banner ||
+                  "https://source.unsplash.com/1200x400/?nature,water"
+                }
+                fluid
+                className="w-100 rounded-3"
+                style={{ height: "200px", objectFit: "cover" }}
+              />
+              <div
+                className="position-absolute top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center"
+                style={{ backgroundColor: "rgba(0,0,0,0.3)" }}
+              >
                 <label
-                    htmlFor="avatar-upload"
-                    className="position-absolute top-50 start-50 translate-middle btn btn-dark rounded-circle d-flex align-items-center justify-content-center"
+                  htmlFor="banner-upload"
+                  className="btn btn-dark rounded-circle me-2 d-flex align-items-center justify-content-center"
                 >
-                  <FaCamera size={20} />
+                  <FaCamera size={18} />
                   <input
-                      type="file"
-                      id="avatar-upload"
-                      className="d-none"
-                      accept="image/*"
-                      onChange={(e) => handleImageChange("avatar", e)}
+                    type="file"
+                    id="banner-upload"
+                    className="d-none"
+                    accept="image/*"
+                    onChange={(e) => handleImageChange("banner", e)}
                   />
                 </label>
-                {formData.avatar && (
-                    <Button
-                        variant="dark"
-                        className="rounded-circle d-flex align-items-center justify-content-center"
-                        style={{
-                          width: "40px",
-                          height: "40px",
-                          position: "absolute",
-                          top: "0",
-                          right: "0",
-                          transform: "translate(50%, -50%)",
-                        }}
-                        onClick={() => handleClearImage("avatar")}
-                    >
-                      <FaTimes size={18} />
-                    </Button>
+                {formData.banner && (
+                  <Button
+                    variant="dark"
+                    className="rounded-circle d-flex align-items-center justify-content-center"
+                    onClick={() => handleClearImage("banner")}
+                  >
+                    <FaTimes size={18} />
+                  </Button>
                 )}
               </div>
             </div>
 
-            <h6 className="fw-bold mb-3">Thông tin cá nhân</h6>
-            <Form className="mb-4">
-              {[
-                { label: "Tên hiển thị", field: "displayName", type: "text" },
-                { label: "Tiểu sử", field: "bio", type: "textarea", rows: 3 },
-                { label: "Vị trí", field: "location", type: "text" },
-                { label: "Trang web", field: "website", type: "text" },
-                { label: "Ngày sinh", field: "dateOfBirth", type: "date" },
-              ].map(({ label, field, type, rows }) => (
-                  <Form.Group className="mb-3" controlId={`form${field}`} key={field}>
-                    <Form.Label className="text-muted small mb-1">{label}</Form.Label>
-                    {type === "textarea" ? (
-                        <Form.Control
-                            as="textarea"
-                            rows={rows}
-                            value={formData[field]}
-                            onChange={(e) => handleInputChange(field, e.target.value)}
-                            className="border-0 border-bottom rounded-0 px-0 py-1"
-                            isInvalid={!!errors[field]}
-                        />
-                    ) : (
-                        <Form.Control
-                            type={type}
-                            value={formData[field]}
-                            onChange={(e) => handleInputChange(field, e.target.value)}
-                            className="border-0 border-bottom rounded-0 px-0 py-1"
-                            isInvalid={!!errors[field]}
-                        />
-                    )}
-                    <Form.Control.Feedback type="invalid">
-                      {errors[field]}
-                    </Form.Control.Feedback>
-                  </Form.Group>
-              ))}
-
-              <Form.Group className="mb-3" controlId="formGender">
-                <Form.Label className="text-muted small mb-1">Giới tính</Form.Label>
-                <Form.Select
-                    name="gender"
-                    value={formData.gender}
-                    onChange={(e) => handleInputChange("gender", e.target.value)}
-                    className="border-0 border-bottom rounded-0 px-0 py-1"
+            <div
+              className="position-relative"
+              style={{ marginTop: "-75px", marginLeft: "20px" }}
+            >
+              <Image
+                src={
+                  formData.avatar ||
+                  "https://source.unsplash.com/150x150/?portrait"
+                }
+                roundedCircle
+                className="border border-white border-4"
+                style={{ width: "130px", height: "130px", objectFit: "cover" }}
+              />
+              <label
+                htmlFor="avatar-upload"
+                className="position-absolute top-50 start-50 translate-middle btn btn-dark rounded-circle d-flex align-items-center justify-content-center"
+              >
+                <FaCamera size={20} />
+                <input
+                  type="file"
+                  id="avatar-upload"
+                  className="d-none"
+                  accept="image/*"
+                  onChange={(e) => handleImageChange("avatar", e)}
+                />
+              </label>
+              {formData.avatar && (
+                <Button
+                  variant="dark"
+                  className="rounded-circle d-flex align-items-center justify-content-center"
+                  style={{
+                    width: "40px",
+                    height: "40px",
+                    position: "absolute",
+                    top: "0",
+                    right: "0",
+                    transform: "translate(50%, -50%)",
+                  }}
+                  onClick={() => handleClearImage("avatar")}
                 >
-                  {genderOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                  ))}
-                </Form.Select>
-              </Form.Group>
+                  <FaTimes size={18} />
+                </Button>
+              )}
+            </div>
+          </div>
 
-              <Form.Group className="mb-3" controlId="formTheme">
-                <Form.Label className="text-muted small mb-1">Giao diện</Form.Label>
-                <div className="d-flex">
-                  <Button
-                      variant={formData.theme === "light" ? "primary" : "outline-primary"}
-                      className="rounded-pill me-2"
-                      onClick={() => handleThemeChange("light")}
-                  >
-                    Sáng
-                  </Button>
-                  <Button
-                      variant={formData.theme === "dark" ? "primary" : "outline-primary"}
-                      className="rounded-pill"
-                      onClick={() => handleThemeChange("dark")}
-                  >
-                    Tối
-                  </Button>
-                </div>
+          <h6 className="fw-bold mb-3">Thông tin cá nhân</h6>
+          <Form className="mb-4">
+            {[
+              { label: "Tên hiển thị", field: "displayName", type: "text" },
+              { label: "Tiểu sử", field: "bio", type: "textarea", rows: 3 },
+              { label: "Vị trí", field: "location", type: "text" },
+              { label: "Trang web", field: "website", type: "text" },
+              { label: "Ngày sinh", field: "dateOfBirth", type: "date" },
+            ].map(({ label, field, type, rows }) => (
+              <Form.Group
+                className="mb-3"
+                controlId={`form${field}`}
+                key={field}
+              >
+                <Form.Label className="text-muted small mb-1">
+                  {label}
+                </Form.Label>
+                {type === "textarea" ? (
+                  <Form.Control
+                    as="textarea"
+                    rows={rows}
+                    value={formData[field]}
+                    onChange={(e) => handleInputChange(field, e.target.value)}
+                    className="border-0 border-bottom rounded-0 px-0 py-1"
+                    isInvalid={!!errors[field]}
+                  />
+                ) : (
+                  <Form.Control
+                    type={type}
+                    value={formData[field]}
+                    onChange={(e) => handleInputChange(field, e.target.value)}
+                    className="border-0 border-bottom rounded-0 px-0 py-1"
+                    isInvalid={!!errors[field]}
+                  />
+                )}
+                <Form.Control.Feedback type="invalid">
+                  {errors[field]}
+                </Form.Control.Feedback>
               </Form.Group>
-            </Form>
+            ))}
 
-            <h6 className="fw-bold mb-3">Cài đặt tài khoản</h6>
-            <Nav className="flex-column">
-              <Nav.Link
-                  onClick={handleSecuritySettings}
-                  className="text-dark d-flex align-items-center py-2 px-0 border-bottom"
+            <Form.Group className="mb-3" controlId="formGender">
+              <Form.Label className="text-muted small mb-1">
+                Giới tính
+              </Form.Label>
+              <Form.Select
+                name="gender"
+                value={formData.gender}
+                onChange={(e) => handleInputChange("gender", e.target.value)}
+                className="border-0 border-bottom rounded-0 px-0 py-1"
               >
-                <FaLock className="me-2" /> Cài đặt bảo mật
-              </Nav.Link>
-              <Nav.Link
-                  onClick={handleDeleteAccount}
-                  className="text-danger d-flex align-items-center py-2 px-0"
-              >
-                <FaTrash className="me-2" /> Xóa tài khoản
-              </Nav.Link>
-            </Nav>
-          </Modal.Body>
-        </Modal>
-      </>
+                {genderOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </Form.Select>
+            </Form.Group>
+
+            <Form.Group className="mb-3" controlId="formTheme">
+              <Form.Label className="text-muted small mb-1">
+                Giao diện
+              </Form.Label>
+              <div className="d-flex">
+                <Button
+                  variant={
+                    formData.theme === "light" ? "primary" : "outline-primary"
+                  }
+                  className="rounded-pill me-2"
+                  onClick={() => handleThemeChange("light")}
+                >
+                  Sáng
+                </Button>
+                <Button
+                  variant={
+                    formData.theme === "dark" ? "primary" : "outline-primary"
+                  }
+                  className="rounded-pill"
+                  onClick={() => handleThemeChange("dark")}
+                >
+                  Tối
+                </Button>
+              </div>
+            </Form.Group>
+          </Form>
+
+          <h6 className="fw-bold mb-3">Cài đặt tài khoản</h6>
+          <Nav className="flex-column">
+            <Nav.Link
+              onClick={handleSecuritySettings}
+              className="text-dark d-flex align-items-center py-2 px-0 border-bottom"
+            >
+              <FaLock className="me-2" /> Cài đặt bảo mật
+            </Nav.Link>
+            <Nav.Link
+              onClick={handleDeleteAccount}
+              className="text-danger d-flex align-items-center py-2 px-0"
+            >
+              <FaTrash className="me-2" /> Xóa tài khoản
+            </Nav.Link>
+          </Nav>
+        </Modal.Body>
+      </Modal>
+    </>
   );
 }
 

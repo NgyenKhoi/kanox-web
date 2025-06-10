@@ -36,3 +36,51 @@
     transform: rotate(360deg);
   }
 }
+/* src/index.css or App.css */
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.app-container {
+  min-height: 100vh; /* Ensure the container takes full viewport height */
+}
+
+.sidebar-left {
+  /* Existing styles for sidebar */
+  /* If you removed 'position: sticky' from inline style, add it here */
+  position: sticky;
+  top: 0;
+  align-self: flex-start; /* Important for sticky to work correctly with flex container */
+  /* Ensure it has a background color to stand out from main content */
+  background-color: var(--background-color); /* Use CSS variable */
+  z-index: 1000; /* Ensure it stays on top */
+}
+
+.main-content {
+  flex-grow: 1; /* Allow main content to take remaining space */
+  padding-left: 15px; /* Adjust as needed */
+  padding-right: 15px; /* Adjust as needed */
+  /* Remove borders from here if handled by specific page components */
+}
+
+/* Adjustments for general layout classes */
+.d-flex {
+  display: flex;
+}
+
+.min-vh-100 {
+  min-height: 100vh;
+}
+
+/* Ensure font colors for various components respond to theme */
+.text-dark, .text-muted, h1, h2, h3, h4, h5, h6, p, a {
+  color: var(--text-color); /* Apply global text color */
+}
+
+/* Add general hover effect for clickable elements */
+.hover-bg-light:hover {
+  background-color: var(--hover-bg-color);
+  cursor: pointer;
+}

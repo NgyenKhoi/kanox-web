@@ -43,7 +43,7 @@ const SignupPage = () => {
       const data = await response.json();
       if (response.ok) {
         const { token, refreshToken, user } = data;
-         setUser(user, token, refreshToken);
+        setUser(user, token, refreshToken);
         toast.success("Đăng nhập bằng Google thành công! Đang chuyển hướng...");
         navigate("/home");
       } else {
@@ -151,14 +151,12 @@ const SignupPage = () => {
         show={showCreateAccountModal}
         handleClose={handleCloseCreateAccountModal}
       />
-
       <LoginModal
         show={showLoginModal}
         handleClose={handleCloseLoginModal}
         onShowLogin={handleShowLoginModal}
       />
-
-      <Footer />
+      <Footer isWhiteBackground={true} />
     </Container>
   );
 };

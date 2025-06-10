@@ -45,7 +45,7 @@ function HomePage() {
 
   return (
       <div className="d-flex flex-column min-vh-100" style={{ backgroundColor: "#fff" }}>
-        <Header />
+        {/* <Header /> */}
         <Container fluid className="flex-grow-1">
           <Row className="h-100">
             <Col xs={0} md={0} lg={3} className="p-0">

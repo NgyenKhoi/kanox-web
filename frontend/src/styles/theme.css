@@ -1,0 +1,78 @@
+/* src/styles/theme.css */
+
+/* Default (Light Mode) variables */
+:root {
+  --background-color: #fff;
+  --text-color: #000;
+  --border-color: #eee;
+  --hover-bg-color: #f0f0f0;
+  --primary-color: #0d6efd; /* Bootstrap primary blue */
+}
+
+/* Dark Mode variables */
+body.dark-mode {
+  --background-color: #1a1a1a;
+  --text-color: #e0e0e0;
+  --border-color: #333;
+  --hover-bg-color: #2a2a2a;
+  --primary-color: #66b2ff; /* Lighter blue for dark mode primary */
+}
+
+/* Apply theme variables to common elements */
+body {
+  background-color: var(--background-color);
+  color: var(--text-color);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.sidebar-left,
+.main-content,
+.card {
+  background-color: var(--background-color);
+  color: var(--text-color);
+  border-color: var(--border-color) !important; /* Use important if Bootstrap defaults override */
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.border-bottom {
+    border-bottom-color: var(--border-color) !important;
+}
+
+.border-right { /* For sidebar */
+    border-right-color: var(--border-color) !important;
+}
+
+.hover-bg-light:hover {
+  background-color: var(--hover-bg-color) !important;
+}
+
+/* Adjust text and link colors based on theme */
+.text-dark {
+  color: var(--text-color) !important;
+}
+
+.text-muted {
+    color: rgba(var(--text-color-rgb, 0,0,0), 0.75) !important; /* Adjust if needed */
+}
+
+/* Specific adjustments for input fields if needed */
+.form-control, .input-group-text {
+    background-color: var(--background-color) !important;
+    color: var(--text-color) !important;
+    border-color: var(--border-color) !important;
+}
+.form-control::placeholder {
+    color: rgba(var(--text-color-rgb, 0,0,0), 0.5) !important;
+}
+
+/* If you have custom active states for nav links */
+.nav-link.active-nav-item {
+    background-color: var(--hover-bg-color) !important; /* Or a specific accent color */
+    color: var(--primary-color) !important; /* Example */
+}
+
+/* Make sure primary buttons adapt, or define their own specific styles */
+.btn-primary {
+  background-color: var(--primary-color) !important;
+  border-color: var(--primary-color) !important;
+}
