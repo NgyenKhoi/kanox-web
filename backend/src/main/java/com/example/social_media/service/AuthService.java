@@ -9,8 +9,10 @@ import com.example.social_media.exception.InvalidPasswordException;
 import com.example.social_media.exception.UserNotFoundException;
 import com.example.social_media.repository.UserRepository;
 import com.example.social_media.repository.VerificationTokenRepository;
+import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -24,19 +26,19 @@ import java.util.UUID;
 public class AuthService {
 
     private final UserRepository userRepository;
-
     private final PasswordEncoder passwordEncoder;
-
     private final VerificationTokenRepository verificationTokenRepository;
-
     private final MailService mailService;
     private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
+    private final DataSyncService dataSyncService;
 
-    public AuthService(MailService mailService, UserRepository userRepository, PasswordEncoder passwordEncoder, VerificationTokenRepository verificationTokenRepository) {
+
+    public AuthService(MailService mailService, UserRepository userRepository, PasswordEncoder passwordEncoder, VerificationTokenRepository verificationTokenRepository, DataSyncService dataSyncService) {
         this.mailService = mailService;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.verificationTokenRepository = verificationTokenRepository;
+        this.dataSyncService = dataSyncService;
     }
 
     public Optional<User> getUserByUsername(String username) {
@@ -173,42 +175,108 @@ public class AuthService {
         user.setStatus(true);
 
         User savedUser = userRepository.save(user);
-
-        // Xóa token sau khi xác thực thành công
+        dataSyncService.syncUserToElasticsearch(savedUser.getId());
         verificationTokenRepository.delete(verificationToken);
-
         return savedUser;
     }
 
     public User loginOrRegisterGoogleUser(String googleId, String email, String name) {
-        Optional<User> userOpt = userRepository.findByEmail(email);
-        //check if login google have the same email as existing user
+        logger.info("Processing Google login for email: {}, googleId: {}", email, googleId);
+
+        // Kiểm tra user với status = true
+        Optional<User> userOpt = userRepository.findByEmailAndStatusTrue(email);
         if (userOpt.isPresent()) {
             User existingUser = userOpt.get();
-
-            // user don't have Google id will set into here
+            logger.info("Active user found with email: {}, username: {}", email, existingUser.getUsername());
             if (existingUser.getGoogleId() == null) {
+                logger.info("Linking Google ID to existing active user: {}", email);
                 existingUser.setGoogleId(googleId);
-                userRepository.save(existingUser);
+                try {
+                    userRepository.save(existingUser);
+                    logger.info("Updated googleId for user: {}", existingUser.getUsername());
+                } catch (Exception e) {
+                    logger.error("Error updating googleId for user: {}", email, e);
+                    throw new IllegalStateException("Không thể liên kết Google ID với tài khoản hiện có: " + e.getMessage());
+                }
+            } else if (!existingUser.getGoogleId().equals(googleId)) {
+                logger.warn("Email {} is already linked to another Google account", email);
+                throw new IllegalStateException("Email đã được liên kết với một tài khoản Google khác");
             }
-
             return existingUser;
         }
-        String tempPassword = UUID.randomUUID().toString().substring(0, 8);
-        //take username from google login
-        User newUser = new User();
-        String baseUsername = name.replaceAll("\\s+", "").toLowerCase();
-        String finalUsername = baseUsername;
-        int i = 1;
-        while (userRepository.existsByUsername(finalUsername)) {
-            finalUsername = baseUsername + i;
-            i++;
+
+        // Kiểm tra user với status = false (tùy chọn: kích hoạt lại)
+        Optional<User> inactiveUserOpt = userRepository.findByEmail(email);
+        if (inactiveUserOpt.isPresent()) {
+            User inactiveUser = inactiveUserOpt.get();
+            if (!inactiveUser.getStatus()) {
+                logger.info("Inactive user found with email: {}, attempting to reactivate", email);
+                inactiveUser.setStatus(true);
+                inactiveUser.setGoogleId(googleId);
+                try {
+                    userRepository.save(inactiveUser);
+                    logger.info("Reactivated user with email: {}", email);
+                    return inactiveUser;
+                } catch (Exception e) {
+                    logger.error("Error reactivating user with email: {}", email, e);
+                    throw new IllegalStateException("Không thể kích hoạt lại tài khoản: " + e.getMessage());
+                }
+            }
         }
-        newUser.setUsername(finalUsername);
+
+        // Tạo user mới nếu không tìm thấy
+        logger.info("Creating new user with email: {}", email);
+        String baseUsername = email.split("@")[0].toLowerCase();
+
+// Giới hạn 30 ký tự
+        baseUsername = baseUsername.length() > 30 ? baseUsername.substring(0, 30) : baseUsername;
+
+        String username = baseUsername;
+        int suffix = 1;
+
+        while (userRepository.existsByUsername(username)) {
+            String suffixStr = String.valueOf(suffix++);
+            int maxLength = 30 - suffixStr.length();
+            username = baseUsername.substring(0, Math.min(baseUsername.length(), maxLength)) + suffixStr;
+        }
+
+        String tempPassword = UUID.randomUUID().toString().substring(0, 8);
+        User newUser = new User();
+        newUser.setUsername(username);
         newUser.setEmail(email);
         newUser.setGoogleId(googleId);
         newUser.setPassword(passwordEncoder.encode(tempPassword));
-        mailService.sendTemporaryPasswordEmail(email, tempPassword);
-        return userRepository.save(newUser);
+        newUser.setStatus(true);
+        newUser.setProfilePrivacySetting("default");
+        newUser.setIsAdmin(false);
+
+        try {
+            User savedUser = userRepository.save(newUser);
+            logger.info("New user created: {}", savedUser.getUsername());
+            dataSyncService.syncUserToElasticsearch(savedUser.getId());
+            try {
+                mailService.sendTemporaryPasswordEmail(email, tempPassword);
+                logger.info("Temporary password email sent to: {}", email);
+            } catch (Exception e) {
+                logger.error("Failed to send temporary password email to {}: {}", email, e.getMessage());
+            }
+
+            return savedUser;
+        } catch (DataIntegrityViolationException e) {
+            logger.error("Database error saving user with email: {}, detail: {}", email, e.getMessage());
+            if (e.getMessage().contains("email")) {
+                throw new IllegalStateException("Email đã tồn tại: " + email);
+            } else if (e.getMessage().contains("username")) {
+                throw new IllegalStateException("Username đã tồn tại: " + username);
+            } else {
+                throw new IllegalStateException("Không thể tạo user: vi phạm ràng buộc dữ liệu - " + e.getMessage());
+            }
+        } catch (ConstraintViolationException e) {
+            logger.error("Constraint violation saving user with email: {}, detail: {}", email, e.getMessage());
+            throw new IllegalStateException("Không thể tạo user: dữ liệu không hợp lệ - " + e.getMessage());
+        } catch (Exception e) {
+            logger.error("Unexpected error saving user with email: {}, detail: {}", email, e.getMessage());
+            throw new IllegalStateException("Không thể tạo user: " + e.getMessage());
+        }
     }
 }

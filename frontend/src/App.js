@@ -8,7 +8,6 @@ import LoginPage from "./pages/auth/login/LoginPage";
 import HomePage from "./pages/home/HomePage";
 import ProfilePage from "./pages/profile/ProfilePage";
 import ResetPasswordPage from "./pages/auth/login/ResetPasswordPage";
-import CompleteProfilePage from "./components/profile/CompleteProfilePage";
 import ExplorePage from "./pages/search/ExplorePage";
 import NotificationPage from "./pages/Notifications/NotificationPage";
 import MessengerPage from "./pages/Messenger/MessengerPage";
@@ -73,17 +72,10 @@ function App() {
 
             <div className="main-content flex-grow-1">
               <Routes>
-                {/* Set SignupPage as the default route */}
-                <Route path="/" element={<SignupPage />} />
-                {/* Authentication Routes */}
                 <Route path="/signup" element={<SignupPage />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
                 <Route path="/verify-email" element={<VerifyEmailPage />} />
-                <Route
-                  path="/complete-profile"
-                  element={<CompleteProfilePage />}
-                />
                 {/* Main Application Routes */}
                 <Route path="/home" element={<HomePage />} />
                 {/* <Route path="/profile/:username" element={<ProfilePage />} /> */}

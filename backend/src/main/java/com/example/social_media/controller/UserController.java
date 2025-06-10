@@ -2,7 +2,9 @@ package com.example.social_media.controller;
 
 import com.example.social_media.config.URLConfig;
 import com.example.social_media.dto.user.UserProfileDto;
+import com.example.social_media.dto.user.UserTagDto;
 import com.example.social_media.dto.user.UserUpdateProfileDto;
+import com.example.social_media.exception.UserNotFoundException;
 import com.example.social_media.service.UserProfileService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -36,6 +38,17 @@ public class UserController {
             UserProfileDto updatedProfile = userProfileService.updateUserProfile(username, updateDto);
             return ResponseEntity.ok(updatedProfile);
         } catch (RuntimeException e) {
+            return ResponseEntity.status(404).body("User not found");
+        }
+    }
+
+    // Thêm endpoint để lấy UserTagDto cho tag người dùng
+    @GetMapping("/username/{username}")
+    public ResponseEntity<?> getUserByUsername(@PathVariable String username) {
+        try {
+            UserTagDto userTagDto = userProfileService.getUserTagByUsername(username);
+            return ResponseEntity.ok(userTagDto);
+        } catch (UserNotFoundException e) {
             return ResponseEntity.status(404).body("User not found");
         }
     }

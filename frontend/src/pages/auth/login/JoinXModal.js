@@ -29,11 +29,11 @@ const JoinXModal = ({ show, handleClose, onShowLoginModal }) => {
     }
   };
 
-  const handleGoogleRegisterSuccess = async (credentialResponse) => {
+  const handleGoogleLoginSuccess = async (credentialResponse) => {
     setLoading(true);
     try {
       const idToken = credentialResponse.credential;
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/auth/register-google`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/auth/login-google`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ idToken }),
@@ -43,23 +43,24 @@ const JoinXModal = ({ show, handleClose, onShowLoginModal }) => {
       if (response.ok) {
         const { token, user } = data;
         setUser(user);
+        localStorage.setItem("user", JSON.stringify(user)); // ✅ Không phụ thuộc rememberMe
         localStorage.setItem("token", token);
-        localStorage.setItem("user", JSON.stringify(user));
-        toast.success("Đăng ký bằng Google thành công! Đang chuyển hướng...");
+
+        toast.success("Đăng nhập bằng Google thành công! Đang chuyển hướng...");
         handleClose();
         setTimeout(() => navigate("/home"), 2000);
       } else {
-        toast.error(data.message || "Đăng ký Google thất bại.");
+        toast.error(data.message || "Đăng nhập Google thất bại.");
       }
     } catch (error) {
-      toast.error("Lỗi khi đăng ký Google. Vui lòng thử lại.");
+      toast.error("Lỗi đăng nhập Google. Vui lòng thử lại.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGoogleRegisterError = () => {
-    toast.error("Đăng ký Google thất bại hoặc bị hủy.");
+  const handleGoogleLoginError = () => {
+    toast.error("Đăng nhập Google thất bại hoặc bị hủy.");
   };
 
   return (
@@ -86,8 +87,8 @@ const JoinXModal = ({ show, handleClose, onShowLoginModal }) => {
 
             <div className="d-flex flex-column gap-3 mx-auto" style={{ maxWidth: "300px" }}>
               <GoogleLogin
-                  onSuccess={handleGoogleRegisterSuccess}
-                  onError={handleGoogleRegisterError}
+                  onSuccess={handleGoogleLoginSuccess}
+                  onError={handleGoogleLoginError}
                   useOneTap
                   size="large"
                   shape="pill"

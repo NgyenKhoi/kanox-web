@@ -1,19 +1,19 @@
 import React, { useState } from "react";
-import { Card, Form, Button, Image, Dropdown, FormControl } from "react-bootstrap";
+import { Card, Form, Button, Dropdown, FormControl } from "react-bootstrap";
 import {
-  FaImage,
-  FaPollH,
-  FaSmile,
-  FaCalendarAlt,
-  FaPaperclip,
-  FaUserFriends,
+  FaPollH, FaSmile, FaCalendarAlt, FaUserFriends, FaUser
 } from "react-icons/fa";
+import { useContext } from "react";
+import { AuthContext } from "../../../context/AuthContext";
 
-function TweetInput() {
+function TweetInput({ onPostSuccess }) {
+  const { user } = useContext(AuthContext);
   const [tweetContent, setTweetContent] = useState("");
   const [status, setStatus] = useState("public");
-  const [tags, setTags] = useState([]);
+  const [taggedUserIds, setTaggedUserIds] = useState([]);
   const [tagInput, setTagInput] = useState("");
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const handleTweetChange = (e) => {
     setTweetContent(e.target.value);
@@ -23,33 +23,73 @@ function TweetInput() {
     setTagInput(e.target.value);
   };
 
-  const handleAddTag = () => {
-    if (tagInput.trim() && !tags.includes(tagInput.trim())) {
-      setTags([...tags, tagInput.trim()]);
-      setTagInput("");
+  const handleAddTag = async () => {
+    if (tagInput.trim() && !taggedUserIds.includes(tagInput.trim())) {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch(
+            `${process.env.REACT_APP_API_URL}/users/username/${tagInput}`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+        );
+
+        if (!response.ok) {
+          throw new Error("Không tìm thấy người dùng!");
+        }
+        const data = await response.json();
+        setTaggedUserIds([...taggedUserIds, data.id]);
+        setTagInput("");
+      } catch (err) {
+        setError(err.message);
+      }
     }
   };
 
-  const handleRemoveTag = (tagToRemove) => {
-    setTags(tags.filter((tag) => tag !== tagToRemove));
+  const handleRemoveTag = (tagId) => {
+    setTaggedUserIds(taggedUserIds.filter((id) => id !== tagId));
   };
 
   const handleStatusChange = (newStatus) => {
     setStatus(newStatus);
   };
 
-  const handleAttachFile = () => {
-    alert("Tính năng đính kèm file đang phát triển!");
-  };
-
-  const handleSubmitTweet = () => {
-    if (tweetContent.trim()) {
-      alert(`Đăng tweet: ${tweetContent}\nTrạng thái: ${status}\nTag: ${tags.join(", ")}`);
+  const handleSubmitTweet = async () => {
+    if (!tweetContent.trim()) {
+      setError("Tweet không được để trống!");
+      return;
+    }
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/posts`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          content: tweetContent,
+          privacySetting: status,
+          taggedUserIds,
+        }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Không thể đăng bài!");
+      }
       setTweetContent("");
-      setTags([]);
+      setTaggedUserIds([]);
       setStatus("public");
-    } else {
-      alert("Tweet không được để trống!");
+      setError(null);
+      const newPost = await response.json();
+      if (onPostSuccess) onPostSuccess(newPost);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -57,13 +97,9 @@ function TweetInput() {
       <Card className="mb-3 rounded-4 shadow-sm border-0">
         <Card.Body>
           <div className="d-flex align-items-start">
-            <Image
-                src="https://via.placeholder.com/50"
-                alt="User Avatar"
-                roundedCircle
-                width={50}
-                height={50}
-                className="me-3 d-none d-md-block"
+            <FaUser
+                size={50}
+                className="me-3 d-none d-md-block text-muted"
             />
             <div className="flex-grow-1">
               <Form.Control
@@ -75,18 +111,18 @@ function TweetInput() {
                   value={tweetContent}
                   onChange={handleTweetChange}
               />
-              {tags.length > 0 && (
+              {taggedUserIds.length > 0 && (
                   <div className="d-flex flex-wrap mb-2">
-                    {tags.map((tag, index) => (
+                    {taggedUserIds.map((tagId, index) => (
                         <span
                             key={index}
                             className="badge bg-primary text-white me-2 mb-1"
                         >
-                    @{tag}{" "}
+                    @User_{tagId}
                           <Button
                               variant="link"
                               className="text-white p-0"
-                              onClick={() => handleRemoveTag(tag)}
+                              onClick={() => handleRemoveTag(tagId)}
                           >
                       x
                     </Button>
@@ -94,16 +130,11 @@ function TweetInput() {
                     ))}
                   </div>
               )}
+              {error && <p className="text-danger">{error}</p>}
             </div>
           </div>
           <div className="d-flex justify-content-between align-items-center mt-3 pt-3 border-top flex-wrap">
             <div className="d-flex align-items-center mb-2 mb-md-0">
-              <Button
-                  variant="link"
-                  className="text-primary p-2 rounded-circle hover-bg-light me-2"
-              >
-                <FaImage size={20} />
-              </Button>
               <Button
                   variant="link"
                   className="text-primary p-2 rounded-circle hover-bg-light me-2"
@@ -121,13 +152,6 @@ function TweetInput() {
                   className="text-primary p-2 rounded-circle hover-bg-light me-2"
               >
                 <FaCalendarAlt size={20} />
-              </Button>
-              <Button
-                  variant="link"
-                  className="text-primary p-2 rounded-circle hover-bg-light me-2"
-                  onClick={handleAttachFile}
-              >
-                <FaPaperclip size={20} />
               </Button>
               <Dropdown className="me-2">
                 <Dropdown.Toggle
@@ -180,9 +204,9 @@ function TweetInput() {
                 variant="primary"
                 className="rounded-pill px-4 fw-bold"
                 onClick={handleSubmitTweet}
-                disabled={!tweetContent.trim()}
+                disabled={!tweetContent.trim() || loading}
             >
-              Tweet
+              {loading ? "Đang đăng..." : "Tweet"}
             </Button>
           </div>
         </Card.Body>

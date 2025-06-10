@@ -12,15 +12,27 @@ public class URLConfig {
     public static final String LOGIN_GOOGLE = "/login-google";
     public static final String EMAIL_VERIFICATION = "https://kanox-web.netlify.app/verify-email?token=";
     public static final String ME = "/me";
+    public static final String REFRESH_TOKEN = "/refresh-token";
+    public static final String CHECK_TOKEN = "/check-token";
     // User Management URLs
     public static final String USER_MANAGEMENT_BASE = "/api/user";
     public static final String PROFILE = "/profile/{username}";
+    // Post Management URLs
+    public static final String POST_BASE = "/api/posts";
+    public static final String NEWSFEED = "/newsfeed";
+    public static final String USER_POST = "/user/{username}";
+    // Upload Management URLs
+    public static final String UPLOAD_BASE = "/api/upload";
     // Chat URLs
     public static final String CHAT_MESSAGES = "/chat/{chatId}/messages";
     // Frontend URLs
     public static final String FRONTEND_RESET_PASSWORD_URL = "https://kanox-web.netlify.app/reset-password?token=";
 
-
-    //some id config (ex: google...)
+    //Search URLs
+    public static final String SEARCH_BASE = "/api/search";
+    public static final String SEARCH_USER = "/users";
+    public static final String SEARCH_POST = "/posts";
+    public static final String SEARCH_GROUP = "/groups";
+    public static final String SEARCH_PAGE = "/pages";
     public static final String GOOGLE_LOGIN_CLIENT_ID = "233866118973-t26ue94egg2v1reebqpe684kglf0bjej.apps.googleusercontent.com";
 }

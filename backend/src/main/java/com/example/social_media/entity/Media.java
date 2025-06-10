@@ -7,7 +7,6 @@ import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
 
 import java.time.Instant;
-
 @Entity
 @Table(name = "tblMedia", schema = "dbo")
 public class Media {
@@ -47,6 +46,10 @@ public class Media {
     @ColumnDefault("1")
     @Column(name = "status")
     private Boolean status;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_id")
+    private User owner;
 
     public Integer getId() {
         return id;
@@ -112,4 +115,11 @@ public class Media {
         this.status = status;
     }
 
+    public User getOwner() {
+        return owner;
+    }
+
+    public void setOwner(User owner) {
+        this.owner = owner;
+    }
 }
