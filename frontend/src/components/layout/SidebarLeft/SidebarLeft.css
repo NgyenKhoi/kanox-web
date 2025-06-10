@@ -1,0 +1,125 @@
+/* src/components/layout/SidebarLeft/SidebarLeft.css */
+
+.sidebar-left-container {
+  /* Set width explicitly for desktop */
+  width: 280px; /* Example width, adjust as needed */
+  height: 100vh; /* Make it fit the viewport height */
+  position: sticky;
+  top: 0;
+  /* Ensure content inside can scroll if it overflows */
+  overflow-y: auto;
+  scrollbar-width: none; /* Hide scrollbar for Firefox */
+  -ms-overflow-style: none;  /* Hide scrollbar for IE and Edge */
+  transition: background-color 0.3s ease, border-color 0.3s ease; /* Smooth transition for theme change */
+}
+
+/* Hide scrollbar for Chrome, Safari, Opera */
+.sidebar-left-container::-webkit-scrollbar {
+    display: none;
+}
+
+.sidebar-nav-link {
+  color: var(--text-color); /* Inherit text color from theme */
+  font-weight: 500;
+  padding: 10px 15px; /* Adjust padding as needed */
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.sidebar-nav-link:hover {
+  background-color: var(--hover-bg-color); /* Use theme variable for hover */
+  color: var(--text-color); /* Keep text color on hover */
+}
+
+.active-sidebar-link {
+  background-color: var(--hover-bg-color); /* Highlight active link with hover color */
+  color: var(--primary-color) !important; /* Make active link text primary color */
+  font-weight: bold;
+}
+
+/* Ensure the text inside active link is also primary color */
+.active-sidebar-link span {
+  color: var(--primary-color) !important;
+}
+
+/* Style for the "Thêm" dropdown menu */
+.sidebar-dropdown-menu {
+  border: 1px solid var(--border-color);
+  background-color: var(--background-color);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  min-width: 180px; /* Adjust width as needed */
+}
+
+.sidebar-dropdown-item {
+  color: var(--text-color);
+  padding: 10px 15px;
+}
+
+.sidebar-dropdown-item:hover {
+  background-color: var(--hover-bg-color);
+  color: var(--text-color);
+}
+
+/* Post button styling */
+.sidebar-post-button {
+  font-size: 1.1rem;
+  padding-left: 20px;
+  padding-right: 20px;
+  /* Colors are handled by Bootstrap's primary variable via theme.css */
+}
+
+/* Floating Action Button (FAB) for small screens */
+.sidebar-fab {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 56px; /* Standard FAB size */
+  height: 56px; /* Standard FAB size */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1030; /* Above Offcanvas */
+}
+
+/* Offcanvas specific styling */
+.sidebar-offcanvas .offcanvas-header,
+.sidebar-offcanvas .offcanvas-body {
+  background-color: var(--background-color);
+  color: var(--text-color);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.sidebar-offcanvas .btn-close {
+  filter: var(--text-color-filter); /* Apply filter for dark mode close button */
+}
+
+/* Style for the user profile dropdown at the bottom of sidebar */
+.sidebar-user-dropdown-menu {
+  border: 1px solid var(--border-color);
+  background-color: var(--background-color);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  min-width: 200px;
+}
+
+.sidebar-user-dropdown-menu .dropdown-item {
+  color: var(--text-color);
+}
+
+.sidebar-user-dropdown-menu .dropdown-item:hover {
+  background-color: var(--hover-bg-color);
+}
+
+/* Adjust button colors for dark mode toggle */
+.toggle-dark-mode-button {
+  color: var(--text-color) !important;
+}
+
+/* General Link Styling to respect theme */
+.text-dark {
+    color: var(--text-color) !important;
+}
+
+.text-muted {
+    color: var(--text-color-muted) !important; /* Define --text-color-muted in theme.css */
+}

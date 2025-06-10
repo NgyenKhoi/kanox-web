@@ -1,0 +1,83 @@
+/* src/pages/community/CommunityPage.css */
+
+.community-page-container {
+  padding: 0; /* Remove default padding from fluid container */
+}
+
+.community-main-content {
+  /* This column will take the main content space */
+  padding-left: 15px; /* Adjust as needed */
+  padding-right: 15px; /* Adjust as needed */
+  background-color: var(--background-color); /* Inherit from theme */
+  color: var(--text-color); /* Inherit from theme */
+}
+
+.community-category-nav .nav-link {
+  color: var(--text-color-muted); /* Muted color for inactive tabs */
+  font-weight: 600;
+  border-bottom: 3px solid transparent; /* Space for underline */
+  transition: all 0.2s ease;
+}
+
+.community-category-nav .nav-link:hover {
+  color: var(--primary-color); /* Primary color on hover */
+}
+
+.community-category-nav .nav-link.active {
+  color: var(--primary-color); /* Primary color for active tab */
+  border-bottom-color: var(--primary-color); /* Primary color underline */
+}
+
+.post-card {
+  border-radius: 12px;
+  border: 1px solid var(--border-color); /* Inherit from theme */
+  background-color: var(--background-color); /* Inherit from theme */
+  color: var(--text-color); /* Inherit from theme */
+  overflow: hidden; /* Ensure rounded corners clip content */
+}
+
+.community-name-link {
+  cursor: pointer;
+  color: var(--text-color); /* Inherit from theme */
+  transition: color 0.2s ease;
+}
+
+.community-name-link:hover {
+  color: var(--primary-color); /* Change color on hover */
+}
+
+.post-image-container {
+  max-height: 400px; /* Limit image height */
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.post-image-container img {
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+}
+
+.post-actions > div {
+  cursor: pointer;
+  padding: 5px 10px;
+  border-radius: 5px;
+  transition: background-color 0.2s ease;
+  color: var(--text-color-muted); /* Muted color for icons */
+}
+
+.post-actions > div:hover {
+  background-color: var(--hover-bg-color); /* Hover background */
+  color: var(--primary-color); /* Primary color on hover */
+}
+
+.community-sidebar-right {
+  /* Styles for the right sidebar (e.g., trending topics) */
+  background-color: var(--background-color); /* Inherit from theme */
+  color: var(--text-color); /* Inherit from theme */
+  border-left: 1px solid var(--border-color); /* Inherit from theme */
+  padding-left: 20px;
+  padding-right: 20px;
+}

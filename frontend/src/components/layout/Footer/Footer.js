@@ -2,9 +2,13 @@ import React from "react";
 import { Nav } from "react-bootstrap";
 import { Link } from "react-router-dom";
 
-function Footer() {
+function Footer({ isWhiteBackground = false }) {
+  const footerClass = isWhiteBackground 
+    ? "py-3 px-0 border-top mt-auto bg-white text-dark rounded-top"
+    : "py-3 px-0 border-top mt-auto bg-gradient bg-primary text-white rounded-top";
+
   return (
-      <div className="py-3 px-0 border-top mt-auto bg-gradient bg-primary text-white rounded-top">
+      <div className={footerClass}>
         <Nav className="flex-wrap justify-content-center">
           <Nav.Link
               as={Link}

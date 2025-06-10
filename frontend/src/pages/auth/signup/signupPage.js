@@ -148,7 +148,7 @@ const SignupPage = () => {
 
         <CreateAccountModal show={showCreateAccountModal} handleClose={handleCloseCreateAccountModal} />
         <LoginModal show={showLoginModal} handleClose={handleCloseLoginModal} onShowLogin={handleShowLoginModal} />
-        <Footer />
+        <Footer isWhiteBackground={true} />
       </Container>
   );
 };
