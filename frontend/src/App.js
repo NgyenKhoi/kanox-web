@@ -7,7 +7,6 @@ import SignupPage from "./pages/auth/signup/signupPage";
 import HomePage from "./pages/home/HomePage";
 import ProfilePage from "./pages/profile/ProfilePage";
 import ResetPasswordPage from "./pages/auth/login/ResetPasswordPage";
-import CompleteProfilePage from "./components/profile/CompleteProfilePage";
 import ExplorePage from "./pages/search/ExplorePage";
 import NotificationPage from "./pages/Notifications/NotificationPage";
 import MessengerPage from "./pages/Messenger/MessengerPage";

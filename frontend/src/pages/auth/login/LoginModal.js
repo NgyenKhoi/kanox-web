@@ -2,7 +2,7 @@ import React, { useState, useContext, useEffect, useCallback } from "react";
 import { Modal, Button, Form, Spinner } from "react-bootstrap";
 import { X as XCloseIcon } from "react-bootstrap-icons";
 import ForgotPasswordModal from "./ForgotPasswordModal";
-import JoinXModal from "./JoinXModal";
+import CreateAccountModal from "./CreateAccountModal"; // Thay JoinXModal bằng CreateAccountModal
 import { useNavigate } from "react-router-dom";
 import KLogoSvg from "../../../components/svgs/KSvg";
 import { ToastContainer, toast } from "react-toastify";
@@ -20,7 +20,7 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
-  const [showJoinXModal, setShowJoinXModal] = useState(false);
+  const [showCreateAccountModal, setShowCreateAccountModal] = useState(false); // Thêm trạng thái cho CreateAccountModal
 
   useEffect(() => {
     if (!show) {
@@ -111,7 +111,7 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
 
       const data = await res.json();
       if (res.ok) {
-        storeUserSession(data.user, data.token, true); // Google login mặc định dùng localStorage
+        storeUserSession(data.user, data.token, true);
         toast.success("Đăng nhập bằng Google thành công! Đang chuyển hướng...");
         handleClose();
         setTimeout(() => navigate("/home"), 2000);
@@ -256,7 +256,7 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
                 style={{ color: "#1A8CD8" }}
                 onClick={() => {
                   handleClose();
-                  setShowJoinXModal(true);
+                  setShowCreateAccountModal(true); // Mở CreateAccountModal thay vì JoinXModal
                 }}
                 disabled={loading}
               >
@@ -271,10 +271,9 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
         show={showForgotPasswordModal}
         handleClose={() => setShowForgotPasswordModal(false)}
       />
-      <JoinXModal
-        show={showJoinXModal}
-        handleClose={() => setShowJoinXModal(false)}
-        onShowLoginModal={onShowLogin}
+      <CreateAccountModal
+        show={showCreateAccountModal}
+        handleClose={() => setShowCreateAccountModal(false)}
       />
     </>
   );
