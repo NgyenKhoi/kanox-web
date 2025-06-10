@@ -17,7 +17,7 @@ import {
 import { BsRocketTakeoff, BsStars } from "react-icons/bs";
 import { Link, useNavigate } from "react-router-dom";
 import KLogoSvg from "../../svgs/KSvg";
-import { AuthContext } from "../../context/AuthContext";
+import { AuthContext } from "../../../context/AuthContext";
 
 function SidebarLeft() {
     const { user } = useContext(AuthContext);
