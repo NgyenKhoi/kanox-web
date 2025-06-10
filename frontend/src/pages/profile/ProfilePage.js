@@ -7,7 +7,6 @@ import {
   Button,
   Nav,
   Spinner,
-  CloseButton,
 } from "react-bootstrap";
 import {
   FaArrowLeft,
@@ -53,9 +52,9 @@ function ProfilePage() {
     gender: 0,
   };
 
-  // Dữ liệu mẫu cho các tab (loại bỏ imageUrl và avatar)
+  // Dữ liệu mẫu cho các tab
   const sampleData = {
-    posts: [], // Dùng dữ liệu từ API thay vì mẫu
+    posts: [],
     shares: [
       {
         id: 201,
@@ -108,21 +107,43 @@ function ProfilePage() {
   useEffect(() => {
     const fetchProfile = async () => {
       setLoading(true);
+      setError(null);
 
+      // Kiểm tra nếu username là undefined hoặc rỗng
+      if (!username || username === "undefined") {
+        setError("Tên người dùng không hợp lệ.");
+        setUserProfile(defaultUserProfile);
+        setPosts([]);
+        setLoading(false);
+        if (user?.username) {
+          navigate(`/profile/${user.username}`);
+        } else {
+          navigate("/signup"); // Chuyển hướng đến đăng nhập nếu không có user
+        }
+        return;
+      }
+
+      // Nếu không có user, sử dụng defaultUserProfile
       if (!user) {
         setUserProfile(defaultUserProfile);
         setPosts([]);
         setLoading(false);
+        navigate("/signup"); // Chuyển hướng đến đăng nhập
         return;
       }
 
-      if (username && user.username !== username) {
+      // Kiểm tra nếu username không khớp với user hiện tại
+      if (user.username !== username) {
         navigate(`/profile/${user.username}`);
         return;
       }
 
       try {
         const token = localStorage.getItem("token");
+        if (!token) {
+          throw new Error("Không tìm thấy token. Vui lòng đăng nhập lại.");
+        }
+
         const response = await fetch(
           `${process.env.REACT_APP_API_URL}/user/profile/${username}`,
           {
@@ -134,9 +155,10 @@ function ProfilePage() {
         );
 
         if (!response.ok) {
-          setUserProfile(defaultUserProfile);
-          setLoading(false);
-          return;
+          if (response.status === 404) {
+            throw new Error("Không tìm thấy hồ sơ người dùng.");
+          }
+          throw new Error("Lỗi khi lấy thông tin hồ sơ.");
         }
 
         const data = await response.json();
@@ -150,6 +172,7 @@ function ProfilePage() {
           website: data.website || "",
           isPremium: data.isPremium || false,
         });
+
         const postsResponse = await fetch(
           `${process.env.REACT_APP_API_URL}/posts/user/${username}`,
           {
@@ -167,7 +190,8 @@ function ProfilePage() {
         const postsData = await postsResponse.json();
         setPosts(postsData);
       } catch (error) {
-        console.error("Error fetching profile:", error);
+        console.error("Lỗi khi lấy hồ sơ:", error);
+        setError(error.message);
         setUserProfile(defaultUserProfile);
       } finally {
         setLoading(false);
@@ -180,11 +204,18 @@ function ProfilePage() {
   // Xử lý chỉnh sửa hồ sơ
   const handleEditProfile = async (updatedData) => {
     if (!user) {
-      console.error("No user! Cannot update profile.");
+      console.error("Không có user! Không thể cập nhật hồ sơ.");
+      setError("Vui lòng đăng nhập để chỉnh sửa hồ sơ.");
       return;
     }
 
     const token = localStorage.getItem("token");
+    if (!token) {
+      setError("Không tìm thấy token. Vui lòng đăng nhập lại.");
+      navigate("/");
+      return;
+    }
+
     const updatedProfile = { ...userProfile, ...updatedData };
 
     try {
@@ -202,47 +233,26 @@ function ProfilePage() {
 
       if (response.ok) {
         setUserProfile(updatedProfile);
-        setUser(updatedProfile); // Đồng bộ với AuthContext
+        setUser(updatedProfile);
+      } else {
+        throw new Error("Lỗi khi cập nhật hồ sơ.");
       }
     } catch (error) {
-      console.error("Error updating profile:", error);
+      console.error("Lỗi khi cập nhật hồ sơ:", error);
+      setError(error.message);
     }
   };
 
-  // Xử lý tab content
-  const renderTabContent = () => {
-    if (activeTab === "posts") {
-      return posts.length > 0 ? (
-        posts.map((item) => (
-          <TweetCard
-            key={item.id}
-            tweet={item}
-            onPostUpdate={() => fetchProfileAndPosts()} // Thêm callback để làm mới bài đăng
-          />
-        ))
-      ) : (
-        <p className="text-dark text-center p-4">Không có bài đăng nào.</p>
-      );
-    }
-
-    const data = sampleData[activeTab] || [];
-    return data.length > 0 ? (
-      data.map((item) => <TweetCard key={item.id} tweet={item} />)
-    ) : (
-      <p className="text-dark text-center p-4">
-        {activeTab === "shares" && "Không có bài chia sẻ nào."}
-        {activeTab === "savedArticles" && "Không có bài viết đã lưu nào."}
-      </p>
-    );
-  };
-
-  // Thêm hàm fetchProfileAndPosts để dùng trong onPostUpdate
+  // Xử lý làm mới dữ liệu
   const fetchProfileAndPosts = async () => {
     try {
       const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("Không tìm thấy token. Vui lòng đăng nhập lại.");
+      }
 
       const profileResponse = await fetch(
-        `${process.env.REACT_APP_API_URL}/api/users/profile/${username}`,
+        `${process.env.REACT_APP_API_URL}/user/profile/${username}`,
         {
           headers: {
             "Content-Type": "application/json",
@@ -264,7 +274,7 @@ function ProfilePage() {
       });
 
       const postsResponse = await fetch(
-        `${process.env.REACT_APP_API_URL}/api/posts/user/${username}`,
+        `${process.env.REACT_APP_API_URL}/posts/user/${username}`,
         {
           headers: {
             "Content-Type": "application/json",
@@ -280,9 +290,36 @@ function ProfilePage() {
       const postsData = await postsResponse.json();
       setPosts(postsData);
     } catch (error) {
-      console.error("Error refreshing data:", error);
+      console.error("Lỗi khi làm mới dữ liệu:", error);
       setError(error.message);
     }
+  };
+
+  // Xử lý tab content
+  const renderTabContent = () => {
+    if (activeTab === "posts") {
+      return posts.length > 0 ? (
+        posts.map((item) => (
+          <TweetCard
+            key={item.id}
+            tweet={item}
+            onPostUpdate={fetchProfileAndPosts}
+          />
+        ))
+      ) : (
+        <p className="text-dark text-center p-4">Không có bài đăng nào.</p>
+      );
+    }
+
+    const data = sampleData[activeTab] || [];
+    return data.length > 0 ? (
+      data.map((item) => <TweetCard key={item.id} tweet={item} />)
+    ) : (
+      <p className="text-dark text-center p-4">
+        {activeTab === "shares" && "Không có bài chia sẻ nào."}
+        {activeTab === "savedArticles" && "Không có bài viết đã lưu nào."}
+      </p>
+    );
   };
 
   if (loading) {
@@ -293,12 +330,26 @@ function ProfilePage() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="text-center p-4">
+        <p className="text-danger">{error}</p>
+        <Button variant="primary" onClick={() => navigate("/home")}>
+          Quay lại trang chủ
+        </Button>
+      </div>
+    );
+  }
+
   if (!userProfile) {
     return (
       <div className="text-center p-4">
         <p className="text-dark">
           Không thể tải thông tin hồ sơ. Vui lòng thử lại sau.
         </p>
+        <Button variant="primary" onClick={() => navigate("/home")}>
+          Quay lại trang chủ
+        </Button>
       </div>
     );
   }
@@ -438,7 +489,7 @@ function ProfilePage() {
 
               {/* Premium Alert */}
               {showPremiumAlert && !userProfile.isPremium && (
-                <div className="alert alert-success d-flex align-items-start border border-success rounded-3 p-3">
+                <div className="alert alert-light d-flex align-items-start border border-light rounded-3 p-3">
                   <div>
                     <h6 className="fw-bold text-dark mb-1">
                       Bạn chưa đăng ký tài khoản Premium{" "}
@@ -456,12 +507,13 @@ function ProfilePage() {
                       Premium
                     </Button>
                   </div>
-
-                  <CloseButton
+                  <Button
                     variant="link"
                     className="ms-auto text-dark p-0"
                     onClick={() => setShowPremiumAlert(false)}
-                  />
+                  >
+                    ×
+                  </Button>
                 </div>
               )}
 
