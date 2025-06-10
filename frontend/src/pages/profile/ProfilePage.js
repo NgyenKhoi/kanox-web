@@ -167,7 +167,7 @@ function ProfilePage() {
     try {
       const token = localStorage.getItem("token");
 
-      const profileResponse = await fetch(`${process.env.REACT_APP_API_URL}/api/users/profile/${username}`, {
+      const profileResponse = await fetch(`${process.env.REACT_APP_API_URL}/users/profile/${username}`, {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       });
 
@@ -183,7 +183,7 @@ function ProfilePage() {
         isPremium: profileData.isPremium || false,
       });
 
-      const postsResponse = await fetch(`${process.env.REACT_APP_API_URL}/api/posts/user/${username}`, {
+      const postsResponse = await fetch(`${process.env.REACT_APP_API_URL}/posts/user/${username}`, {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       });
 
