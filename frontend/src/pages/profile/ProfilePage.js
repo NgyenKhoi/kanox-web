@@ -129,12 +129,6 @@ function ProfilePage() {
         return;
       }
 
-      // Kiểm tra nếu username không khớp với user hiện tại
-      if (user.username !== username) {
-        navigate(`/profile/${user.username}`);
-        return;
-      }
-
       try {
         const token = localStorage.getItem("token");
         if (!token) {
@@ -142,7 +136,7 @@ function ProfilePage() {
         }
 
         const response = await fetch(
-          `${process.env.REACT_APP_API_URL}/user/profile/${user.username}`,
+          `${process.env.REACT_APP_API_URL}/user/profile/${username}`,
           {
             headers: {
               "Content-Type": "application/json",
