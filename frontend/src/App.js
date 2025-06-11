@@ -17,11 +17,12 @@ import CommunityDetail from "./pages/community/CommunityDetail"; // Import Commu
 import CreatePostModal from "./components/posts/CreatePostModal/CreatePostModal";
 
 // Import SidebarLeft and SidebarRight if they are part of the main layout
-import SidebarLeft from "./components/layout/SidebarLeft/SidebarLeft";
+import SidebarLeft from "./components/layout/SidebarLeft/SidebarLeft"; // Still need this import if SidebarLeft is used by pages
 // import SidebarRight from "./components/layout/SidebarRight/SidebarRight"; // SidebarRight is now imported in CommunityPage directly
 
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
+import { toast } from "react-toastify"; // Make sure you have react-toastify installed and configured
 
 function App() {
   const [isLoading, setIsLoading] = useState(true);
@@ -69,8 +70,7 @@ function App() {
 
   const handlePostSuccess = (newPost) => {
     handleCloseCreatePostModal();
-    // eslint-disable-next-line no-undef
-    toast.success("Đăng bài thành công!"); // Use toast here
+    toast.success("Đăng bài thành công!");
   };
 
   return (
@@ -80,39 +80,102 @@ function App() {
           <LoadingPage />
         ) : (
           <div className="app-container d-flex">
-            {/* <SidebarLeft
-              onToggleDarkMode={toggleDarkMode}
-              isDarkMode={isDarkMode}
-            /> */}
+            {/* SidebarLeft is rendered within each page component */}
 
             <div className="main-content flex-grow-1">
               <Routes>
-                {/* Set SignupPage as the default route 
-                SignupPage*/}
-                <Route path="/" element={<HomePage />} />
-                {/* Authentication Routes */}
+                {/* Authentication Routes (these typically don't have SidebarLeft)
+                SignupPage */}
+                <Route path="/" element={<SignupPage />} />{" "}
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
                 <Route path="/verify-email" element={<VerifyEmailPage />} />
-                {/* Main Application Routes */}
-                <Route path="/home" element={<HomePage />} />
-                {/* <Route path="/profile/:username" element={<ProfilePage />} /> */}
-                <Route path="/profile/:userId" element={<ProfilePage />} />
-                <Route path="/profile/me" element={<ProfilePage />} />
-                <Route path="/explore" element={<ExplorePage />} />
-                <Route path="/notifications" element={<NotificationPage />} />
-                <Route path="/messages" element={<MessengerPage />} />
-                <Route path="/communities" element={<CommunityPage />} />{" "}
-                {/* New route for Communities */}
+                {/* Main Application Routes - YOU MUST PASS PROPS HERE FOR EACH PAGE THAT USES SIDEBARLEFT */}
+                <Route
+                  path="/home"
+                  element={
+                    <HomePage
+                      onShowCreatePost={handleOpenCreatePostModal}
+                      isDarkMode={isDarkMode}
+                      onToggleDarkMode={toggleDarkMode}
+                    />
+                  }
+                />
+                <Route
+                  path="/profile/:userId"
+                  element={
+                    <ProfilePage
+                      onShowCreatePost={handleOpenCreatePostModal}
+                      isDarkMode={isDarkMode}
+                      onToggleDarkMode={toggleDarkMode}
+                    />
+                  }
+                />
+                <Route
+                  path="/profile/me"
+                  element={
+                    <ProfilePage
+                      onShowCreatePost={handleOpenCreatePostModal}
+                      isDarkMode={isDarkMode}
+                      onToggleDarkMode={toggleDarkMode}
+                    />
+                  }
+                />
+                <Route
+                  path="/explore"
+                  element={
+                    <ExplorePage
+                      onShowCreatePost={handleOpenCreatePostModal}
+                      isDarkMode={isDarkMode}
+                      onToggleDarkMode={toggleDarkMode}
+                    />
+                  }
+                />
+                <Route
+                  path="/notifications"
+                  element={
+                    <NotificationPage
+                      onShowCreatePost={handleOpenCreatePostModal}
+                      isDarkMode={isDarkMode}
+                      onToggleDarkMode={toggleDarkMode}
+                    />
+                  }
+                />
+                <Route
+                  path="/messages"
+                  element={
+                    <MessengerPage
+                      onShowCreatePost={handleOpenCreatePostModal}
+                      isDarkMode={isDarkMode}
+                      onToggleDarkMode={toggleDarkMode}
+                    />
+                  }
+                />
+                <Route
+                  path="/communities"
+                  element={
+                    <CommunityPage
+                      onShowCreatePost={handleOpenCreatePostModal}
+                      isDarkMode={isDarkMode}
+                      onToggleDarkMode={toggleDarkMode}
+                    />
+                  }
+                />
                 <Route
                   path="/community/:communityId"
-                  element={<CommunityDetail />}
-                />{" "}
-                {/* New route for Community Detail */}
-                {/* Add more routes here as needed */}
+                  element={
+                    <CommunityDetail
+                      onShowCreatePost={handleOpenCreatePostModal}
+                      isDarkMode={isDarkMode}
+                      onToggleDarkMode={toggleDarkMode}
+                    />
+                  }
+                />
+                {/* Add more routes here as needed, ensuring props are passed if SidebarLeft is present */}
               </Routes>
             </div>
           </div>
         )}
+        {/* Render the CreatePostModal here, outside the Routes, so it can be opened from any page */}
         <CreatePostModal
           show={showCreatePostModal}
           handleClose={handleCloseCreatePostModal}

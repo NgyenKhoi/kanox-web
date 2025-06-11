@@ -8,7 +8,8 @@ import TweetInput from "../../components/posts/TweetInput/TweetInput"; // This w
 import TweetCard from "../../components/posts/TweetCard/TweetCard";
 import { AuthContext } from "../../context/AuthContext";
 
-function HomePage() {
+// YOU MUST DESTRUCTURE THE PROPS HERE
+function HomePage({ onShowCreatePost, isDarkMode, onToggleDarkMode }) {
   const { user } = useContext(AuthContext);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -61,8 +62,12 @@ function HomePage() {
       <Container fluid className="flex-grow-1">
         <Row className="h-100">
           <Col xs={0} md={0} lg={3} className="p-0">
-            {/* Pass setShowCreatePostModal to SidebarLeft */}
-            <SidebarLeft onShowCreatePost={onShowCreatePost} />
+            {/* Pass the received props to SidebarLeft */}
+            <SidebarLeft
+              onShowCreatePost={onShowCreatePost} // <--- NOW THIS WILL BE DEFINED
+              isDarkMode={isDarkMode} // <--- PASS THESE TOO
+              onToggleDarkMode={onToggleDarkMode} // <--- PASS THESE TOO
+            />
           </Col>
           <Col xs={12} lg={6} className="border-start border-end p-0">
             <div
@@ -101,7 +106,7 @@ function HomePage() {
           </Col>
         </Row>
       </Container>
-      {/* The CreatePostModal component */}
+      {/* The CreatePostModal component is rendered in App.js */}
     </div>
   );
 }
