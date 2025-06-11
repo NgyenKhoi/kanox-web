@@ -62,7 +62,7 @@ function ExplorePage() {
 
   const searchAll = async (keyword) => {
     if (!keyword.trim()) {
-      setSearchResults({ users: [], groups: [], pages: []});
+      setSearchResults({ users: [], groups: [], pages: [] });
       setIsLoading(false);
       return;
     }
@@ -70,7 +70,9 @@ function ExplorePage() {
     setIsLoading(true);
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/search/all?keyword=${encodeURIComponent(keyword)}`,
+        `${
+          process.env.REACT_APP_API_URL
+        }/search/all?keyword=${encodeURIComponent(keyword)}`,
         {
           method: "GET",
           headers: {
@@ -125,9 +127,17 @@ function ExplorePage() {
               className="me-2 mt-1"
             />
             <div>
-              <strong>{item.displayName || item.name || item.username || item.title}</strong>
-              {item.username && <p className="text-muted small mb-0">@{item.username}</p>}
-              {item.content && <p className="text-muted small mb-0">{item.content.slice(0, 100)}...</p>}
+              <strong>
+                {item.displayName || item.name || item.username || item.title}
+              </strong>
+              {item.username && (
+                <p className="text-muted small mb-0">@{item.username}</p>
+              )}
+              {item.content && (
+                <p className="text-muted small mb-0">
+                  {item.content.slice(0, 100)}...
+                </p>
+              )}
             </div>
           </ListGroup.Item>
         ))}
@@ -136,27 +146,77 @@ function ExplorePage() {
   };
 
   const trendingTopics = [
-    { id: 1, category: "Chủ đề nổi trội ở Việt Nam", title: "cuội", posts: 587 },
-    { id: 2, category: "Chủ đề nổi trội ở Việt Nam", title: "#khảo_oam", posts: 390 },
-    { id: 3, category: "Chủ đề nổi trội ở Việt Nam", title: "Trung Quốc", posts: 197 },
-    { id: 4, category: "Chủ đề nổi trội ở Việt Nam", title: "Incredible", posts: 197 },
-    { id: 5, category: "Chủ đề nổi trội ở Việt Nam", title: "#QuangHungMasterDxForestival", posts: 2119 },
-    { id: 6, category: "Chủ đề nổi trội ở Việt Nam", title: "#linglingkwong", posts: 84 },
-    { id: 7, category: "Chủ đề nổi trội ở Việt Nam", title: "Movies", posts: 150 },
+    {
+      id: 1,
+      category: "Chủ đề nổi trội ở Việt Nam",
+      title: "cuội",
+      posts: 587,
+    },
+    {
+      id: 2,
+      category: "Chủ đề nổi trội ở Việt Nam",
+      title: "#khảo_oam",
+      posts: 390,
+    },
+    {
+      id: 3,
+      category: "Chủ đề nổi trội ở Việt Nam",
+      title: "Trung Quốc",
+      posts: 197,
+    },
+    {
+      id: 4,
+      category: "Chủ đề nổi trội ở Việt Nam",
+      title: "Incredible",
+      posts: 197,
+    },
+    {
+      id: 5,
+      category: "Chủ đề nổi trội ở Việt Nam",
+      title: "#QuangHungMasterDxForestival",
+      posts: 2119,
+    },
+    {
+      id: 6,
+      category: "Chủ đề nổi trội ở Việt Nam",
+      title: "#linglingkwong",
+      posts: 84,
+    },
+    {
+      id: 7,
+      category: "Chủ đề nổi trội ở Việt Nam",
+      title: "Movies",
+      posts: 150,
+    },
   ];
 
   const suggestedFollows = [
-    { id: 1, name: "Người dùng 1", username: "@user1", avatar: "https://via.placeholder.com/40" },
-    { id: 2, name: "Người dùng 2", username: "@user2", avatar: "https://via.placeholder.com/40" },
+    {
+      id: 1,
+      name: "Người dùng 1",
+      username: "@user1",
+      avatar: "https://via.placeholder.com/40",
+    },
+    {
+      id: 2,
+      name: "Người dùng 2",
+      username: "@user2",
+      avatar: "https://via.placeholder.com/40",
+    },
   ];
 
   const renderTabContent = () => (
     <div className="mt-0">
       {trendingTopics.length === 0 ? (
-        <p className="text-muted text-center p-4">Không có chủ đề nào đang phổ biến.</p>
+        <p className="text-muted text-center p-4">
+          Không có chủ đề nào đang phổ biến.
+        </p>
       ) : (
         trendingTopics.map((topic) => (
-          <div key={topic.id} className="d-flex align-items-center justify-content-between p-3 border-bottom hover-bg-light">
+          <div
+            key={topic.id}
+            className="d-flex align-items-center justify-content-between p-3 border-bottom hover-bg-light"
+          >
             <div>
               <p className="text-muted small mb-0">{topic.category}</p>
               <h6 className="fw-bold mb-0">{topic.title}</h6>
@@ -178,7 +238,10 @@ function ExplorePage() {
       </div>
 
       <div className="d-flex flex-column flex-grow-1">
-        <div className="sticky-top bg-white border-bottom py-2" style={{ zIndex: 1020 }}>
+        <div
+          className="sticky-top bg-white border-bottom py-2"
+          style={{ zIndex: 1020 }}
+        >
           <Container fluid>
             <Row>
               <Col xs={12} lg={6} className="mx-auto px-md-0 position-relative">
@@ -198,7 +261,11 @@ function ExplorePage() {
                 {searchKeyword && (
                   <ListGroup
                     className="position-absolute w-100 mt-1 shadow-sm"
-                    style={{ zIndex: 1000, maxHeight: "400px", overflowY: "auto" }}
+                    style={{
+                      zIndex: 1000,
+                      maxHeight: "400px",
+                      overflowY: "auto",
+                    }}
                   >
                     {isLoading ? (
                       <ListGroup.Item className="text-center">
@@ -206,12 +273,27 @@ function ExplorePage() {
                       </ListGroup.Item>
                     ) : (
                       <>
-                        {renderSearchResultSection("Người dùng", searchResults.users, "user")}
-                        {renderSearchResultSection("Nhóm", searchResults.groups, "group")}
-                        {renderSearchResultSection("Trang", searchResults.pages, "page")}
-                        {renderSearchResultSection("Bài viết", searchResults.posts, "post")}
-                        {Object.values(searchResults).every(arr => arr.length === 0) && (
-                          <ListGroup.Item>Không tìm thấy kết quả.</ListGroup.Item>
+                        {renderSearchResultSection(
+                          "Người dùng",
+                          searchResults.users,
+                          "user"
+                        )}
+                        {renderSearchResultSection(
+                          "Nhóm",
+                          searchResults.groups,
+                          "group"
+                        )}
+                        {renderSearchResultSection(
+                          "Trang",
+                          searchResults.pages,
+                          "page"
+                        )}
+                        {["users", "groups", "pages"].every(
+                          (key) => searchResults[key].length === 0
+                        ) && (
+                          <ListGroup.Item>
+                            Không tìm thấy kết quả.
+                          </ListGroup.Item>
                         )}
                       </>
                     )}
@@ -221,20 +303,33 @@ function ExplorePage() {
             </Row>
             <Row>
               <Col xs={12} lg={6} className="mx-auto px-md-0">
-                <Nav variant="underline" className="mt-2 profile-tabs nav-justified explore-tabs">
-                  {["for-you", "trending", "news", "sports", "entertainment"].map((tab) => (
+                <Nav
+                  variant="underline"
+                  className="mt-2 profile-tabs nav-justified explore-tabs"
+                >
+                  {[
+                    "for-you",
+                    "trending",
+                    "news",
+                    "sports",
+                    "entertainment",
+                  ].map((tab) => (
                     <Nav.Item key={tab}>
                       <Nav.Link
                         onClick={() => setActiveTab(tab)}
-                        className={`text-dark fw-bold ${activeTab === tab ? "active" : ""}`}
+                        className={`text-dark fw-bold ${
+                          activeTab === tab ? "active" : ""
+                        }`}
                       >
-                        {{
-                          "for-you": "Cho Bạn",
-                          "trending": "Đang phổ biến",
-                          "news": "Tin tức",
-                          "sports": "Thể thao",
-                          "entertainment": "Giải trí",
-                        }[tab]}
+                        {
+                          {
+                            "for-you": "Cho Bạn",
+                            trending: "Đang phổ biến",
+                            news: "Tin tức",
+                            sports: "Thể thao",
+                            entertainment: "Giải trí",
+                          }[tab]
+                        }
                       </Nav.Link>
                     </Nav.Item>
                   ))}
@@ -249,8 +344,17 @@ function ExplorePage() {
             <Col xs={12} lg={6} className="px-md-0 border-start border-end">
               {renderTabContent()}
             </Col>
-            <Col xs={0} sm={0} md={0} lg={3} className="d-none d-lg-block border-start p-0">
-              <SidebarRight trendingTopics={trendingTopics} suggestedFollows={suggestedFollows} />
+            <Col
+              xs={0}
+              sm={0}
+              md={0}
+              lg={3}
+              className="d-none d-lg-block border-start p-0"
+            >
+              <SidebarRight
+                trendingTopics={trendingTopics}
+                suggestedFollows={suggestedFollows}
+              />
             </Col>
           </Row>
         </Container>
