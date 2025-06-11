@@ -7,5 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
 
 public interface CustomPrivacyListMemberRepository extends JpaRepository<CustomPrivacyListMember, CustomPrivacyListMemberId> {
-    Optional<CustomPrivacyListMember> findByListIdAndMemberUser(Integer listId, User memberUser);
+    Optional<CustomPrivacyListMember> findByListAndMemberUser(CustomPrivacyListMemberId listId, User member);
+    Optional<CustomPrivacyListMember> findByListIdAndMemberUser(Integer listId, User member);
+
 }

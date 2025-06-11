@@ -5,7 +5,9 @@ import com.example.social_media.exception.RegistrationException;
 import com.example.social_media.exception.UserNotFoundException;
 import com.example.social_media.repository.*;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.Objects;
 
 @Service
@@ -16,6 +18,7 @@ public class PrivacyService {
     private final FriendshipRepository friendshipRepository;
     private final TargetTypeRepository targetTypeRepository;
     private final UserRepository userRepository;
+    private final CustomPrivacyListRepository customPrivacyListRepository;
 
     public PrivacyService(
             PrivacySettingRepository privacySettingRepository,
@@ -23,7 +26,8 @@ public class PrivacyService {
             CustomPrivacyListMemberRepository customPrivacyListMemberRepository,
             FriendshipRepository friendshipRepository,
             TargetTypeRepository targetTypeRepository,
-            UserRepository userRepository
+            UserRepository userRepository,
+            CustomPrivacyListRepository customPrivacyListRepository
     ) {
         this.privacySettingRepository = privacySettingRepository;
         this.contentPrivacyRepository = contentPrivacyRepository;
@@ -31,6 +35,7 @@ public class PrivacyService {
         this.friendshipRepository = friendshipRepository;
         this.targetTypeRepository = targetTypeRepository;
         this.userRepository = userRepository;
+        this.customPrivacyListRepository = customPrivacyListRepository;
     }
 
     public boolean checkContentAccess(Integer viewerId, Integer ownerId, String targetTypeCode) {
@@ -81,5 +86,43 @@ public class PrivacyService {
             default:
                 return true;
         }
+    }
+    @Transactional
+    public Integer createCustomList(Integer userId, String listName) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
+        CustomPrivacyList customList = new CustomPrivacyList();
+        customList.setId(userId);
+        customList.setListName(listName);
+        customList.setCreatedAt(Instant.now());
+        customList.setStatus(true);
+        CustomPrivacyList savedList = customPrivacyListRepository.save(customList);
+        return savedList.getId();
+    }
+
+    @Transactional
+    public void addMemberToCustomList(Integer userId, CustomPrivacyListMemberId listId, User memberId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
+        CustomPrivacyList customList = customPrivacyListRepository.findById(listId.getListId())
+                .orElseThrow(() -> new IllegalArgumentException("Custom list not found"));
+        if (!customList.getId().equals(user.getId())) {
+            throw new IllegalArgumentException("User not authorized to modify this list");
+        }
+        User member = userRepository.findById(memberId.getId())
+                .orElseThrow(() -> new UserNotFoundException("Member not found with id: " + memberId));
+        if (memberId.equals(userId)) {
+            throw new IllegalArgumentException("Cannot add yourself to custom list");
+        }
+        // Kiểm tra xem thành viên đã có trong danh sách chưa
+        if (customPrivacyListMemberRepository.findByListAndMemberUser(listId, memberId).isPresent()) {
+            throw new IllegalArgumentException("User is already a member of this list");
+        }
+        CustomPrivacyListMember listMember = new CustomPrivacyListMember();
+        listMember.setId(listId);
+        listMember.setMemberUser(memberId);
+        listMember.setAddedAt(Instant.now());
+        listMember.setStatus(true);
+        customPrivacyListMemberRepository.save(listMember);
     }
 }

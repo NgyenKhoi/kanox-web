@@ -48,7 +48,7 @@ public class NotificationController {
     }
 
     @PutMapping(URLConfig.MARK_READ)
-    public ResponseEntity<?> markNotificationAsRead(@PathVariable Long id) {
+    public ResponseEntity<?> markNotificationAsRead(@PathVariable Integer id) {
         try {
             String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
             User currentUser = customUserDetailsService.getUserByUsername(currentUsername);
@@ -60,4 +60,5 @@ public class NotificationController {
             return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage(), "errors", Map.of()));
         }
     }
+
 }

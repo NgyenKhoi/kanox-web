@@ -9,5 +9,5 @@ import java.util.Optional;
 
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
     Page<Notification> findByUserId(Integer userId, Pageable pageable);
-    Optional<Notification> findByIdAndUserId(Long id, Integer userId); // Thêm để kiểm tra quyền
+    Optional<Notification> findByIdAndUserId(Integer id, Integer userId); // Thêm để kiểm tra quyền
 }

@@ -29,19 +29,22 @@ public class FriendshipService {
     private final UserProfileService userProfileService;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final PrivacyService privacyService;
 
     public FriendshipService(
             FriendshipRepository friendshipRepository,
             CustomUserDetailsService customUserDetailsService,
             UserProfileService userProfileService,
             UserRepository userRepository,
-            NotificationService notificationService
+            NotificationService notificationService,
+            PrivacyService privacyService
     ) {
         this.friendshipRepository = friendshipRepository;
         this.customUserDetailsService = customUserDetailsService;
         this.userProfileService = userProfileService;
         this.userRepository = userRepository;
         this.notificationService = notificationService;
+        this.privacyService = privacyService;
     }
 
     @Transactional
@@ -79,9 +82,9 @@ public class FriendshipService {
         notificationService.sendNotification(
                 receiverId,
                 "FRIEND_REQUEST",
-                sender.getDisplayName() + " đã gửi bạn lời mời kết bạn",
+                "Người dùng " + userId + " đã gửi cho bạn lời mời kết bạn",
                 userId,
-                "friendship"
+                "PROFILE"
         );
     }
 
@@ -147,6 +150,9 @@ public class FriendshipService {
     public PageResponseDto<UserTagDto> getFriends(Integer userId, Integer viewerId, Pageable pageable) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
+        if (!privacyService.checkContentAccess(viewerId, userId, "PROFILE")) {
+            throw new IllegalArgumentException("Access denied to view friends list");
+        }
         Page<Friendship> friendships = friendshipRepository.findByUserAndFriendshipStatusAndStatus(user, "accepted", true, pageable);
         List<UserTagDto> friends = friendships.getContent().stream()
                 .map(friendship -> new UserTagDto(friendship.getFriend()))

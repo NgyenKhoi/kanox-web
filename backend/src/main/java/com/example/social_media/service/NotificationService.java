@@ -92,7 +92,7 @@ public class NotificationService {
     }
 
     @Transactional
-    public void markAsRead(Long notificationId, Integer userId, String statusName) {
+    public void markAsRead(Integer notificationId, Integer userId, String statusName) {
         NotificationStatus status = notificationStatusRepository.findByName(statusName)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid notification status: " + statusName));
         Notification notification = notificationRepository.findByIdAndUserId(notificationId, userId)

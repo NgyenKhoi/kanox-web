@@ -58,4 +58,12 @@ public class URLConfig {
     // Notifications
     public static final String NOTIFICATION_BASE = "/api/notifications";
     public static final String MARK_READ = "/{id}/mark-read";
+    // Privacy URLs
+    public static final String PRIVACY_BASE = "/api/privacy";
+    public static final String CREATE_CUSTOM_LIST = "/lists";
+    public static final String ADD_MEMBER_TO_CUSTOM_LIST = "/lists/{listId}/members";
+    // Block URLs
+    public static final String BLOCK_BASE = "/api/blocks";
+    public static final String BLOCK_USER = "/{blockedUserId}";
+    public static final String UNBLOCK_USER = "/{blockedUserId}";
 }

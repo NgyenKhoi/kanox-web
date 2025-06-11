@@ -70,4 +70,13 @@ public class UserProfileService {
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
         return new UserTagDto(user);
     }
+
+    @Transactional
+    public void updateProfilePrivacy(Integer userId, String privacySetting, Integer customListId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
+        // Giả sử bạn sử dụng JdbcTemplate để gọi stored procedure
+        jdbcTemplate.update("EXEC sp_UpdateProfilePrivacy @user_id = ?, @privacy_setting = ?, @custom_list_id = ?",
+                userId, privacySetting, customListId);
+    }
 }

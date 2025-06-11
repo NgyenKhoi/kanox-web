@@ -4,6 +4,7 @@ import com.example.social_media.config.URLConfig;
 import com.example.social_media.dto.friend.PageResponseDto;
 import com.example.social_media.dto.user.UserProfileDto;
 import com.example.social_media.dto.user.UserTagDto;
+import com.example.social_media.dto.user.UserUpdatePrivacyDto;
 import com.example.social_media.dto.user.UserUpdateProfileDto;
 import com.example.social_media.entity.User;
 import com.example.social_media.exception.UserNotFoundException;
@@ -121,6 +122,23 @@ public class UserController {
             PageResponseDto<UserTagDto> followers = followService.getFollowers(userId, currentUser.getId(), pageable);
             return ResponseEntity.ok(Map.of("message", "Followers retrieved successfully", "data", followers));
         } catch (UserNotFoundException e) {
+            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage(), "errors", Map.of()));
+        }
+    }
+    @PutMapping("/profile/{username}/privacy")
+    public ResponseEntity<?> updateProfilePrivacy(
+            @PathVariable String username,
+            @RequestBody UserUpdatePrivacyDto privacyDto
+    ) {
+        try {
+            String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+            User currentUser = customUserDetailsService.getUserByUsername(currentUsername);
+            if (!currentUser.getUsername().equals(username)) {
+                throw new IllegalArgumentException("Cannot update privacy settings for another user");
+            }
+            userProfileService.updateProfilePrivacy(currentUser.getId(), privacyDto.getPrivacySetting(), privacyDto.getCustomListId());
+            return ResponseEntity.ok(Map.of("message", "Privacy settings updated successfully"));
+        } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage(), "errors", Map.of()));
         }
     }
