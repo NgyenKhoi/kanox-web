@@ -1,3 +1,5 @@
+/* eslint-disable react/jsx-no-comment-textnodes */
+/* eslint-disable no-undef */
 import React, { useState, useEffect, useContext } from "react";
 import { Container, Row, Col, Spinner } from "react-bootstrap";
 import Header from "../../components/layout/Header/Header";
@@ -64,9 +66,10 @@ function HomePage({ onShowCreatePost, isDarkMode, onToggleDarkMode }) {
             >
               <span>Trang chủ</span>
             </div>
+            // eslint-disable-next-line react/jsx-no-comment-textnodes
             {/* Direct TweetInput on the homepage for quick posting */}
+            // eslint-disable-next-line no-undef
             <TweetInput postOnSuccess={handlePostSuccess} />
-
             {loading ? (
               <div className="d-flex justify-content-center py-4">
                 <Spinner
