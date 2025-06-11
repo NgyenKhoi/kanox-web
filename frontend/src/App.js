@@ -1,7 +1,3 @@
-import React, { useState, useEffect } from "react";
-import "./App.css";
-
-// Import all necessary page components
 import SignupPage from "./pages/auth/signup/signupPage";
 import HomePage from "./pages/home/HomePage";
 import ProfilePage from "./pages/profile/ProfilePage";
@@ -15,17 +11,17 @@ import CommunityPage from "./pages/community/CommunityPage";
 import CommunityDetail from "./pages/community/CommunityDetail";
 import CreatePostModal from "./components/posts/CreatePostModal/CreatePostModal";
 
-// Import SidebarLeft and SidebarRight if they are part of the main layout
+// Import SidebarLeft
 import SidebarLeft from "./components/layout/SidebarLeft/SidebarLeft";
-// import SidebarRight from "./components/layout/SidebarRight/SidebarRight"; // SidebarRight is now imported in CommunityPage directly
 
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
-import { toast } from "react-toastify"; // Make sure you have react-toastify installed and configured
+import { toast } from "react-toastify";
 
 function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [showCreatePostModal, setShowCreatePostModal] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -42,60 +38,61 @@ function App() {
     setShowCreatePostModal(false);
   };
 
+  const handleToggleDarkMode = () => {
+    setIsDarkMode((prev) => !prev);
+  };
+
   const handlePostSuccess = (newPost) => {
     handleCloseCreatePostModal();
-    // eslint-disable-next-line no-undef
-    toast.success("Đăng bài thành công!"); // Use toast here
+    toast.success("Đăng bài thành công!");
   };
 
   return (
-    <Router>
-      <AuthProvider>
-        {isLoading ? (
-          <LoadingPage />
-        ) : (
-          <div className="app-container d-flex">
-            {/* <SidebarLeft
-              onToggleDarkMode={toggleDarkMode}
-              isDarkMode={isDarkMode}
-            /> */}
+      <Router>
+        <AuthProvider>
+          {isLoading ? (
+              <LoadingPage />
+          ) : (
+              <div className={`app-container d-flex ${isDarkMode ? "dark-mode" : ""}`}>
+                <SidebarLeft
+                    onShowCreatePost={handleOpenCreatePostModal}
+                    isDarkMode={isDarkMode}
+                    onToggleDarkMode={handleToggleDarkMode}
+                />
 
-            <div className="main-content flex-grow-1">
-              <Routes>
-                {/* Set SignupPage as the default route 
-                SignupPage*/}
-                <Route path="/" element={<SignupPage />} />
-                {/* Authentication Routes */}
-                <Route path="/reset-password" element={<ResetPasswordPage />} />
-                <Route path="/verify-email" element={<VerifyEmailPage />} />
-                {/* Main Application Routes */}
-                <Route path="/home" element={<HomePage />} />
-                {/* <Route path="/profile/:username" element={<ProfilePage />} /> */}
-                <Route path="/profile/:username" element={<ProfilePage />} />
-                <Route path="/profile/me" element={<ProfilePage />} />
-                <Route path="/explore" element={<ExplorePage />} />
-                <Route path="/notifications" element={<NotificationPage />} />
-                <Route path="/messages" element={<MessengerPage />} />
-                <Route path="/communities" element={<CommunityPage />} />{" "}
-                {/* New route for Communities */}
-                <Route
-                  path="/community/:communityId"
-                  element={<CommunityDetail />}
-                />{" "}
-                {/* New route for Community Detail */}
-                {/* Add more routes here as needed */}
-              </Routes>
-            </div>
-          </div>
-        )}
-        {/* Render the CreatePostModal here, outside the Routes, so it can be opened from any page */}
-        <CreatePostModal
-          show={showCreatePostModal}
-          handleClose={handleCloseCreatePostModal}
-          onPostSuccess={handlePostSuccess}
-        />
-      </AuthProvider>
-    </Router>
+                <div className="main-content flex-grow-1">
+                  <Routes>
+                    <Route path="/" element={<SignupPage />} />
+                    <Route path="/reset-password" element={<ResetPasswordPage />} />
+                    <Route path="/verify-email" element={<VerifyEmailPage />} />
+                    <Route
+                        path="/home"
+                        element={
+                          <HomePage
+                              onShowCreatePost={handleOpenCreatePostModal}
+                              isDarkMode={isDarkMode}
+                              onToggleDarkMode={handleToggleDarkMode}
+                          />
+                        }
+                    />
+                    <Route path="/profile/:username" element={<ProfilePage />} />
+                    <Route path="/profile/me" element={<ProfilePage />} />
+                    <Route path="/explore" element={<ExplorePage />} />
+                    <Route path="/notifications" element={<NotificationPage />} />
+                    <Route path="/messages" element={<MessengerPage />} />
+                    <Route path="/communities" element={<CommunityPage />} />
+                    <Route path="/community/:communityId" element={<CommunityDetail />} />
+                  </Routes>
+                </div>
+              </div>
+          )}
+          <CreatePostModal
+              show={showCreatePostModal}
+              handleClose={handleCloseCreatePostModal}
+              onPostSuccess={handlePostSuccess}
+          />
+        </AuthProvider>
+      </Router>
   );
 }
 
