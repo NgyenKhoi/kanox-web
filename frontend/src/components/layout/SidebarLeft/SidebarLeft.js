@@ -1,5 +1,5 @@
 import React, { useState, useContext, useEffect } from "react";
-import { Nav, Button, Dropdown, Offcanvas } from "react-bootstrap";
+import { Nav, Button, Dropdown, Offcanvas, Badge } from "react-bootstrap";
 import {
   FaHome,
   FaSearch,
@@ -16,30 +16,62 @@ import {
   FaMoon,
   FaSun,
   FaUserFriends,
+  FaListAlt,
+  FaUserSlash,
 } from "react-icons/fa";
 import { BsStars } from "react-icons/bs";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import KLogoSvg from "../../svgs/KSvg";
 import { AuthContext } from "../../../context/AuthContext";
+import { useWebSocket } from "../../../hooks/useWebSocket";
 import "./SidebarLeft.css";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
   const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
   const location = useLocation();
   const [showOffcanvas, setShowOffcanvas] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const handleCloseOffcanvas = () => setShowOffcanvas(false);
   const handleShowOffcanvas = () => setShowOffcanvas(true);
 
+  useWebSocket(
+      (notification) => {},
+      setUnreadCount
+  );
+
+  useEffect(() => {
+    if (location.pathname === "/notifications") {
+      setUnreadCount(0);
+    }
+  }, [location.pathname]);
+
   const mainTabs = [
     { icon: <FaHome size={24} />, label: "Trang chủ", path: "/home" },
     { icon: <FaSearch size={24} />, label: "Khám phá", path: "/explore" },
-    { icon: <FaBell size={24} />, label: "Thông báo", path: "/notifications" },
+    {
+      icon: (
+          <div className="position-relative">
+            <FaBell size={24} />
+            {unreadCount > 0 && (
+                <Badge bg="danger" className="position-absolute top-0 start-100 translate-middle rounded-circle">
+                  {unreadCount}
+                </Badge>
+            )}
+          </div>
+      ),
+      label: "Thông báo",
+      path: "/notifications",
+    },
     { icon: <FaEnvelope size={24} />, label: "Tin nhắn", path: "/messages" },
     { icon: <FaUserAlt size={24} />, label: "Cộng đồng", path: "/communities" },
     { icon: <BsStars size={24} />, label: "Premium", path: "/premium" },
-    { icon: <FaUserFriends size={24} />, label: "Bạn bè", path: "/friends" }, // Thêm tab Bạn bè
+    { icon: <FaUserFriends size={24} />, label: "Bạn bè", path: "/friends" },
+    { icon: <FaListAlt size={24} />, label: "Danh sách tùy chỉnh", path: "/custom-lists", protected: true },
+    { icon: <FaUserSlash size={24} />, label: "Người bị chặn", path: "/blocked-users", protected: true },
     {
       icon: <FaUserAlt size={24} />,
       label: "Hồ sơ",
@@ -186,6 +218,7 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
 
   return (
       <>
+        <ToastContainer />
         <Button
             variant="light"
             className="d-md-none position-fixed top-0 start-0 m-3 z-3"
