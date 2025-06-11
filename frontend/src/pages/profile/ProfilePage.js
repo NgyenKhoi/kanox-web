@@ -7,6 +7,7 @@ import {
   Button,
   Nav,
   Spinner,
+  Dropdown,
 } from "react-bootstrap";
 import {
   FaArrowLeft,
@@ -15,6 +16,10 @@ import {
   FaMapMarkerAlt,
   FaLink,
   FaEllipsisH,
+  FaUserSlash,
+  FaUserPlus,
+  FaUserCheck,
+  FaUserTimes,
 } from "react-icons/fa";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import TweetCard from "../../components/posts/TweetCard/TweetCard";
@@ -22,6 +27,8 @@ import EditProfileModal from "../../components/profile/EditProfileModal";
 import SidebarLeft from "../../components/layout/SidebarLeft/SidebarLeft";
 import SidebarRight from "../../components/layout/SidebarRight/SidebarRight";
 import { AuthContext } from "../../context/AuthContext";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 function ProfilePage() {
   const { user, setUser } = useContext(AuthContext);
@@ -34,10 +41,10 @@ function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showPremiumAlert, setShowPremiumAlert] = useState(true);
-  const [error, setError] = useState(null);
   const [isFollowing, setIsFollowing] = useState(false);
+  const [friendshipStatus, setFriendshipStatus] = useState(null);
+  const [isBlocked, setIsBlocked] = useState(false);
 
-  // Dữ liệu mặc định nếu không có user
   const defaultUserProfile = {
     name: "User Testing",
     username: "testuser",
@@ -53,7 +60,6 @@ function ProfilePage() {
     gender: 0,
   };
 
-  // Dữ liệu mẫu cho các tab
   const sampleData = {
     posts: [],
     shares: [
@@ -86,8 +92,8 @@ function ProfilePage() {
       {
         id: 301,
         user: { name: "Người dùng Khác 1", username: "otheruser1" },
-        content: "Bài đăng rất hay! Rất đồng ý. #GoodVibes",
-        timestamp: new Date("2025-05-29T09:00:00Z"),
+        content: "Bài đăng rất hay! Rất đồng ý.",
+        timestamp: new Date("2025-05-29T00:00:00Z"),
         comments: 0,
         retweets: 0,
         likes: 0,
@@ -104,15 +110,12 @@ function ProfilePage() {
     ],
   };
 
-  // Fetch hồ sơ người dùng
   useEffect(() => {
     const fetchProfile = async () => {
       setLoading(true);
-      setError(null);
 
-      // Kiểm tra nếu username là undefined hoặc rỗng
       if (!username || username === "undefined") {
-        setError("Tên người dùng không hợp lệ.");
+        toast.error("Tên người dùng không hợp lệ.");
         setUserProfile(defaultUserProfile);
         setPosts([]);
         setLoading(false);
@@ -124,61 +127,124 @@ function ProfilePage() {
         return;
       }
 
-      // Nếu không có user, sử dụng defaultUserProfile
       if (!user) {
         navigate("/signup");
         return;
       }
 
-      try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-          throw new Error("Không tìm thấy token. Vui lòng đăng nhập lại.");
-        }
+      const token = sessionStorage.getItem("token");
+      if (!token) {
+        toast.error("Không tìm thấy token. Vui lòng đăng nhập lại.");
+        setLoading(false);
+        navigate("/signup");
+        return;
+      }
 
-        const response = await fetch(
+      try {
+        const profileResponse = await fetch(
             `${process.env.REACT_APP_API_URL}/user/profile/${username}`,
             {
               headers: {
                 "Content-Type": "application/json",
+                Accept: "application/json",
                 Authorization: `Bearer ${token}`,
               },
             }
         );
 
-        if (!response.ok) {
-          if (response.status === 404) {
-            throw new Error("Không tìm thấy hồ sơ người dùng.");
-          }
-          throw new Error("Lỗi khi lấy thông tin hồ sơ.");
+        const profileContentType = profileResponse.headers.get("content-type");
+        let profileData;
+        if (profileContentType && profileContentType.includes("application/json")) {
+          profileData = await profileResponse.json();
+        } else {
+          const text = await profileResponse.text();
+          profileData = { message: text };
         }
 
-        const data = await response.json();
+        if (!profileResponse.ok) {
+          throw new Error(profileData.message || "Lỗi khi lấy thông tin hồ sơ.");
+        }
+
         setUserProfile({
-          ...data,
-          banner:
-              data.banner || "https://source.unsplash.com/1200x400/?nature,water",
-          avatar:
-              data.avatar || "https://source.unsplash.com/150x150/?portrait",
-          postCount: data.postCount || 0,
-          website: data.website || "",
-          isPremium: data.isPremium || false,
+          ...profileData,
+          banner: profileData.banner || "https://source.unsplash.com/1200x400/?nature,water",
+          avatar: profileData.avatar || "https://source.unsplash.com/150x150/?portrait",
+          postCount: profileData.postCount || 0,
+          website: profileData.website || "",
+          isPremium: profileData.isPremium || false,
         });
 
-        // Kiểm tra trạng thái theo dõi
         if (user.username !== username) {
           const followStatusResponse = await fetch(
               `${process.env.REACT_APP_API_URL}/user/follow/status/${username}`,
               {
                 headers: {
                   "Content-Type": "application/json",
+                  Accept: "application/json",
                   Authorization: `Bearer ${token}`,
                 },
               }
           );
+
+          const followContentType = followStatusResponse.headers.get("content-type");
+          let followStatus;
+          if (followContentType && followContentType.includes("application/json")) {
+            followStatus = await followStatusResponse.json();
+          } else {
+            const text = await followStatusResponse.text();
+            followStatus = { message: text };
+          }
+
           if (followStatusResponse.ok) {
-            const followStatus = await followStatusResponse.json();
             setIsFollowing(followStatus.isFollowing);
+          }
+
+          const friendshipStatusResponse = await fetch(
+              `${process.env.REACT_APP_API_URL}/friendship/status/${username}`,
+              {
+                headers: {
+                  "Content-Type": "application/json",
+                  Accept: "application/json",
+                  Authorization: `Bearer ${token}`,
+                },
+              }
+          );
+
+          const friendshipContentType = friendshipStatusResponse.headers.get("content-type");
+          let friendshipData;
+          if (friendshipContentType && friendshipContentType.includes("application/json")) {
+            friendshipData = await friendshipStatusResponse.json();
+          } else {
+            const text = await friendshipStatusResponse.text();
+            friendshipData = { message: text };
+          }
+
+          if (friendshipStatusResponse.ok) {
+            setFriendshipStatus(friendshipData.status);
+          }
+
+          const blockStatusResponse = await fetch(
+              `${process.env.REACT_APP_API_URL}/blocks/status/${username}`,
+              {
+                headers: {
+                  "Content-Type": "application/json",
+                  Accept: "application/json",
+                  Authorization: `Bearer ${token}`,
+                },
+              }
+          );
+
+          const blockContentType = blockStatusResponse.headers.get("content-type");
+          let blockStatus;
+          if (blockContentType && blockContentType.includes("application/json")) {
+            blockStatus = await blockStatusResponse.json();
+          } else {
+            const text = await blockStatusResponse.text();
+            blockStatus = { message: text };
+          }
+
+          if (blockStatusResponse.ok) {
+            setIsBlocked(blockStatus.isBlocked);
           }
         }
 
@@ -187,20 +253,29 @@ function ProfilePage() {
             {
               headers: {
                 "Content-Type": "application/json",
+                Accept: "application/json",
                 Authorization: `Bearer ${token}`,
               },
             }
         );
 
-        if (!postsResponse.ok) {
-          throw new Error("Không thể lấy bài đăng!");
+        const postsContentType = postsResponse.headers.get("content-type");
+        let postsData;
+        if (postsContentType && postsContentType.includes("application/json")) {
+          postsData = await postsResponse.json();
+        } else {
+          const text = await postsResponse.text();
+          postsData = { message: text };
         }
 
-        const postsData = await postsResponse.json();
+        if (!postsResponse.ok) {
+          throw new Error(postsData.message || "Không thể lấy bài đăng!");
+        }
+
         setPosts(postsData);
       } catch (error) {
         console.error("Lỗi khi lấy hồ sơ:", error);
-        setError(error.message);
+        toast.error(error.message || "Lỗi khi lấy hồ sơ.");
         setUserProfile(defaultUserProfile);
       } finally {
         setLoading(false);
@@ -210,17 +285,16 @@ function ProfilePage() {
     fetchProfile();
   }, [user, username, navigate]);
 
-  // Xử lý theo dõi/ngừng theo dõi
   const handleFollowToggle = async () => {
     if (!user) {
       navigate("/signup");
       return;
     }
 
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     if (!token) {
-      setError("Không tìm thấy token. Vui lòng đăng nhập lại.");
-      navigate("/");
+      toast.error("Không tìm thấy token. Vui lòng đăng nhập lại.");
+      navigate("/signup");
       return;
     }
 
@@ -231,10 +305,20 @@ function ProfilePage() {
             method: isFollowing ? "DELETE" : "POST",
             headers: {
               "Content-Type": "application/json",
+              Accept: "application/json",
               Authorization: `Bearer ${token}`,
             },
           }
       );
+
+      const contentType = response.headers.get("content-type");
+      let data;
+      if (contentType && contentType.includes("application/json")) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        data = { message: text };
+      }
 
       if (response.ok) {
         setIsFollowing(!isFollowing);
@@ -242,31 +326,159 @@ function ProfilePage() {
           ...prev,
           followerCount: prev.followerCount + (isFollowing ? -1 : 1),
         }));
+        toast.success(isFollowing ? "Đã hủy theo dõi!" : "Đã theo dõi!");
       } else {
-        throw new Error(
-            isFollowing
-                ? "Lỗi khi ngừng theo dõi."
-                : "Lỗi khi theo dõi người dùng."
-        );
+        throw new Error(data.message || (isFollowing ? "Lỗi khi ngừng theo dõi." : "Lỗi khi theo dõi người dùng."));
       }
     } catch (error) {
       console.error("Lỗi khi xử lý theo dõi:", error);
-      setError(error.message);
+      toast.error(error.message || "Lỗi khi xử lý theo dõi.");
     }
   };
 
-  // Xử lý chỉnh sửa hồ sơ
-  const handleEditProfile = async (updatedData) => {
+  const handleFriendRequest = async (action) => {
     if (!user) {
-      console.error("Không có user! Không thể cập nhật hồ sơ.");
-      setError("Vui lòng đăng nhập để chỉnh sửa hồ sơ.");
+      navigate("/signup");
       return;
     }
 
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     if (!token) {
-      setError("Không tìm thấy token. Vui lòng đăng nhập lại.");
-      navigate("/");
+      toast.error("Không tìm thấy token. Vui lòng đăng nhập lại.");
+      navigate("/signup");
+      return;
+    }
+
+    let url = `${process.env.REACT_APP_API_URL}/friendship`;
+    let method = "POST";
+    let body = { targetUsername: username };
+
+    if (action === "cancel" || action === "unfriend") {
+      method = "DELETE";
+      url = `${process.env.REACT_APP_API_URL}/friendship/${username}`;
+      body = null;
+    } else if (action === "accept") {
+      method = "PUT";
+      url = `${process.env.REACT_APP_API_URL}/friendship/accept/${username}`;
+      body = null;
+    } else if (action === "decline") {
+      method = "DELETE";
+      url = `${process.env.REACT_APP_API_URL}/friendship/decline/${username}`;
+      body = null;
+    }
+
+    try {
+      const response = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: body ? JSON.stringify(body) : null,
+      });
+
+      const contentType = response.headers.get("content-type");
+      let data;
+      if (contentType && contentType.includes("application/json")) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        data = { message: text };
+      }
+
+      if (response.ok) {
+        if (action === "send") {
+          setFriendshipStatus("pending");
+          toast.success("Đã gửi yêu cầu kết bạn!");
+        } else if (action === "cancel") {
+          setFriendshipStatus(null);
+          toast.success("Đã hủy yêu cầu kết bạn!");
+        } else if (action === "accept") {
+          setFriendshipStatus("friends");
+          toast.success("Đã chấp nhận kết bạn!");
+        } else if (action === "decline") {
+          setFriendshipStatus(null);
+          toast.success("Đã từ chối yêu cầu kết bạn!");
+        } else if (action === "unfriend") {
+          setFriendshipStatus(null);
+          toast.success("Đã hủy kết bạn!");
+        }
+      } else {
+        throw new Error(data.message || "Lỗi khi xử lý yêu cầu kết bạn.");
+      }
+    } catch (error) {
+      console.error("Lỗi khi xử lý kết bạn:", error);
+      toast.error(error.message || "Lỗi khi xử lý kết bạn.");
+    }
+  };
+
+  const handleBlockToggle = async () => {
+    if (!user) {
+      navigate("/signup");
+      return;
+    }
+
+    const token = sessionStorage.getItem("token");
+    if (!token) {
+      toast.error("Không tìm thấy token. Vui lòng đăng nhập lại.");
+      navigate("/signup");
+      return;
+    }
+
+    try {
+      const response = await fetch(
+          `${process.env.REACT_APP_API_URL}/blocks/${username}`,
+          {
+            method: isBlocked ? "DELETE" : "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          }
+      );
+
+      const contentType = response.headers.get("content-type");
+      let data;
+      if (contentType && contentType.includes("application/json")) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        data = { message: text };
+      }
+
+      if (response.ok) {
+        setIsBlocked(!isBlocked);
+        toast.success(isBlocked ? "Đã bỏ chặn người dùng!" : "Đã chặn người dùng!");
+        if (!isBlocked) {
+          setFriendshipStatus(null);
+          setIsFollowing(false);
+          setUserProfile((prev) => ({
+            ...prev,
+            followerCount: isFollowing ? prev.followerCount - 1 : prev.followerCount,
+          }));
+        }
+      } else {
+        throw new Error(data.message || (isBlocked ? "Lỗi khi bỏ chặn." : "Lỗi khi chặn người dùng."));
+      }
+    } catch (error) {
+      console.error("Lỗi khi xử lý chặn:", error);
+      toast.error(error.message || "Lỗi khi xử lý chặn.");
+    }
+  };
+
+  const handleEditProfile = async (updatedData) => {
+    if (!user) {
+      toast.error("Vui lòng đăng nhập để chỉnh sửa hồ sơ.");
+      navigate("/signup");
+      return;
+    }
+
+    const token = sessionStorage.getItem("token");
+    if (!token) {
+      toast.error("Không tìm thấy token. Vui lòng đăng nhập lại.");
+      navigate("/signup");
       return;
     }
 
@@ -279,47 +491,68 @@ function ProfilePage() {
             method: "PUT",
             headers: {
               "Content-Type": "application/json",
+              Accept: "application/json",
               Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify(updatedProfile),
           }
       );
 
+      const contentType = response.headers.get("content-type");
+      let data;
+      if (contentType && contentType.includes("application/json")) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        data = { message: text };
+      }
+
       if (response.ok) {
         setUserProfile(updatedProfile);
         setUser(updatedProfile);
+        toast.success("Cập nhật hồ sơ thành công!");
       } else {
-        throw new Error("Lỗi khi cập nhật hồ sơ.");
+        throw new Error(data.message || "Lỗi khi cập nhật hồ sơ.");
       }
     } catch (error) {
       console.error("Lỗi khi cập nhật hồ sơ:", error);
-      setError(error.message);
+      toast.error(error.message || "Lỗi khi cập nhật hồ sơ.");
     }
   };
 
-  // Xử lý làm mới dữ liệu
   const fetchProfileAndPosts = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        throw new Error("Không tìm thấy token. Vui lòng đăng nhập lại.");
-      }
+    const token = sessionStorage.getItem("token");
+    if (!token) {
+      toast.error("Không tìm thấy token. Vui lòng đăng nhập lại.");
+      navigate("/signup");
+      return;
+    }
 
+    try {
       const profileResponse = await fetch(
           `${process.env.REACT_APP_API_URL}/user/profile/${username}`,
           {
             headers: {
               "Content-Type": "application/json",
+              Accept: "application/json",
               Authorization: `Bearer ${token}`,
             },
           }
       );
 
-      if (!profileResponse.ok) {
-        throw new Error("Không thể lấy thông tin hồ sơ!");
+      const profileContentType = profileResponse.headers.get("content-type");
+      let profileData;
+      if (profileContentType && profileContentType.includes("application/json")) {
+        profileData = await profileResponse.json();
+      } else {
+        const text = await profileResponse.text();
+        profileData = { message: text };
       }
 
-      const profileData = await profileResponse.json();
+      if (!profileResponse.ok) {
+        throw new Error(profileData.message || "Không thể lấy thông tin hồ sơ!");
+      }
+
       setUserProfile({
         ...profileData,
         postCount: profileData.postCount || 0,
@@ -337,19 +570,26 @@ function ProfilePage() {
           }
       );
 
-      if (!postsResponse.ok) {
-        throw new Error("Không thể lấy bài đăng!");
+      const postsContentType = postsResponse.headers.get("content-type");
+      let postsData;
+      if (postsContentType && postsContentType.includes("application/json")) {
+        postsData = await postsResponse.json();
+      } else {
+        const text = await postsResponse.text();
+        postsData = { message: text };
       }
 
-      const postsData = await postsResponse.json();
+      if (!postsResponse.ok) {
+        throw new Error(postsData.message || "Không thể lấy bài đăng!");
+      }
+
       setPosts(postsData);
     } catch (error) {
       console.error("Lỗi khi làm mới dữ liệu:", error);
-      setError(error.message);
+      toast.error(error.message || "Lỗi khi làm mới dữ liệu.");
     }
   };
 
-  // Xử lý tab content
   const renderTabContent = () => {
     if (activeTab === "posts") {
       return posts.length > 0 ? (
@@ -376,21 +616,63 @@ function ProfilePage() {
     );
   };
 
+  const renderFriendButton = () => {
+    if (friendshipStatus === "friends") {
+      return (
+          <Button
+              variant="outline-success"
+              className="rounded-pill ms-2 px-3 py-1"
+              onClick={() => handleFriendRequest("unfriend")}
+          >
+            <FaUserCheck className="me-1" /> Bạn bè
+          </Button>
+      );
+    } else if (friendshipStatus === "pending") {
+      return (
+          <Button
+              variant="outline-warning"
+              className="rounded-pill ms-2 px-3 py-1"
+              onClick={() => handleFriendRequest("cancel")}
+          >
+            <FaUserTimes className="me-1" /> Hủy yêu cầu
+          </Button>
+      );
+    } else if (friendshipStatus === "requested") {
+      return (
+          <Dropdown className="d-inline-block ms-2">
+            <Dropdown.Toggle
+                variant="outline-primary"
+                className="rounded-pill px-3 py-1"
+            >
+              <FaUserPlus className="me-1" /> Phản hồi
+            </Dropdown.Toggle>
+            <Dropdown.Menu>
+              <Dropdown.Item onClick={() => handleFriendRequest("accept")}>
+                Chấp nhận
+              </Dropdown.Item>
+              <Dropdown.Item onClick={() => handleFriendRequest("decline")}>
+                Từ chối
+              </Dropdown.Item>
+            </Dropdown.Menu>
+          </Dropdown>
+      );
+    } else {
+      return (
+          <Button
+              variant="outline-primary"
+              className="rounded-pill ms-2 px-3 py-1"
+              onClick={() => handleFriendRequest("send")}
+          >
+            <FaUserPlus className="me-1" /> Kết bạn
+          </Button>
+      );
+    }
+  };
+
   if (loading) {
     return (
         <div className="d-flex justify-content-center align-items-center min-vh-100">
           <Spinner animation="border" role="status" />
-        </div>
-    );
-  }
-
-  if (error) {
-    return (
-        <div className="text-center p-4">
-          <p className="text-danger">{error}</p>
-          <Button variant="primary" onClick={() => navigate("/home")}>
-            Quay lại trang chủ
-          </Button>
         </div>
     );
   }
@@ -411,219 +693,202 @@ function ProfilePage() {
   const isOwnProfile = user?.username === username;
 
   return (
-      <Container fluid className="min-vh-100 p-0">
-        {/* Header cố định */}
-        <div
-            className="sticky-top bg-white border-bottom py-2"
-            style={{ zIndex: 1020 }}
-        >
-          <Container fluid>
-            <Row>
-              <Col
-                  xs={12}
-                  lg={12}
-                  className="mx-auto d-flex align-items-center ps-md-5"
-              >
-                <Link to="/home" className="btn btn-light me-3">
-                  <FaArrowLeft size={20} />
-                </Link>
-                <div>
-                  <h5 className="mb-0 fw-bold text-dark">{userProfile.name}</h5>
-                  <span className="text-dark small">
-                  {userProfile.postCount || 0} bài đăng
-                </span>
+      <>
+        <ToastContainer />
+        <Container fluid className="min-vh-100 p-0">
+          <div
+              className="sticky-top bg-white border-bottom py-2"
+              style={{ zIndex: 1020 }}
+          >
+            <Container fluid>
+              <Row>
+                <Col
+                    xs={12}
+                    lg={12}
+                    className="mx-auto d-flex align-items-center ps-md-5"
+                >
+                  <Link to="/home" className="btn btn-light me-3">
+                    <FaArrowLeft size={20} />
+                  </Link>
+                  <div>
+                    <h5 className="mb-0 fw-bold text-dark">{userProfile.name}</h5>
+                    <span className="text-dark small">
+                    {userProfile.postCount || 0} bài đăng
+                  </span>
+                  </div>
+                </Col>
+              </Row>
+            </Container>
+          </div>
+
+          <Container fluid className="flex-grow-1">
+            <Row className="h-100">
+              <Col xs={0} lg={3} className="d-none d-lg-block p-0">
+                <SidebarLeft />
+              </Col>
+
+              <Col xs={12} lg={6} className="px-md-0">
+                <Image
+                    src={
+                        userProfile.banner ||
+                        "https://via.placeholder.com/1200x400?text=Banner"
+                    }
+                    fluid
+                    className="w-100 border-bottom"
+                    style={{ height: "200px", objectFit: "cover" }}
+                />
+                <div className="position-relative p-3">
+                  <div className="d-flex justify-content-between align-items-end mb-3">
+                    <Image
+                        src={
+                            userProfile.avatar ||
+                            "https://via.placeholder.com/150?text=Avatar"
+                        }
+                        roundedCircle
+                        className="border border-white border-4"
+                        style={{
+                          width: "130px",
+                          height: "130px",
+                          objectFit: "cover",
+                          marginTop: "-75px",
+                          zIndex: 2,
+                        }}
+                    />
+                    <div className="d-flex align-items-center">
+                      {isOwnProfile ? (
+                          <Button
+                              variant="primary"
+                              className="rounded-pill fw-bold px-3 py-2"
+                              onClick={() => setShowEditModal(true)}
+                          >
+                            Chỉnh sửa
+                          </Button>
+                      ) : (
+                          <>
+                            <Button
+                                variant={isFollowing ? "outline-primary" : "primary"}
+                                className="rounded-pill fw-bold px-3 py-2"
+                                onClick={handleFollowToggle}
+                                disabled={isBlocked}
+                            >
+                              {isFollowing ? "Đang theo dõi" : "Theo dõi"}
+                            </Button>
+                            {!isBlocked && renderFriendButton()}
+                            <Button
+                                variant={isBlocked ? "outline-secondary" : "outline-danger"}
+                                className="rounded-pill ms-2 px-3 py-1"
+                                onClick={handleBlockToggle}
+                            >
+                              <FaUserSlash className="me-1" />
+                              {isBlocked ? "Bỏ chặn" : "Chặn"}
+                            </Button>
+                          </>
+                      )}
+                    </div>
+                  </div>
+
+                  <h4 className="mb-0 fw-bold text-dark">{userProfile.displayName}</h4>
+                  <p className="text-dark small mb-2">@{userProfile.username}</p>
+                  {userProfile.bio && <p className="mb-2 text-dark">{userProfile.bio}</p>}
+                  {userProfile.location && (
+                      <p className="text-secondary small d-flex align-items-center mb-2">
+                        <FaMapMarkerAlt size={16} className="me-2" /> {userProfile.location}
+                      </p>
+                  )}
+                  {userProfile.website && (
+                      <p className="text-secondary small d-flex align-items-center mb-2">
+                        <FaLink size={16} className="me-2" />
+                        <a href={userProfile.website} target="_blank" rel="noopener noreferrer" className="text-primary">
+                          {userProfile.website}
+                        </a>
+                      </p>
+                  )}
+                  <p className="text-secondary small d-flex align-items-center mb-2">
+                    <FaCalendarAlt size={16} className="me-2" /> Ngày sinh:{" "}
+                    {userProfile.dateOfBirth
+                        ? new Date(userProfile.dateOfBirth).toLocaleDateString("vi-VN")
+                        : "Chưa cập nhật"}
+                  </p>
+                  {userProfile.gender !== undefined && (
+                      <p className="text-secondary small d-flex align-items-center mb-2">
+                        <FaEllipsisH size={16} className="me-2" />
+                        Giới tính: {userProfile.gender === 0 ? "Nam" : userProfile.gender === 1 ? "Nữ" : "Khác"}
+                      </p>
+                  )}
+                  <div className="d-flex mb-3">
+                    <Link to="#" className="me-3 text-dark text-decoration-none">
+                      <span className="fw-bold">{userProfile.followeeCount || 0}</span>{" "}
+                      <span className="text-secondary small">Đang theo dõi</span>
+                    </Link>
+                    <Link to="#" className="text-dark text-decoration-none">
+                      <span className="fw-bold">{userProfile.followerCount || 0}</span>{" "}
+                      <span className="text-secondary small">Người theo dõi</span>
+                    </Link>
+                  </div>
+
+                  {showPremiumAlert && !userProfile.isPremium && (
+                      <div className="alert alert-light d-flex align-items-start border border-light rounded-3 p-3">
+                        <div>
+                          <h6 className="fw-bold text-dark mb-1">
+                            Bạn chưa đăng ký tài khoản Premium <FaCheckCircle className="text-dark" />
+                          </h6>
+                          <p className="text-secondary small mb-2">
+                            Hãy đăng ký tài khoản Premium để sử dụng các tính năng ưu tiên trả lời, phân tích, duyệt xem không quảng cáo, v.v.
+                          </p>
+                          <Button
+                              variant="dark"
+                              className="rounded-pill px-4 py-2 fw-bold"
+                              onClick={() => navigate("/premium")}
+                          >
+                            Premium
+                          </Button>
+                        </div>
+                        <Button
+                            variant="link"
+                            className="ms-auto text-dark p-0"
+                            onClick={() => setShowPremiumAlert(false)}
+                        >
+                          ×
+                        </Button>
+                      </div>
+                  )}
+
+                  <Nav variant="tabs" className="mt-4 profile-tabs nav-justified">
+                    {["posts", "shares", "savedArticles"].map((tab) => (
+                        <Nav.Item key={tab}>
+                          <Nav.Link
+                              onClick={() => setActiveTab(tab)}
+                              className={`text-dark fw-bold ${activeTab === tab ? "active" : ""}`}
+                          >
+                            {tab === "posts" && "Bài đăng"}
+                            {tab === "shares" && "Chia sẻ"}
+                            {tab === "savedArticles" && "Bài viết đã lưu"}
+                          </Nav.Link>
+                        </Nav.Item>
+                    ))}
+                  </Nav>
+
+                  <div className="mt-0 border-top">{renderTabContent()}</div>
                 </div>
+              </Col>
+
+              <Col xs={0} lg={3} className="d-none d-lg-block p-0">
+                <SidebarRight />
               </Col>
             </Row>
           </Container>
-        </div>
 
-        {/* Nội dung chính */}
-        <Container fluid className="flex-grow-1">
-          <Row className="h-100">
-            {/* SidebarLeft */}
-            <Col xs={0} lg={3} className="d-none d-lg-block p-0">
-              <SidebarLeft />
-            </Col>
-
-            {/* Profile Content */}
-            <Col xs={12} lg={6} className="px-md-0">
-              <Image
-                  src={
-                      userProfile.banner ||
-                      "https://via.placeholder.com/1200x400?text=Banner"
-                  }
-                  fluid
-                  className="w-100 border-bottom"
-                  style={{ height: "200px", objectFit: "cover" }}
+          {isOwnProfile && (
+              <EditProfileModal
+                  show={showEditModal}
+                  handleClose={() => setShowEditModal(false)}
+                  userProfile={userProfile}
+                  onSave={handleEditProfile}
+                  username={username}
               />
-              <div className="position-relative p-3">
-                <div className="d-flex justify-content-between align-items-end mb-3">
-                  <Image
-                      src={
-                          userProfile.avatar ||
-                          "https://via.placeholder.com/150?text=Avatar"
-                      }
-                      roundedCircle
-                      className="border border-white border-4"
-                      style={{
-                        width: "130px",
-                        height: "130px",
-                        objectFit: "cover",
-                        marginTop: "-75px",
-                        zIndex: 2,
-                      }}
-                  />
-                  {isOwnProfile ? (
-                      <Button
-                          variant="primary"
-                          className="rounded-pill fw-bold px-3 py-2"
-                          onClick={() => setShowEditModal(true)}
-                      >
-                        Chỉnh sửa
-                      </Button>
-                  ) : (
-                      <Button
-                          variant={isFollowing ? "outline-primary" : "primary"}
-                          className="rounded-pill fw-bold px-3 py-2"
-                          onClick={handleFollowToggle}
-                      >
-                        {isFollowing ? "Đang theo dõi" : "Theo dõi"}
-                      </Button>
-                  )}
-                </div>
-
-                <h4 className="mb-0 fw-bold text-dark">
-                  {userProfile.displayName}
-                </h4>
-                <p className="text-dark small mb-2">@{userProfile.username}</p>
-                {userProfile.bio && (
-                    <p className="mb-2 text-dark">{userProfile.bio}</p>
-                )}
-                {userProfile.location && (
-                    <p className="text-secondary small d-flex align-items-center mb-2">
-                      <FaMapMarkerAlt size={16} className="me-2" />{" "}
-                      {userProfile.location}
-                    </p>
-                )}
-                {userProfile.website && (
-                    <p className="text-secondary small d-flex align-items-center mb-2">
-                      <FaLink size={16} className="me-2" />
-                      <a
-                          href={userProfile.website}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-primary"
-                      >
-                        {userProfile.website}
-                      </a>
-                    </p>
-                )}
-                <p className="text-secondary small d-flex align-items-center mb-2">
-                  <FaCalendarAlt size={16} className="me-2" /> Ngày sinh:{" "}
-                  {userProfile.dateOfBirth
-                      ? new Date(userProfile.dateOfBirth).toLocaleDateString(
-                          "vi-VN"
-                      )
-                      : "Chưa cập nhật"}
-                </p>
-                {userProfile.gender !== undefined && (
-                    <p className="text-secondary small d-flex align-items-center mb-2">
-                      <FaEllipsisH size={16} className="me-2" />
-                      Giới tính:{" "}
-                      {userProfile.gender === 0
-                          ? "Nam"
-                          : userProfile.gender === 1
-                              ? "Nữ"
-                              : "Khác"}
-                    </p>
-                )}
-                <div className="d-flex mb-3">
-                  <Link to="#" className="me-3 text-dark text-decoration-none">
-                  <span className="fw-bold">
-                    {userProfile.followeeCount || 0}
-                  </span>{" "}
-                    <span className="text-secondary small">Đang theo dõi</span>
-                  </Link>
-                  <Link to="#" className="text-dark text-decoration-none">
-                  <span className="fw-bold">
-                    {userProfile.followerCount || 0}
-                  </span>{" "}
-                    <span className="text-secondary small">Người theo dõi</span>
-                  </Link>
-                </div>
-
-                {/* Premium Alert */}
-                {showPremiumAlert && !userProfile.isPremium && (
-                    <div className="alert alert-light d-flex align-items-start border border-light rounded-3 p-3">
-                      <div>
-                        <h6 className="fw-bold text-dark mb-1">
-                          Bạn chưa đăng ký tài khoản Premium{" "}
-                          <FaCheckCircle className="text-dark" />
-                        </h6>
-                        <p className="text-secondary small mb-2">
-                          Hãy đăng ký tài khoản Premium để sử dụng các tính năng ưu
-                          tiên trả lời, phân tích, duyệt xem không quảng cáo, v.v.
-                        </p>
-                        <Button
-                            variant="dark"
-                            className="rounded-pill px-4 py-2 fw-bold"
-                            onClick={() => navigate("/premium")}
-                        >
-                          Premium
-                        </Button>
-                      </div>
-                      <Button
-                          variant="link"
-                          className="ms-auto text-dark p-0"
-                          onClick={() => setShowPremiumAlert(false)}
-                      >
-                        ×
-                      </Button>
-                    </div>
-                )}
-
-                {/* Tabs */}
-                <Nav variant="tabs" className="mt-4 profile-tabs nav-justified">
-                  {["posts", "shares", "savedArticles"].map((tab) => (
-                      <Nav.Item key={tab}>
-                        <Nav.Link
-                            onClick={() => setActiveTab(tab)}
-                            className={`text-dark fw-bold ${
-                                activeTab === tab ? "active" : ""
-                            }`}
-                        >
-                          {tab === "posts" && "Bài đăng"}
-                          {tab === "shares" && "Chia sẻ"}
-                          {tab === "savedArticles" && "Bài viết đã lưu"}
-                        </Nav.Link>
-                      </Nav.Item>
-                  ))}
-                </Nav>
-
-                {/* Tab Content */}
-                <div className="mt-0 border-top">{renderTabContent()}</div>
-              </div>
-            </Col>
-
-            {/* SidebarRight */}
-            <Col xs={0} lg={3} className="d-none d-lg-block p-0">
-              <SidebarRight />
-            </Col>
-          </Row>
+          )}
         </Container>
-
-        {/* Edit Profile Modal */}
-        {isOwnProfile && (
-            <EditProfileModal
-                show={showEditModal}
-                handleClose={() => setShowEditModal(false)}
-                userProfile={userProfile}
-                onSave={handleEditProfile}
-                username={username}
-            />
-        )}
-      </Container>
+      </>
   );
 }
 

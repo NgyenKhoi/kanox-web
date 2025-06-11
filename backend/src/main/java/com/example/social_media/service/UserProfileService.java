@@ -70,4 +70,13 @@ public class UserProfileService {
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
         return new UserTagDto(user);
     }
+
+    @Transactional
+    public void updateProfilePrivacy(Integer userId, String privacySetting, Integer customListId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
+
+        // Gọi stored procedure thông qua repository
+        userRepository.updateProfilePrivacy(userId, privacySetting, customListId);
+    }
 }

@@ -438,6 +438,186 @@ CREATE TABLE tblSession (
         CHECK (user_id <> friend_id)
     );
 
+	    --------------PROC VALIDATE AND ADD FRIEND--------------
+
+    CREATE PROCEDURE sp_SendFriendRequest
+        @user_id INT,
+        @friend_id INT
+    AS
+    BEGIN
+        SET NOCOUNT ON;
+
+        -- Không gửi lời mời bản thân
+        IF @user_id = @friend_id
+        BEGIN
+            RAISERROR('Cannot send friend request to yourself.', 16, 1);
+            RETURN;
+        END
+
+        -- Kiểm tra user_id và friend_id tồn tại và active
+        IF NOT EXISTS (SELECT 1 FROM tblUser WHERE id = @user_id AND status = 1)
+        BEGIN
+            RAISERROR('Invalid or inactive user_id.', 16, 1);
+            RETURN;
+        END
+
+        IF NOT EXISTS (SELECT 1 FROM tblUser WHERE id = @friend_id AND status = 1)
+        BEGIN
+            RAISERROR('Invalid or inactive friend_id.', 16, 1);
+            RETURN;
+        END
+
+        -- Kiểm tra xem đã có record chưa
+        IF EXISTS (
+            SELECT 1 FROM tblFriendship
+            WHERE (user_id = @user_id AND friend_id = @friend_id) OR
+                  (user_id = @friend_id AND friend_id = @user_id)
+        )
+        BEGIN
+            RAISERROR('Friend request or friendship already exists.', 16, 1);
+            RETURN;
+        END
+
+        -- Kiểm tra xem user_id có bị chặn bởi friend_id hoặc ngược lại
+        IF EXISTS (
+            SELECT 1 FROM tblBlock
+            WHERE (user_id = @friend_id AND blocked_user_id = @user_id AND status = 1) OR
+                  (user_id = @user_id AND blocked_user_id = @friend_id AND status = 1)
+        )
+        BEGIN
+            RAISERROR('Cannot send friend request due to block status.', 16, 1);
+            RETURN;
+        END
+
+        -- Thêm record với trạng thái pending
+        INSERT INTO tblFriendship(user_id, friend_id, friendship_status, created_at, status)
+        VALUES (@user_id, @friend_id, 'pending', GETDATE(), 1);
+    END;
+
+	CREATE PROCEDURE sp_AcceptFriendRequest
+		@user_id INT,
+		@friend_id INT
+	AS
+	BEGIN
+		SET NOCOUNT ON;
+		BEGIN TRY
+			BEGIN TRANSACTION;
+			-- Kiểm tra xem có lời mời pending từ friend_id đến user_id không
+			IF NOT EXISTS (
+				SELECT 1 
+				FROM tblFriendship 
+				WHERE user_id = @friend_id 
+				AND friend_id = @user_id 
+				AND friendship_status = 'pending' 
+				AND status = 1
+			)
+			BEGIN
+				RAISERROR ('No pending friend request found.', 16, 1);
+			END
+
+			-- Cập nhật trạng thái lời mời thành accepted
+			UPDATE tblFriendship
+			SET friendship_status = 'accepted'
+			WHERE user_id = @friend_id 
+			AND friend_id = @user_id 
+			AND status = 1;
+
+			-- Gửi thông báo
+			DECLARE @type_id INT;
+			SELECT @type_id = id 
+			FROM tblNotificationType 
+			WHERE name = 'FRIEND_ACCEPTED' 
+			AND status = 1;
+
+			IF @type_id IS NULL
+			BEGIN
+				INSERT INTO tblNotificationType (name, description, status)
+				VALUES ('FRIEND_ACCEPTED', 'Friend request accepted', 1);
+				SET @type_id = SCOPE_IDENTITY();
+			END
+
+			DECLARE @message NVARCHAR(255);
+			SET @message = 'User ' + CAST(@user_id AS NVARCHAR(10)) + ' accepted your friend request.';
+			EXEC sp_AddNotification 
+				@recipient_id = @friend_id,
+				@type_id = @type_id,
+				@message = @message,
+				@sender_id = @user_id,
+				@target_type_id = 4; -- PROFILE
+
+			COMMIT TRANSACTION;
+		END TRY
+		BEGIN CATCH
+			IF @@TRANCOUNT > 0
+				ROLLBACK TRANSACTION;
+			INSERT INTO tblErrorLog (error_message, error_time)
+			VALUES (ERROR_MESSAGE(), GETDATE());
+			-- Với RAISERROR, không cần THROW, kết thúc bằng RETURN
+			RETURN;
+		END CATCH;
+	END;
+GO
+
+	-- Stored Procedure cho từ chối lời mời kết bạn
+	CREATE PROCEDURE sp_RejectFriendRequest
+		@user_id INT,
+		@friend_id INT
+	AS
+	BEGIN
+		SET NOCOUNT ON;
+		BEGIN TRY
+			BEGIN TRANSACTION;
+			IF NOT EXISTS (SELECT 1 FROM tblFriendship WHERE user_id = @friend_id AND friend_id = @user_id AND friendship_status = 'pending' AND status = 1)
+			BEGIN
+				RAISERROR('No pending friend request found.', 16, 1);
+				ROLLBACK TRANSACTION;
+				RETURN;
+			END
+			UPDATE tblFriendship
+			SET friendship_status = 'rejected', status = 0
+			WHERE user_id = @friend_id AND friend_id = @user_id;
+			COMMIT TRANSACTION;
+		END TRY
+		BEGIN CATCH
+			IF @@TRANCOUNT > 0
+				ROLLBACK TRANSACTION;
+			DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+			INSERT INTO tblErrorLog (error_message, error_time) VALUES (@ErrorMessage, GETDATE());
+			RAISERROR (@ErrorMessage, 16, 1);
+		END CATCH;
+	END;
+	GO
+
+	-- Stored Procedure cho hủy kết bạn
+	CREATE PROCEDURE sp_CancelFriendship
+		@user_id INT,
+		@friend_id INT
+	AS
+	BEGIN
+		SET NOCOUNT ON;
+		BEGIN TRY
+			BEGIN TRANSACTION;
+			IF NOT EXISTS (SELECT 1 FROM tblFriendship WHERE (user_id = @user_id AND friend_id = @friend_id OR user_id = @friend_id AND friend_id = @user_id) AND status = 1)
+			BEGIN
+				RAISERROR('Friendship not found.', 16, 1);
+				ROLLBACK TRANSACTION;
+				RETURN;
+			END
+			UPDATE tblFriendship
+			SET status = 0
+			WHERE (user_id = @user_id AND friend_id = @friend_id) OR (user_id = @friend_id AND friend_id = @user_id);
+			COMMIT TRANSACTION;
+		END TRY
+		BEGIN CATCH
+			IF @@TRANCOUNT > 0
+				ROLLBACK TRANSACTION;
+			DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+			INSERT INTO tblErrorLog (error_message, error_time) VALUES (@ErrorMessage, GETDATE());
+			RAISERROR (@ErrorMessage, 16, 1);
+		END CATCH;
+	END;
+	GO
+
 
 
     CREATE TABLE tblFriendSuggestion (
@@ -538,6 +718,66 @@ CREATE TABLE tblSession (
         PRIMARY KEY (follower_id, followee_id)
     );
 
+	CREATE PROCEDURE sp_FollowUser
+		@follower_id INT,
+		@followee_id INT
+	AS
+	BEGIN
+		SET NOCOUNT ON;
+		BEGIN TRY
+			BEGIN TRANSACTION;
+			IF @follower_id = @followee_id
+			BEGIN
+				RAISERROR ('Cannot follow yourself.', 16, 1);
+			END
+			IF EXISTS (
+				SELECT 1 
+				FROM tblFollow 
+				WHERE follower_id = @follower_id 
+				AND followee_id = @followee_id 
+				AND status = 1
+			)
+			BEGIN
+				RAISERROR ('Already following.', 16, 1);
+			END
+
+			INSERT INTO tblFollow (follower_id, followee_id, created_at, status)
+			VALUES (@follower_id, @followee_id, GETDATE(), 1);
+
+			DECLARE @type_id INT;
+			SELECT @type_id = id 
+			FROM tblNotificationType 
+			WHERE name = 'FOLLOW' 
+			AND status = 1;
+
+			IF @type_id IS NULL
+			BEGIN
+				INSERT INTO tblNotificationType (name, description, status)
+				VALUES ('FOLLOW', 'User started following', 1);
+				SET @type_id = SCOPE_IDENTITY();
+			END
+
+			DECLARE @message NVARCHAR(255);
+			SET @message = 'User ' + CAST(@follower_id AS NVARCHAR(10)) + ' started following you.';
+			EXEC sp_AddNotification 
+				@recipient_id = @followee_id,
+				@type_id = @type_id,
+				@message = @message,
+				@sender_id = @follower_id,
+				@target_type_id = 4;
+
+			COMMIT TRANSACTION;
+		END TRY
+		BEGIN CATCH
+			IF @@TRANCOUNT > 0
+				ROLLBACK TRANSACTION;
+			INSERT INTO tblErrorLog (error_message, error_time)
+			VALUES (ERROR_MESSAGE(), GETDATE());
+			RETURN;
+		END CATCH;
+	END;
+	GO
+
     CREATE TABLE tblBlock (
         user_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
         blocked_user_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
@@ -546,61 +786,7 @@ CREATE TABLE tblSession (
         PRIMARY KEY (user_id, blocked_user_id)
     );
 
-    --------------PROC VALIDATE AND ADD FRIEND--------------
 
-    CREATE PROCEDURE sp_SendFriendRequest
-        @user_id INT,
-        @friend_id INT
-    AS
-    BEGIN
-        SET NOCOUNT ON;
-
-        -- Không gửi lời mời bản thân
-        IF @user_id = @friend_id
-        BEGIN
-            RAISERROR('Cannot send friend request to yourself.', 16, 1);
-            RETURN;
-        END
-
-        -- Kiểm tra user_id và friend_id tồn tại và active
-        IF NOT EXISTS (SELECT 1 FROM tblUser WHERE id = @user_id AND status = 1)
-        BEGIN
-            RAISERROR('Invalid or inactive user_id.', 16, 1);
-            RETURN;
-        END
-
-        IF NOT EXISTS (SELECT 1 FROM tblUser WHERE id = @friend_id AND status = 1)
-        BEGIN
-            RAISERROR('Invalid or inactive friend_id.', 16, 1);
-            RETURN;
-        END
-
-        -- Kiểm tra xem đã có record chưa
-        IF EXISTS (
-            SELECT 1 FROM tblFriendship
-            WHERE (user_id = @user_id AND friend_id = @friend_id) OR
-                  (user_id = @friend_id AND friend_id = @user_id)
-        )
-        BEGIN
-            RAISERROR('Friend request or friendship already exists.', 16, 1);
-            RETURN;
-        END
-
-        -- Kiểm tra xem user_id có bị chặn bởi friend_id hoặc ngược lại
-        IF EXISTS (
-            SELECT 1 FROM tblBlock
-            WHERE (user_id = @friend_id AND blocked_user_id = @user_id AND status = 1) OR
-                  (user_id = @user_id AND blocked_user_id = @friend_id AND status = 1)
-        )
-        BEGIN
-            RAISERROR('Cannot send friend request due to block status.', 16, 1);
-            RETURN;
-        END
-
-        -- Thêm record với trạng thái pending
-        INSERT INTO tblFriendship(user_id, friend_id, friendship_status, created_at, status)
-        VALUES (@user_id, @friend_id, 'pending', GETDATE(), 1);
-    END;
     ------------------------------------------
 
     --STORY
@@ -1983,10 +2169,10 @@ CREATE TABLE tblSession (
 
     -- tblNotificationType (Loại thông báo)
     INSERT INTO tblNotificationType (name, description, status) VALUES
-    ('FriendRequest', 'New friend request received', 1),
-    ('PostComment', 'New comment on your post', 1),
-    ('StoryView', 'Someone viewed your story', 1),
-    ('Reaction', 'Someone reacted to your content', 1);
+    ('FRIEND_REQUEST', 'New friend request received', 1),
+    ('POST_COMMENT', 'New comment on your post', 1),
+    ('STORY_VIEW', 'Someone viewed your story', 1),
+    ('REACTION', 'Someone reacted to your content', 1);
 
 
     -- tblReactionType (Loại phản hồi: Like, Love, Haha, v.v.)

@@ -37,4 +37,33 @@ public class URLConfig {
     public static final String SEARCH_SYNC = "/sync";
 
     public static final String GOOGLE_LOGIN_CLIENT_ID = "233866118973-t26ue94egg2v1reebqpe684kglf0bjej.apps.googleusercontent.com";
+
+    // Friendship URLs
+    public static final String FRIENDSHIP_BASE = "/api/friends";
+    public static final String SEND_FRIEND_REQUEST = "/request/{receiverId}";
+    public static final String ACCEPT_FRIEND_REQUEST = "/accept/{requesterId}";
+    public static final String REJECT_FRIEND_REQUEST = "/reject/{requesterId}";
+    public static final String CANCEL_FRIENDSHIP = "/{friendId}";
+    public static final String GET_FRIENDS = "/users/{userId}/friends";
+    public static final String GET_SENT_PENDING_REQUESTS = "/sent-pending";
+    public static final String GET_RECEIVED_PENDING_REQUESTS = "/received-pending";
+    public static final String GET_FRIENDSHIP_STATUS = "/status/{targetId}";
+    // Follow URLs
+    public static final String FOLLOW_BASE = "/api/follows";
+    public static final String FOLLOW_USER = "/{followeeId}";
+    public static final String UNFOLLOW_USER = "/{followeeId}";
+    public static final String GET_FOLLOWING = "/users/{userId}/following";
+    public static final String GET_FOLLOWERS = "/users/{userId}/followers";
+    public static final String GET_FOLLOW_STATUS = "/status/{targetId}";
+    // Notifications
+    public static final String NOTIFICATION_BASE = "/api/notifications";
+    public static final String MARK_READ = "/{id}/mark-read";
+    // Privacy URLs
+    public static final String PRIVACY_BASE = "/api/privacy";
+    public static final String CREATE_CUSTOM_LIST = "/lists";
+    public static final String ADD_MEMBER_TO_CUSTOM_LIST = "/lists/{listId}/members";
+    // Block URLs
+    public static final String BLOCK_BASE = "/api/blocks";
+    public static final String BLOCK_USER = "/{blockedUserId}";
+    public static final String UNBLOCK_USER = "/{blockedUserId}";
 }
