@@ -113,7 +113,6 @@ function ProfilePage() {
   useEffect(() => {
     const fetchProfile = async () => {
       setLoading(true);
-
       if (!username || username === "undefined") {
         toast.error("Tên người dùng không hợp lệ.");
         setUserProfile(defaultUserProfile);
@@ -152,21 +151,15 @@ function ProfilePage() {
             }
         );
 
-        const profileContentType = profileResponse.headers.get("content-type");
-        let profileData;
-        if (profileContentType && profileContentType.includes("application/json")) {
-          profileData = await profileResponse.json();
-        } else {
-          const text = await profileResponse.text();
-          profileData = { message: text };
-        }
-
+        const profileData = await profileResponse.json();
         if (!profileResponse.ok) {
           throw new Error(profileData.message || "Lỗi khi lấy thông tin hồ sơ.");
         }
 
+        // Lưu profileData với id
         setUserProfile({
           ...profileData,
+          id: profileData.id, // Đảm bảo id được lưu
           banner: profileData.banner || "https://source.unsplash.com/1200x400/?nature,water",
           avatar: profileData.avatar || "https://source.unsplash.com/150x150/?portrait",
           postCount: profileData.postCount || 0,
@@ -175,8 +168,9 @@ function ProfilePage() {
         });
 
         if (user.username !== username) {
+          // Sử dụng userId thay vì username
           const followStatusResponse = await fetch(
-              `${process.env.REACT_APP_API_URL}/follows/status/${username}`,
+              `${process.env.REACT_APP_API_URL}/follows/status/${profileData.id}`,
               {
                 headers: {
                   "Content-Type": "application/json",
@@ -186,21 +180,14 @@ function ProfilePage() {
               }
           );
 
-          const followContentType = followStatusResponse.headers.get("content-type");
-          let followStatus;
-          if (followContentType && followContentType.includes("application/json")) {
-            followStatus = await followStatusResponse.json();
-          } else {
-            const text = await followStatusResponse.text();
-            followStatus = { message: text };
-          }
-
+          const followStatus = await followStatusResponse.json();
           if (followStatusResponse.ok) {
             setIsFollowing(followStatus.isFollowing);
           }
 
+          // Các fetch khác (friendship, block) cũng cần dùng id
           const friendshipStatusResponse = await fetch(
-              `${process.env.REACT_APP_API_URL}/friends/status/${username}`,
+              `${process.env.REACT_APP_API_URL}/friends/status/${profileData.id}`,
               {
                 headers: {
                   "Content-Type": "application/json",
@@ -210,21 +197,13 @@ function ProfilePage() {
               }
           );
 
-          const friendshipContentType = friendshipStatusResponse.headers.get("content-type");
-          let friendshipData;
-          if (friendshipContentType && friendshipContentType.includes("application/json")) {
-            friendshipData = await friendshipStatusResponse.json();
-          } else {
-            const text = await friendshipStatusResponse.text();
-            friendshipData = { message: text };
-          }
-
+          const friendshipData = await friendshipStatusResponse.json();
           if (friendshipStatusResponse.ok) {
             setFriendshipStatus(friendshipData.status);
           }
 
           const blockStatusResponse = await fetch(
-              `${process.env.REACT_APP_API_URL}/blocks/status/${username}`,
+              `${process.env.REACT_APP_API_URL}/blocks/status/${profileData.id}`,
               {
                 headers: {
                   "Content-Type": "application/json",
@@ -234,15 +213,7 @@ function ProfilePage() {
               }
           );
 
-          const blockContentType = blockStatusResponse.headers.get("content-type");
-          let blockStatus;
-          if (blockContentType && blockContentType.includes("application/json")) {
-            blockStatus = await blockStatusResponse.json();
-          } else {
-            const text = await blockStatusResponse.text();
-            blockStatus = { message: text };
-          }
-
+          const blockStatus = await blockStatusResponse.json();
           if (blockStatusResponse.ok) {
             setIsBlocked(blockStatus.isBlocked);
           }
@@ -253,21 +224,12 @@ function ProfilePage() {
             {
               headers: {
                 "Content-Type": "application/json",
-                Accept: "application/json",
                 Authorization: `Bearer ${token}`,
               },
             }
         );
 
-        const postsContentType = postsResponse.headers.get("content-type");
-        let postsData;
-        if (postsContentType && postsContentType.includes("application/json")) {
-          postsData = await postsResponse.json();
-        } else {
-          const text = await postsResponse.text();
-          postsData = { message: text };
-        }
-
+        const postsData = await postsResponse.json();
         if (!postsResponse.ok) {
           throw new Error(postsData.message || "Không thể lấy bài đăng!");
         }
@@ -300,7 +262,7 @@ function ProfilePage() {
 
     try {
       const response = await fetch(
-          `${process.env.REACT_APP_API_URL}/follows/${username}`,
+          `${process.env.REACT_APP_API_URL}/follows/${userProfile.id}`, // Sử dụng userProfile.id
           {
             method: isFollowing ? "DELETE" : "POST",
             headers: {
@@ -311,15 +273,7 @@ function ProfilePage() {
           }
       );
 
-      const contentType = response.headers.get("content-type");
-      let data;
-      if (contentType && contentType.includes("application/json")) {
-        data = await response.json();
-      } else {
-        const text = await response.text();
-        data = { message: text };
-      }
-
+      const data = await response.json();
       if (response.ok) {
         setIsFollowing(!isFollowing);
         setUserProfile((prev) => ({
