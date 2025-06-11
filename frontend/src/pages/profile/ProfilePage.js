@@ -287,7 +287,7 @@ function ProfilePage() {
 
   const handleFollowToggle = async () => {
     if (!user) {
-      navigate("/signup");
+      navigate("/");
       return;
     }
 
@@ -338,14 +338,14 @@ function ProfilePage() {
 
   const handleFriendRequest = async (action) => {
     if (!user) {
-      navigate("/signup");
+      navigate("/");
       return;
     }
 
     const token = sessionStorage.getItem("token");
     if (!token) {
       toast.error("Không tìm thấy token. Vui lòng đăng nhập lại.");
-      navigate("/signup");
+      navigate("/");
       return;
     }
 
@@ -415,14 +415,14 @@ function ProfilePage() {
 
   const handleBlockToggle = async () => {
     if (!user) {
-      navigate("/signup");
+      navigate("/");
       return;
     }
 
     const token = sessionStorage.getItem("token");
     if (!token) {
       toast.error("Không tìm thấy token. Vui lòng đăng nhập lại.");
-      navigate("/signup");
+      navigate("/");
       return;
     }
 
@@ -471,14 +471,14 @@ function ProfilePage() {
   const handleEditProfile = async (updatedData) => {
     if (!user) {
       toast.error("Vui lòng đăng nhập để chỉnh sửa hồ sơ.");
-      navigate("/signup");
+      navigate("/");
       return;
     }
 
     const token = sessionStorage.getItem("token");
     if (!token) {
       toast.error("Không tìm thấy token. Vui lòng đăng nhập lại.");
-      navigate("/signup");
+      navigate("/");
       return;
     }
 
@@ -524,7 +524,7 @@ function ProfilePage() {
     const token = sessionStorage.getItem("token");
     if (!token) {
       toast.error("Không tìm thấy token. Vui lòng đăng nhập lại.");
-      navigate("/signup");
+      navigate("/");
       return;
     }
 
