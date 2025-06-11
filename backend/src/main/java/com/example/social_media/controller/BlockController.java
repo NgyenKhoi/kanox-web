@@ -29,9 +29,7 @@ public class BlockController {
             User currentUser = customUserDetailsService.getUserByUsername(currentUsername);
             blockService.blockUser(currentUser.getId(), blockedUserId);
             return ResponseEntity.ok(Map.of("message", "User blocked successfully"));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage(), "errors", Map.of()));
-        } catch (UserNotFoundException e) {
+        } catch (IllegalArgumentException | UserNotFoundException e) {
             return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage(), "errors", Map.of()));
         }
     }
@@ -43,8 +41,17 @@ public class BlockController {
             User currentUser = customUserDetailsService.getUserByUsername(currentUsername);
             blockService.unblockUser(currentUser.getId(), blockedUserId);
             return ResponseEntity.ok(Map.of("message", "User unblocked successfully"));
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException | UserNotFoundException e) {
             return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage(), "errors", Map.of()));
+        }
+    }
+
+    @GetMapping
+    public ResponseEntity<?> getBlockedUsers() {
+        try {
+            String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+            User currentUser = customUserDetailsService.getUserByUsername(currentUsername);
+            return ResponseEntity.ok(Map.of("data", blockService.getBlockedUsers(currentUser.getId())));
         } catch (UserNotFoundException e) {
             return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage(), "errors", Map.of()));
         }

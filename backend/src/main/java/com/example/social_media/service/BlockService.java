@@ -10,6 +10,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class BlockService {
@@ -34,15 +36,14 @@ public class BlockService {
             throw new IllegalArgumentException("User is already blocked");
         }
 
-        // Khởi tạo và gán BlockId
         BlockId blockId = new BlockId();
         blockId.setUserId(userId);
         blockId.setBlockedUserId(blockedUserId);
 
         Block block = new Block();
         block.setId(blockId);
-        block.setUser(user); // Liên kết với entity User
-        block.setBlockedUser(blockedUser); // Liên kết với entity User
+        block.setUser(user);
+        block.setBlockedUser(blockedUser);
         block.setCreatedAt(Instant.now());
         block.setStatus(true);
 
@@ -57,9 +58,16 @@ public class BlockService {
                 .orElseThrow(() -> new UserNotFoundException("User not found with id: " + blockedUserId));
         Block block = blockRepository.findByUserAndBlockedUserAndStatus(user, blockedUser, true)
                 .orElseThrow(() -> new IllegalArgumentException("User is not blocked"));
-
-        // Cập nhật status mà không cần tạo BlockId mới
         block.setStatus(false);
         blockRepository.save(block);
+    }
+
+    @Transactional(readOnly = true)
+    public List<User> getBlockedUsers(Integer userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
+        return blockRepository.findByUserAndStatus(user, true).stream()
+                .map(Block::getBlockedUser)
+                .collect(Collectors.toList());
     }
 }
