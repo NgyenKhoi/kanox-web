@@ -1,6 +1,7 @@
 package com.example.social_media.controller;
 
 import com.example.social_media.config.URLConfig;
+import com.example.social_media.dto.block.BlockedUserDto;
 import com.example.social_media.entity.User;
 import com.example.social_media.exception.UserNotFoundException;
 import com.example.social_media.service.BlockService;
@@ -9,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -33,8 +35,8 @@ public class BlockController {
             return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage(), "errors", Map.of()));
         } catch (UserNotFoundException e) {
             return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage(), "errors", Map.of()));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage(), "errors", Map.of()));
+        } catch (Exception distancia) {
+            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", distancia.getMessage(), "errors", Map.of()));
         }
     }
 
@@ -59,7 +61,8 @@ public class BlockController {
         try {
             String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
             User currentUser = customUserDetailsService.getUserByUsername(currentUsername);
-            return ResponseEntity.ok(Map.of("data", blockService.getBlockedUsers(currentUser.getId())));
+            List<BlockedUserDto> blockedUsers = blockService.getBlockedUsers(currentUser.getId());
+            return ResponseEntity.ok(Map.of("data", blockedUsers));
         } catch (UserNotFoundException e) {
             return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage(), "errors", Map.of()));
         } catch (Exception e) {

@@ -75,6 +75,7 @@ com\example\social_media\entity\PostTag.class
 com\example\social_media\entity\Notification.class
 com\example\social_media\entity\Analytic.class
 com\example\social_media\entity\Chat.class
+com\example\social_media\dto\block\BlockedUserDto.class
 com\example\social_media\entity\Group.class
 com\example\social_media\entity\ContentPrivacy.class
 com\example\social_media\exception\InvalidPasswordException.class

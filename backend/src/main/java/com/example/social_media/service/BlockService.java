@@ -1,5 +1,6 @@
 package com.example.social_media.service;
 
+import com.example.social_media.dto.block.BlockedUserDto;
 import com.example.social_media.entity.Block;
 import com.example.social_media.entity.BlockId;
 import com.example.social_media.entity.User;
@@ -64,12 +65,16 @@ public class BlockService {
     }
 
     @Transactional(readOnly = true)
-    public List<User> getBlockedUsers(Integer userId) {
+    public List<BlockedUserDto> getBlockedUsers(Integer userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
         List<Block> blocks = blockRepository.findByUserAndStatus(user, true);
         return blocks != null ? blocks.stream()
-                .map(Block::getBlockedUser)
+                .map(block -> new BlockedUserDto(
+                        block.getBlockedUser().getId(),
+                        block.getBlockedUser().getUsername(),
+                        block.getBlockedUser().getDisplayName()
+                ))
                 .collect(Collectors.toList()) : Collections.emptyList();
     }
 }

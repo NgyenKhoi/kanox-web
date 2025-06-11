@@ -17,6 +17,7 @@ D:\SWP391\kanox-web\backend\src\main\java\com\example\social_media\entity\Page.j
 D:\SWP391\kanox-web\backend\src\main\java\com\example\social_media\service\GroupMemberService.java
 D:\SWP391\kanox-web\backend\src\main\java\com\example\social_media\repository\VerificationTokenRepository.java
 D:\SWP391\kanox-web\backend\src\main\java\com\example\social_media\service\UserProfileService.java
+D:\SWP391\kanox-web\backend\src\main\java\com\example\social_media\dto\block\BlockedUserDto.java
 D:\SWP391\kanox-web\backend\src\main\java\com\example\social_media\entity\Chat.java
 D:\SWP391\kanox-web\backend\src\main\java\com\example\social_media\entity\Reaction.java
 D:\SWP391\kanox-web\backend\src\main\java\com\example\social_media\repository\ChatMemberRepository.java
