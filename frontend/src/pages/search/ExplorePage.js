@@ -22,7 +22,11 @@ function ExplorePage() {
   const { token } = useContext(AuthContext);
   const [activeTab, setActiveTab] = useState("for-you");
   const [searchKeyword, setSearchKeyword] = useState("");
-  const [searchResults, setSearchResults] = useState([]);
+  const [searchResults, setSearchResults] = useState({
+    users: [],
+    groups: [],
+    pages: [],
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
@@ -34,11 +38,11 @@ function ExplorePage() {
     };
   };
 
-  const syncUsers = async () => {
+  const syncAllData = async () => {
     try {
       setIsSyncing(true);
       const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/search/sync-users`,
+        `${process.env.REACT_APP_API_URL}/search/sync`,
         {
           method: "POST",
           headers: {
@@ -47,20 +51,18 @@ function ExplorePage() {
           },
         }
       );
-      if (!response.ok) {
-        throw new Error("Lỗi khi đồng bộ dữ liệu");
-      }
-      toast.success("Đã đồng bộ user sang Elasticsearch");
+      if (!response.ok) throw new Error("Lỗi khi đồng bộ dữ liệu");
+      toast.success("Đã đồng bộ toàn bộ data sang Elasticsearch");
     } catch (error) {
-      toast.error("Đồng bộ user thất bại: " + error.message);
+      toast.error("Đồng bộ thất bại: " + error.message);
     } finally {
       setIsSyncing(false);
     }
   };
 
-  const searchUsers = async (keyword) => {
+  const searchAll = async (keyword) => {
     if (!keyword.trim()) {
-      setSearchResults([]);
+      setSearchResults({ users: [], groups: [], pages: []});
       setIsLoading(false);
       return;
     }
@@ -68,7 +70,7 @@ function ExplorePage() {
     setIsLoading(true);
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/search/users?keyword=${encodeURIComponent(keyword)}`,
+        `${process.env.REACT_APP_API_URL}/search/all?keyword=${encodeURIComponent(keyword)}`,
         {
           method: "GET",
           headers: {
@@ -84,16 +86,16 @@ function ExplorePage() {
       const data = await response.json();
       setSearchResults(data);
     } catch (error) {
-      toast.error("Không thể tìm kiếm người dùng: " + error.message);
+      toast.error("Không thể tìm kiếm: " + error.message);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const debouncedSearch = debounce(searchUsers, 300);
+  const debouncedSearch = debounce(searchAll, 300);
 
   useEffect(() => {
-    syncUsers();
+    syncAllData();
   }, []);
 
   useEffect(() => {
@@ -101,6 +103,37 @@ function ExplorePage() {
       debouncedSearch(searchKeyword);
     }
   }, [searchKeyword, isSyncing]);
+
+  const renderSearchResultSection = (label, items, type) => {
+    if (items.length === 0) return null;
+
+    return (
+      <>
+        <ListGroup.Item className="bg-light fw-bold">{label}</ListGroup.Item>
+        {items.map((item) => (
+          <ListGroup.Item
+            key={`${type}-${item.id}`}
+            action
+            className="d-flex align-items-start"
+            onClick={() => console.log("Đã chọn:", item)}
+          >
+            <Image
+              src={item.avatar || "https://via.placeholder.com/40"}
+              roundedCircle
+              width={30}
+              height={30}
+              className="me-2 mt-1"
+            />
+            <div>
+              <strong>{item.displayName || item.name || item.username || item.title}</strong>
+              {item.username && <p className="text-muted small mb-0">@{item.username}</p>}
+              {item.content && <p className="text-muted small mb-0">{item.content.slice(0, 100)}...</p>}
+            </div>
+          </ListGroup.Item>
+        ))}
+      </>
+    );
+  };
 
   const trendingTopics = [
     { id: 1, category: "Chủ đề nổi trội ở Việt Nam", title: "cuội", posts: 587 },
@@ -117,28 +150,26 @@ function ExplorePage() {
     { id: 2, name: "Người dùng 2", username: "@user2", avatar: "https://via.placeholder.com/40" },
   ];
 
-  const renderTabContent = () => {
-    return (
-      <div className="mt-0">
-        {trendingTopics.length === 0 ? (
-          <p className="text-muted text-center p-4">Không có chủ đề nào đang phổ biến.</p>
-        ) : (
-          trendingTopics.map((topic) => (
-            <div key={topic.id} className="d-flex align-items-center justify-content-between p-3 border-bottom hover-bg-light">
-              <div>
-                <p className="text-muted small mb-0">{topic.category}</p>
-                <h6 className="fw-bold mb-0">{topic.title}</h6>
-                <p className="text-muted small mb-0">{topic.posts} N bài đăng</p>
-              </div>
-              <Button variant="link" className="text-dark p-0">
-                <FaEllipsisH />
-              </Button>
+  const renderTabContent = () => (
+    <div className="mt-0">
+      {trendingTopics.length === 0 ? (
+        <p className="text-muted text-center p-4">Không có chủ đề nào đang phổ biến.</p>
+      ) : (
+        trendingTopics.map((topic) => (
+          <div key={topic.id} className="d-flex align-items-center justify-content-between p-3 border-bottom hover-bg-light">
+            <div>
+              <p className="text-muted small mb-0">{topic.category}</p>
+              <h6 className="fw-bold mb-0">{topic.title}</h6>
+              <p className="text-muted small mb-0">{topic.posts} N bài đăng</p>
             </div>
-          ))
-        )}
-      </div>
-    );
-  };
+            <Button variant="link" className="text-dark p-0">
+              <FaEllipsisH />
+            </Button>
+          </div>
+        ))
+      )}
+    </div>
+  );
 
   return (
     <div className="d-flex min-vh-100" style={{ backgroundColor: "#fff" }}>
@@ -157,7 +188,7 @@ function ExplorePage() {
                   </InputGroup.Text>
                   <Form.Control
                     type="text"
-                    placeholder="Tìm kiếm người dùng"
+                    placeholder="Tìm kiếm người dùng, nhóm, trang hoặc bài viết"
                     className="bg-white border border-dark rounded-pill py-2"
                     style={{ height: "auto" }}
                     value={searchKeyword}
@@ -167,35 +198,22 @@ function ExplorePage() {
                 {searchKeyword && (
                   <ListGroup
                     className="position-absolute w-100 mt-1 shadow-sm"
-                    style={{ zIndex: 1000, maxHeight: "300px", overflowY: "auto" }}
+                    style={{ zIndex: 1000, maxHeight: "400px", overflowY: "auto" }}
                   >
                     {isLoading ? (
                       <ListGroup.Item className="text-center">
                         <Spinner animation="border" size="sm" /> Đang tải...
                       </ListGroup.Item>
-                    ) : searchResults.length > 0 ? (
-                      searchResults.map((user) => (
-                        <ListGroup.Item
-                          key={user.id}
-                          action
-                          className="d-flex align-items-center"
-                          onClick={() => console.log("Đã chọn người dùng:", user)}
-                        >
-                          <Image
-                            src={user.avatar || "https://via.placeholder.com/40"}
-                            roundedCircle
-                            width={30}
-                            height={30}
-                            className="me-2"
-                          />
-                          <div>
-                            <strong>{user.displayName || user.username}</strong>
-                            <p className="text-muted small mb-0">@{user.username}</p>
-                          </div>
-                        </ListGroup.Item>
-                      ))
                     ) : (
-                      <ListGroup.Item>Không tìm thấy người dùng.</ListGroup.Item>
+                      <>
+                        {renderSearchResultSection("Người dùng", searchResults.users, "user")}
+                        {renderSearchResultSection("Nhóm", searchResults.groups, "group")}
+                        {renderSearchResultSection("Trang", searchResults.pages, "page")}
+                        {renderSearchResultSection("Bài viết", searchResults.posts, "post")}
+                        {Object.values(searchResults).every(arr => arr.length === 0) && (
+                          <ListGroup.Item>Không tìm thấy kết quả.</ListGroup.Item>
+                        )}
+                      </>
                     )}
                   </ListGroup>
                 )}
@@ -204,46 +222,22 @@ function ExplorePage() {
             <Row>
               <Col xs={12} lg={6} className="mx-auto px-md-0">
                 <Nav variant="underline" className="mt-2 profile-tabs nav-justified explore-tabs">
-                  <Nav.Item>
-                    <Nav.Link
-                      onClick={() => setActiveTab("for-you")}
-                      className={`text-dark fw-bold ${activeTab === "for-you" ? "active" : ""}`}
-                    >
-                      Cho Bạn
-                    </Nav.Link>
-                  </Nav.Item>
-                  <Nav.Item>
-                    <Nav.Link
-                      onClick={() => setActiveTab("trending")}
-                      className={`text-dark fw-bold ${activeTab === "trending" ? "active" : ""}`}
-                    >
-                      Đang phổ biến
-                    </Nav.Link>
-                  </Nav.Item>
-                  <Nav.Item>
-                    <Nav.Link
-                      onClick={() => setActiveTab("news")}
-                      className={`text-dark fw-bold ${activeTab === "news" ? "active" : ""}`}
-                    >
-                      Tin tức
-                    </Nav.Link>
-                  </Nav.Item>
-                  <Nav.Item>
-                    <Nav.Link
-                      onClick={() => setActiveTab("sports")}
-                      className={`text-dark fw-bold ${activeTab === "sports" ? "active" : ""}`}
-                    >
-                      Thể thao
-                    </Nav.Link>
-                  </Nav.Item>
-                  <Nav.Item>
-                    <Nav.Link
-                      onClick={() => setActiveTab("entertainment")}
-                      className={`text-dark fw-bold ${activeTab === "entertainment" ? "active" : ""}`}
-                    >
-                      Giải trí
-                    </Nav.Link>
-                  </Nav.Item>
+                  {["for-you", "trending", "news", "sports", "entertainment"].map((tab) => (
+                    <Nav.Item key={tab}>
+                      <Nav.Link
+                        onClick={() => setActiveTab(tab)}
+                        className={`text-dark fw-bold ${activeTab === tab ? "active" : ""}`}
+                      >
+                        {{
+                          "for-you": "Cho Bạn",
+                          "trending": "Đang phổ biến",
+                          "news": "Tin tức",
+                          "sports": "Thể thao",
+                          "entertainment": "Giải trí",
+                        }[tab]}
+                      </Nav.Link>
+                    </Nav.Item>
+                  ))}
                 </Nav>
               </Col>
             </Row>
