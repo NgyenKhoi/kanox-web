@@ -382,7 +382,7 @@ function ProfilePage() {
 
     try {
       const response = await fetch(
-          `${process.env.REACT_APP_API_URL}/blocks/${username}`,
+          `${process.env.REACT_APP_API_URL}/blocks/${userProfile.id}`,
           {
             method: isBlocked ? "DELETE" : "POST",
             headers: {
