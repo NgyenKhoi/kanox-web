@@ -11,14 +11,14 @@ export const useWebSocket = (onNotification, setUnreadCount) => {
     useEffect(() => {
         if (!user) return;
 
-        const token = sessionStorage.getItem("token");
+        const token = sessionStorage.getItem("token") || localStorage.getItem("token");
         if (!token) {
             toast.error("Không tìm thấy token. Vui lòng đăng nhập lại.");
             return;
         }
 
         const client = new Client({
-            brokerURL: "ws://localhost:8080/ws",
+            brokerURL: "wss://kanox.duckdns.org/api/ws",
             connectHeaders: {
                 Authorization: `Bearer ${token}`,
             },

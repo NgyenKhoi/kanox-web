@@ -28,16 +28,16 @@ function SettingsPage() {
 
         const fetchPrivacySettings = async () => {
             setLoading(true);
-            const token = sessionStorage.getItem("token");
+            const token = sessionStorage.getItem("token") || localStorage.getItem("token");
             if (!token) {
                 toast.error("Không tìm thấy token. Vui lòng đăng nhập lại.");
                 setLoading(false);
-                navigate("/signup");
+                navigate("/login");
                 return;
             }
 
             try {
-                const response = await fetch(`${process.env.REACT_APP_API_URL}/user/privacy`, {
+                const response = await fetch(`${process.env.REACT_APP_API_URL}/privacy`, {
                     headers: {
                         "Content-Type": "application/json",
                         Accept: "application/json",
@@ -58,7 +58,7 @@ function SettingsPage() {
                     throw new Error(data.message || "Không thể lấy cài đặt quyền riêng tư.");
                 }
 
-                setSettings(data.data || {
+                setSettings(data || {
                     postVisibility: "public",
                     commentPermission: "everyone",
                     friendRequestPermission: "everyone",
@@ -81,16 +81,16 @@ function SettingsPage() {
 
     const handleSave = async () => {
         setSaving(true);
-        const token = sessionStorage.getItem("token");
+        const token = sessionStorage.getItem("token") || localStorage.getItem("token");
         if (!token) {
             toast.error("Không tìm thấy token. Vui lòng đăng nhập lại.");
             setSaving(false);
-            navigate("/signup");
+            navigate("/login");
             return;
         }
 
         try {
-            const response = await fetch(`${process.env.REACT_APP_API_URL}/user/privacy`, {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/privacy`, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
@@ -198,7 +198,7 @@ function SettingsPage() {
                                         </Form.Select>
                                     </Form.Group>
                                     <Form.Group className="mb-4">
-                                        <Form.Label className="fw-bold text-dark">Ai có thể gửi lời mời kết bạn?</Form.Label>
+                                        <Form.Label className="fw-bold text-dark">Ai có thể gửi yêu cầu kết bạn?</Form.Label>
                                         <Form.Select
                                             name="friendRequestPermission"
                                             value={settings.friendRequestPermission}

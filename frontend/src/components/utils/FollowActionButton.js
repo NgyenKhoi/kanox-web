@@ -12,7 +12,7 @@ function FollowActionButton({ targetId }) {
 
         const fetchFollowStatus = async () => {
             try {
-                const token = localStorage.getItem("token");
+                const token = sessionStorage.getItem("token") || localStorage.getItem("token");
                 if (!token) throw new Error("Không tìm thấy token");
 
                 const response = await fetch(
@@ -38,7 +38,7 @@ function FollowActionButton({ targetId }) {
     const handleAction = async (action) => {
         setLoading(true);
         try {
-            const token = localStorage.getItem("token");
+            const token = sessionStorage.getItem("token") || localStorage.getItem("token");
             if (!token) throw new Error("Không tìm thấy token");
 
             const response = await fetch(

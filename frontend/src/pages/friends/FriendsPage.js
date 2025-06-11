@@ -55,7 +55,7 @@ function FriendsPage() {
         try {
             let url;
             if (type === "friends") {
-                url = `${process.env.REACT_APP_API_URL}/friends/users/${user.id}/friends?page=${pageNum}&size=10`;
+                url = `${process.env.REACT_APP_API_URL}/friends?page=${pageNum}&size=10`;
             } else if (type === "sent") {
                 url = `${process.env.REACT_APP_API_URL}/friends/sent-pending?page=${pageNum}&size=10`;
             } else if (type === "received") {
@@ -235,8 +235,8 @@ function FriendsPage() {
                                     Previous
                                 </Button>
                                 <span className="align-self-center">
-                  Page {page[activeTab] + 1} of {totalPages[activeTab]}
-                </span>
+                                    Page {page[activeTab] + 1} of {totalPages[activeTab]}
+                                </span>
                                 <Button
                                     onClick={handleNext}
                                     disabled={page[activeTab] >= totalPages[activeTab] - 1 || loading}

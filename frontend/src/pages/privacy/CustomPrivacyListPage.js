@@ -30,7 +30,7 @@ function CustomPrivacyListPage() {
 
     const fetchLists = async () => {
         setLoading(true);
-        const token = sessionStorage.getItem("token");
+        const token = sessionStorage.getItem("token") || localStorage.getItem("token");
         if (!token) {
             toast.error("Không tìm thấy token. Vui lòng đăng nhập lại.");
             setLoading(false);
@@ -39,7 +39,7 @@ function CustomPrivacyListPage() {
         }
 
         try {
-            const response = await fetch(`${process.env.REACT_APP_API_URL}privacy/lists`, {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/privacy/lists`, {
                 headers: {
                     "Content-Type": "application/json",
                     Accept: "application/json",
@@ -60,7 +60,7 @@ function CustomPrivacyListPage() {
                 throw new Error(data.message || "Không thể lấy danh sách tùy chỉnh.");
             }
 
-            setLists(data.response || []);
+            setLists(data.data || []);
         } catch (error) {
             console.error("Lỗi khi lấy danh sách:", error);
             toast.error(error.message || "Không thể tải danh sách!");
@@ -75,7 +75,7 @@ function CustomPrivacyListPage() {
             return;
         }
 
-        const token = sessionStorage.getItem("token");
+        const token = sessionStorage.getItem("token") || localStorage.getItem("token");
         if (!token) {
             toast.error("Không tìm thấy token. Vui lòng đăng nhập lại.");
             navigate("/signup");
@@ -121,7 +121,7 @@ function CustomPrivacyListPage() {
             return;
         }
 
-        const token = sessionStorage.getItem("token");
+        const token = sessionStorage.getItem("token") || localStorage.getItem("token");
         if (!token) {
             toast.error("Không tìm thấy token. Vui lòng đăng nhập lại!");
             navigate("/signup");
@@ -161,7 +161,7 @@ function CustomPrivacyListPage() {
     };
 
     const handleAddMember = async (memberId) => {
-        const token = sessionStorage.getItem("token");
+        const token = sessionStorage.getItem("token") || localStorage.getItem("token");
         if (!token) {
             toast.error("Không tìm thấy token!");
             navigate("/signup");

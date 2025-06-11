@@ -176,7 +176,7 @@ function ProfilePage() {
 
         if (user.username !== username) {
           const followStatusResponse = await fetch(
-              `${process.env.REACT_APP_API_URL}/user/follow/status/${username}`,
+              `${process.env.REACT_APP_API_URL}/follows/status/${username}`,
               {
                 headers: {
                   "Content-Type": "application/json",
@@ -200,7 +200,7 @@ function ProfilePage() {
           }
 
           const friendshipStatusResponse = await fetch(
-              `${process.env.REACT_APP_API_URL}/friendship/status/${username}`,
+              `${process.env.REACT_APP_API_URL}/friends/status/${username}`,
               {
                 headers: {
                   "Content-Type": "application/json",
@@ -300,7 +300,7 @@ function ProfilePage() {
 
     try {
       const response = await fetch(
-          `${process.env.REACT_APP_API_URL}/user/follow/${username}`,
+          `${process.env.REACT_APP_API_URL}/follows/${username}`,
           {
             method: isFollowing ? "DELETE" : "POST",
             headers: {
@@ -349,22 +349,22 @@ function ProfilePage() {
       return;
     }
 
-    let url = `${process.env.REACT_APP_API_URL}/friendship`;
+    let url;
     let method = "POST";
-    let body = { targetUsername: username };
+    let body = null;
 
-    if (action === "cancel" || action === "unfriend") {
+    if (action === "send") {
+      url = `${process.env.REACT_APP_API_URL}/friends/request/${username}`;
+      body = { targetUsername: username };
+    } else if (action === "cancel" || action === "unfriend") {
       method = "DELETE";
-      url = `${process.env.REACT_APP_API_URL}/friendship/${username}`;
-      body = null;
+      url = `${process.env.REACT_APP_API_URL}/friends/${username}`;
     } else if (action === "accept") {
-      method = "PUT";
-      url = `${process.env.REACT_APP_API_URL}/friendship/accept/${username}`;
-      body = null;
+      method = "POST"; // Sửa từ PUT thành POST theo URLConfig
+      url = `${process.env.REACT_APP_API_URL}/friends/accept/${username}`;
     } else if (action === "decline") {
-      method = "DELETE";
-      url = `${process.env.REACT_APP_API_URL}/friendship/decline/${username}`;
-      body = null;
+      method = "POST"; // Sửa từ DELETE thành POST theo URLConfig
+      url = `${process.env.REACT_APP_API_URL}/friends/reject/${username}`;
     }
 
     try {

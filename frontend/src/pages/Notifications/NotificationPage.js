@@ -9,7 +9,7 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 function NotificationPage() {
-  const { user } = useContext(AuthContext);
+  const { user, setUser } = useContext(AuthContext);
   const [activeTab, setActiveTab] = useState("all");
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -19,7 +19,7 @@ function NotificationPage() {
 
     const fetchNotifications = async () => {
       setLoading(true);
-      const token = sessionStorage.getItem("token");
+      const token = sessionStorage.getItem("token") || localStorage.getItem("token");
       if (!token) {
         toast.error("Không tìm thấy token. Vui lòng đăng nhập lại.");
         setLoading(false);
@@ -66,7 +66,7 @@ function NotificationPage() {
   });
 
   const handleMarkRead = async (id) => {
-    const token = sessionStorage.getItem("token");
+    const token = sessionStorage.getItem("token") || localStorage.getItem("token");
     if (!token) {
       toast.error("Không tìm thấy token!");
       return;
@@ -108,7 +108,7 @@ function NotificationPage() {
   };
 
   const handleMarkUnread = async (id) => {
-    const token = sessionStorage.getItem("token");
+    const token = sessionStorage.getItem("token") || localStorage.getItem("token");
     if (!token) {
       toast.error("Không tìm thấy token!");
       return;

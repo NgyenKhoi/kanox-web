@@ -17,7 +17,7 @@ function BlockedUsersPage() {
 
     useEffect(() => {
         if (!user) {
-            navigate("/signup");
+            navigate("/login");
             return;
         }
         fetchBlockedUsers();
@@ -25,16 +25,16 @@ function BlockedUsersPage() {
 
     const fetchBlockedUsers = async () => {
         setLoading(true);
-        const token = sessionStorage.getItem("token");
+        const token = localStorage.getItem("token") || sessionStorage.getItem("token");
         if (!token) {
             toast.error("Không tìm thấy token! Vui lòng đăng nhập lại!");
             setLoading(false);
-            navigate("/signup");
+            navigate("/login");
             return;
         }
 
         try {
-            const response = await fetch(`${process.env.REACT_APP_API_URL}/api/blocks`, {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/blocks`, {
                 headers: {
                     "Content-Type": "application/json",
                     Accept: "application/json",
@@ -55,7 +55,7 @@ function BlockedUsersPage() {
                 throw new Error(data.message || "Không thể lấy danh sách người bị chặn!");
             }
 
-            setBlockedUsers(data.data || []);
+            setBlockedUsers(data || []);
         } catch (error) {
             console.error("Lỗi khi lấy danh sách:", error);
             toast.error(error.message || "Không thể tải danh sách!");
@@ -65,15 +65,15 @@ function BlockedUsersPage() {
     };
 
     const handleUnblock = async (blockedUserId) => {
-        const token = sessionStorage.getItem("token");
+        const token = localStorage.getItem("token") || sessionStorage.getItem("token");
         if (!token) {
             toast.error("Không tìm thấy token! Vui lòng đăng nhập lại!");
-            navigate("/signup");
+            navigate("/login");
             return;
         }
 
         try {
-            const response = await fetch(`${process.env.REACT_APP_API_URL}/api/blocks/${blockedUserId}`, {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/blocks/${blockedUserId}`, {
                 method: "DELETE",
                 headers: {
                     "Content-Type": "application/json",
@@ -128,7 +128,7 @@ function BlockedUsersPage() {
                     <Container fluid>
                         <Row>
                             <Col xs={12} lg={12} className="mx-auto d-flex align-items-center ps-md-5">
-                                <Link to="/home" className="btn btn-light">
+                                <Link to="/profile" className="btn btn-light">
                                     <FaArrowLeft size={20} />
                                 </Link>
                                 <div>

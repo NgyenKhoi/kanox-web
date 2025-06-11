@@ -17,6 +17,7 @@ import CreatePostModal from "./components/posts/CreatePostModal/CreatePostModal"
 import CustomPrivacyListPage from "./pages/privacy/CustomPrivacyListPage";
 import BlockedUsersPage from "./pages/block/BlockedUsersPage";
 import SettingsPage from "./pages/settings/SettingsPage";
+import FriendsPage from "./pages/friends/FriendsPage";
 
 // Router & Context
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
@@ -70,6 +71,7 @@ function App() {
                 <Route path="/privacy/lists" element={<CustomPrivacyListPage />} />
                 <Route path="/blocks" element={<BlockedUsersPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/friends" element={<FriendsPage />} />
               </Routes>
             </div>
           </div>

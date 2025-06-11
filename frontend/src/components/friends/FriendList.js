@@ -16,7 +16,7 @@ function FriendList({ users, showActions = false, onAction }) {
             }
 
             const response = await fetch(
-                `${process.env.REACT_APP_API_URL}/friendships/accept/${friendshipId}`,
+                `${process.env.REACT_APP_API_URL}/friends/accept/${friendshipId}`,
                 {
                     method: "PUT",
                     headers: {

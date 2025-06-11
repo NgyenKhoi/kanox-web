@@ -16,7 +16,7 @@ function FriendshipButton({ targetId }) {
                 if (!token) throw new Error("Không tìm thấy token");
 
                 const response = await fetch(
-                    `${process.env.REACT_APP_API_URL}/friendships/status/${targetId}`,
+                    `${process.env.REACT_APP_API_URL}/friends/status/${targetId}`,
                     {
                         headers: {
                             "Content-Type": "application/json",
@@ -43,16 +43,16 @@ function FriendshipButton({ targetId }) {
 
             let url, method;
             if (action === "send") {
-                url = `${process.env.REACT_APP_API_URL}/friendships/request/${targetId}`;
+                url = `${process.env.REACT_APP_API_URL}/friends/request/${targetId}`;
                 method = "POST";
             } else if (action === "accept") {
-                url = `${process.env.REACT_APP_API_URL}/friendships/accept/${targetId}`;
+                url = `${process.env.REACT_APP_API_URL}/friends/accept/${targetId}`;
                 method = "PUT";
             } else if (action === "reject") {
-                url = `${process.env.REACT_APP_API_URL}/friendships/reject/${targetId}`;
+                url = `${process.env.REACT_APP_API_URL}/friends/reject/${targetId}`;
                 method = "PUT";
             } else if (action === "cancel") {
-                url = `${process.env.REACT_APP_API_URL}/friendships/${targetId}`;
+                url = `${process.env.REACT_APP_API_URL}/friends/${targetId}`;
                 method = "DELETE";
             }
 
