@@ -31,8 +31,10 @@ public class URLConfig {
     //Search URLs
     public static final String SEARCH_BASE = "/api/search";
     public static final String SEARCH_USER = "/users";
-    public static final String SEARCH_POST = "/posts";
     public static final String SEARCH_GROUP = "/groups";
     public static final String SEARCH_PAGE = "/pages";
+    public static final String SEARCH_ALL = "/all";
+    public static final String SEARCH_SYNC = "/sync";
+
     public static final String GOOGLE_LOGIN_CLIENT_ID = "233866118973-t26ue94egg2v1reebqpe684kglf0bjej.apps.googleusercontent.com";
 }

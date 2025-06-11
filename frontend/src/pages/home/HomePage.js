@@ -1,10 +1,9 @@
-/* eslint-disable no-undef */
 import React, { useState, useEffect, useContext } from "react";
 import { Container, Row, Col, Spinner } from "react-bootstrap";
-import Header from "../../components/layout/Header/Header"; // Make sure this is used or removed if not needed
+import Header from "../../components/layout/Header/Header";
 import SidebarLeft from "../../components/layout/SidebarLeft/SidebarLeft";
 import SidebarRight from "../../components/layout/SidebarRight/SidebarRight";
-import TweetInput from "../../components/posts/TweetInput/TweetInput"; // This will be the direct input on the page
+import TweetInput from "../../components/posts/TweetInput/TweetInput";
 import TweetCard from "../../components/posts/TweetCard/TweetCard";
 import { AuthContext } from "../../context/AuthContext";
 
@@ -19,7 +18,7 @@ function HomePage({ onShowCreatePost, isDarkMode, onToggleDarkMode }) {
     if (!user) return;
     setLoading(true);
     try {
-      const token = localStorage.getItem("token"); // Use localStorage.getItem
+      const token = await localStorage.getItem("token");
       const response = await fetch(
         `${process.env.REACT_APP_API_URL}/posts/newsfeed`,
         {
@@ -45,13 +44,6 @@ function HomePage({ onShowCreatePost, isDarkMode, onToggleDarkMode }) {
     fetchPosts();
   }, [user]);
 
-  // Function to handle post success from both TweetInput (on page) and CreatePostModal
-  const handlePostSuccess = (newPost) => {
-    setPosts((prev) => [newPost, ...prev]);
-    // Optionally close the modal here if not handled by CreatePostModal itself
-    // setShowCreatePostModal(false);
-  };
-
   return (
     <div
       className="d-flex flex-column min-vh-100"
@@ -62,12 +54,8 @@ function HomePage({ onShowCreatePost, isDarkMode, onToggleDarkMode }) {
       <Container fluid className="flex-grow-1">
         <Row className="h-100">
           <Col xs={0} md={0} lg={3} className="p-0">
-            {/* Pass the received props to SidebarLeft */}
-            <SidebarLeft
-              onShowCreatePost={onShowCreatePost} // <--- NOW THIS WILL BE DEFINED
-              isDarkMode={isDarkMode} // <--- PASS THESE TOO
-              onToggleDarkMode={onToggleDarkMode} // <--- PASS THESE TOO
-            />
+            {/* Pass setShowCreatePostModal to SidebarLeft */}
+            <SidebarLeft onShowCreatePost={onShowCreatePost} />
           </Col>
           <Col xs={12} lg={6} className="border-start border-end p-0">
             <div
@@ -106,7 +94,7 @@ function HomePage({ onShowCreatePost, isDarkMode, onToggleDarkMode }) {
           </Col>
         </Row>
       </Container>
-      {/* The CreatePostModal component is rendered in App.js */}
+      {/* The CreatePostModal component */}
     </div>
   );
 }

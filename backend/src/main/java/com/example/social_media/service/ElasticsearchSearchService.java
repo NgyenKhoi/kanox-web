@@ -1,6 +1,7 @@
 package com.example.social_media.service;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.SortOrder;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
@@ -51,21 +52,28 @@ public class ElasticsearchSearchService {
         checkedIndexes.add(indexName);
     }
 
-    private Query buildFuzzyBoostQuery(String field, String keyword) {
+    private Query buildPrefixOrFuzzyQuery(String field, String keyword) {
         return Query.of(q -> q.bool(b -> b
-                .should(s -> s.match(m -> m.field(field).query(keyword).boost(2.0f)))
+                .should(s -> s.prefix(p -> p.field(field).value(keyword.toLowerCase())))
                 .should(s -> s.match(m -> m.field(field).query(keyword).fuzziness("AUTO")))
                 .minimumShouldMatch("1")
         ));
     }
 
-    private <T> List<T> searchWithFuzzyBoost(String indexName, String field, String keyword, Class<T> clazz) throws IOException {
+    private <T> List<T> searchWithPrefixAndSort(String indexName, String field, String keyword, Class<T> clazz) throws IOException {
         ensureIndexExists(indexName);
-        Query query = buildFuzzyBoostQuery(field, keyword);
+        Query query = buildPrefixOrFuzzyQuery(field, keyword);
 
         SearchRequest request = SearchRequest.of(s -> s
                 .index(indexName)
-                .query(query));
+                .query(query)
+                .sort(sort -> sort
+                        .field(f -> f
+                                .field(field + ".keyword")
+                                .order(SortOrder.Asc)
+                        )
+                )
+        );
 
         SearchResponse<T> response = elasticsearchClient.search(request, clazz);
         return response.hits().hits().stream()
@@ -74,19 +82,15 @@ public class ElasticsearchSearchService {
     }
 
     public List<UserDocument> searchUsers(String keyword) throws IOException {
-        return searchWithFuzzyBoost("user", "displayName", keyword, UserDocument.class);
-    }
-
-    public List<PostDocument> searchPosts(String keyword) throws IOException {
-        return searchWithFuzzyBoost("posts", "content", keyword, PostDocument.class);
+        return searchWithPrefixAndSort("user", "displayName", keyword, UserDocument.class);
     }
 
     public List<GroupDocument> searchGroups(String keyword) throws IOException {
-        return searchWithFuzzyBoost("groups", "name", keyword, GroupDocument.class);
+        return searchWithPrefixAndSort("groups", "name", keyword, GroupDocument.class);
     }
 
     public List<PageDocument> searchPages(String keyword) throws IOException {
-        return searchWithFuzzyBoost("pages", "name", keyword, PageDocument.class);
+        return searchWithPrefixAndSort("pages", "name", keyword, PageDocument.class);
     }
 
     public Map<String, List<?>> searchAll(String keyword) {
@@ -95,13 +99,6 @@ public class ElasticsearchSearchService {
             result.put("users", searchUsers(keyword));
         } catch (IOException e) {
             result.put("users", Collections.emptyList());
-            e.printStackTrace();
-        }
-
-        try {
-            result.put("posts", searchPosts(keyword));
-        } catch (IOException e) {
-            result.put("posts", Collections.emptyList());
             e.printStackTrace();
         }
 
