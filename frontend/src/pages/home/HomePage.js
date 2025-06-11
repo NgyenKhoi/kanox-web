@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useContext } from "react";
 import { Container, Row, Col, Spinner } from "react-bootstrap";
-import SidebarLeft from "../../components/layout/SidebarLeft/SidebarLeft";
 import SidebarRight from "../../components/layout/SidebarRight/SidebarRight";
 import TweetInput from "../../components/posts/TweetInput/TweetInput";
 import TweetCard from "../../components/posts/TweetCard/TweetCard";
@@ -28,7 +27,7 @@ function HomePage({ onShowCreatePost, isDarkMode, onToggleDarkMode }) {
         throw new Error(errorData.message || "Failed to fetch posts!");
       }
       const data = await response.json();
-      console.log("Fetched posts:", data); // Debug dữ liệu từ API
+      console.log("Fetched posts:", data);
       if (Array.isArray(data)) {
         setPosts(data);
       } else {
@@ -43,7 +42,7 @@ function HomePage({ onShowCreatePost, isDarkMode, onToggleDarkMode }) {
 
   useEffect(() => {
     fetchPosts();
-  }, [user]); // Chỉ gọi lại khi user thay đổi, loại bỏ fetchPosts khỏi dependency
+  }, [user]);
 
   const handlePostSuccess = (newPost) => {
     setPosts((prev) => [newPost, ...prev]);
@@ -56,13 +55,6 @@ function HomePage({ onShowCreatePost, isDarkMode, onToggleDarkMode }) {
       >
         <Container fluid className="flex-grow-1">
           <Row className="h-100">
-            <Col xs={0} md={0} lg={3} className="p-0">
-              <SidebarLeft
-                  onShowCreatePost={onShowCreatePost}
-                  isDarkMode={isDarkMode}
-                  onToggleDarkMode={onToggleDarkMode}
-              />
-            </Col>
             <Col xs={12} lg={6} className="border-start border-end p-0">
               <div
                   className="sticky-top bg-white border-bottom fw-bold fs-5 px-3 py-2 d-flex justify-content-between align-items-center"
