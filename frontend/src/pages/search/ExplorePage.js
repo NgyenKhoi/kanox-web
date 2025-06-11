@@ -17,6 +17,7 @@ import SidebarRight from "../../components/layout/SidebarRight/SidebarRight";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { AuthContext } from "../../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 function ExplorePage() {
   const { token } = useContext(AuthContext);
@@ -25,6 +26,7 @@ function ExplorePage() {
   const [searchResults, setSearchResults] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const navigate = useNavigate();
 
   const debounce = (func, delay) => {
     let timeoutId;
@@ -112,7 +114,7 @@ function ExplorePage() {
                   key={`user-${item.id}`}
                   action
                   className="d-flex align-items-start"
-                  onClick={() => console.log("Đã chọn:", item)}
+                  onClick={() => navigate(`/profile/${item.username}`)} // Navigate to profile
               >
                 <Image
                     src={item.avatar || "https://via.placeholder.com/40"}
