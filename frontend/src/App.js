@@ -68,7 +68,7 @@ function App() {
                 <Route path="/communities" element={<CommunityPage />} />
                 <Route path="/community/:communityId" element={<CommunityDetail />} />
                 <Route path="/privacy/lists" element={<CustomPrivacyListPage />} />
-                <Route path="/blocked-users" element={<BlockedUsersPage />} />
+                <Route path="/blocks" element={<BlockedUsersPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
               </Routes>
             </div>

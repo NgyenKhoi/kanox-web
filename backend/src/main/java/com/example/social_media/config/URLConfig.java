@@ -39,7 +39,7 @@ public class URLConfig {
     public static final String GOOGLE_LOGIN_CLIENT_ID = "233866118973-t26ue94egg2v1reebqpe684kglf0bjej.apps.googleusercontent.com";
 
     // Friendship URLs
-    public static final String FRIENDSHIP_BASE = "/api/friendships";
+    public static final String FRIENDSHIP_BASE = "/api/friends";
     public static final String SEND_FRIEND_REQUEST = "/request/{receiverId}";
     public static final String ACCEPT_FRIEND_REQUEST = "/accept/{requesterId}";
     public static final String REJECT_FRIEND_REQUEST = "/reject/{requesterId}";

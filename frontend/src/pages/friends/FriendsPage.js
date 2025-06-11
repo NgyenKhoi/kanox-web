@@ -55,11 +55,11 @@ function FriendsPage() {
         try {
             let url;
             if (type === "friends") {
-                url = `${process.env.REACT_APP_API_URL}/friendships/users/${user.id}/friends?page=${pageNum}&size=10`;
+                url = `${process.env.REACT_APP_API_URL}/friends/users/${user.id}/friends?page=${pageNum}&size=10`;
             } else if (type === "sent") {
-                url = `${process.env.REACT_APP_API_URL}/friendships/sent-pending?page=${pageNum}&size=10`;
+                url = `${process.env.REACT_APP_API_URL}/friends/sent-pending?page=${pageNum}&size=10`;
             } else if (type === "received") {
-                url = `${process.env.REACT_APP_API_URL}/friendships/received-pending?page=${pageNum}&size=10`;
+                url = `${process.env.REACT_APP_API_URL}/friends/received-pending?page=${pageNum}&size=10`;
             }
 
             const response = await fetch(url, {

@@ -70,8 +70,8 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
     { icon: <FaUserAlt size={24} />, label: "Cộng đồng", path: "/communities" },
     { icon: <BsStars size={24} />, label: "Premium", path: "/premium" },
     { icon: <FaUserFriends size={24} />, label: "Bạn bè", path: "/friends" },
-    { icon: <FaListAlt size={24} />, label: "Danh sách tùy chỉnh", path: "/custom-lists", protected: true },
-    { icon: <FaUserSlash size={24} />, label: "Người bị chặn", path: "/blocked-users", protected: true },
+    { icon: <FaListAlt size={24} />, label: "Danh sách tùy chỉnh", path: "/privacy/lists", protected: true },
+    { icon: <FaUserSlash size={24} />, label: "Người bị chặn", path: "/blocks", protected: true },
     {
       icon: <FaUserAlt size={24} />,
       label: "Hồ sơ",
