@@ -18,14 +18,14 @@ export const useWebSocket = (onNotification, setUnreadCount) => {
         }
 
         const client = new Client({
-            brokerURL: "wss://kanox.duckdns.org/api/ws",
+            brokerURL: "wss://kanox.duckdns.org/ws",
             connectHeaders: {
                 Authorization: `Bearer ${token}`,
             },
             onConnect: () => {
                 client.subscribe(`/topic/notifications/${user.id}`, (message) => {
                     const notification = JSON.parse(message.body);
-                    onNotification(notification);
+                    onNotification(notification); // Loại bỏ notification.notification
                     setUnreadCount((prev) => prev + 1);
                 });
             },
@@ -40,7 +40,7 @@ export const useWebSocket = (onNotification, setUnreadCount) => {
 
         const fetchUnreadCount = async () => {
             try {
-                const response = await fetch(`${process.env.REACT_APP_API_URL}/notifications/unread-count`, {
+                const response = await fetch(`${process.env.REACT_APP_API_URL}/notifications?status=unread`, {
                     headers: {
                         "Content-Type": "application/json",
                         Accept: "application/json",
@@ -58,10 +58,10 @@ export const useWebSocket = (onNotification, setUnreadCount) => {
                 }
 
                 if (!response.ok) {
-                    throw new Error(data.message || "Không thể lấy số thông báo chưa đọc.");
+                    throw new Error(data.message || "Không thể lấy thông báo chưa đọc.");
                 }
 
-                setUnreadCount(data.count || 0);
+                setUnreadCount(data.content ? data.content.length : 0); // Đếm số thông báo chưa đọc
             } catch (error) {
                 console.error("Lỗi khi lấy số chưa đọc:", error);
                 toast.error(error.message || "Lỗi khi lấy số thông báo chưa đọc!");
