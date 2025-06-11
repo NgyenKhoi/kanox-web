@@ -1,3 +1,6 @@
+// CommunityPage.js (Updated)
+/* eslint-disable react/jsx-no-comment-textnodes */
+/* eslint-disable no-undef */
 import React, { useState, useEffect } from "react";
 import { Container, Row, Col, Nav, Card, Button } from "react-bootstrap";
 import {
@@ -11,7 +14,8 @@ import { Link, useNavigate } from "react-router-dom";
 import SidebarRight from "../../components/layout/SidebarRight/SidebarRight"; // Assuming you have a right sidebar
 import SidebarLeft from "../../components/layout/SidebarLeft/SidebarLeft";
 
-function CommunityPage() {
+// YOU MUST DESTRUCTURE THE PROPS HERE
+function CommunityPage({ onShowCreatePost, isDarkMode, onToggleDarkMode }) {
   const navigate = useNavigate();
   const [activeCategory, setActiveCategory] = useState("all"); // State for active category tab
   const [posts, setPosts] = useState([]); // State to hold community posts
@@ -109,12 +113,17 @@ function CommunityPage() {
     <Container fluid className="community-page-container d-flex flex-grow-1">
       <Row className="w-100 justify-content-center">
         <Col xs={0} md={0} lg={3} className="p-0">
-          <SidebarLeft />
+          {/* Pass the received props to SidebarLeft */}
+          <SidebarLeft
+            onShowCreatePost={onShowCreatePost}
+            isDarkMode={isDarkMode}
+            onToggleDarkMode={onToggleDarkMode}
+          />
         </Col>
         {/* Main Content Area */}
         <Col
           xs={12}
-          lg={8}
+          lg={6}
           className="community-main-content border-start border-end py-3"
         >
           <div className="d-flex align-items-center mb-3 px-3">
@@ -234,7 +243,11 @@ function CommunityPage() {
         </Col>
 
         {/* Right Sidebar */}
-        <Col lg={4} className="d-none d-lg-block community-sidebar-right">
+        <Col
+          xs={0}
+          lg={3}
+          className="d-none d-lg-block community-sidebar-right"
+        >
           <SidebarRight />
         </Col>
       </Row>

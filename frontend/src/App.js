@@ -14,7 +14,6 @@ import VerifyEmailPage from "./pages/auth/login/VerifyEmailPage";
 import CommunityPage from "./pages/community/CommunityPage";
 import CommunityDetail from "./pages/community/CommunityDetail";
 import CreatePostModal from "./components/posts/CreatePostModal/CreatePostModal";
-import SettingsPage from "./pages/settings/SettingsPage"
 
 // Router & Context
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
@@ -65,7 +64,6 @@ function App() {
                 <Route path="/messages" element={<MessengerPage />} />
                 <Route path="/communities" element={<CommunityPage />} />
                 <Route path="/community/:communityId" element={<CommunityDetail />} />
-                <Route path="/settings" element={<SettingsPage />} />
               </Routes>
             </div>
           </div>

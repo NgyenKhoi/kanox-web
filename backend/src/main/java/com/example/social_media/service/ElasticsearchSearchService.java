@@ -75,10 +75,16 @@ public class ElasticsearchSearchService {
                 )
         );
 
-        SearchResponse<T> response = elasticsearchClient.search(request, clazz);
-        return response.hits().hits().stream()
-                .map(Hit::source)
-                .collect(Collectors.toList());
+        try {
+            SearchResponse<T> response = elasticsearchClient.search(request, clazz);
+            return response.hits().hits().stream()
+                    .map(Hit::source)
+                    .collect(Collectors.toList());
+        } catch (IOException e) {
+            System.err.println("Error searching index " + indexName + ": " + e.getMessage());
+            e.printStackTrace();
+            return Collections.emptyList();
+        }
     }
 
     public List<UserDocument> searchUsers(String keyword) throws IOException {
@@ -97,21 +103,21 @@ public class ElasticsearchSearchService {
         Map<String, List<?>> result = new HashMap<>();
         try {
             result.put("users", searchUsers(keyword));
-        } catch (IOException e) {
+        } catch (Exception e) {
             result.put("users", Collections.emptyList());
             e.printStackTrace();
         }
 
         try {
             result.put("groups", searchGroups(keyword));
-        } catch (IOException e) {
+        } catch (Exception e) {
             result.put("groups", Collections.emptyList());
             e.printStackTrace();
         }
 
         try {
             result.put("pages", searchPages(keyword));
-        } catch (IOException e) {
+        } catch (Exception e) {
             result.put("pages", Collections.emptyList());
             e.printStackTrace();
         }
