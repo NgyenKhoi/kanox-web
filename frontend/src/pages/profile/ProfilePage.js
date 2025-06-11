@@ -308,17 +308,17 @@ function ProfilePage() {
     let body = null;
 
     if (action === "send") {
-      url = `${process.env.REACT_APP_API_URL}/friends/request/${username}`;
+      url = `${process.env.REACT_APP_API_URL}/friends/request/${userProfile.id}`;
       body = { targetUsername: username };
     } else if (action === "cancel" || action === "unfriend") {
       method = "DELETE";
-      url = `${process.env.REACT_APP_API_URL}/friends/${username}`;
+      url = `${process.env.REACT_APP_API_URL}/friends/${userProfile.id}`;
     } else if (action === "accept") {
       method = "POST"; // Sửa từ PUT thành POST theo URLConfig
-      url = `${process.env.REACT_APP_API_URL}/friends/accept/${username}`;
+      url = `${process.env.REACT_APP_API_URL}/friends/accept/${userProfile.id}`;
     } else if (action === "decline") {
       method = "POST"; // Sửa từ DELETE thành POST theo URLConfig
-      url = `${process.env.REACT_APP_API_URL}/friends/reject/${username}`;
+      url = `${process.env.REACT_APP_API_URL}/friends/reject/${userProfile.id}`;
     }
 
     try {

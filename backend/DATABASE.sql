@@ -2477,7 +2477,8 @@ GO
     ('STORY_CREATE', 'User created a story'),
     ('FRIEND_REQUEST_SENT', 'User sent a friend request'),
     ('FRIEND_REQUEST_ACCEPTED', 'User accepted a friend request'),
-	('FOLLOW', 'User followed a user');
+	('FOLLOW', 'User followed a user'),
+	('UNFOLLOW', 'User unfollowed a user');
 
     -- tblNotificationType (Loại thông báo)
     INSERT INTO tblNotificationType (name, description, status) VALUES
