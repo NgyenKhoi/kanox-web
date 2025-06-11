@@ -3,6 +3,8 @@ package com.example.social_media.document;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.elasticsearch.annotations.Document;
+import org.springframework.data.elasticsearch.annotations.Field;
+import org.springframework.data.elasticsearch.annotations.FieldType;
 
 import java.time.LocalDateTime;
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -12,6 +14,7 @@ public class GroupDocument {
     @Id
     private String id;
     private Integer ownerId;
+    @Field(type = FieldType.Keyword)
     private String name;
     private String description;
     private LocalDateTime createdAt;
