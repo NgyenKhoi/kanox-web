@@ -35,9 +35,7 @@ public class FollowController {
 
     @PostMapping(URLConfig.FOLLOW_USER)
     public ResponseEntity<?> followUser(
-            @PathVariable Integer followeeId,
-            @RequestHeader("X-Client-IP") String ipAddress,
-            @RequestHeader("User-Agent") String device
+            @PathVariable Integer followeeId
     ) {
         try {
             String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -51,9 +49,7 @@ public class FollowController {
 
     @DeleteMapping(URLConfig.UNFOLLOW_USER)
     public ResponseEntity<?> unfollowUser(
-            @PathVariable Integer followeeId,
-            @RequestHeader("X-Client-IP") String ipAddress,
-            @RequestHeader("User-Agent") String device
+            @PathVariable Integer followeeId
     ) {
         try {
             String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();

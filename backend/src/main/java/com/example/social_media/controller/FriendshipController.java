@@ -44,9 +44,7 @@ public class FriendshipController {
 
     @PostMapping(URLConfig.SEND_FRIEND_REQUEST)
     public ResponseEntity<?> sendFriendRequest(
-            @PathVariable Integer receiverId,
-            @RequestHeader("X-Client-IP") String ipAddress,
-            @RequestHeader("User-Agent") String device
+            @PathVariable Integer receiverId
     ) {
         try {
             String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -62,9 +60,7 @@ public class FriendshipController {
 
     @PutMapping(URLConfig.ACCEPT_FRIEND_REQUEST)
     public ResponseEntity<?> acceptFriendRequest(
-            @PathVariable Integer requesterId,
-            @RequestHeader("X-Client-IP") String ipAddress,
-            @RequestHeader("User-Agent") String device
+            @PathVariable Integer requesterId
     ) {
         try {
             String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -80,9 +76,7 @@ public class FriendshipController {
 
     @PutMapping(URLConfig.REJECT_FRIEND_REQUEST)
     public ResponseEntity<?> rejectFriendRequest(
-            @PathVariable Integer requesterId,
-            @RequestHeader("X-Client-IP") String ipAddress,
-            @RequestHeader("User-Agent") String device
+            @PathVariable Integer requesterId
     ) {
         try {
             String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -98,9 +92,7 @@ public class FriendshipController {
 
     @DeleteMapping(URLConfig.CANCEL_FRIENDSHIP)
     public ResponseEntity<?> cancelFriendship(
-            @PathVariable Integer friendId,
-            @RequestHeader("X-Client-IP") String ipAddress,
-            @RequestHeader("User-Agent") String device
+            @PathVariable Integer friendId
     ) {
         try {
             String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
