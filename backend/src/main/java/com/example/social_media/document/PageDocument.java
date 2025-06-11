@@ -1,11 +1,13 @@
 package com.example.social_media.document;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.elasticsearch.annotations.Document;
 
 import java.time.LocalDateTime;
 
 @Document(indexName = "pages")
+@JsonIgnoreProperties(ignoreUnknown = true)
 
 public class PageDocument {
     @Id

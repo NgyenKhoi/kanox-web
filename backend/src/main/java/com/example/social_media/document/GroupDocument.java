@@ -1,9 +1,11 @@
 package com.example.social_media.document;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.elasticsearch.annotations.Document;
 
 import java.time.LocalDateTime;
+@JsonIgnoreProperties(ignoreUnknown = true)
 
 @Document(indexName = "groups")
 public class GroupDocument {

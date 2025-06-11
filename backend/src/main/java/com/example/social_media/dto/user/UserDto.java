@@ -3,16 +3,38 @@ package com.example.social_media.dto.user;
 import com.example.social_media.entity.User;
 
 public class UserDto {
+    private String id;
     private String username;
     private String displayName;
-    private String email;
+    private Short gender;
+    private String bio;
 
     public UserDto() {}
 
-    public UserDto(User user) {
+    public UserDto(String id, String username, String displayName, Short gender, String bio) {
+        this.id = id;
+        this.username = username;
+        this.displayName = displayName;
+        this.gender = gender;
+        this.bio = bio;
+    }
+
+    public UserDto(com.example.social_media.entity.User user) {
+        this.id = String.valueOf(user.getId());
         this.username = user.getUsername();
         this.displayName = user.getDisplayName();
-        this.email = user.getEmail();
+        this.gender = user.getGender();
+        this.bio = user.getBio();
+    }
+
+    // Getters and setters
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
     }
 
     public String getUsername() {
@@ -31,11 +53,20 @@ public class UserDto {
         this.displayName = displayName;
     }
 
-    public String getEmail() {
-        return email;
+    public Short getGender() {
+        return gender;
     }
 
-    public void setEmail(String email) {
-        this.email = email;
+    public void setGender(Short gender) {
+        this.gender = gender;
+    }
+
+    public String getBio() {
+        return bio;
+    }
+
+    public void setBio(String bio) {
+        this.bio = bio;
     }
 }
+
