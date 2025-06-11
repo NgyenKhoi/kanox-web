@@ -69,7 +69,7 @@ public class ElasticsearchSearchService {
                 .query(query)
                 .sort(sort -> sort
                         .field(f -> f
-                                .field(field)
+                                .field(field + ".keyword")
                                 .order(SortOrder.Asc)
                         )
                 )
