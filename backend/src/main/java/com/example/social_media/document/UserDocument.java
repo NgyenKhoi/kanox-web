@@ -11,7 +11,7 @@ public class UserDocument {
     @Id
     private String id;
     private String username;
-    @Field(type = FieldType.Keyword)
+    @Field(type = FieldType.Text)
     private String displayName;
     private String bio;
     private Short gender;

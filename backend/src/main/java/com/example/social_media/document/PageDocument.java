@@ -15,7 +15,7 @@ public class PageDocument {
     @Id
     private String id;
     private Integer ownerId;
-    @Field(type = FieldType.Keyword)
+    @Field(type = FieldType.Text)
     private String name;
     private String description;
     private LocalDateTime createdAt;
