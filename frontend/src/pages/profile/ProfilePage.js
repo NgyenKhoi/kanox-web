@@ -122,13 +122,13 @@ function ProfilePage() {
         if (user?.username) {
           navigate(`/profile/${user.username}`);
         } else {
-          navigate("/signup");
+          navigate("/");
         }
         return;
       }
 
       if (!user) {
-        navigate("/signup");
+        navigate("/");
         return;
       }
 
@@ -136,7 +136,7 @@ function ProfilePage() {
       if (!token) {
         toast.error("Không tìm thấy token. Vui lòng đăng nhập lại.");
         setLoading(false);
-        navigate("/signup");
+        navigate("/");
         return;
       }
 
@@ -291,10 +291,10 @@ function ProfilePage() {
       return;
     }
 
-    const token = sessionStorage.getItem("token");
+    const token = sessionStorage.getItem("token") || localStorage.getItem("token");
     if (!token) {
       toast.error("Không tìm thấy token. Vui lòng đăng nhập lại.");
-      navigate("/signup");
+      navigate("/");
       return;
     }
 
