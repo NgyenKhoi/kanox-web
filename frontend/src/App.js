@@ -13,7 +13,7 @@ import CreatePostModal from "./components/posts/CreatePostModal/CreatePostModal"
 
 // Import SidebarLeft
 import SidebarLeft from "./components/layout/SidebarLeft/SidebarLeft";
-
+import React, { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { toast } from "react-toastify";
