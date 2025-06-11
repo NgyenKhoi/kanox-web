@@ -30,6 +30,7 @@ public class UserProfileService {
         int followeeCount = followRepository.countByFollowerAndStatusTrue(user);
 
         return new UserProfileDto(
+                user.getId(),
                 user.getUsername(),
                 user.getDisplayName(),
                 user.getEmail(),
@@ -55,6 +56,7 @@ public class UserProfileService {
         int followeeCount = followRepository.countByFollowerAndStatusTrue(user);
 
         return new UserProfileDto(
+                user.getId(),
                 user.getUsername(),
                 user.getDisplayName(),
                 user.getEmail(),

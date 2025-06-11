@@ -3,6 +3,7 @@ package com.example.social_media.dto.user;
 import java.time.LocalDate;
 
 public class UserProfileDto {
+    private Integer id; // Thêm trường id
     private String username;
     private String displayName;
     private String email;
@@ -15,7 +16,8 @@ public class UserProfileDto {
     // Constructors
     public UserProfileDto() {}
 
-    public UserProfileDto(String username, String displayName, String email, String bio, Short gender, LocalDate dateOfBirth, int followerCount, int followeeCount) {
+    public UserProfileDto(Integer id, String username, String displayName, String email, String bio, Short gender, LocalDate dateOfBirth, int followerCount, int followeeCount) {
+        this.id = id;
         this.username = username;
         this.displayName = displayName;
         this.email = email;
@@ -27,6 +29,9 @@ public class UserProfileDto {
     }
 
     // Getters and setters
+    public Integer getId() { return id; }
+    public void setId(Integer id) { this.id = id; }
+
     public String getUsername() { return username; }
     public void setUsername(String username) { this.username = username; }
 
