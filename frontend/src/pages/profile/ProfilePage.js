@@ -132,7 +132,7 @@ function ProfilePage() {
         return;
       }
 
-      const token = sessionStorage.getItem("token");
+      const token = sessionStorage.getItem("token") || localStorage.getItem("token");
       if (!token) {
         toast.error("Không tìm thấy token. Vui lòng đăng nhập lại.");
         setLoading(false);
@@ -342,7 +342,7 @@ function ProfilePage() {
       return;
     }
 
-    const token = sessionStorage.getItem("token");
+    const token = sessionStorage.getItem("token") || localStorage.getItem("token");
     if (!token) {
       toast.error("Không tìm thấy token. Vui lòng đăng nhập lại.");
       navigate("/");
@@ -419,7 +419,7 @@ function ProfilePage() {
       return;
     }
 
-    const token = sessionStorage.getItem("token");
+    const token = sessionStorage.getItem("token") || localStorage.getItem("token");
     if (!token) {
       toast.error("Không tìm thấy token. Vui lòng đăng nhập lại.");
       navigate("/");
@@ -475,7 +475,7 @@ function ProfilePage() {
       return;
     }
 
-    const token = sessionStorage.getItem("token");
+    const token = sessionStorage.getItem("token") || localStorage.getItem("token");
     if (!token) {
       toast.error("Không tìm thấy token. Vui lòng đăng nhập lại.");
       navigate("/");
@@ -521,7 +521,7 @@ function ProfilePage() {
   };
 
   const fetchProfileAndPosts = async () => {
-    const token = sessionStorage.getItem("token");
+    const token = sessionStorage.getItem("token") || localStorage.getItem("token");
     if (!token) {
       toast.error("Không tìm thấy token. Vui lòng đăng nhập lại.");
       navigate("/");
