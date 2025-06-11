@@ -10,23 +10,18 @@ import org.springframework.data.elasticsearch.annotations.FieldType;
 public class UserDocument {
     @Id
     private String id;
-
-    private String email;
     private String username;
     @Field(type = FieldType.Text)
     private String displayName;
-    private String phoneNumber;
     private String bio;
     private Short gender;
 
     public UserDocument() {}
 
-    public UserDocument(String id, String email, String username, String displayName, String phoneNumber, String bio, Short gender) {
+    public UserDocument(String id, String username, String displayName, String bio, Short gender) {
         this.id = id;
-        this.email = email;
         this.username = username;
         this.displayName = displayName;
-        this.phoneNumber = phoneNumber;
         this.bio = bio;
         this.gender = gender;
     }
@@ -39,13 +34,6 @@ public class UserDocument {
         this.id = id;
     }
 
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
 
     public String getUsername() {
         return username;
@@ -63,13 +51,6 @@ public class UserDocument {
         this.displayName = displayName;
     }
 
-    public String getPhoneNumber() {
-        return phoneNumber;
-    }
-
-    public void setPhoneNumber(String phoneNumber) {
-        this.phoneNumber = phoneNumber;
-    }
 
     public String getBio() {
         return bio;

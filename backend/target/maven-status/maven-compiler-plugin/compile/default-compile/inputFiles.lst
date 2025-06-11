@@ -2,7 +2,6 @@ D:\social-media\backend\src\main\java\com\example\social_media\entity\ErrorLog.j
 D:\social-media\backend\src\main\java\com\example\social_media\entity\MessageType.java
 D:\social-media\backend\src\main\java\com\example\social_media\SocialMediaApplication.java
 D:\social-media\backend\src\main\java\com\example\social_media\jwt\JwtService.java
-D:\social-media\backend\src\main\java\com\example\social_media\repository\document_repository\MediaDocumentRepository.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\TargetType.java
 D:\social-media\backend\src\main\java\com\example\social_media\service\GroupService.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\Story.java
@@ -58,7 +57,6 @@ D:\social-media\backend\src\main\java\com\example\social_media\repository\docume
 D:\social-media\backend\src\main\java\com\example\social_media\entity\PasswordReset.java
 D:\social-media\backend\src\main\java\com\example\social_media\service\MailService.java
 D:\social-media\backend\src\main\java\com\example\social_media\service\UserProfileService.java
-D:\social-media\backend\src\main\java\com\example\social_media\repository\document_repository\PostDocumentRepository.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\ContentPrivacyId.java
 D:\social-media\backend\src\main\java\com\example\social_media\dto\message\ChatDto.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\ChatMemberId.java
@@ -68,6 +66,7 @@ D:\social-media\backend\src\main\java\com\example\social_media\exception\Invalid
 D:\social-media\backend\src\main\java\com\example\social_media\controller\ChatController.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\Analytic.java
 D:\social-media\backend\src\main\java\com\example\social_media\repository\MediaTypeRepository.java
+D:\social-media\backend\src\main\java\com\example\social_media\repository\PageRepository.java
 D:\social-media\backend\src\main\java\com\example\social_media\exception\UnauthorizedException.java
 D:\social-media\backend\src\main\java\com\example\social_media\controller\AuthController.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\NotificationType.java
@@ -101,6 +100,7 @@ D:\social-media\backend\src\main\java\com\example\social_media\service\GcsServic
 D:\social-media\backend\src\main\java\com\example\social_media\exception\InvalidTokenException.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\ContentPolicy.java
 D:\social-media\backend\src\main\java\com\example\social_media\repository\PostTagRepository.java
+D:\social-media\backend\src\main\java\com\example\social_media\dto\search\SearchResponseDto.java
 D:\social-media\backend\src\main\java\com\example\social_media\repository\FollowRepository.java
 D:\social-media\backend\src\main\java\com\example\social_media\repository\ChatMemberRepository.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\FriendSuggestion.java
@@ -114,12 +114,10 @@ D:\social-media\backend\src\main\java\com\example\social_media\service\Elasticse
 D:\social-media\backend\src\main\java\com\example\social_media\entity\StoryReply.java
 D:\social-media\backend\src\main\java\com\example\social_media\service\GroupMemberService.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\HiddenPostId.java
-D:\social-media\backend\src\main\java\com\example\social_media\document\MediaDocument.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\ActionType.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\CustomPrivacyListMember.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\Message.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\ActivityLog.java
-D:\social-media\backend\src\main\java\com\example\social_media\document\PostDocument.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\UpgradeType.java
 D:\social-media\backend\src\main\java\com\example\social_media\controller\GroupMemberController.java
 D:\social-media\backend\src\main\java\com\example\social_media\dto\authentication\ForgotPasswordRequestDto.java

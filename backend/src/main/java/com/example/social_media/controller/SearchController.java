@@ -3,13 +3,13 @@ package com.example.social_media.controller;
 
 import com.example.social_media.config.URLConfig;
 import com.example.social_media.document.*;
+import com.example.social_media.dto.search.SearchResponseDto;
 import com.example.social_media.service.DataSyncService;
 import com.example.social_media.service.ElasticsearchSearchService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
@@ -57,9 +57,28 @@ public class SearchController {
         }
     }
 
-    @PostMapping("/sync-users")
-    public ResponseEntity<String> syncAllUsers() {
-        dataSyncService.syncAllUsersToElasticsearch();
-        return ResponseEntity.ok("Đã đồng bộ tất cả users vào Elasticsearch.");
+    @PostMapping(URLConfig.SEARCH_SYNC)
+    public ResponseEntity<String> syncAllData() {
+        dataSyncService.syncAllToElasticsearch();
+        return ResponseEntity.ok("Đã đồng bộ tất cả users, groups, pages vào Elasticsearch.");
+    }
+
+    @GetMapping(URLConfig.SEARCH_ALL)
+    public ResponseEntity<SearchResponseDto> searchAll(@RequestParam("keyword") String keyword) {
+        try {
+            List<UserDocument> users = searchService.searchUsers(keyword);
+            List<GroupDocument> groups = searchService.searchGroups(keyword);
+            List<PageDocument> pages = searchService.searchPages(keyword);
+
+            SearchResponseDto result = new SearchResponseDto(users, groups, pages);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(new SearchResponseDto(
+                    Collections.emptyList(),
+                    Collections.emptyList(),
+                    Collections.emptyList()
+            ));
+        }
     }
 }
