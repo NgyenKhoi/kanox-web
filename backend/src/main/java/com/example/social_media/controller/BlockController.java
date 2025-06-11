@@ -29,7 +29,11 @@ public class BlockController {
             User currentUser = customUserDetailsService.getUserByUsername(currentUsername);
             blockService.blockUser(currentUser.getId(), blockedUserId);
             return ResponseEntity.ok(Map.of("message", "User blocked successfully"));
-        } catch (IllegalArgumentException | UserNotFoundException e) {
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage(), "errors", Map.of()));
+        } catch (UserNotFoundException e) {
+            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage(), "errors", Map.of()));
+        } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage(), "errors", Map.of()));
         }
     }
@@ -41,7 +45,11 @@ public class BlockController {
             User currentUser = customUserDetailsService.getUserByUsername(currentUsername);
             blockService.unblockUser(currentUser.getId(), blockedUserId);
             return ResponseEntity.ok(Map.of("message", "User unblocked successfully"));
-        } catch (IllegalArgumentException | UserNotFoundException e) {
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage(), "errors", Map.of()));
+        } catch (UserNotFoundException e) {
+            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage(), "errors", Map.of()));
+        } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage(), "errors", Map.of()));
         }
     }
@@ -53,6 +61,8 @@ public class BlockController {
             User currentUser = customUserDetailsService.getUserByUsername(currentUsername);
             return ResponseEntity.ok(Map.of("data", blockService.getBlockedUsers(currentUser.getId())));
         } catch (UserNotFoundException e) {
+            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage(), "errors", Map.of()));
+        } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage(), "errors", Map.of()));
         }
     }

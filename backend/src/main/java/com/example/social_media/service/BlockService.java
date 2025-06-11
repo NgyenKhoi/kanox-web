@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -66,8 +67,9 @@ public class BlockService {
     public List<User> getBlockedUsers(Integer userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
-        return blockRepository.findByUserAndStatus(user, true).stream()
+        List<Block> blocks = blockRepository.findByUserAndStatus(user, true);
+        return blocks != null ? blocks.stream()
                 .map(Block::getBlockedUser)
-                .collect(Collectors.toList());
+                .collect(Collectors.toList()) : Collections.emptyList();
     }
 }

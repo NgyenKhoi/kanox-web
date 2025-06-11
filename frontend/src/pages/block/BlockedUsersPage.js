@@ -46,16 +46,18 @@ function BlockedUsersPage() {
             let data;
             if (contentType && contentType.includes("application/json")) {
                 data = await response.json();
+                console.log("API Response:", data); // Log để kiểm tra
             } else {
                 const text = await response.text();
                 data = { message: text };
+                console.log("API Text Response:", text); // Log để kiểm tra
             }
 
             if (!response.ok) {
                 throw new Error(data.message || "Không thể lấy danh sách người bị chặn!");
             }
 
-            setBlockedUsers(data || []);
+            setBlockedUsers(Array.isArray(data) ? data : data.data || []);
         } catch (error) {
             console.error("Lỗi khi lấy danh sách:", error);
             toast.error(error.message || "Không thể tải danh sách!");
