@@ -2,25 +2,41 @@
 /* eslint-disable no-undef */
 import React, { useState, useEffect, useContext } from "react";
 import { Container, Row, Col, Spinner } from "react-bootstrap";
-import Header from "../../components/layout/Header/Header";
 import SidebarLeft from "../../components/layout/SidebarLeft/SidebarLeft";
 import SidebarRight from "../../components/layout/SidebarRight/SidebarRight";
 import TweetInput from "../../components/posts/TweetInput/TweetInput";
 import TweetCard from "../../components/posts/TweetCard/TweetCard";
 import { AuthContext } from "../../context/AuthContext";
+// import { toast } from "react-toastify"; // You might want to import this if you use toast locally
 
-// YOU MUST DESTRUCTURE THE PROPS HERE
-function HomePage({ onShowCreatePost, isDarkMode, onToggleDarkMode }) {
+// YOU MUST REMOVE THE PROPS FROM HERE if App.js is NOT passing them.
+function HomePage() {
+  // Removed onShowCreatePost, isDarkMode, onToggleDarkMode from props here.
   const { user } = useContext(AuthContext);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Define local state/functions for SidebarLeft to consume if App.js doesn't pass them.
+  // These will not interact with the global modal or dark mode state in App.js.
+  const [localIsDarkMode, setLocalIsDarkMode] = useState(false); // Default local dark mode state
+  const localOnToggleDarkMode = () => {
+    setLocalIsDarkMode((prev) => !prev);
+    console.log("Dark mode toggled locally within HomePage's sidebar.");
+  };
+  const localOnShowCreatePost = () => {
+    // This function is a placeholder. It will not open the global modal in App.js.
+    console.log(
+      "Create Post button clicked from HomePage's Sidebar. (Modal control is outside HomePage)"
+    );
+    // If you want a local modal on HomePage, you'd define its state here.
+  };
+
   const fetchPosts = async () => {
     if (!user) return;
     setLoading(true);
     try {
-      const token = await localStorage.getItem("token");
+      const token = localStorage.getItem("token"); // Use localStorage.getItem
       const response = await fetch(
         `${process.env.REACT_APP_API_URL}/posts/newsfeed`,
         {
@@ -44,20 +60,31 @@ function HomePage({ onShowCreatePost, isDarkMode, onToggleDarkMode }) {
 
   useEffect(() => {
     fetchPosts();
-  }, [user]);
+  }, [fetchPosts, user]); // Added fetchPosts to dependency array for ESLint
+
+  // Define a local handlePostSuccess for the TweetInput on this page.
+  // This will *not* be the same handlePostSuccess as defined in App.js for its modal.
+  const handlePostSuccess = (newPost) => {
+    setPosts((prev) => [newPost, ...prev]);
+    // If you want a success toast here:
+    // toast.success("Bài đăng của bạn đã được thêm!");
+  };
 
   return (
     <div
       className="d-flex flex-column min-vh-100"
       style={{ backgroundColor: "#fff" }}
     >
-      {/* <Header /> */}{" "}
-      {/* Header is commented out, consider if you need it */}
+      {/* <Header /> */}
       <Container fluid className="flex-grow-1">
         <Row className="h-100">
           <Col xs={0} md={0} lg={3} className="p-0">
-            {/* Pass setShowCreatePostModal to SidebarLeft */}
-            <SidebarLeft onShowCreatePost={onShowCreatePost} />
+            {/* Pass local functions/states to SidebarLeft since App.js isn't passing them */}
+            <SidebarLeft
+              onShowCreatePost={localOnShowCreatePost}
+              isDarkMode={localIsDarkMode}
+              onToggleDarkMode={localOnToggleDarkMode}
+            />
           </Col>
           <Col xs={12} lg={6} className="border-start border-end p-0">
             <div
@@ -66,9 +93,7 @@ function HomePage({ onShowCreatePost, isDarkMode, onToggleDarkMode }) {
             >
               <span>Trang chủ</span>
             </div>
-            // eslint-disable-next-line react/jsx-no-comment-textnodes
             {/* Direct TweetInput on the homepage for quick posting */}
-            // eslint-disable-next-line no-undef
             <TweetInput postOnSuccess={handlePostSuccess} />
             {loading ? (
               <div className="d-flex justify-content-center py-4">
@@ -97,7 +122,7 @@ function HomePage({ onShowCreatePost, isDarkMode, onToggleDarkMode }) {
           </Col>
         </Row>
       </Container>
-      {/* The CreatePostModal component */}
+      {/* The CreatePostModal component is rendered in App.js, not here. */}
     </div>
   );
 }
