@@ -69,7 +69,7 @@ public class ElasticsearchSearchService {
                 .query(query)
                 .sort(sort -> sort
                         .field(f -> f
-                                .field(field)
+                                .field(field + ".keyword")
                                 .order(SortOrder.Asc)
                         )
                 )
@@ -82,6 +82,7 @@ public class ElasticsearchSearchService {
                     .collect(Collectors.toList());
         } catch (IOException e) {
             System.err.println("Error searching index " + indexName + ": " + e.getMessage());
+            e.printStackTrace();
             return Collections.emptyList();
         }
     }
