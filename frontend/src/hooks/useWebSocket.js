@@ -25,10 +25,12 @@ export const useWebSocket = (onNotification, setUnreadCount) => {
         console.log("WebSocket Token:", token); // Log token
 
         const client = new Client({
-            webSocketFactory: () => new SockJS("https://kanox.duckdns.org/api/ws"), // Hoặc http://localhost:8080/ws
+            webSocketFactory: () => new SockJS("https://kanox.duckdns.org/ws"), // Đảm bảo đúng endpoint
             connectHeaders: {
                 Authorization: `Bearer ${token}`,
             },
+            reconnectDelay: 5000, // Thử lại sau 5 giây
+            reconnectAttempts: 5, // Giới hạn 5 lần thử
             onConnect: () => {
                 console.log("WebSocket connected successfully for user:", user.id);
                 client.subscribe(`/topic/notifications/${user.id}`, (message) => {
@@ -49,6 +51,9 @@ export const useWebSocket = (onNotification, setUnreadCount) => {
             onStompError: (frame) => {
                 console.error("STOMP error:", frame);
                 toast.error("Lỗi giao thức STOMP: " + frame.body);
+            },
+            onDisconnect: () => {
+                console.log("WebSocket disconnected");
             },
             debug: (str) => {
                 console.log("STOMP Debug:", str);

@@ -42,7 +42,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws")
-                .setAllowedOrigins("https://kanox-web.netlify.app")
+                .setAllowedOriginPatterns("*") // Tạm thời cho phép tất cả để debug
                 .withSockJS();
     }
 
@@ -54,7 +54,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                 StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
                 if (StompCommand.CONNECT.equals(accessor.getCommand())) {
                     String authToken = accessor.getFirstNativeHeader("Authorization");
-                    System.out.println("WebSocket Authorization Header: " + authToken); // Log
+                    System.out.println("WebSocket Authorization Header: " + authToken);
                     if (authToken != null && authToken.startsWith("Bearer ")) {
                         try {
                             String jwt = authToken.substring(7);
