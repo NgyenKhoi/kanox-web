@@ -74,6 +74,13 @@ public class User {
     @Column(name = "status", nullable = false)
     private Boolean status = true;
 
+    public User() {}
+
+    // Constructor cho ID
+    public User(Integer id) {
+        this.id = id;
+    }
+
     public Integer getId() {
         return id;
     }

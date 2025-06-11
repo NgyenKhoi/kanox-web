@@ -1983,10 +1983,10 @@ CREATE TABLE tblSession (
 
     -- tblNotificationType (Loại thông báo)
     INSERT INTO tblNotificationType (name, description, status) VALUES
-    ('FriendRequest', 'New friend request received', 1),
-    ('PostComment', 'New comment on your post', 1),
-    ('StoryView', 'Someone viewed your story', 1),
-    ('Reaction', 'Someone reacted to your content', 1);
+    ('FRIEND_REQUEST', 'New friend request received', 1),
+    ('POST_COMMENT', 'New comment on your post', 1),
+    ('STORY_VIEW', 'Someone viewed your story', 1),
+    ('REACTION', 'Someone reacted to your content', 1);
 
 
     -- tblReactionType (Loại phản hồi: Like, Love, Haha, v.v.)
