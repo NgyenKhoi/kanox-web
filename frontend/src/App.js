@@ -1,3 +1,7 @@
+import React, { useState, useEffect } from "react";
+import "./App.css";
+
+// Import all necessary page components
 import SignupPage from "./pages/auth/signup/signupPage";
 import HomePage from "./pages/home/HomePage";
 import ProfilePage from "./pages/profile/ProfilePage";
@@ -11,9 +15,6 @@ import CommunityPage from "./pages/community/CommunityPage";
 import CommunityDetail from "./pages/community/CommunityDetail";
 import CreatePostModal from "./components/posts/CreatePostModal/CreatePostModal";
 
-// Import SidebarLeft
-import SidebarLeft from "./components/layout/SidebarLeft/SidebarLeft";
-import React, { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { toast } from "react-toastify";
@@ -54,12 +55,6 @@ function App() {
               <LoadingPage />
           ) : (
               <div className={`app-container d-flex ${isDarkMode ? "dark-mode" : ""}`}>
-                <SidebarLeft
-                    onShowCreatePost={handleOpenCreatePostModal}
-                    isDarkMode={isDarkMode}
-                    onToggleDarkMode={handleToggleDarkMode}
-                />
-
                 <div className="main-content flex-grow-1">
                   <Routes>
                     <Route path="/" element={<SignupPage />} />

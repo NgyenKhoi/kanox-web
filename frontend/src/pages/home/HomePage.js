@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useContext } from "react";
 import { Container, Row, Col, Spinner } from "react-bootstrap";
+import SidebarLeft from "../../components/layout/SidebarLeft/SidebarLeft";
 import SidebarRight from "../../components/layout/SidebarRight/SidebarRight";
 import TweetInput from "../../components/posts/TweetInput/TweetInput";
 import TweetCard from "../../components/posts/TweetCard/TweetCard";
@@ -55,6 +56,13 @@ function HomePage({ onShowCreatePost, isDarkMode, onToggleDarkMode }) {
       >
         <Container fluid className="flex-grow-1">
           <Row className="h-100">
+            <Col xs={0} md={0} lg={3} className="p-0">
+              <SidebarLeft
+                  onShowCreatePost={onShowCreatePost}
+                  isDarkMode={isDarkMode}
+                  onToggleDarkMode={onToggleDarkMode}
+              />
+            </Col>
             <Col xs={12} lg={6} className="border-start border-end p-0">
               <div
                   className="sticky-top bg-white border-bottom fw-bold fs-5 px-3 py-2 d-flex justify-content-between align-items-center"
