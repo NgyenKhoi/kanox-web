@@ -1,13 +1,13 @@
 package com.example.social_media.dto.search;
 
-import com.example.social_media.document.GroupDocument;
-import com.example.social_media.document.PageDocument;
-import com.example.social_media.document.UserDocument;
+import com.example.social_media.dto.user.GroupDto;
+import com.example.social_media.dto.user.PageDto;
+import com.example.social_media.dto.user.UserDto;
 
 import java.util.List;
 
 public record SearchResponseDto(
-        List<UserDocument> users,
-        List<GroupDocument> groups,
-        List<PageDocument> pages
+        List<UserDto> users,
+        List<GroupDto> groups,
+        List<PageDto> pages
 ) {}

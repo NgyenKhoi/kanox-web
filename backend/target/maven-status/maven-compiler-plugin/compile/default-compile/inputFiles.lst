@@ -21,6 +21,7 @@ D:\social-media\backend\src\main\java\com\example\social_media\entity\GroupMembe
 D:\social-media\backend\src\main\java\com\example\social_media\entity\BannedKeyword.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\PostTag.java
 D:\social-media\backend\src\main\java\com\example\social_media\controller\GroupController.java
+D:\social-media\backend\src\main\java\com\example\social_media\dto\user\GroupDto.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\FollowId.java
 D:\social-media\backend\src\main\java\com\example\social_media\service\MediaService.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\ReactionType.java
@@ -102,12 +103,14 @@ D:\social-media\backend\src\main\java\com\example\social_media\entity\ContentPol
 D:\social-media\backend\src\main\java\com\example\social_media\repository\PostTagRepository.java
 D:\social-media\backend\src\main\java\com\example\social_media\dto\search\SearchResponseDto.java
 D:\social-media\backend\src\main\java\com\example\social_media\repository\FollowRepository.java
+D:\social-media\backend\src\main\java\com\example\social_media\dto\user\UserDtoForSearch.java
 D:\social-media\backend\src\main\java\com\example\social_media\repository\ChatMemberRepository.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\FriendSuggestion.java
 D:\social-media\backend\src\main\java\com\example\social_media\repository\GroupMemberRepository.java
 D:\social-media\backend\src\main\java\com\example\social_media\controller\PostController.java
 D:\social-media\backend\src\main\java\com\example\social_media\service\FileUploadService.java
 D:\social-media\backend\src\main\java\com\example\social_media\dto\authentication\LoginRequestDto.java
+D:\social-media\backend\src\main\java\com\example\social_media\dto\user\PageDto.java
 D:\social-media\backend\src\main\java\com\example\social_media\exception\TokenExpiredException.java
 D:\social-media\backend\src\main\java\com\example\social_media\repository\ContentPrivacyRepository.java
 D:\social-media\backend\src\main\java\com\example\social_media\service\ElasticsearchSearchService.java
