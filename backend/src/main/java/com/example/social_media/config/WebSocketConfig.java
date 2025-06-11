@@ -54,16 +54,30 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                 StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
                 if (StompCommand.CONNECT.equals(accessor.getCommand())) {
                     String authToken = accessor.getFirstNativeHeader("Authorization");
+                    System.out.println("WebSocket Authorization Header: " + authToken); // Log
                     if (authToken != null && authToken.startsWith("Bearer ")) {
-                        String jwt = authToken.substring(7);
-                        String username = jwtService.extractUsername(jwt);
-                        if (username != null) {
-                            User userDetails = new User(username, "", new ArrayList<>());
-                            Authentication auth = new UsernamePasswordAuthenticationToken(
-                                    userDetails, null, userDetails.getAuthorities());
-                            SecurityContextHolder.getContext().setAuthentication(auth);
-                            accessor.setUser(auth);
+                        try {
+                            String jwt = authToken.substring(7);
+                            String username = jwtService.extractUsername(jwt);
+                            if (username != null) {
+                                User userDetails = new User(username, "", new ArrayList<>());
+                                if (jwtService.isTokenValid(jwt, userDetails)) {
+                                    Authentication auth = new UsernamePasswordAuthenticationToken(
+                                            userDetails, null, userDetails.getAuthorities());
+                                    SecurityContextHolder.getContext().setAuthentication(auth);
+                                    accessor.setUser(auth);
+                                    System.out.println("WebSocket Authentication successful for user: " + username);
+                                } else {
+                                    System.out.println("Invalid JWT token for user: " + username);
+                                }
+                            } else {
+                                System.out.println("No username extracted from token");
+                            }
+                        } catch (Exception e) {
+                            System.err.println("Error processing JWT in WebSocket: " + e.getMessage());
                         }
+                    } else {
+                        System.out.println("No valid Authorization header in WebSocket");
                     }
                 }
                 return message;

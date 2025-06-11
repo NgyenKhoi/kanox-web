@@ -9,7 +9,7 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 function NotificationPage() {
-  const { user, setUser } = useContext(AuthContext);
+  const { user } = useContext(AuthContext);
   const [activeTab, setActiveTab] = useState("all");
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -48,7 +48,7 @@ function NotificationPage() {
           throw new Error(data.message || "Không thể lấy thông báo.");
         }
 
-        setNotifications(data.data || []);
+        setNotifications(Array.isArray(data.data) ? data.data : []);
       } catch (error) {
         console.error("Lỗi khi lấy thông báo:", error);
         toast.error(error.message || "Không thể lấy thông báo!");
@@ -61,9 +61,12 @@ function NotificationPage() {
   }, [user]);
 
   useWebSocket((notification) => {
-    setNotifications((prev) => [{ notification: { ...notification.notification, isNew: true } }, ...prev]);
+    setNotifications((prev) => [
+      { ...notification, isNew: true }, // Đồng bộ cấu trúc với API
+      ...prev,
+    ]);
     toast.info("Bạn có thông báo mới!");
-  });
+  }, (count) => setNotifications((prev) => prev.map((n) => ({ ...n }))));
 
   const handleMarkRead = async (id) => {
     const token = sessionStorage.getItem("token") || localStorage.getItem("token");
@@ -97,7 +100,7 @@ function NotificationPage() {
 
       setNotifications((prev) =>
           prev.map((notif) =>
-              notif.notification.id === id ? { notification: { ...notif.notification, isRead: true } } : notif
+              notif.id === id ? { ...notif, isRead: true } : notif
           )
       );
       toast.success("Đã đánh dấu đã đọc!");
@@ -139,7 +142,7 @@ function NotificationPage() {
 
       setNotifications((prev) =>
           prev.map((notif) =>
-              notif.notification.id === id ? { notification: { ...notif.notification, isRead: false } } : notif
+              notif.id === id ? { ...notif, isRead: false } : notif
           )
       );
       toast.success("Đã đánh dấu chưa đọc!");
@@ -160,9 +163,9 @@ function NotificationPage() {
   const renderNotificationContent = () => {
     let filteredNotifications = notifications;
     if (activeTab === "read") {
-      filteredNotifications = notifications.filter((notif) => notif.notification.isRead);
+      filteredNotifications = notifications.filter((notif) => notif.isRead);
     } else if (activeTab === "unread") {
-      filteredNotifications = notifications.filter((notif) => !notif.notification.isRead);
+      filteredNotifications = notifications.filter((notif) => !notif.isRead);
     }
 
     return (
@@ -170,7 +173,7 @@ function NotificationPage() {
           {filteredNotifications.length === 0 ? (
               <p className="text-muted text-center p-4">Không có thông báo nào.</p>
           ) : (
-              filteredNotifications.map(({ notification }) => (
+              filteredNotifications.map((notification) => (
                   <div
                       key={notification.id}
                       className={`p-3 border-bottom ${!notification.isRead ? "bg-light-primary" : ""}`}
