@@ -168,7 +168,6 @@ function ProfilePage() {
           isPremium: profileData.isPremium || false,
         });
 
-        // Luôn gọi API status (không phụ thuộc username)
         const [followStatusResponse, friendshipStatusResponse, blockStatusResponse] = await Promise.all([
           fetch(`${process.env.REACT_APP_API_URL}/follows/status/${profileData.id}`, {
             headers: {
@@ -206,8 +205,9 @@ function ProfilePage() {
         if (blockStatusResponse.ok) {
           const blockData = await blockStatusResponse.json();
           setIsBlocked(blockData.isBlocked);
+        }
+
         if (user.username !== username) {
-          // SỬA: Kiểm tra recentAction trước khi cập nhật trạng thái từ server
           if (!recentAction || recentAction.type !== "follow") {
             const followStatusResponse = await fetch(
                 `${process.env.REACT_APP_API_URL}/follows/status/${profileData.id}`,
@@ -226,7 +226,6 @@ function ProfilePage() {
             }
           }
 
-          // SỬA: Kiểm tra recentAction trước khi cập nhật trạng thái bạn bè
           if (!recentAction || recentAction.type !== "friend") {
             const friendshipStatusResponse = await fetch(
                 `${process.env.REACT_APP_API_URL}/friends/status/${profileData.id}`,
@@ -245,7 +244,6 @@ function ProfilePage() {
             }
           }
 
-          // SỬA: Kiểm tra recentAction trước khi cập nhật trạng thái chặn
           if (!recentAction || recentAction.type !== "block") {
             const blockStatusResponse = await fetch(
                 `${process.env.REACT_APP_API_URL}/blocks/status/${profileData.id}`,
@@ -291,6 +289,7 @@ function ProfilePage() {
     };
 
     fetchProfile();
+  }, [username, user, navigate, recentAction]);
 
     // SỬA: Thêm cleanup để xóa recentAction sau 10 giây
     const timer = setTimeout(() => {
