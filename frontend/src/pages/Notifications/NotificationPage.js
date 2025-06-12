@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from "react";
-import { Container, Row, Col, Button, Image, Spinner } from "react-bootstrap";
-import { FaCog, FaEllipsisH, FaCheckCircle, FaCircle, FaUserPlus } from "react-icons/fa";
+import { Container, Row, Col, Nav, Button, Image, Spinner } from "react-bootstrap";
+import { FaCog, FaEllipsisH, FaCheckCircle, FaCircle } from "react-icons/fa";
 import SidebarLeft from "../../components/layout/SidebarLeft/SidebarLeft";
 import SidebarRight from "../../components/layout/SidebarRight/SidebarRight";
 import { AuthContext } from "../../context/AuthContext";
@@ -10,6 +10,7 @@ import "react-toastify/dist/ReactToastify.css";
 
 function NotificationPage() {
   const { user } = useContext(AuthContext);
+  const [activeTab, setActiveTab] = useState("all");
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -61,7 +62,7 @@ function NotificationPage() {
 
   useWebSocket((notification) => {
     setNotifications((prev) => [
-      { ...notification, isNew: true },
+      { ...notification, isNew: true }, // Đồng bộ cấu trúc với API
       ...prev,
     ]);
     toast.info("Bạn có thông báo mới!");
@@ -160,17 +161,22 @@ function NotificationPage() {
   }
 
   const renderNotificationContent = () => {
+    let filteredNotifications = notifications;
+    if (activeTab === "read") {
+      filteredNotifications = notifications.filter((notif) => notif.isRead);
+    } else if (activeTab === "unread") {
+      filteredNotifications = notifications.filter((notif) => !notif.isRead);
+    }
+
     return (
         <div>
-          {notifications.length === 0 ? (
+          {filteredNotifications.length === 0 ? (
               <p className="text-muted text-center p-4">Không có thông báo nào.</p>
           ) : (
-              notifications.map((notification) => (
+              filteredNotifications.map((notification) => (
                   <div
                       key={notification.id}
-                      className={`p-3 border-bottom ${
-                          notification.isRead ? "bg-light-green" : "bg-light-red"
-                      }`}
+                      className={`p-3 border-bottom ${!notification.isRead ? "bg-light-primary" : ""}`}
                   >
                     {notification.type === "mention" && (
                         <div className="d-flex align-items-start">
@@ -184,23 +190,21 @@ function NotificationPage() {
                             <div className="d-flex justify-content-between align-items-center">
                               <p className="fw-bold mb-0">{notification.user}</p>
                               <div>
-                                {notification.isRead ? (
+                                {!notification.isRead ? (
                                     <Button
                                         variant="link"
                                         className="text-dark p-0 me-2"
-                                        onClick={() => handleMarkUnread(notification.id)}
-                                        title="Đánh dấu chưa đọc"
+                                        onClick={() => handleMarkRead(notification.id)}
                                     >
-                                      <FaCircle />
+                                      <FaCheckCircle />
                                     </Button>
                                 ) : (
                                     <Button
                                         variant="link"
                                         className="text-dark p-0 me-2"
-                                        onClick={() => handleMarkRead(notification.id)}
-                                        title="Đánh dấu đã đọc"
+                                        onClick={() => handleMarkUnread(notification.id)}
                                     >
-                                      <FaCheckCircle />
+                                      <FaCircle />
                                     </Button>
                                 )}
                                 <Button variant="link" className="text-dark p-0">
@@ -238,23 +242,21 @@ function NotificationPage() {
                             <div className="d-flex justify-content-between align-items-center">
                               <p className="fw-bold mb-1">{notification.content.split(". ")[0]}</p>
                               <div>
-                                {notification.isRead ? (
+                                {!notification.isRead ? (
                                     <Button
                                         variant="link"
                                         className="text-dark p-0 me-2"
-                                        onClick={() => handleMarkUnread(notification.id)}
-                                        title="Đánh dấu chưa đọc"
+                                        onClick={() => handleMarkRead(notification.id)}
                                     >
-                                      <FaCircle />
+                                      <FaCheckCircle />
                                     </Button>
                                 ) : (
                                     <Button
                                         variant="link"
                                         className="text-dark p-0 me-2"
-                                        onClick={() => handleMarkRead(notification.id)}
-                                        title="Đánh dấu đã đọc"
+                                        onClick={() => handleMarkUnread(notification.id)}
                                     >
-                                      <FaCheckCircle />
+                                      <FaCircle />
                                     </Button>
                                 )}
                                 <Button variant="link" className="text-dark p-0">
@@ -264,42 +266,6 @@ function NotificationPage() {
                             </div>
                             <p className="mb-0">{notification.content.split(". ")[1]}</p>
                             {notification.image && <p className="text-muted small mt-2">{notification.image}</p>}
-                            <p className="text-muted small">{notification.timestamp}</p>
-                          </div>
-                        </div>
-                    )}
-                    {notification.type === "friend_request" && (
-                        <div className="d-flex align-items-start">
-                          <FaUserPlus className="text-muted me-2" style={{ fontSize: "24px" }} />
-                          <div className="flex-grow-1">
-                            <div className="d-flex justify-content-between align-items-center">
-                              <p className="fw-bold mb-1">{notification.user}</p>
-                              <div>
-                                {notification.isRead ? (
-                                    <Button
-                                        variant="link"
-                                        className="text-dark p-0 me-2"
-                                        onClick={() => handleMarkUnread(notification.id)}
-                                        title="Đánh dấu chưa đọc"
-                                    >
-                                      <FaCircle />
-                                    </Button>
-                                ) : (
-                                    <Button
-                                        variant="link"
-                                        className="text-dark p-0 me-2"
-                                        onClick={() => handleMarkRead(notification.id)}
-                                        title="Đánh dấu đã đọc"
-                                    >
-                                      <FaCheckCircle />
-                                    </Button>
-                                )}
-                                <Button variant="link" className="text-dark p-0">
-                                  <FaEllipsisH />
-                                </Button>
-                              </div>
-                            </div>
-                            <p className="mb-0">{notification.content || `${notification.user} đã gửi cho bạn một lời mời kết bạn.`}</p>
                             <p className="text-muted small">{notification.timestamp}</p>
                           </div>
                         </div>
@@ -319,7 +285,7 @@ function NotificationPage() {
             <SidebarLeft />
           </div>
 
-          <div className="d-flex flex-column flex-grow-1 border-start border-end">
+          <div className="d-flex flex-column flex-grow-1 border-start border-end bg-white">
             <div className="sticky-top bg-white border-bottom py-2" style={{ zIndex: 1020 }}>
               <Container fluid>
                 <Row className="align-items-center">
@@ -330,6 +296,32 @@ function NotificationPage() {
                     <Button variant="link" className="text-dark p-0"><FaCog /></Button>
                   </Col>
                 </Row>
+                <Nav variant="underline" className="mt-2 nav-justified notification-tabs">
+                  <Nav.Item>
+                    <Nav.Link
+                        onClick={() => setActiveTab("all")}
+                        className={`text-dark fw-bold ${activeTab === "all" ? "active" : ""}`}
+                    >
+                      Tất cả
+                    </Nav.Link>
+                  </Nav.Item>
+                  <Nav.Item>
+                    <Nav.Link
+                        onClick={() => setActiveTab("read")}
+                        className={`text-dark fw-bold ${activeTab === "read" ? "active" : ""}`}
+                    >
+                      Đã đọc
+                    </Nav.Link>
+                  </Nav.Item>
+                  <Nav.Item>
+                    <Nav.Link
+                        onClick={() => setActiveTab("unread")}
+                        className={`text-dark fw-bold ${activeTab === "unread" ? "active" : ""}`}
+                    >
+                      Chưa đọc
+                    </Nav.Link>
+                  </Nav.Item>
+                </Nav>
               </Container>
             </div>
 
