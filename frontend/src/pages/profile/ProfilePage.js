@@ -23,8 +23,8 @@ import TweetCard from "../../components/posts/TweetCard/TweetCard";
 import EditProfileModal from "../../components/profile/EditProfileModal";
 import SidebarLeft from "../../components/layout/SidebarLeft/SidebarLeft";
 import SidebarRight from "../../components/layout/SidebarRight/SidebarRight";
-import FriendshipButton from "../../components/FriendshipButton"; // Import FriendshipButton
-import FollowActionButton from "../../components/FollowActionButton"; // Import FollowActionButton
+import FriendshipButton from "../../components/friendship/FriendshipButton"; // Import FriendshipButton
+import FollowActionButton from "../../components/utils/FollowActionButton"; // Import FollowActionButton
 import { AuthContext } from "../../context/AuthContext";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
