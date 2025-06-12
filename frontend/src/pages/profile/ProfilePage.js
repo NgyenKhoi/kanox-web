@@ -156,10 +156,9 @@ function ProfilePage() {
           throw new Error(profileData.message || "Lỗi khi lấy thông tin hồ sơ.");
         }
 
-        // Lưu profileData với id
         setUserProfile({
           ...profileData,
-          id: profileData.id, // Đảm bảo id được lưu
+          id: profileData.id,
           banner: profileData.banner || "https://source.unsplash.com/1200x400/?nature,water",
           avatar: profileData.avatar || "https://source.unsplash.com/150x150/?portrait",
           postCount: profileData.postCount || 0,
@@ -168,54 +167,49 @@ function ProfilePage() {
         });
 
         if (user.username !== username) {
-          // Sử dụng userId thay vì username
-          const followStatusResponse = await fetch(
-              `${process.env.REACT_APP_API_URL}/follows/status/${profileData.id}`,
-              {
-                headers: {
-                  "Content-Type": "application/json",
-                  Accept: "application/json",
-                  Authorization: `Bearer ${token}`,
-                },
-              }
-          );
+          const [followStatusResponse, friendshipStatusResponse, blockStatusResponse] = await Promise.all([
+            fetch(`${process.env.REACT_APP_API_URL}/follows/status/${profileData.id}`, {
+              headers: {
+                "Content-Type": "application/json",
+                Accept: "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+            }),
+            fetch(`${process.env.REACT_APP_API_URL}/friends/status/${profileData.id}`, {
+              headers: {
+                "Content-Type": "application/json",
+                Accept: "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+            }),
+            fetch(`${process.env.REACT_APP_API_URL}/blocks/status/${profileData.id}`, {
+              headers: {
+                "Content-Type": "application/json",
+                Accept: "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+            }),
+          ]);
 
           const followStatus = await followStatusResponse.json();
           if (followStatusResponse.ok) {
-            setIsFollowing(followStatus.isFollowing);
+            setIsFollowing(followStatus.isFollowing || false);
+          } else {
+            throw new Error(followStatus.message || "Lỗi khi lấy trạng thái theo dõi.");
           }
-
-          // Các fetch khác (friendship, block) cũng cần dùng id
-          const friendshipStatusResponse = await fetch(
-              `${process.env.REACT_APP_API_URL}/friends/status/${profileData.id}`,
-              {
-                headers: {
-                  "Content-Type": "application/json",
-                  Accept: "application/json",
-                  Authorization: `Bearer ${token}`,
-                },
-              }
-          );
 
           const friendshipData = await friendshipStatusResponse.json();
           if (friendshipStatusResponse.ok) {
-            setFriendshipStatus(friendshipData.status);
+            setFriendshipStatus(friendshipData.status || null);
+          } else {
+            throw new Error(friendshipData.message || "Lỗi khi lấy trạng thái kết bạn.");
           }
-
-          const blockStatusResponse = await fetch(
-              `${process.env.REACT_APP_API_URL}/blocks/status/${profileData.id}`,
-              {
-                headers: {
-                  "Content-Type": "application/json",
-                  Accept: "application/json",
-                  Authorization: `Bearer ${token}`,
-                },
-              }
-          );
 
           const blockStatus = await blockStatusResponse.json();
           if (blockStatusResponse.ok) {
-            setIsBlocked(blockStatus.isBlocked);
+            setIsBlocked(blockStatus.isBlocked || false);
+          } else {
+            throw new Error(blockStatus.message || "Lỗi khi lấy trạng thái chặn.");
           }
         }
 
@@ -262,7 +256,7 @@ function ProfilePage() {
 
     try {
       const response = await fetch(
-          `${process.env.REACT_APP_API_URL}/follows/${userProfile.id}`, // Sử dụng userProfile.id
+          `${process.env.REACT_APP_API_URL}/follows/${userProfile.id}`,
           {
             method: isFollowing ? "DELETE" : "POST",
             headers: {
@@ -303,6 +297,12 @@ function ProfilePage() {
       return;
     }
 
+    // Kiểm tra trạng thái hiện tại để tránh gửi yêu cầu trùng lặp
+    if (action === "send" && friendshipStatus === "pending") {
+      toast.info("Yêu cầu kết bạn đã được gửi trước đó!");
+      return;
+    }
+
     let url;
     let method = "POST";
     let body = null;
@@ -314,10 +314,10 @@ function ProfilePage() {
       method = "DELETE";
       url = `${process.env.REACT_APP_API_URL}/friends/${userProfile.id}`;
     } else if (action === "accept") {
-      method = "POST"; // Sửa từ PUT thành POST theo URLConfig
+      method = "POST";
       url = `${process.env.REACT_APP_API_URL}/friends/accept/${userProfile.id}`;
     } else if (action === "decline") {
-      method = "POST"; // Sửa từ DELETE thành POST theo URLConfig
+      method = "POST";
       url = `${process.env.REACT_APP_API_URL}/friends/reject/${userProfile.id}`;
     }
 
