@@ -106,8 +106,7 @@ public class FollowService {
         Follow follow = followRepository.findByFollowerAndFolloweeAndStatus(follower, followee, true)
                 .orElseThrow(() -> new IllegalArgumentException("Not following user"));
 
-        follow.setStatus(false);
-        followRepository.save(follow);
+        followRepository.delete(follow);
 
         activityLogService.logActivity(
                 followerId,

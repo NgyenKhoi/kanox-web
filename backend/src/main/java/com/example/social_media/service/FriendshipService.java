@@ -139,12 +139,11 @@ public class FriendshipService {
         User friend = userRepository.findById(friendId)
                 .orElseThrow(() -> new UserNotFoundException("User not found with id: " + friendId));
 
-        Friendship friendship = friendshipRepository.findByUserAndFriendAndStatus(user, friend, true)
-                .orElseGet(() -> friendshipRepository.findByUserAndFriendAndStatus(friend, user, true)
+        Friendship friendship = friendshipRepository.findByUserAndFriend(user, friend)
+                .orElseGet(() -> friendshipRepository.findByUserAndFriend(friend, user)
                         .orElseThrow(() -> new IllegalArgumentException("Friendship not found")));
 
-        friendship.setStatus(false);
-        friendshipRepository.save(friendship);
+        friendshipRepository.delete(friendship);
     }
 
     public PageResponseDto<UserTagDto> getFriends(Integer userId, Integer viewerId, Pageable pageable) {
