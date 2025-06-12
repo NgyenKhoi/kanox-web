@@ -297,7 +297,6 @@ function ProfilePage() {
     }, 10000);
 
     return () => clearTimeout(timer);
-  }, [user, username, navigate]);
 
   const handleFollowToggle = async () => {
     if (!user) {
