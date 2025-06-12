@@ -36,9 +36,7 @@ public class UserProfileService {
                 user.getEmail(),
                 user.getBio(),
                 user.getGender(),
-                user.getDateOfBirth(),
-                followerCount,
-                followeeCount
+                user.getDateOfBirth()
         );
     }
 
@@ -62,9 +60,7 @@ public class UserProfileService {
                 user.getEmail(),
                 user.getBio(),
                 user.getGender(),
-                user.getDateOfBirth(),
-                followerCount,
-                followeeCount
+                user.getDateOfBirth()
         );
     }
     public UserTagDto getUserTagByUsername(String username) {
