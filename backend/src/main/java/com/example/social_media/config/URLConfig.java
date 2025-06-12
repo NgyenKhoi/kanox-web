@@ -58,6 +58,7 @@ public class URLConfig {
     // Notifications
     public static final String NOTIFICATION_BASE = "/api/notifications";
     public static final String MARK_READ = "/{id}/mark-read";
+    public static final String MARK_UNREAD = "/{id}/mark-unread";
     // Privacy URLs
     public static final String PRIVACY_BASE = "/api/privacy";
     public static final String CREATE_CUSTOM_LIST = "/lists";

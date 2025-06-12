@@ -18,14 +18,14 @@ function NotificationPage() {
 
     const fetchNotifications = async () => {
       setLoading(true);
-      const token = sessionStorage.getItem("token") || localStorage.getItem("token");
-      if (!token) {
-        toast.error("Không tìm thấy token. Vui lòng đăng nhập lại.");
-        setLoading(false);
-        return;
-      }
-
       try {
+        const token = sessionStorage.getItem("token") || localStorage.getItem("token");
+        if (!token) {
+          throw new Error("Missing token. Please login again.");
+          toast.error("Không tìm thấy token. Vui lòng đăng nhập lại.");
+          return;
+        }
+
         const response = await fetch(`${process.env.REACT_APP_API_URL}/notifications`, {
           headers: {
             "Content-Type": "application/json",
@@ -47,9 +47,24 @@ function NotificationPage() {
           throw new Error(data.message || "Không thể lấy thông báo.");
         }
 
-        setNotifications(Array.isArray(data.data) ? data.data : []);
+        // Ánh xạ dữ liệu từ API
+        const formattedNotifications = Array.isArray(data.data)
+            ? data.data.map((notif) => ({
+              id: notif.id,
+              type: notif.type,
+              user: notif.user || "Người dùng",
+              content: notif.message,
+              avatar: notif.avatar || "https://via.placeholder.com/40",
+              tags: notif.tags || [],
+              timestamp: notif.createdAt,
+              isRead: notif.status === "read",
+              image: notif.image || null,
+            }))
+            : [];
+
+        setNotifications(formattedNotifications);
       } catch (error) {
-        console.error("Lỗi khi lấy thông báo:", error);
+        console.error("Error fetching notifications:", error);
         toast.error(error.message || "Không thể lấy thông báo!");
       } finally {
         setLoading(false);
@@ -59,13 +74,27 @@ function NotificationPage() {
     fetchNotifications();
   }, [user]);
 
-  useWebSocket((notification) => {
-    setNotifications((prev) => [
-      { ...notification, isNew: true },
-      ...prev,
-    ]);
-    toast.info("Bạn có thông báo mới!");
-  }, (count) => setNotifications((prev) => prev.map((n) => ({ ...n }))));
+  useWebSocket(
+      (notification) => {
+        // Ánh xạ thông báo từ WebSocket
+        const formattedNotification = {
+          id: notification.id,
+          type: notification.type,
+          user: notification.user || "Người dùng",
+          content: notification.message || `Bạn nhận được lời mời kết bạn từ người dùng ${notification.targetId}`,
+          avatar: notification.avatar || "https://via.placeholder.com/40",
+          tags: notification.tags || [],
+          timestamp: notification.createdAt || new Date().toISOString(),
+          isRead: notification.status === "read",
+          isNew: true,
+          image: notification.image || null,
+        };
+
+        setNotifications((prev) => [formattedNotification, ...prev]);
+        toast.info("Bạn có thông báo mới!");
+      },
+      (count) => setNotifications((prev) => prev.map((n) => ({ ...n })))
+  );
 
   const handleMarkRead = async (id) => {
     const token = sessionStorage.getItem("token") || localStorage.getItem("token");
@@ -104,7 +133,7 @@ function NotificationPage() {
       );
       toast.success("Đã đánh dấu đã đọc!");
     } catch (error) {
-      console.error("Lỗi khi đánh dấu đã đọc:", error);
+      console.error("Error marking read:", error);
       toast.error(error.message || "Không thể đánh dấu đã đọc!");
     }
   };
@@ -146,7 +175,7 @@ function NotificationPage() {
       );
       toast.success("Đã đánh dấu chưa đọc!");
     } catch (error) {
-      console.error("Lỗi khi đánh dấu chưa đọc:", error);
+      console.error("Error marking unread:", error);
       toast.error(error.message || "Không thể đánh dấu chưa đọc!");
     }
   };
@@ -227,12 +256,12 @@ function NotificationPage() {
                           </div>
                         </div>
                     )}
-                    {notification.type === "community" && (
+                    {(notification.type === "community" || notification.type === "FRIEND_REQUEST" || notification.type === "FRIEND_ACCEPTED") && (
                         <div className="d-flex align-items-start">
                           <i className="bi bi-people-fill text-muted me-2" style={{ fontSize: "24px" }}></i>
                           <div className="flex-grow-1">
                             <div className="d-flex justify-content-between align-items-center">
-                              <p className="fw-bold mb-1">{notification.content.split(". ")[0]}</p>
+                              <p className="fw-bold mb-1">{notification.content.split(". ")[0] || notification.content}</p>
                               <div>
                                 {!notification.isRead ? (
                                     <Button
@@ -256,7 +285,7 @@ function NotificationPage() {
                                 </Button>
                               </div>
                             </div>
-                            <p className="mb-0">{notification.content.split(". ")[1]}</p>
+                            <p className="mb-0">{notification.content.split(". ")[1] || notification.content}</p>
                             {notification.image && <p className="text-muted small mt-2">{notification.image}</p>}
                             <p className="text-muted small">{notification.timestamp}</p>
                           </div>
@@ -285,7 +314,9 @@ function NotificationPage() {
                     <h5 className="fw-bold mb-0">Thông báo</h5>
                   </Col>
                   <Col xs={6} className="text-end">
-                    <Button variant="link" className="text-dark p-0"><FaCog /></Button>
+                    <Button variant="link" className="text-dark p-0">
+                      <FaCog />
+                    </Button>
                   </Col>
                 </Row>
               </Container>
