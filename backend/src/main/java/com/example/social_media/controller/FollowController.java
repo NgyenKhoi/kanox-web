@@ -100,9 +100,7 @@ public class FollowController {
         try {
             String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
             User currentUser = customUserDetailsService.getUserByUsername(currentUsername);
-            User targetUser = customUserDetailsService.getUserByUsername(
-                    customUserDetailsService.getUserByUsername(String.valueOf(targetId)).getUsername()
-            );
+            User targetUser = customUserDetailsService.getUserById(targetId);
             boolean isFollowing = followRepository.findByFollowerAndFolloweeAndStatus(currentUser, targetUser, true)
                     .isPresent();
             return ResponseEntity.ok(Map.of("isFollowing", isFollowing));

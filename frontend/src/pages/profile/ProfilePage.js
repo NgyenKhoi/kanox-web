@@ -137,13 +137,6 @@ function ProfilePage() {
                 Authorization: `Bearer ${token}`,
               },
             }),
-            fetch(`${process.env.REACT_APP_API_URL}/blocks/status/${profileData.id}`, {
-              headers: {
-                "Content-Type": "application/json",
-                Accept: "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-            }),
           ]);
 
           if (followStatusResponse.ok) {
@@ -155,11 +148,6 @@ function ProfilePage() {
             const friendshipData = await friendshipStatusResponse.json();
             // SỬA: Lưu trực tiếp status từ backend
             setFriendshipStatus(friendshipData.status || "none");
-          }
-
-          if (blockStatusResponse.ok) {
-            const blockData = await blockStatusResponse.json();
-            setIsBlocked(blockData.isBlocked);
           }
         }
 

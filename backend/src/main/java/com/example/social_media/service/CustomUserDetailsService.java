@@ -40,4 +40,9 @@ public class CustomUserDetailsService implements UserDetailsService {
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("Người dùng không tồn tại với username: " + username));
     }
+
+    public User getUserById(Integer userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("Người dùng không tồn tại với username: " + userId));
+    }
 }
