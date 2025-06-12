@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from "react";
-import { Container, Row, Col, Nav, Button, Image, Spinner } from "react-bootstrap";
+import { Container, Row, Col, Button, Image, Spinner } from "react-bootstrap";
 import { FaCog, FaEllipsisH, FaCheckCircle, FaCircle } from "react-icons/fa";
 import SidebarLeft from "../../components/layout/SidebarLeft/SidebarLeft";
 import SidebarRight from "../../components/layout/SidebarRight/SidebarRight";
@@ -10,7 +10,6 @@ import "react-toastify/dist/ReactToastify.css";
 
 function NotificationPage() {
   const { user } = useContext(AuthContext);
-  const [activeTab, setActiveTab] = useState("all");
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -62,7 +61,7 @@ function NotificationPage() {
 
   useWebSocket((notification) => {
     setNotifications((prev) => [
-      { ...notification, isNew: true }, // Đồng bộ cấu trúc với API
+      { ...notification, isNew: true },
       ...prev,
     ]);
     toast.info("Bạn có thông báo mới!");
@@ -161,19 +160,12 @@ function NotificationPage() {
   }
 
   const renderNotificationContent = () => {
-    let filteredNotifications = notifications;
-    if (activeTab === "read") {
-      filteredNotifications = notifications.filter((notif) => notif.isRead);
-    } else if (activeTab === "unread") {
-      filteredNotifications = notifications.filter((notif) => !notif.isRead);
-    }
-
     return (
         <div>
-          {filteredNotifications.length === 0 ? (
+          {notifications.length === 0 ? (
               <p className="text-muted text-center p-4">Không có thông báo nào.</p>
           ) : (
-              filteredNotifications.map((notification) => (
+              notifications.map((notification) => (
                   <div
                       key={notification.id}
                       className={`p-3 border-bottom ${!notification.isRead ? "bg-light-primary" : ""}`}
@@ -296,32 +288,6 @@ function NotificationPage() {
                     <Button variant="link" className="text-dark p-0"><FaCog /></Button>
                   </Col>
                 </Row>
-                <Nav variant="underline" className="mt-2 nav-justified notification-tabs">
-                  <Nav.Item>
-                    <Nav.Link
-                        onClick={() => setActiveTab("all")}
-                        className={`text-dark fw-bold ${activeTab === "all" ? "active" : ""}`}
-                    >
-                      Tất cả
-                    </Nav.Link>
-                  </Nav.Item>
-                  <Nav.Item>
-                    <Nav.Link
-                        onClick={() => setActiveTab("read")}
-                        className={`text-dark fw-bold ${activeTab === "read" ? "active" : ""}`}
-                    >
-                      Đã đọc
-                    </Nav.Link>
-                  </Nav.Item>
-                  <Nav.Item>
-                    <Nav.Link
-                        onClick={() => setActiveTab("unread")}
-                        className={`text-dark fw-bold ${activeTab === "unread" ? "active" : ""}`}
-                    >
-                      Chưa đọc
-                    </Nav.Link>
-                  </Nav.Item>
-                </Nav>
               </Container>
             </div>
 
