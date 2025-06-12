@@ -61,4 +61,17 @@ public class NotificationController {
         }
     }
 
+    @PutMapping(URLConfig.MARK_UNREAD)
+    public ResponseEntity<?> markNotificationAsUnread(@PathVariable Integer id) {
+        try {
+            String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+            User currentUser = customUserDetailsService.getUserByUsername(currentUsername);
+            notificationService.markAsRead(id, currentUser.getId(), "unread");
+            return ResponseEntity.ok(Map.of("message", "Notification marked as unread"));
+        } catch (UserNotFoundException e) {
+            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage(), "errors", Map.of()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage(), "errors", Map.of()));
+        }
+    }
 }

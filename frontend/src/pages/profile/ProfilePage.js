@@ -197,13 +197,16 @@ function ProfilePage() {
                 Authorization: `Bearer ${token}`,
               },
             }),
-            fetch(`${process.env.REACT_APP_API_URL}/friends/status/${profileData.id}`, {
-              headers: {
-                "Content-Type": "application/json",
-                Accept: "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-            }),
+            // Chỉ gọi API kiểm tra trạng thái kết bạn nếu không có hành động gần đây
+            recentAction && recentAction.type === "friend"
+                ? { ok: false }
+                : fetch(`${process.env.REACT_APP_API_URL}/friends/status/${profileData.id}`, {
+                  headers: {
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                    Authorization: `Bearer ${token}`,
+                  },
+                }),
             fetch(`${process.env.REACT_APP_API_URL}/blocks/status/${profileData.id}`, {
               headers: {
                 "Content-Type": "application/json",
@@ -218,7 +221,7 @@ function ProfilePage() {
             setIsFollowing(followStatus.isFollowing);
           }
 
-          if (friendshipStatusResponse.ok && (!recentAction || recentAction.type !== "friend")) {
+          if (friendshipStatusResponse.ok) {
             const friendshipData = await friendshipStatusResponse.json();
             setFriendshipStatus(friendshipData.status);
           }
@@ -261,7 +264,7 @@ function ProfilePage() {
 
     const timer = setTimeout(() => {
       setRecentAction(null);
-    }, 10000);
+    }, 15000);
 
     return () => clearTimeout(timer);
   }, [user, username, navigate]);
@@ -327,6 +330,21 @@ function ProfilePage() {
     let method = "POST";
     let body = null;
 
+    // Cập nhật trạng thái trước khi gọi API để giao diện render ngay
+    if (action === "send") {
+      setFriendshipStatus("pending"); // Giữ đúng trạng thái "pending"
+      setRecentAction({ type: "friend", value: "pending" });
+    } else if (action === "cancel" || action === "unfriend") {
+      setFriendshipStatus(null);
+      setRecentAction({ type: "friend", value: null });
+    } else if (action === "accept") {
+      setFriendshipStatus("friends");
+      setRecentAction({ type: "friend", value: "friends" });
+    } else if (action === "decline") {
+      setFriendshipStatus(null);
+      setRecentAction({ type: "friend", value: null });
+    }
+
     if (action === "send") {
       url = `${process.env.REACT_APP_API_URL}/friends/request/${targetId}`;
       body = { targetUsername: username };
@@ -363,34 +381,54 @@ function ProfilePage() {
 
       if (response.ok) {
         if (action === "send") {
-          setFriendshipStatus("pending");
-          setRecentAction({ type: "friend", value: "pending" });
           toast.success("Đã gửi yêu cầu kết bạn!");
         } else if (action === "cancel") {
-          setFriendshipStatus(null);
-          setRecentAction({ type: "friend", value: null });
-          toast.success("Đã hủy yêu cầu kết bạn!");
-          // Update sent requests list
           setSentRequests((prev) => prev.filter((req) => req.id !== targetId));
+          toast.success("Đã hủy yêu cầu kết bạn!");
         } else if (action === "accept") {
-          setFriendshipStatus("friends");
-          setRecentAction({ type: "friend", value: "friends" });
           toast.success("Đã chấp nhận kết bạn!");
         } else if (action === "decline") {
-          setFriendshipStatus(null);
-          setRecentAction({ type: "friend", value: null });
           toast.success("Đã từ chối yêu cầu kết bạn!");
         } else if (action === "unfriend") {
-          setFriendshipStatus(null);
-          setRecentAction({ type: "friend", value: null });
           toast.success("Đã hủy kết bạn!");
         }
       } else {
-        throw new Error(data.message || "Lỗi khi xử lý yêu cầu kết bạn.");
+        // Khôi phục trạng thái nếu API thất bại
+        toast.error(data.message || "Lỗi khi xử lý yêu cầu kết bạn.");
+        // Lấy lại trạng thái từ server để đảm bảo đồng bộ
+        const friendshipStatusResponse = await fetch(
+            `${process.env.REACT_APP_API_URL}/friends/status/${targetId}`,
+            {
+              headers: {
+                "Content-Type": "application/json",
+                Accept: "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+            }
+        );
+        if (friendshipStatusResponse.ok) {
+          const friendshipData = await friendshipStatusResponse.json();
+          setFriendshipStatus(friendshipData.status);
+        }
       }
     } catch (error) {
       console.error("Lỗi khi xử lý kết bạn:", error);
       toast.error(error.message || "Lỗi khi xử lý kết bạn.");
+      // Khôi phục trạng thái
+      const friendshipStatusResponse = await fetch(
+          `${process.env.REACT_APP_API_URL}/friends/status/${targetId}`,
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          }
+      );
+      if (friendshipStatusResponse.ok) {
+        const friendshipData = await friendshipStatusResponse.json();
+        setFriendshipStatus(friendshipData.status);
+      }
     }
   };
 

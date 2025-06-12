@@ -25,7 +25,7 @@ import KLogoSvg from "../../svgs/KSvg";
 import { AuthContext } from "../../../context/AuthContext";
 import { useWebSocket } from "../../../hooks/useWebSocket";
 import "./SidebarLeft.css";
-import { ToastContainer } from "react-toastify";
+import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
@@ -38,8 +38,43 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
   const handleCloseOffcanvas = () => setShowOffcanvas(false);
   const handleShowOffcanvas = () => setShowOffcanvas(true);
 
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchUnreadCount = async () => {
+      try {
+        const token = sessionStorage.getItem("token") || localStorage.getItem("token");
+        if (!token) return;
+
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/notifications?page=0&size=100`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) return;
+
+        const data = await response.json();
+        const unread = Array.isArray(data.data?.content)
+            ? data.data.content.filter((notif) => notif.status === "unread").length
+            : 0;
+
+        setUnreadCount(unread);
+      } catch (error) {
+        console.error("Error fetching unread count:", error);
+      }
+    };
+
+    fetchUnreadCount();
+  }, [user]);
+
   useWebSocket(
-      (notification) => {},
+      (notification) => {
+        if (notification.status === "unread") {
+          setUnreadCount((prev) => prev + 1);
+        }
+        toast.info("Bạn có thông báo mới!");
+      },
       setUnreadCount
   );
 
@@ -188,7 +223,7 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
                 style={{ backgroundColor: isDarkMode ? "#222" : "#f8f9fa" }}
             >
               <img
-                  src={user?.avatar || "https://via.placeholder.com/40"}
+                  src={user?.avatar || "https://placehold.co/40x40"}
                   alt="User Avatar"
                   className="rounded-circle me-2"
                   style={{ width: "40px", height: "40px", objectFit: "cover" }}
