@@ -6,7 +6,7 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 export const useWebSocket = (onNotification, setUnreadCount) => {
-    const { user, token } = useContext(AuthContext); // Sử dụng token từ AuthContext
+    const {user} = useContext(AuthContext); // Sử dụng token từ AuthContext
     const clientRef = useRef(null);
 
     useEffect(() => {
@@ -17,8 +17,9 @@ export const useWebSocket = (onNotification, setUnreadCount) => {
         }
 
         console.log("WebSocket Token from AuthContext:", token);
-
+    
         const initializeWebSocket = () => {
+            const token = sessionStorage.getItem("token") || localStorage.getItem("token");
             if (!token) {
                 console.error("No token available for WebSocket");
                 toast.error("Không có token để kết nối WebSocket. Vui lòng đăng nhập lại.");
