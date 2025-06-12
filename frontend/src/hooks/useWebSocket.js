@@ -15,54 +15,98 @@ export const useWebSocket = (onNotification, setUnreadCount) => {
             return;
         }
 
-        const token = sessionStorage.getItem("token") || localStorage.getItem("token");
+        let token = sessionStorage.getItem("token") || localStorage.getItem("token");
         if (!token) {
             toast.error("Không tìm thấy token. Vui lòng đăng nhập lại.");
             console.error("No token found");
             return;
         }
 
-        console.log("WebSocket Token:", token); // Log token
+        console.log("WebSocket Token:", token);
 
-        const client = new Client({
-            webSocketFactory: () => new SockJS("https://kanox.duckdns.org/ws"), // Đảm bảo đúng endpoint
-            connectHeaders: {
-                Authorization: `Bearer ${token}`,
-            },
-            reconnectDelay: 5000, // Thử lại sau 5 giây
-            reconnectAttempts: 5, // Giới hạn 5 lần thử
-            onConnect: () => {
-                console.log("WebSocket connected successfully for user:", user.id);
-                client.subscribe(`/topic/notifications/${user.id}`, (message) => {
-                    try {
-                        const notification = JSON.parse(message.body);
-                        console.log("Received notification:", notification);
-                        onNotification(notification);
-                        setUnreadCount((prev) => prev + 1);
-                    } catch (error) {
-                        console.error("Error parsing WebSocket message:", error);
-                    }
+        const refreshTokenIfNeeded = async () => {
+            try {
+                const refreshToken = localStorage.getItem("refreshToken");
+                if (!refreshToken) throw new Error("No refresh token found");
+                const response = await fetch(`${process.env.REACT_APP_API_URL}/auth/refresh-token`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ refreshToken }),
                 });
-            },
-            onWebSocketError: (error) => {
-                console.error("WebSocket error:", error);
-                toast.error("Lỗi kết nối WebSocket!");
-            },
-            onStompError: (frame) => {
-                console.error("STOMP error:", frame);
-                toast.error("Lỗi giao thức STOMP: " + frame.body);
-            },
-            onDisconnect: () => {
-                console.log("WebSocket disconnected");
-            },
-            debug: (str) => {
-                console.log("STOMP Debug:", str);
-            },
-        });
+                const data = await response.json();
+                if (data.accessToken) {
+                    sessionStorage.setItem("token", data.accessToken);
+                    console.log("Refreshed token:", data.accessToken);
+                    return data.accessToken;
+                }
+                throw new Error("Failed to refresh token");
+            } catch (error) {
+                console.error("Error refreshing token:", error);
+                toast.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
+                return null;
+            }
+        };
 
-        clientRef.current = client;
-        console.log("Activating WebSocket client");
-        client.activate();
+        const initializeWebSocket = async () => {
+            try {
+                const response = await fetch(`${process.env.REACT_APP_API_URL}/notifications`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                if (response.status === 401) {
+                    token = await refreshTokenIfNeeded();
+                    if (!token) return;
+                }
+            } catch (error) {
+                console.error("Error checking token validity:", error);
+                return;
+            }
+
+            const client = new Client({
+                webSocketFactory: () => new SockJS("https://kanox.duckdns.org/ws"), // Hoặc http://localhost:8080/ws
+                connectHeaders: {
+                    Authorization: `Bearer ${token}`,
+                },
+                reconnectDelay: 5000,
+                reconnectAttempts: 3,
+                heartbeatIncoming: 4000,
+                heartbeatOutgoing: 4000,
+                onConnect: () => {
+                    console.log("WebSocket connected successfully for user:", user.id);
+                    client.subscribe(`/topic/notifications/${user.id}`, (message) => {
+                        try {
+                            const notification = JSON.parse(message.body);
+                            console.log("Received notification:", notification);
+                            onNotification(notification);
+                            setUnreadCount((prev) => prev + 1);
+                        } catch (error) {
+                            console.error("Error parsing WebSocket message:", error);
+                        }
+                    });
+                },
+                onWebSocketError: (error) => {
+                    console.error("WebSocket error:", error);
+                    toast.error("Lỗi kết nối WebSocket!");
+                    client.deactivate();
+                },
+                onStompError: (frame) => {
+                    console.error("STOMP error:", frame);
+                    toast.error("Lỗi giao thức STOMP: " + frame.body);
+                    client.deactivate();
+                },
+                onDisconnect: () => {
+                    console.log("WebSocket disconnected");
+                },
+                debug: (str) => {
+                    console.log("STOMP Debug:", str);
+                },
+            });
+
+            clientRef.current = client;
+            console.log("Activating WebSocket client");
+            client.activate();
+        };
+
+        initializeWebSocket();
 
         const fetchUnreadCount = async () => {
             try {
@@ -99,7 +143,7 @@ export const useWebSocket = (onNotification, setUnreadCount) => {
 
         return () => {
             console.log("Deactivating WebSocket client");
-            client.deactivate();
+            if (clientRef.current) clientRef.current.deactivate();
         };
     }, [user, onNotification, setUnreadCount]);
 
