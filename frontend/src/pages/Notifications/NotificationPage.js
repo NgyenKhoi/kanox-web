@@ -8,7 +8,7 @@ import { useWebSocket } from "../../hooks/useWebSocket";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-function NotificationPage() {
+function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
   const { user } = useContext(AuthContext);
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -21,7 +21,6 @@ function NotificationPage() {
       try {
         const token = sessionStorage.getItem("token") || localStorage.getItem("token");
         if (!token) {
-          throw new Error("Missing token. Please login again.");
           toast.error("Không tìm thấy token. Vui lòng đăng nhập lại.");
           return;
         }
@@ -34,27 +33,20 @@ function NotificationPage() {
           },
         });
 
-        const contentType = response.headers.get("content-type");
-        let data;
-        if (contentType && contentType.includes("application/json")) {
-          data = await response.json();
-        } else {
-          const text = await response.text();
-          data = { message: text };
-        }
-
         if (!response.ok) {
-          throw new Error(data.message || "Không thể lấy thông báo.");
+          const errorText = await response.text();
+          throw new Error(errorText || "Không thể lấy thông báo.");
         }
 
+        const data = await response.json();
         // Ánh xạ dữ liệu từ API
-        const formattedNotifications = Array.isArray(data.data)
-            ? data.data.map((notif) => ({
+        const formattedNotifications = Array.isArray(data.data?.content)
+            ? data.data.content.map((notif) => ({
               id: notif.id,
               type: notif.type,
               user: notif.user || "Người dùng",
               content: notif.message,
-              avatar: notif.avatar || "https://via.placeholder.com/40",
+              avatar: notif.avatar || "https://placehold.co/40x40",
               tags: notif.tags || [],
               timestamp: notif.createdAt,
               isRead: notif.status === "read",
@@ -82,7 +74,7 @@ function NotificationPage() {
           type: notification.type,
           user: notification.user || "Người dùng",
           content: notification.message || `Bạn nhận được lời mời kết bạn từ người dùng ${notification.targetId}`,
-          avatar: notification.avatar || "https://via.placeholder.com/40",
+          avatar: notification.avatar || "https://placehold.co/40x40",
           tags: notification.tags || [],
           timestamp: notification.createdAt || new Date().toISOString(),
           isRead: notification.status === "read",
@@ -113,17 +105,9 @@ function NotificationPage() {
         },
       });
 
-      const contentType = response.headers.get("content-type");
-      let data;
-      if (contentType && contentType.includes("application/json")) {
-        data = await response.json();
-      } else {
-        const text = await response.text();
-        data = { message: text };
-      }
-
       if (!response.ok) {
-        throw new Error(data.message || "Không thể đánh dấu đã đọc!");
+        const errorText = await response.text();
+        throw new Error(errorText || "Không thể đánh dấu đã đọc!");
       }
 
       setNotifications((prev) =>
@@ -155,17 +139,9 @@ function NotificationPage() {
         },
       });
 
-      const contentType = response.headers.get("content-type");
-      let data;
-      if (contentType && contentType.includes("application/json")) {
-        data = await response.json();
-      } else {
-        const text = await response.text();
-        data = { message: text };
-      }
-
       if (!response.ok) {
-        throw new Error(data.message || "Không thể đánh dấu chưa đọc!");
+        const errorText = await response.text();
+        throw new Error(errorText || "Không thể đánh dấu chưa đọc!");
       }
 
       setNotifications((prev) =>
@@ -202,7 +178,7 @@ function NotificationPage() {
                     {notification.type === "mention" && (
                         <div className="d-flex align-items-start">
                           <Image
-                              src={notification.avatar || "https://via.placeholder.com/40"}
+                              src={notification.avatar}
                               roundedCircle
                               className="me-2"
                               style={{ width: "40px", height: "40px" }}
@@ -303,7 +279,11 @@ function NotificationPage() {
         <ToastContainer />
         <div className="d-flex min-vh-100 bg-light">
           <div className="d-none d-lg-block">
-            <SidebarLeft />
+            <SidebarLeft
+                onToggleDarkMode={onToggleDarkMode}
+                isDarkMode={isDarkMode}
+                onShowCreatePost={onShowCreatePost}
+            />
           </div>
 
           <div className="d-flex flex-column flex-grow-1 border-start border-end bg-white">
