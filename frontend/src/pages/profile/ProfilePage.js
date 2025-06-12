@@ -168,6 +168,44 @@ function ProfilePage() {
           isPremium: profileData.isPremium || false,
         });
 
+        // Luôn gọi API status (không phụ thuộc username)
+        const [followStatusResponse, friendshipStatusResponse, blockStatusResponse] = await Promise.all([
+          fetch(`${process.env.REACT_APP_API_URL}/follows/status/${profileData.id}`, {
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          }),
+          fetch(`${process.env.REACT_APP_API_URL}/friends/status/${profileData.id}`, {
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          }),
+          fetch(`${process.env.REACT_APP_API_URL}/blocks/status/${profileData.id}`, {
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          }),
+        ]);
+
+        if (followStatusResponse.ok) {
+          const followStatus = await followStatusResponse.json();
+          setIsFollowing(followStatus.isFollowing);
+        }
+
+        if (friendshipStatusResponse.ok) {
+          const friendshipData = await friendshipStatusResponse.json();
+          setFriendshipStatus(friendshipData.status);
+        }
+
+        if (blockStatusResponse.ok) {
+          const blockData = await blockStatusResponse.json();
+          setIsBlocked(blockData.isBlocked);
         if (user.username !== username) {
           // SỬA: Kiểm tra recentAction trước khi cập nhật trạng thái từ server
           if (!recentAction || recentAction.type !== "follow") {
