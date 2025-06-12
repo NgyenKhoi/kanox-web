@@ -13,7 +13,6 @@ import LoadingPage from "./components/common/Loading/LoadingPage";
 import VerifyEmailPage from "./pages/auth/login/VerifyEmailPage";
 import CommunityPage from "./pages/community/CommunityPage";
 import CommunityDetail from "./pages/community/CommunityDetail";
-import CreatePostModal from "./components/posts/CreatePostModal/CreatePostModal";
 import CustomPrivacyListPage from "./pages/privacy/CustomPrivacyListPage";
 import BlockedUsersPage from "./pages/block/BlockedUsersPage";
 import SettingsPage from "./pages/settings/SettingsPage";
@@ -25,7 +24,6 @@ import { AuthProvider } from "./context/AuthContext";
 
 function App() {
   const [isLoading, setIsLoading] = useState(true);
-  const [showCreatePostModal, setShowCreatePostModal] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -33,20 +31,6 @@ function App() {
     }, 2000);
     return () => clearTimeout(timer);
   }, []);
-
-  const handleOpenCreatePostModal = () => {
-    setShowCreatePostModal(true);
-  };
-
-  const handleCloseCreatePostModal = () => {
-    setShowCreatePostModal(false);
-  };
-
-  const handlePostSuccess = (newPost) => {
-    handleCloseCreatePostModal();
-    // eslint-disable-next-line no-undef
-    toast.success("Đăng bài thành công!");
-  };
 
   return (
     <Router>
@@ -76,11 +60,6 @@ function App() {
             </div>
           </div>
         )}
-        <CreatePostModal
-          show={showCreatePostModal}
-          handleClose={handleCloseCreatePostModal}
-          onPostSuccess={handlePostSuccess}
-        />
       </AuthProvider>
     </Router>
   );
