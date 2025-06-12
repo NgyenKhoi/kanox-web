@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useContext } from "react";
 import {
   Container,
@@ -9,6 +8,7 @@ import {
   Nav,
   Spinner,
   Dropdown,
+  ListGroup,
 } from "react-bootstrap";
 import {
   FaArrowLeft,
@@ -39,12 +39,14 @@ function ProfilePage() {
   const [userProfile, setUserProfile] = useState(null);
   const [activeTab, setActiveTab] = useState("posts");
   const [posts, setPosts] = useState([]);
+  const [sentRequests, setSentRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showPremiumAlert, setShowPremiumAlert] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
   const [friendshipStatus, setFriendshipStatus] = useState(null);
   const [isBlocked, setIsBlocked] = useState(false);
+  const [recentAction, setRecentAction] = useState(null);
 
   const defaultUserProfile = {
     name: "User Testing",
@@ -109,6 +111,7 @@ function ProfilePage() {
         likes: 0,
       },
     ],
+    sentRequests: [],
   };
 
   useEffect(() => {
@@ -118,6 +121,7 @@ function ProfilePage() {
         toast.error("Tên người dùng không hợp lệ.");
         setUserProfile(defaultUserProfile);
         setPosts([]);
+        setSentRequests([]);
         setLoading(false);
         if (user?.username) {
           navigate(`/profile/${user.username}`);
@@ -157,68 +161,15 @@ function ProfilePage() {
           throw new Error(profileData.message || "Lỗi khi lấy thông tin hồ sơ.");
         }
 
-        // Lưu profileData với id
         setUserProfile({
           ...profileData,
-          id: profileData.id, // Đảm bảo id được lưu
+          id: profileData.id,
           banner: profileData.banner || "https://source.unsplash.com/1200x400/?nature,water",
           avatar: profileData.avatar || "https://source.unsplash.com/150x150/?portrait",
           postCount: profileData.postCount || 0,
           website: profileData.website || "",
           isPremium: profileData.isPremium || false,
         });
-
-        if (user.username !== username) {
-          // Sử dụng userId thay vì username
-          const followStatusResponse = await fetch(
-              `${process.env.REACT_APP_API_URL}/follows/status/${profileData.id}`,
-              {
-                headers: {
-                  "Content-Type": "application/json",
-                  Accept: "application/json",
-                  Authorization: `Bearer ${token}`,
-                },
-              }
-          );
-
-          const followStatus = await followStatusResponse.json();
-          if (followStatusResponse.ok) {
-            setIsFollowing(followStatus.isFollowing);
-          }
-
-          // Các fetch khác (friendship, block) cũng cần dùng id
-          const friendshipStatusResponse = await fetch(
-              `${process.env.REACT_APP_API_URL}/friends/status/${profileData.id}`,
-              {
-                headers: {
-                  "Content-Type": "application/json",
-                  Accept: "application/json",
-                  Authorization: `Bearer ${token}`,
-                },
-              }
-          );
-
-          const friendshipData = await friendshipStatusResponse.json();
-          if (friendshipStatusResponse.ok) {
-            setFriendshipStatus(friendshipData.status);
-          }
-
-          const blockStatusResponse = await fetch(
-              `${process.env.REACT_APP_API_URL}/blocks/status/${profileData.id}`,
-              {
-                headers: {
-                  "Content-Type": "application/json",
-                  Accept: "application/json",
-                  Authorization: `Bearer ${token}`,
-                },
-              }
-          );
-
-          const blockStatus = await blockStatusResponse.json();
-          if (blockStatusResponse.ok) {
-            setIsBlocked(blockStatus.isBlocked);
-          }
-        }
 
         const postsResponse = await fetch(
             `${process.env.REACT_APP_API_URL}/posts/user/${username}`,
@@ -236,16 +187,83 @@ function ProfilePage() {
         }
 
         setPosts(postsData);
+
+        if (user.username !== username) {
+          const [followStatusResponse, friendshipStatusResponse, blockStatusResponse] = await Promise.all([
+            fetch(`${process.env.REACT_APP_API_URL}/follows/status/${profileData.id}`, {
+              headers: {
+                "Content-Type": "application/json",
+                Accept: "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+            }),
+            fetch(`${process.env.REACT_APP_API_URL}/friends/status/${profileData.id}`, {
+              headers: {
+                "Content-Type": "application/json",
+                Accept: "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+            }),
+            fetch(`${process.env.REACT_APP_API_URL}/blocks/status/${profileData.id}`, {
+              headers: {
+                "Content-Type": "application/json",
+                Accept: "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+            }),
+          ]);
+
+          if (followStatusResponse.ok && (!recentAction || recentAction.type !== "follow")) {
+            const followStatus = await followStatusResponse.json();
+            setIsFollowing(followStatus.isFollowing);
+          }
+
+          if (friendshipStatusResponse.ok && (!recentAction || recentAction.type !== "friend")) {
+            const friendshipData = await friendshipStatusResponse.json();
+            setFriendshipStatus(friendshipData.status);
+          }
+
+          if (blockStatusResponse.ok && (!recentAction || recentAction.type !== "block")) {
+            const blockData = await blockStatusResponse.json();
+            setIsBlocked(blockData.isBlocked);
+          }
+        }
+
+        // Fetch sent pending friend requests if own profile
+        if (user.username === username) {
+          const sentRequestsResponse = await fetch(
+              `${process.env.REACT_APP_API_URL}/friends/pending-sent?page=0&size=10`,
+              {
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`,
+                },
+              }
+          );
+
+          const sentRequestsData = await sentRequestsResponse.json();
+          if (sentRequestsResponse.ok) {
+            setSentRequests(sentRequestsData.data.content || []);
+          }
+        }
       } catch (error) {
         console.error("Lỗi khi lấy hồ sơ:", error);
         toast.error(error.message || "Lỗi khi lấy hồ sơ.");
         setUserProfile(defaultUserProfile);
+        setPosts([]);
+        setSentRequests([]);
       } finally {
         setLoading(false);
       }
     };
 
     fetchProfile();
+
+    const timer = setTimeout(() => {
+      setRecentAction(null);
+    }, 10000);
+
+    return () => clearTimeout(timer);
   }, [user, username, navigate]);
 
   const handleFollowToggle = async () => {
@@ -263,7 +281,7 @@ function ProfilePage() {
 
     try {
       const response = await fetch(
-          `${process.env.REACT_APP_API_URL}/follows/${userProfile.id}`, // Sử dụng userProfile.id
+          `${process.env.REACT_APP_API_URL}/follows/${userProfile.id}`,
           {
             method: isFollowing ? "DELETE" : "POST",
             headers: {
@@ -281,6 +299,7 @@ function ProfilePage() {
           ...prev,
           followerCount: prev.followerCount + (isFollowing ? -1 : 1),
         }));
+        setRecentAction({ type: "follow", value: !isFollowing });
         toast.success(isFollowing ? "Đã hủy theo dõi!" : "Đã theo dõi!");
       } else {
         throw new Error(data.message || (isFollowing ? "Lỗi khi ngừng theo dõi." : "Lỗi khi theo dõi người dùng."));
@@ -291,7 +310,7 @@ function ProfilePage() {
     }
   };
 
-  const handleFriendRequest = async (action) => {
+  const handleFriendRequest = async (action, targetId = userProfile.id) => {
     if (!user) {
       navigate("/");
       return;
@@ -309,17 +328,17 @@ function ProfilePage() {
     let body = null;
 
     if (action === "send") {
-      url = `${process.env.REACT_APP_API_URL}/friends/request/${userProfile.id}`;
+      url = `${process.env.REACT_APP_API_URL}/friends/request/${targetId}`;
       body = { targetUsername: username };
     } else if (action === "cancel" || action === "unfriend") {
       method = "DELETE";
-      url = `${process.env.REACT_APP_API_URL}/friends/${userProfile.id}`;
+      url = `${process.env.REACT_APP_API_URL}/friends/${targetId}`;
     } else if (action === "accept") {
-      method = "POST"; // Sửa từ PUT thành POST theo URLConfig
-      url = `${process.env.REACT_APP_API_URL}/friends/accept/${userProfile.id}`;
+      method = "POST";
+      url = `${process.env.REACT_APP_API_URL}/friends/accept/${targetId}`;
     } else if (action === "decline") {
-      method = "POST"; // Sửa từ DELETE thành POST theo URLConfig
-      url = `${process.env.REACT_APP_API_URL}/friends/reject/${userProfile.id}`;
+      method = "POST";
+      url = `${process.env.REACT_APP_API_URL}/friends/reject/${targetId}`;
     }
 
     try {
@@ -345,18 +364,25 @@ function ProfilePage() {
       if (response.ok) {
         if (action === "send") {
           setFriendshipStatus("pending");
+          setRecentAction({ type: "friend", value: "pending" });
           toast.success("Đã gửi yêu cầu kết bạn!");
         } else if (action === "cancel") {
           setFriendshipStatus(null);
+          setRecentAction({ type: "friend", value: null });
           toast.success("Đã hủy yêu cầu kết bạn!");
+          // Update sent requests list
+          setSentRequests((prev) => prev.filter((req) => req.id !== targetId));
         } else if (action === "accept") {
           setFriendshipStatus("friends");
+          setRecentAction({ type: "friend", value: "friends" });
           toast.success("Đã chấp nhận kết bạn!");
         } else if (action === "decline") {
           setFriendshipStatus(null);
+          setRecentAction({ type: "friend", value: null });
           toast.success("Đã từ chối yêu cầu kết bạn!");
         } else if (action === "unfriend") {
           setFriendshipStatus(null);
+          setRecentAction({ type: "friend", value: null });
           toast.success("Đã hủy kết bạn!");
         }
       } else {
@@ -405,6 +431,7 @@ function ProfilePage() {
 
       if (response.ok) {
         setIsBlocked(!isBlocked);
+        setRecentAction({ type: "block", value: !isBlocked });
         toast.success(isBlocked ? "Đã bỏ chặn người dùng!" : "Đã chặn người dùng!");
         if (!isBlocked) {
           setFriendshipStatus(null);
@@ -539,6 +566,23 @@ function ProfilePage() {
       }
 
       setPosts(postsData);
+
+      if (user.username === username) {
+        const sentRequestsResponse = await fetch(
+            `${process.env.REACT_APP_API_URL}/friends/pending-sent?page=0&size=10`,
+            {
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+            }
+        );
+
+        const sentRequestsData = await sentRequestsResponse.json();
+        if (sentRequestsResponse.ok) {
+          setSentRequests(sentRequestsData.data.content || []);
+        }
+      }
     } catch (error) {
       console.error("Lỗi khi làm mới dữ liệu:", error);
       toast.error(error.message || "Lỗi khi làm mới dữ liệu.");
@@ -557,6 +601,42 @@ function ProfilePage() {
           ))
       ) : (
           <p className="text-dark text-center p-4">Không có bài đăng nào.</p>
+      );
+    }
+
+    if (activeTab === "sentRequests") {
+      return sentRequests.length > 0 ? (
+          <ListGroup>
+            {sentRequests.map((req) => (
+                <ListGroup.Item
+                    key={`request-${req.id}`}
+                    className="d-flex align-items-center justify-content-between"
+                >
+                  <div className="d-flex align-items-center">
+                    <Image
+                        src={req.avatar || "https://via.placeholder.com/40"}
+                        roundedCircle
+                        width={40}
+                        height={40}
+                        className="me-2"
+                    />
+                    <div>
+                      <strong>{req.displayName || req.username}</strong>
+                      <p className="text-muted small mb-0">@{req.username}</p>
+                    </div>
+                  </div>
+                  <Button
+                      variant="outline-warning"
+                      size="sm"
+                      onClick={() => handleFriendRequest("cancel", req.id)}
+                  >
+                    <FaUserTimes className="me-1" /> Hủy yêu cầu
+                  </Button>
+                </ListGroup.Item>
+            ))}
+          </ListGroup>
+      ) : (
+          <p className="text-dark text-center p-4">Không có yêu cầu kết bạn đã gửi.</p>
       );
     }
 
@@ -582,7 +662,7 @@ function ProfilePage() {
             <FaUserCheck className="me-1" /> Bạn bè
           </Button>
       );
-    } else if (friendshipStatus === "pending") {
+    } else if (friendshipStatus === "pendingSent") {
       return (
           <Button
               variant="outline-warning"
@@ -592,7 +672,7 @@ function ProfilePage() {
             <FaUserTimes className="me-1" /> Hủy yêu cầu
           </Button>
       );
-    } else if (friendshipStatus === "requested") {
+    } else if (friendshipStatus === "pendingReceived") {
       return (
           <Dropdown className="d-inline-block ms-2">
             <Dropdown.Toggle
@@ -809,7 +889,7 @@ function ProfilePage() {
                   )}
 
                   <Nav variant="tabs" className="mt-4 profile-tabs nav-justified">
-                    {["posts", "shares", "savedArticles"].map((tab) => (
+                    {["posts", "shares", "savedArticles", ...(isOwnProfile ? ["sentRequests"] : [])].map((tab) => (
                         <Nav.Item key={tab}>
                           <Nav.Link
                               onClick={() => setActiveTab(tab)}
@@ -818,6 +898,7 @@ function ProfilePage() {
                             {tab === "posts" && "Bài đăng"}
                             {tab === "shares" && "Chia sẻ"}
                             {tab === "savedArticles" && "Bài viết đã lưu"}
+                            {tab === "sentRequests" && "Yêu cầu đã gửi"}
                           </Nav.Link>
                         </Nav.Item>
                     ))}
