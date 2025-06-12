@@ -44,6 +44,8 @@ function ProfilePage() {
   const [isFollowing, setIsFollowing] = useState(false);
   const [friendshipStatus, setFriendshipStatus] = useState(null);
   const [isBlocked, setIsBlocked] = useState(false);
+  // SỬA: Thêm state để lưu hành động gần đây
+  const [recentAction, setRecentAction] = useState(null);
 
   const defaultUserProfile = {
     name: "User Testing",
@@ -156,10 +158,9 @@ function ProfilePage() {
           throw new Error(profileData.message || "Lỗi khi lấy thông tin hồ sơ.");
         }
 
-        // Lưu profileData với id
         setUserProfile({
           ...profileData,
-          id: profileData.id, // Đảm bảo id được lưu
+          id: profileData.id,
           banner: profileData.banner || "https://source.unsplash.com/1200x400/?nature,water",
           avatar: profileData.avatar || "https://source.unsplash.com/150x150/?portrait",
           postCount: profileData.postCount || 0,
@@ -168,54 +169,61 @@ function ProfilePage() {
         });
 
         if (user.username !== username) {
-          // Sử dụng userId thay vì username
-          const followStatusResponse = await fetch(
-              `${process.env.REACT_APP_API_URL}/follows/status/${profileData.id}`,
-              {
-                headers: {
-                  "Content-Type": "application/json",
-                  Accept: "application/json",
-                  Authorization: `Bearer ${token}`,
-                },
-              }
-          );
+          // SỬA: Kiểm tra recentAction trước khi cập nhật trạng thái từ server
+          if (!recentAction || recentAction.type !== "follow") {
+            const followStatusResponse = await fetch(
+                `${process.env.REACT_APP_API_URL}/follows/status/${profileData.id}`,
+                {
+                  headers: {
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                    Authorization: `Bearer ${token}`,
+                  },
+                }
+            );
 
-          const followStatus = await followStatusResponse.json();
-          if (followStatusResponse.ok) {
-            setIsFollowing(followStatus.isFollowing);
+            const followStatus = await followStatusResponse.json();
+            if (followStatusResponse.ok) {
+              setIsFollowing(followStatus.isFollowing);
+            }
           }
 
-          // Các fetch khác (friendship, block) cũng cần dùng id
-          const friendshipStatusResponse = await fetch(
-              `${process.env.REACT_APP_API_URL}/friends/status/${profileData.id}`,
-              {
-                headers: {
-                  "Content-Type": "application/json",
-                  Accept: "application/json",
-                  Authorization: `Bearer ${token}`,
-                },
-              }
-          );
+          // SỬA: Kiểm tra recentAction trước khi cập nhật trạng thái bạn bè
+          if (!recentAction || recentAction.type !== "friend") {
+            const friendshipStatusResponse = await fetch(
+                `${process.env.REACT_APP_API_URL}/friends/status/${profileData.id}`,
+                {
+                  headers: {
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                    Authorization: `Bearer ${token}`,
+                  },
+                }
+            );
 
-          const friendshipData = await friendshipStatusResponse.json();
-          if (friendshipStatusResponse.ok) {
-            setFriendshipStatus(friendshipData.status);
+            const friendshipData = await friendshipStatusResponse.json();
+            if (friendshipStatusResponse.ok) {
+              setFriendshipStatus(friendshipData.status);
+            }
           }
 
-          const blockStatusResponse = await fetch(
-              `${process.env.REACT_APP_API_URL}/blocks/status/${profileData.id}`,
-              {
-                headers: {
-                  "Content-Type": "application/json",
-                  Accept: "application/json",
-                  Authorization: `Bearer ${token}`,
-                },
-              }
-          );
+          // SỬA: Kiểm tra recentAction trước khi cập nhật trạng thái chặn
+          if (!recentAction || recentAction.type !== "block") {
+            const blockStatusResponse = await fetch(
+                `${process.env.REACT_APP_API_URL}/blocks/status/${profileData.id}`,
+                {
+                  headers: {
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                    Authorization: `Bearer ${token}`,
+                  },
+                }
+            );
 
-          const blockStatus = await blockStatusResponse.json();
-          if (blockStatusResponse.ok) {
-            setIsBlocked(blockStatus.isBlocked);
+            const blockStatus = await blockStatusResponse.json();
+            if (blockStatusResponse.ok) {
+              setIsBlocked(blockStatus.isBlocked);
+            }
           }
         }
 
@@ -245,6 +253,13 @@ function ProfilePage() {
     };
 
     fetchProfile();
+
+    // SỬA: Thêm cleanup để xóa recentAction sau 10 giây
+    const timer = setTimeout(() => {
+      setRecentAction(null);
+    }, 10000);
+
+    return () => clearTimeout(timer);
   }, [user, username, navigate]);
 
   const handleFollowToggle = async () => {
@@ -262,7 +277,7 @@ function ProfilePage() {
 
     try {
       const response = await fetch(
-          `${process.env.REACT_APP_API_URL}/follows/${userProfile.id}`, // Sử dụng userProfile.id
+          `${process.env.REACT_APP_API_URL}/follows/${userProfile.id}`,
           {
             method: isFollowing ? "DELETE" : "POST",
             headers: {
@@ -280,6 +295,8 @@ function ProfilePage() {
           ...prev,
           followerCount: prev.followerCount + (isFollowing ? -1 : 1),
         }));
+        // SỬA: Lưu hành động theo dõi gần đây
+        setRecentAction({ type: "follow", value: !isFollowing });
         toast.success(isFollowing ? "Đã hủy theo dõi!" : "Đã theo dõi!");
       } else {
         throw new Error(data.message || (isFollowing ? "Lỗi khi ngừng theo dõi." : "Lỗi khi theo dõi người dùng."));
@@ -314,10 +331,10 @@ function ProfilePage() {
       method = "DELETE";
       url = `${process.env.REACT_APP_API_URL}/friends/${userProfile.id}`;
     } else if (action === "accept") {
-      method = "POST"; // Sửa từ PUT thành POST theo URLConfig
+      method = "POST";
       url = `${process.env.REACT_APP_API_URL}/friends/accept/${userProfile.id}`;
     } else if (action === "decline") {
-      method = "POST"; // Sửa từ DELETE thành POST theo URLConfig
+      method = "POST";
       url = `${process.env.REACT_APP_API_URL}/friends/reject/${userProfile.id}`;
     }
 
@@ -344,18 +361,28 @@ function ProfilePage() {
       if (response.ok) {
         if (action === "send") {
           setFriendshipStatus("pending");
+          // SỬA: Lưu hành động kết bạn gần đây
+          setRecentAction({ type: "friend", value: "pending" });
           toast.success("Đã gửi yêu cầu kết bạn!");
         } else if (action === "cancel") {
           setFriendshipStatus(null);
+          // SỬA: Lưu hành động hủy kết bạn gần đây
+          setRecentAction({ type: "friend", value: null });
           toast.success("Đã hủy yêu cầu kết bạn!");
         } else if (action === "accept") {
           setFriendshipStatus("friends");
+          // SỬA: Lưu hành động chấp nhận kết bạn gần đây
+          setRecentAction({ type: "friend", value: "friends" });
           toast.success("Đã chấp nhận kết bạn!");
         } else if (action === "decline") {
           setFriendshipStatus(null);
+          // SỬA: Lưu hành động từ chối kết bạn gần đây
+          setRecentAction({ type: "friend", value: null });
           toast.success("Đã từ chối yêu cầu kết bạn!");
         } else if (action === "unfriend") {
           setFriendshipStatus(null);
+          // SỬA: Lưu hành động hủy kết bạn gần đây
+          setRecentAction({ type: "friend", value: null });
           toast.success("Đã hủy kết bạn!");
         }
       } else {
@@ -404,6 +431,8 @@ function ProfilePage() {
 
       if (response.ok) {
         setIsBlocked(!isBlocked);
+        // SỬA: Lưu hành động chặn gần đây
+        setRecentAction({ type: "block", value: !isBlocked });
         toast.success(isBlocked ? "Đã bỏ chặn người dùng!" : "Đã chặn người dùng!");
         if (!isBlocked) {
           setFriendshipStatus(null);
