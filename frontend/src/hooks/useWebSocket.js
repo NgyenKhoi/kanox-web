@@ -84,7 +84,7 @@ export const useWebSocket = (onNotification, setUnreadCount) => {
 
         return () => {
             if (clientRef.current?.active) {
-                console.log("Deactivating WebSocket client on cleanup");
+                console.log("Deactivating WebSocket client on cleanup", new Error().stack);
                 clientRef.current.deactivate();
             }
         };
