@@ -4,17 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c6c17ae2-c6cb-4c94-a6b8-91c54839fa5e" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/config/SecurityConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/config/SecurityConfig.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/jwt/JwtAuthenticationFilter.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/jwt/JwtAuthenticationFilter.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/target/social-media-0.0.1-SNAPSHOT.jar.original" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/target/social-media-0.0.1-SNAPSHOT.jar.original" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/target/surefire-reports/2025-06-12T06-57-01_854.dumpstream" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/target/surefire-reports/TEST-com.example.social_media.SocialMediaApplicationTests.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/target/surefire-reports/TEST-com.example.social_media.SocialMediaApplicationTests.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/target/surefire-reports/com.example.social_media.SocialMediaApplicationTests.txt" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/target/surefire-reports/com.example.social_media.SocialMediaApplicationTests.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/public/_redirects" beforeDir="false" afterPath="$PROJECT_DIR$/public/_redirects" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/hooks/useWebSocket.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/hooks/useWebSocket.js" afterDir="false" />
-    </list>
+    <list default="true" id="c6c17ae2-c6cb-4c94-a6b8-91c54839fa5e" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
