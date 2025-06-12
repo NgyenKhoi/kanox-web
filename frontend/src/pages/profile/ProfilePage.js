@@ -232,7 +232,7 @@ function ProfilePage() {
         // Fetch sent pending friend requests if own profile
         if (user.username === username) {
           const sentRequestsResponse = await fetch(
-              `${process.env.REACT_APP_API_URL}/friends/pending-sent?page=0&size=10`,
+              `${process.env.REACT_APP_API_URL}/friends/sent-pending?page=0&size=10`,
               {
                 headers: {
                   "Content-Type": "application/json",
