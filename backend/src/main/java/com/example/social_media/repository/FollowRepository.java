@@ -14,8 +14,6 @@ public interface FollowRepository extends JpaRepository<Follow, Long> {
     int countByFolloweeAndStatusTrue(User followee);
     int countByFollowerAndStatusTrue(User follower);
     //not use now
-    List<Follow> findByIdFolloweeIdAndStatusTrue(Integer followeeId);
-    List<Follow> findByIdFollowerIdAndStatusTrue(Integer followerId);
 
     Optional<Follow> findByFollowerAndFolloweeAndStatus(User follower, User followee, Boolean status);
     Page<Follow> findByFollowerAndStatus(User follower, Boolean status, Pageable pageable);
