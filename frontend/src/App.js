@@ -24,7 +24,6 @@ import { AuthProvider } from "./context/AuthContext";
 
 function App() {
   const [isLoading, setIsLoading] = useState(true);
-  const [showCreatePostModal, setShowCreatePostModal] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -32,20 +31,6 @@ function App() {
     }, 2000);
     return () => clearTimeout(timer);
   }, []);
-
-  const handleOpenCreatePostModal = () => {
-    setShowCreatePostModal(true);
-  };
-
-  const handleCloseCreatePostModal = () => {
-    setShowCreatePostModal(false);
-  };
-
-  const handlePostSuccess = (newPost) => {
-    handleCloseCreatePostModal();
-    // eslint-disable-next-line no-undef
-    toast.success("Đăng bài thành công!");
-  };
 
   return (
     <Router>
