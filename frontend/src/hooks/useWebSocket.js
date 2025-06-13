@@ -9,6 +9,8 @@ export const useWebSocket = (onNotification, setUnreadCount) => {
     const { user, token } = useContext(AuthContext);
     const clientRef = useRef(null);
     const isConnecting = useRef(false);
+    const reconnectAttempts = useRef(0);
+    const maxReconnectAttempts = 10;
 
     const initializeWebSocket = useCallback(() => {
         if (!token || !user) {
@@ -30,18 +32,21 @@ export const useWebSocket = (onNotification, setUnreadCount) => {
                 Authorization: `Bearer ${token}`,
             },
             reconnectDelay: 5000,
-            reconnectAttempts: 10, // Increase attempts for better reliability
+            reconnectAttempts: maxReconnectAttempts,
             heartbeatIncoming: 4000,
             heartbeatOutgoing: 4000,
             onConnect: (frame) => {
                 console.log("WebSocket connected successfully for user:", user.id);
                 isConnecting.current = false;
+                reconnectAttempts.current = 0;
                 client.subscribe(`/topic/notifications/${user.id}`, (message) => {
                     try {
                         const notification = JSON.parse(message.body);
                         console.log("Received notification:", notification);
                         onNotification(notification);
-                        setUnreadCount((prev) => prev + 1);
+                        if (notification.status === "unread") {
+                            setUnreadCount((prev) => prev + 1);
+                        }
                     } catch (error) {
                         console.error("Error parsing WebSocket message:", error);
                     }
@@ -60,6 +65,10 @@ export const useWebSocket = (onNotification, setUnreadCount) => {
             onDisconnect: () => {
                 console.log("WebSocket disconnected");
                 isConnecting.current = false;
+                if (reconnectAttempts.current < maxReconnectAttempts) {
+                    reconnectAttempts.current += 1;
+                    console.log(`Reconnect attempt ${reconnectAttempts.current}/${maxReconnectAttempts}`);
+                }
             },
             debug: (str) => {
                 console.log("STOMP Debug:", str);
@@ -84,7 +93,7 @@ export const useWebSocket = (onNotification, setUnreadCount) => {
 
         return () => {
             if (clientRef.current?.active) {
-                console.log("Deactivating WebSocket client on cleanup", new Error().stack);
+                console.log("Deactivating WebSocket client on cleanup");
                 clientRef.current.deactivate();
             }
         };

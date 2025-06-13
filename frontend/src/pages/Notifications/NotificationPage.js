@@ -25,7 +25,7 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
           return;
         }
 
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/notifications`, {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/notifications?page=0&size=100`, {
           headers: {
             "Content-Type": "application/json",
             Accept: "application/json",
@@ -39,12 +39,12 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
         }
 
         const data = await response.json();
-        // Ánh xạ dữ liệu từ API
+        console.log("Fetched notifications:", data);
         const formattedNotifications = Array.isArray(data.data?.content)
             ? data.data.content.map((notif) => ({
               id: notif.id,
               type: notif.type,
-              user: notif.user || "Người dùng",
+              user: notif.displayName || notif.user || "Người dùng",
               content: notif.message,
               avatar: notif.avatar || "https://placehold.co/40x40",
               tags: notif.tags || [],
@@ -68,12 +68,12 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
 
   useWebSocket(
       (notification) => {
-        // Ánh xạ thông báo từ WebSocket
+        console.log("NotificationPage received notification:", notification);
         const formattedNotification = {
           id: notification.id,
           type: notification.type,
-          user: notification.user || "Người dùng",
-          content: notification.message || `Bạn nhận được lời mời kết bạn từ người dùng ${notification.targetId}`,
+          user: notification.displayName || notification.user || "Người dùng",
+          content: notification.message,
           avatar: notification.avatar || "https://placehold.co/40x40",
           tags: notification.tags || [],
           timestamp: notification.createdAt || new Date().toISOString(),
@@ -83,7 +83,7 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
         };
 
         setNotifications((prev) => [formattedNotification, ...prev]);
-        toast.info("Bạn có thông báo mới!");
+        toast.info(notification.message);
       },
       (count) => setNotifications((prev) => prev.map((n) => ({ ...n })))
   );
@@ -232,12 +232,12 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
                           </div>
                         </div>
                     )}
-                    {(notification.type === "community" || notification.type === "FRIEND_REQUEST" || notification.type === "FRIEND_ACCEPTED") && (
+                    {(notification.type === "community" || notification.type === "FRIEND_REQUEST" || notification.type === "FRIEND_ACCEPTED" || notification.type === "FOLLOW") && (
                         <div className="d-flex align-items-start">
                           <i className="bi bi-people-fill text-muted me-2" style={{ fontSize: "24px" }}></i>
                           <div className="flex-grow-1">
                             <div className="d-flex justify-content-between align-items-center">
-                              <p className="fw-bold mb-1">{notification.content.split(". ")[0] || notification.content}</p>
+                              <p className="fw-bold mb-1">{notification.user}</p>
                               <div>
                                 {!notification.isRead ? (
                                     <Button
@@ -261,7 +261,7 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
                                 </Button>
                               </div>
                             </div>
-                            <p className="mb-0">{notification.content.split(". ")[1] || notification.content}</p>
+                            <p className="mb-0">{notification.content}</p>
                             {notification.image && <p className="text-muted small mt-2">{notification.image}</p>}
                             <p className="text-muted small">{notification.timestamp}</p>
                           </div>
