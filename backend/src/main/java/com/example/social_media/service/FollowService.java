@@ -13,6 +13,7 @@ import com.example.social_media.repository.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
@@ -44,7 +45,7 @@ public class FollowService {
         this.activityLogService = activityLogService;
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.SERIALIZABLE) // Sử dụng isolation level mạnh hơn
     public void followUser(Integer followerId, Integer followeeId) {
         if (followerId.equals(followeeId)) {
             throw new IllegalArgumentException("Cannot follow yourself");
@@ -62,10 +63,13 @@ public class FollowService {
             throw new IllegalArgumentException("User is blocked");
         }
 
-        if (followRepository.existsByFollowerAndFolloweeAndStatus(follower, followee, true)) {
+        Follow existingFollow = followRepository.findById(new FollowId(followerId, followeeId))
+                .orElse(null);
+        if (existingFollow != null && existingFollow.getStatus()) {
             throw new IllegalArgumentException("Already following user");
         }
 
+        // Nếu không tồn tại hoặc status = false (dù bạn không set), chèn mới
         Follow follow = new Follow();
         FollowId id = new FollowId();
         id.setFollowerId(followerId);

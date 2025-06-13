@@ -1,5 +1,0 @@
-# Created at 2025-06-12T20:38:16.673
-Boot Manifest-JAR contains absolute paths in classpath 'D:\SWP391\kanox-web\backend\target\test-classes'
-Hint: <argLine>-Djdk.net.URLClassPath.disableClassPathURLCheck=true</argLine>
-'other' has different root
-

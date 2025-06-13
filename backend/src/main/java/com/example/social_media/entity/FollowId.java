@@ -19,6 +19,13 @@ public class FollowId implements Serializable {
     @Column(name = "followee_id", nullable = false)
     private Integer followeeId;
 
+    public FollowId(Integer followerId, Integer followeeId) {
+    }
+
+    public FollowId() {
+
+    }
+
     public Integer getFollowerId() {
         return followerId;
     }
