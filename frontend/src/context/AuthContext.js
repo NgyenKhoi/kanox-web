@@ -1,6 +1,7 @@
 import { createContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import { Spinner } from "react-bootstrap";
 
 export const AuthContext = createContext();
 
@@ -13,7 +14,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.getItem("refreshToken") || null
   );
   const [loading, setLoading] = useState(true);
-  const [isSyncing, setIsSyncing] = useState(false); // Thêm trạng thái đồng bộ
+  const [isSyncing, setIsSyncing] = useState(false);
   const navigate = useNavigate();
 
   const setUser = (userObj, newToken = null, newRefreshToken = null) => {
@@ -22,7 +23,6 @@ export const AuthProvider = ({ children }) => {
       if (newToken) {
         setToken(newToken);
         sessionStorage.removeItem("token");
-        localStorage.removeItem("token");
         localStorage.setItem("token", newToken);
       }
       if (newRefreshToken) {
@@ -38,7 +38,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const syncAllData = async (authToken = null) => {
+  const syncAllData = async (authToken) => {
     setIsSyncing(true);
     try {
       console.log("Starting data sync with Elasticsearch...");
@@ -66,13 +66,13 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const checkTokenValidity = async () => {
+  const checkTokenValidity = async (accessToken) => {
     try {
       const response = await fetch(
         `${process.env.REACT_APP_API_URL}/auth/check-token`,
         {
           method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${accessToken}` },
         }
       );
       const data = await response.json();
@@ -84,14 +84,18 @@ export const AuthProvider = ({ children }) => {
           setUserState(data.user);
           localStorage.setItem("user", JSON.stringify(data.user));
         }
+        return data.token;
       } else if (response.status === 401) {
-        await refreshAccessToken();
+        const refreshed = await refreshAccessToken();
+        return refreshed ? refreshed : null;
       } else {
         logout();
+        return null;
       }
     } catch (error) {
       console.error("Lỗi kiểm tra token:", error);
-      await refreshAccessToken();
+      const refreshed = await refreshAccessToken();
+      return refreshed ? refreshed : null;
     }
   };
 
@@ -113,15 +117,15 @@ export const AuthProvider = ({ children }) => {
           setUserState(data.user);
           localStorage.setItem("user", JSON.stringify(data.user));
         }
-        return true;
+        return data.token;
       } else {
         logout();
-        return false;
+        return null;
       }
     } catch (error) {
       console.error("Lỗi refresh token:", error);
       logout();
-      return false;
+      return null;
     }
   };
 
@@ -149,26 +153,26 @@ export const AuthProvider = ({ children }) => {
           if (savedRefreshToken) setRefreshToken(savedRefreshToken);
         } catch (e) {
           console.error("Lỗi parse user hoặc token:", e);
-          setUserState(null);
-          setToken(null);
-          setRefreshToken(null);
-          localStorage.clear();
-          sessionStorage.clear();
+          logout();
         }
       }
 
+      let validToken = savedToken;
       if (savedToken) {
-        await checkTokenValidity();
+        validToken = await checkTokenValidity(savedToken);
       }
 
-      // Gọi đồng bộ dữ liệu
-      await syncAllData(savedToken);
+      if (validToken) {
+        await syncAllData(validToken);
+      }
 
       setLoading(false);
     };
 
     initializeAuth();
-    const interval = setInterval(checkTokenValidity, 5 * 60 * 1000); // Kiểm tra mỗi 5 phút
+    const interval = setInterval(() => {
+      checkTokenValidity(token);
+    }, 5 * 60 * 1000); // 5 phút
     return () => clearInterval(interval);
   }, []);
 
@@ -178,6 +182,7 @@ export const AuthProvider = ({ children }) => {
     >
       {loading || isSyncing ? (
         <div className="d-flex justify-content-center align-items-center min-vh-100">
+          <Spinner animation="border" role="status" />
           <span className="ms-2">Đang tải dữ liệu...</span>
         </div>
       ) : (
