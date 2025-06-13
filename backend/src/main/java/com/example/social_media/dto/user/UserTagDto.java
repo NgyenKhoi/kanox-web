@@ -15,6 +15,9 @@ public class UserTagDto {
         this.displayName = user.getDisplayName();
     }
 
+    public UserTagDto(Integer id, String username, String displayName) {
+    }
+
     public Integer getId() { return id; }
     public void setId(Integer id) { this.id = id; }
 

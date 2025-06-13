@@ -148,13 +148,17 @@ public class FriendshipService {
         if (!privacyService.checkContentAccess(viewerId, userId, "PROFILE")) {
             throw new IllegalArgumentException("Access denied to view friends list");
         }
-        Page<Friendship> friendships = friendshipRepository.findByUserAndFriendshipStatusAndStatus(user, "accepted", true, pageable);
-        List<UserTagDto> friends = friendships.getContent().stream()
-                .map(friendship -> new UserTagDto(friendship.getFriend()))
-                .collect(Collectors.toList());
-
+        Page<Friendship> friendships = friendshipRepository.findByUserOrFriendAndFriendshipStatusAndStatus(
+                userId, "accepted", true, pageable);
+        // Chuyển đổi sang UserTagDto
+        List<UserTagDto> friendDtos = friendships.getContent().stream().map(friendship -> {
+            User friend = friendship.getUser().getId().equals(userId) ?
+                    friendship.getFriend() :
+                    friendship.getUser();
+            return new UserTagDto(friend.getId(), friend.getUsername(), friend.getDisplayName());
+        }).collect(Collectors.toList());
         return new PageResponseDto<>(
-                friends,
+                friendDtos,
                 friendships.getNumber(),
                 friendships.getSize(),
                 friendships.getTotalElements(),

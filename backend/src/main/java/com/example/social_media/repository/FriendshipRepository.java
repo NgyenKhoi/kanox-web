@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -24,4 +25,12 @@ public interface FriendshipRepository extends JpaRepository<Friendship, Friendsh
 
     Page<Friendship> findByUserAndFriendshipStatusAndStatus(User user, String friendshipStatus, Boolean status, Pageable pageable);
     Page<Friendship> findByFriendAndFriendshipStatusAndStatus(User friend, String friendshipStatus, Boolean status, Pageable pageable);
+    @Query("SELECT f FROM Friendship f WHERE " +
+            "(f.user.id = :userId OR f.friend.id = :userId) " +
+            "AND f.friendshipStatus = :friendshipStatus AND f.status = :status")
+    Page<Friendship> findByUserOrFriendAndFriendshipStatusAndStatus(
+            @Param("userId") Integer userId,
+            @Param("friendshipStatus") String friendshipStatus,
+            @Param("status") Boolean status,
+            Pageable pageable);
 }

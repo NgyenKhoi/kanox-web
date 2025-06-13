@@ -45,9 +45,9 @@ public class URLConfig {
     public static final String REJECT_FRIEND_REQUEST = "/reject/{requesterId}";
     public static final String CANCEL_FRIENDSHIP = "/{friendId}";
     public static final String GET_FRIENDS = "/users/{userId}/friends";
-    public static final String GET_SENT_PENDING_REQUESTS = "/sent-pending";
-    public static final String GET_RECEIVED_PENDING_REQUESTS = "/received-pending";
     public static final String GET_FRIENDSHIP_STATUS = "/status/{targetId}";
+    public static final String GET_RECEIVED_PENDING_REQUESTS = "/users/{userId}/received-pending";
+    public static final String GET_SENT_PENDING_REQUESTS = "/users/{userId}/sent-pending";
     // Follow URLs
     public static final String FOLLOW_BASE = "/api/follows";
     public static final String FOLLOW_USER = "/{followeeId}";

@@ -27,6 +27,12 @@ public class UserDto {
         this.bio = user.getBio();
     }
 
+    public UserDto(String id, String username, String displayName) {
+        this.id = id;
+        this.username = username;
+        this.displayName = displayName;
+    }
+
     // Getters and setters
 
     public String getId() {

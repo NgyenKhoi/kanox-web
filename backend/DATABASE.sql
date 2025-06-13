@@ -1892,7 +1892,7 @@ GO
         target_type NVARCHAR(50) NULL,
         status BIT DEFAULT 1
     );
-
+	
 
     ---------PROC AUTO ADD LOG ACTIVITY---------
     CREATE PROCEDURE sp_LogActivity
