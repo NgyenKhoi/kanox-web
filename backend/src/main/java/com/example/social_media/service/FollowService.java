@@ -71,9 +71,7 @@ public class FollowService {
 
         // Nếu không tồn tại hoặc status = false (dù bạn không set), chèn mới
         Follow follow = new Follow();
-        FollowId id = new FollowId();
-        id.setFollowerId(followerId);
-        id.setFolloweeId(followeeId);
+        FollowId id = new FollowId(followerId, followeeId);
         follow.setId(id);
         follow.setFollower(follower);
         follow.setFollowee(followee);
