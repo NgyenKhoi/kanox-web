@@ -60,8 +60,7 @@ public class BlockService {
                 .orElseThrow(() -> new UserNotFoundException("User not found with id: " + blockedUserId));
         Block block = blockRepository.findByUserAndBlockedUserAndStatus(user, blockedUser, true)
                 .orElseThrow(() -> new IllegalArgumentException("User is not blocked"));
-        block.setStatus(false);
-        blockRepository.save(block);
+        blockRepository.delete(block);
     }
 
     @Transactional(readOnly = true)

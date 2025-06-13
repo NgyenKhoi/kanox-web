@@ -11,10 +11,13 @@ public class UserProfileDto {
     private Short gender;
     private LocalDate dateOfBirth;
 
+    private int followerCount;
+    private int followeeCount;
+
     // Constructors
     public UserProfileDto() {}
 
-    public UserProfileDto(Integer id, String username, String displayName, String email, String bio, Short gender, LocalDate dateOfBirth) {
+    public UserProfileDto(Integer id, String username, String displayName, String email, String bio, Short gender, LocalDate dateOfBirth, int followerCount, int followeeCount) {
         this.id = id;
         this.username = username;
         this.displayName = displayName;
@@ -22,6 +25,8 @@ public class UserProfileDto {
         this.bio = bio;
         this.gender = gender;
         this.dateOfBirth = dateOfBirth;
+        this.followerCount = followerCount;
+        this.followeeCount = followeeCount;
     }
 
     // Getters and setters
@@ -46,4 +51,19 @@ public class UserProfileDto {
     public LocalDate getDateOfBirth() { return dateOfBirth; }
     public void setDateOfBirth(LocalDate dateOfBirth) { this.dateOfBirth = dateOfBirth; }
 
+    public int getFollowerCount() {
+        return followerCount;
+    }
+
+    public void setFollowerCount(int followerCount) {
+        this.followerCount = followerCount;
+    }
+
+    public int getFolloweeCount() {
+        return followeeCount;
+    }
+
+    public void setFolloweeCount(int followeeCount) {
+        this.followeeCount = followeeCount;
+    }
 }

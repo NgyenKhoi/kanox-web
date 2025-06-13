@@ -1,7 +1,7 @@
 package com.example.social_media.controller;
 
 import com.example.social_media.config.URLConfig;
-import com.example.social_media.dto.friend.PageResponseDto;
+import com.example.social_media.dto.friend.*;
 import com.example.social_media.dto.user.UserTagDto;
 import com.example.social_media.entity.Friendship;
 import com.example.social_media.entity.User;
@@ -24,20 +24,17 @@ import java.util.Map;
 public class FriendshipController {
     private final FriendshipService friendshipService;
     private final CustomUserDetailsService customUserDetailsService;
-    private final UserProfileService userProfileService;
     private final UserRepository userRepository;
     private final FriendshipRepository friendshipRepository;
 
     public FriendshipController(
             FriendshipService friendshipService,
             CustomUserDetailsService customUserDetailsService,
-            UserProfileService userProfileService,
             UserRepository userRepository,
             FriendshipRepository friendshipRepository
     ) {
         this.friendshipService = friendshipService;
         this.customUserDetailsService = customUserDetailsService;
-        this.userProfileService = userProfileService;
         this.userRepository = userRepository;
         this.friendshipRepository = friendshipRepository;
     }

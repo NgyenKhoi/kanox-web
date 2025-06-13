@@ -19,6 +19,15 @@ public class FollowId implements Serializable {
     @Column(name = "followee_id", nullable = false)
     private Integer followeeId;
 
+    public FollowId(Integer followerId, Integer followeeId) {
+        this.followerId = followerId;
+        this.followeeId = followeeId;
+    }
+
+    public FollowId() {
+
+    }
+
     public Integer getFollowerId() {
         return followerId;
     }

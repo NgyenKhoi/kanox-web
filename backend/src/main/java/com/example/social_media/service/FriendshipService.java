@@ -1,6 +1,6 @@
 package com.example.social_media.service;
 
-import com.example.social_media.dto.friend.PageResponseDto;
+import com.example.social_media.dto.friend.*;
 import com.example.social_media.dto.user.UserTagDto;
 import com.example.social_media.entity.Friendship;
 import com.example.social_media.entity.FriendshipId;
@@ -139,12 +139,11 @@ public class FriendshipService {
         User friend = userRepository.findById(friendId)
                 .orElseThrow(() -> new UserNotFoundException("User not found with id: " + friendId));
 
-        Friendship friendship = friendshipRepository.findByUserAndFriendAndStatus(user, friend, true)
-                .orElseGet(() -> friendshipRepository.findByUserAndFriendAndStatus(friend, user, true)
+        Friendship friendship = friendshipRepository.findByUserAndFriend(user, friend)
+                .orElseGet(() -> friendshipRepository.findByUserAndFriend(friend, user)
                         .orElseThrow(() -> new IllegalArgumentException("Friendship not found")));
 
-        friendship.setStatus(false);
-        friendshipRepository.save(friendship);
+        friendshipRepository.delete(friendship);
     }
 
     public PageResponseDto<UserTagDto> getFriends(Integer userId, Integer viewerId, Pageable pageable) {

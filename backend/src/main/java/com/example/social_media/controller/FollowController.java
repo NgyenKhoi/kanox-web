@@ -1,7 +1,7 @@
 package com.example.social_media.controller;
 
 import com.example.social_media.config.URLConfig;
-import com.example.social_media.dto.friend.PageResponseDto;
+import com.example.social_media.dto.friend.*;
 import com.example.social_media.dto.user.UserTagDto;
 import com.example.social_media.entity.User;
 import com.example.social_media.exception.UserNotFoundException;
@@ -10,9 +10,11 @@ import com.example.social_media.service.CustomUserDetailsService;
 import com.example.social_media.service.FollowService;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Map;
 
@@ -39,7 +41,13 @@ public class FollowController {
     ) {
         try {
             String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+            User followee = customUserDetailsService.getUserById(followeeId);
             User currentUser = customUserDetailsService.getUserByUsername(currentUsername);
+
+            if (followRepository.existsByFollowerAndFolloweeAndStatus(currentUser, followee, true)) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Bạn đã theo dõi người này rồi.");
+            }
+
             followService.followUser(currentUser.getId(), followeeId);
             return ResponseEntity.ok(Map.of("message", "Followed successfully"));
         } catch (IllegalArgumentException e) {
