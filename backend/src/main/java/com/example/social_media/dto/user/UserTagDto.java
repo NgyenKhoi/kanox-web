@@ -16,6 +16,9 @@ public class UserTagDto {
     }
 
     public UserTagDto(Integer id, String username, String displayName) {
+        this.id = id;
+        this.username = username;
+        this.displayName = displayName;
     }
 
     public Integer getId() { return id; }
