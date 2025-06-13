@@ -112,12 +112,25 @@ public class FriendshipController {
     ) {
         try {
             String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+            if (currentUsername == null) {
+                throw new IllegalArgumentException("Không tìm thấy thông tin người dùng hiện tại");
+            }
             User currentUser = customUserDetailsService.getUserByUsername(currentUsername);
+            if (currentUser == null || currentUser.getId() == null) {
+                throw new IllegalArgumentException("Thông tin người dùng hiện tại không hợp lệ");
+            }
+            if (userId == null) {
+                throw new IllegalArgumentException("userId không hợp lệ");
+            }
             Pageable pageable = PageRequest.of(page, size);
             PageResponseDto<UserTagDto> friends = friendshipService.getFriends(userId, currentUser.getId(), pageable);
             return ResponseEntity.ok(Map.of("message", "Friends retrieved successfully", "data", friends));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage(), "errors", Map.of()));
+        } catch (Exception e) {
+            System.err.println("Exception: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("status", "error", "message", "Lỗi hệ thống: " + e.getMessage()));
         }
     }
 

@@ -143,8 +143,9 @@ public class FriendshipService {
     }
 
     public PageResponseDto<UserTagDto> getFriends(Integer userId, Integer viewerId, Pageable pageable) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
+        if (userId == null) {
+            throw new IllegalArgumentException("userId không hợp lệ");
+        }
         if (!privacyService.checkContentAccess(viewerId, userId, "PROFILE")) {
             throw new IllegalArgumentException("Access denied to view friends list");
         }

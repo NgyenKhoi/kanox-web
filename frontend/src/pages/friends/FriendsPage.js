@@ -11,7 +11,7 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 function FriendsPage() {
-    const { user } = useContext(AuthContext);
+    const { user, logout } = useContext(AuthContext);
     const navigate = useNavigate();
     const [friends, setFriends] = useState([]);
     const [sentRequests, setSentRequests] = useState([]);
@@ -24,20 +24,18 @@ function FriendsPage() {
     const [error, setError] = useState(null);
     const [notifications, setNotifications] = useState([]);
     const [isDarkMode, setIsDarkMode] = useState(false);
+    const [friendshipStatus, setFriendshipStatus] = useState({});
 
-    // WebSocket để nhận thông báo
     useWebSocket((notification) => {
         setNotifications((prev) => [notification, ...prev]);
         toast.info(notification.message || "Bạn có thông báo mới!");
     });
 
-    // Hàm toggle dark mode
     const handleToggleDarkMode = () => {
         setIsDarkMode((prev) => !prev);
         document.body.classList.toggle("dark-mode", !isDarkMode);
     };
 
-    // Hàm mở modal tạo bài đăng
     const handleShowCreatePost = () => {
         console.log("Mở modal tạo bài đăng");
     };
@@ -49,13 +47,15 @@ function FriendsPage() {
         if (!token) {
             setError("Không tìm thấy token. Vui lòng đăng nhập lại.");
             setLoading(false);
-            navigate("/");
+            logout();
+            navigate("/signup");
             return;
         }
         if (!user?.id) {
             setError("Không tìm thấy thông tin người dùng.");
             setLoading(false);
-            navigate("/");
+            logout();
+            navigate("/signup");
             return;
         }
 
@@ -69,7 +69,7 @@ function FriendsPage() {
                 url = `${process.env.REACT_APP_API_URL}/friends/users/${user.id}/received-pending?page=${pageNum}&size=10`;
             }
 
-            console.log(`Fetching ${type} data from: ${url}`); // Log để debug
+            console.log(`Fetching ${type} data for user ${user.id} from: ${url}`);
 
             const response = await fetch(url, {
                 headers: {
@@ -84,12 +84,16 @@ function FriendsPage() {
             }
 
             const data = await response.json();
-            console.log(`${type} data:`, data); // Log để kiểm tra dữ liệu
+            console.log(`${type} data:`, data);
 
             if (type === "friends") {
                 setFriends(data.data?.content || []);
                 setTotalElements((prev) => ({ ...prev, friends: data.data?.totalElements || 0 }));
                 setTotalPages((prev) => ({ ...prev, friends: data.data?.totalPages || 1 }));
+                // Fetch friendship status for friends
+                const friendIds = data.data?.content.map(f => f.id) || [];
+                const statuses = await fetchFriendshipStatus(friendIds);
+                setFriendshipStatus(statuses);
             } else if (type === "sent") {
                 setSentRequests(data.data?.content || []);
                 setTotalElements((prev) => ({ ...prev, sent: data.data?.totalElements || 0 }));
@@ -108,7 +112,30 @@ function FriendsPage() {
         }
     };
 
+    const fetchFriendshipStatus = async (userIds) => {
+        const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+        if (!token || !user?.id) return {};
+        const statuses = {};
+        for (const userId of userIds) {
+            const response = await fetch(
+                `${process.env.REACT_APP_API_URL}/friends/users/${user.id}/friendship-status/${userId}`,
+                {
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
+            if (response.ok) {
+                const data = await response.json();
+                statuses[userId] = data.status;
+            }
+        }
+        return statuses;
+    };
+
     useEffect(() => {
+        console.log("Current user:", user);
         if (!user) {
             navigate("/signup");
             return;
@@ -232,7 +259,9 @@ function FriendsPage() {
                                 </Nav.Item>
                             </Nav>
                             <div className="mt-0 border-top">
-                                {activeTab === "friends" && <FriendList users={friends} />}
+                                {activeTab === "friends" && (
+                                    <FriendList users={friends} friendshipStatus={friendshipStatus} />
+                                )}
                                 {activeTab === "sent" && <FriendList users={sentRequests} />}
                                 {activeTab === "received" && (
                                     <FriendList
