@@ -3,11 +3,13 @@ import { ListGroup, Image, Button, Alert } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import FriendshipButton from "../friendship/FriendshipButton"; // Đổi tên từ FriendButton
 import FollowActionButton from "../utils/FollowActionButton"; // Đổi tên từ FollowButton
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 function FriendList({ users, showActions = false, onAction }) {
     const [error, setError] = useState(null);
 
-    const handleAccept = async (friendshipId) => {
+    const handleAccept = async (userId) => { // Đổi từ friendshipId thành userId
         setError(null);
         try {
             const token = localStorage.getItem("token");
@@ -16,7 +18,7 @@ function FriendList({ users, showActions = false, onAction }) {
             }
 
             const response = await fetch(
-                `${process.env.REACT_APP_API_URL}/friends/accept/${friendshipId}`,
+                `${process.env.REACT_APP_API_URL}/friends/accept/${userId}`, // Sửa URL và dùng userId
                 {
                     method: "PUT",
                     headers: {
@@ -25,20 +27,23 @@ function FriendList({ users, showActions = false, onAction }) {
                     },
                 }
             );
+
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(errorData.message || "Không thể chấp nhận lời mời!");
             }
+
             if (onAction) {
                 onAction();
             }
         } catch (error) {
             console.error("Error accepting friend request:", error);
             setError(error.message || "Không thể chấp nhận lời mời");
+            toast.error(error.message || "Không thể chấp nhận lời mời");
         }
     };
 
-    const handleReject = async (friendshipId) => {
+    const handleReject = async (userId) => { // Đổi từ friendshipId thành userId
         setError(null);
         try {
             const token = localStorage.getItem("token");
@@ -47,7 +52,7 @@ function FriendList({ users, showActions = false, onAction }) {
             }
 
             const response = await fetch(
-                `${process.env.REACT_APP_API_URL}/friendships/reject/${friendshipId}`,
+                `${process.env.REACT_APP_API_URL}/api/friends/reject/${userId}`, // Sửa URL và dùng userId
                 {
                     method: "PUT",
                     headers: {
@@ -56,16 +61,19 @@ function FriendList({ users, showActions = false, onAction }) {
                     },
                 }
             );
+
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(errorData.message || "Không thể từ chối lời mời!");
             }
+
             if (onAction) {
                 onAction();
             }
         } catch (error) {
             console.error("Error rejecting friend request:", error);
             setError(error.message || "Không thể từ chối lời mời");
+            toast.error(error.message || "Không thể từ chối lời mời");
         }
     };
 
@@ -106,14 +114,14 @@ function FriendList({ users, showActions = false, onAction }) {
                                     variant="primary"
                                     size="sm"
                                     className="me-2"
-                                    onClick={() => handleAccept(user.friendshipId)} // Giả định user có friendshipId
+                                    onClick={() => handleAccept(user.id)} // Giả định user có friendshipId
                                 >
                                     Chấp nhận
                                 </Button>
                                 <Button
                                     variant="outline-secondary"
                                     size="sm"
-                                    onClick={() => handleReject(user.friendshipId)} // Giả định user có friendshipId
+                                    onClick={() => handleReject(user.id)} // Giả định user có friendshipId
                                 >
                                     Từ chối
                                 </Button>

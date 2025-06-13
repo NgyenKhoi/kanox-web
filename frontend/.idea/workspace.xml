@@ -5,32 +5,16 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="c6c17ae2-c6cb-4c94-a6b8-91c54839fa5e" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/../backend/target/surefire-reports/2025-06-13T20-24-51_159.dumpstream" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../backend/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/controller/FollowController.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/controller/FollowController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/controller/FriendshipController.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/controller/FriendshipController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/dto/user/UserProfileDto.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/dto/user/UserProfileDto.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/entity/FollowId.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/entity/FollowId.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/jwt/JwtAuthenticationFilter.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/jwt/JwtAuthenticationFilter.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/repository/FollowRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/repository/FollowRepository.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/repository/FriendshipRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/repository/FriendshipRepository.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/service/BlockService.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/service/BlockService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/service/FollowService.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/service/FollowService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/service/FriendshipService.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/service/FriendshipService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/service/UserProfileService.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/service/UserProfileService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/resources/application.properties" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/target/classes/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/target/classes/application.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../backend/DATABASE.sql" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/DATABASE.sql" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../backend/target/maven-status/maven-compiler-plugin/compile/default-compile/inputFiles.lst" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/target/maven-status/maven-compiler-plugin/compile/default-compile/inputFiles.lst" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../backend/target/maven-status/maven-compiler-plugin/testCompile/default-testCompile/inputFiles.lst" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/target/maven-status/maven-compiler-plugin/testCompile/default-testCompile/inputFiles.lst" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../backend/target/social-media-0.0.1-SNAPSHOT.jar.original" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/target/social-media-0.0.1-SNAPSHOT.jar.original" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/target/surefire-reports/2025-06-12T20-38-16_357.dumpstream" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../backend/target/surefire-reports/2025-06-13T20-24-51_159.dumpstream" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/../backend/target/surefire-reports/TEST-com.example.social_media.SocialMediaApplicationTests.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/target/surefire-reports/TEST-com.example.social_media.SocialMediaApplicationTests.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../backend/target/surefire-reports/com.example.social_media.SocialMediaApplicationTests.txt" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/target/surefire-reports/com.example.social_media.SocialMediaApplicationTests.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/friendship/FriendshipButton.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/friendship/FriendshipButton.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/utils/FollowActionButton.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/utils/FollowActionButton.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/context/AuthContext.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/context/AuthContext.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/pages/profile/ProfilePage.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/pages/profile/ProfilePage.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/friends/FriendList.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/friends/FriendList.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -74,7 +58,7 @@
     "Node.js.MessengerPage.js.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "Merging main",
+    "git-widget-placeholder": "main",
     "junie.onboarding.icon.badge.shown": "true",
     "last_opened_file_path": "D:/SWP391/kanox-web/frontend",
     "node.js.detected.package.eslint": "true",
