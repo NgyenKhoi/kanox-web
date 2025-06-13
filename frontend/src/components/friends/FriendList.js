@@ -1,12 +1,14 @@
-import React, { useState } from "react";
+import React, {useContext, useState} from "react";
 import { ListGroup, Image, Button, Alert } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import FriendshipButton from "../friendship/FriendshipButton"; // Đổi tên từ FriendButton
 import FollowActionButton from "../utils/FollowActionButton"; // Đổi tên từ FollowButton
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { AuthContext } from "../../context/AuthContext";
 
 function FriendList({ users, showActions = false, onAction }) {
+    const { user } = useContext(AuthContext);
     const [error, setError] = useState(null);
 
     const handleAccept = async (userId) => { // Đổi từ friendshipId thành userId
