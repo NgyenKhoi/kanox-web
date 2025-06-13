@@ -7,6 +7,8 @@ import { useWebSocket } from "../../hooks/useWebSocket";
 import SidebarLeft from "../../components/layout/SidebarLeft/SidebarLeft";
 import SidebarRight from "../../components/layout/SidebarRight/SidebarRight";
 import FriendList from "../../components/friends/FriendList";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 function FriendsPage() {
     const { user } = useContext(AuthContext);
@@ -21,46 +23,53 @@ function FriendsPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [notifications, setNotifications] = useState([]);
-    const [isDarkMode, setIsDarkMode] = useState(false); // State cho dark mode
+    const [isDarkMode, setIsDarkMode] = useState(false);
 
     // WebSocket để nhận thông báo
     useWebSocket((notification) => {
         setNotifications((prev) => [notification, ...prev]);
+        toast.info(notification.message || "Bạn có thông báo mới!");
     });
 
     // Hàm toggle dark mode
     const handleToggleDarkMode = () => {
         setIsDarkMode((prev) => !prev);
-        // Thêm logic để thay đổi theme (ví dụ: cập nhật class trên body)
         document.body.classList.toggle("dark-mode", !isDarkMode);
     };
 
     // Hàm mở modal tạo bài đăng
     const handleShowCreatePost = () => {
-        // Giả định bạn có modal tạo bài đăng, thêm logic mở modal ở đây
         console.log("Mở modal tạo bài đăng");
     };
 
     const fetchData = async (type, pageNum) => {
         setLoading(true);
         setError(null);
-        const token = localStorage.getItem("token");
+        const token = localStorage.getItem("token") || sessionStorage.getItem("token");
         if (!token) {
             setError("Không tìm thấy token. Vui lòng đăng nhập lại.");
             setLoading(false);
-            navigate("/signup");
+            navigate("/");
+            return;
+        }
+        if (!user?.id) {
+            setError("Không tìm thấy thông tin người dùng.");
+            setLoading(false);
+            navigate("/");
             return;
         }
 
         try {
             let url;
             if (type === "friends") {
-                url = `${process.env.REACT_APP_API_URL}/friends?page=${pageNum}&size=10`;
+                url = `${process.env.REACT_APP_API_URL}/friends/users/${user.id}/friends?page=${pageNum}&size=10`;
             } else if (type === "sent") {
-                url = `${process.env.REACT_APP_API_URL}/friends/sent-pending?page=${pageNum}&size=10`;
+                url = `${process.env.REACT_APP_API_URL}/friends/users/${user.id}/sent-pending?page=${pageNum}&size=10`;
             } else if (type === "received") {
-                url = `${process.env.REACT_APP_API_URL}/friends/received-pending?page=${pageNum}&size=10`;
+                url = `${process.env.REACT_APP_API_URL}/friends/users/${user.id}/received-pending?page=${pageNum}&size=10`;
             }
+
+            console.log(`Fetching ${type} data from: ${url}`); // Log để debug
 
             const response = await fetch(url, {
                 headers: {
@@ -68,26 +77,32 @@ function FriendsPage() {
                     Authorization: `Bearer ${token}`,
                 },
             });
+
             if (!response.ok) {
-                throw new Error("Không thể lấy danh sách bạn bè.");
+                const errorData = await response.json();
+                throw new Error(errorData.message || `Lỗi ${response.status}: Không thể lấy dữ liệu ${type}.`);
             }
+
             const data = await response.json();
+            console.log(`${type} data:`, data); // Log để kiểm tra dữ liệu
+
             if (type === "friends") {
-                setFriends(data.data.content);
-                setTotalElements((prev) => ({ ...prev, friends: data.data.totalElements }));
-                setTotalPages((prev) => ({ ...prev, friends: data.data.totalPages }));
+                setFriends(data.data?.content || []);
+                setTotalElements((prev) => ({ ...prev, friends: data.data?.totalElements || 0 }));
+                setTotalPages((prev) => ({ ...prev, friends: data.data?.totalPages || 1 }));
             } else if (type === "sent") {
-                setSentRequests(data.data.content);
-                setTotalElements((prev) => ({ ...prev, sent: data.data.totalElements }));
-                setTotalPages((prev) => ({ ...prev, sent: data.data.totalPages }));
+                setSentRequests(data.data?.content || []);
+                setTotalElements((prev) => ({ ...prev, sent: data.data?.totalElements || 0 }));
+                setTotalPages((prev) => ({ ...prev, sent: data.data?.totalPages || 1 }));
             } else if (type === "received") {
-                setReceivedRequests(data.data.content);
-                setTotalElements((prev) => ({ ...prev, received: data.data.totalElements }));
-                setTotalPages((prev) => ({ ...prev, received: data.data.totalPages }));
+                setReceivedRequests(data.data?.content || []);
+                setTotalElements((prev) => ({ ...prev, received: data.data?.totalElements || 0 }));
+                setTotalPages((prev) => ({ ...prev, received: data.data?.totalPages || 1 }));
             }
         } catch (error) {
-            console.error("Error fetching data:", error);
-            setError(error.message || "Không thể tải dữ liệu");
+            console.error(`Error fetching ${type} data:`, error);
+            setError(error.message || `Không thể tải dữ liệu ${type}.`);
+            toast.error(error.message || `Không thể tải dữ liệu ${type}.`);
         } finally {
             setLoading(false);
         }
@@ -125,7 +140,8 @@ function FriendsPage() {
         try {
             await fetchData(activeTab, page[activeTab]);
         } catch (error) {
-            setError(error.message || "Không thể làm mới dữ liệu");
+            setError(error.message || "Không thể làm mới dữ liệu.");
+            toast.error(error.message || "Không thể làm mới dữ liệu.");
         }
     };
 
