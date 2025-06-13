@@ -1,11 +1,10 @@
 package com.example.social_media.service;
 
-import com.example.social_media.dto.friend.PageResponseDto;
+import com.example.social_media.dto.friend.*;
 import com.example.social_media.dto.user.UserTagDto;
 import com.example.social_media.entity.Follow;
 import com.example.social_media.entity.FollowId;
 import com.example.social_media.entity.User;
-import com.example.social_media.exception.RegistrationException;
 import com.example.social_media.exception.UserNotFoundException;
 import com.example.social_media.repository.BlockRepository;
 import com.example.social_media.repository.FollowRepository;

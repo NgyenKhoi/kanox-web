@@ -1,7 +1,7 @@
 package com.example.social_media.controller;
 
 import com.example.social_media.config.URLConfig;
-import com.example.social_media.dto.friend.PageResponseDto;
+import com.example.social_media.dto.friend.*;
 import com.example.social_media.dto.user.UserTagDto;
 import com.example.social_media.entity.User;
 import com.example.social_media.exception.UserNotFoundException;

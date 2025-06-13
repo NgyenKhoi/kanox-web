@@ -166,41 +166,6 @@ function ProfilePage() {
           isPremium: profileData.isPremium || false,
         });
 
-        const postsResponse = await fetch(
-          `${process.env.REACT_APP_API_URL}/posts/user/${username}`,
-          {
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        const postsData = await postsResponse.json();
-        if (!postsResponse.ok) {
-          throw new Error(postsData.message || "Không thể lấy bài đăng!");
-        }
-
-        setPosts(postsData);
-
-        if (user.username !== username) {
-          const blockStatusResponse = await fetch(
-            `${process.env.REACT_APP_API_URL}/blocks/status/${profileData.id}`,
-            {
-              headers: {
-                "Content-Type": "application/json",
-                Accept: "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          );
-
-          if (blockStatusResponse.ok) {
-            const blockData = await blockStatusResponse.json();
-            setIsBlocked(blockData.isBlocked);
-          }
-        }
-
         // Fetch sent pending friend requests if own profile
         if (user.username === username) {
           const sentRequestsResponse = await fetch(

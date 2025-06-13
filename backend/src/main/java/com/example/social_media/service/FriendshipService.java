@@ -1,6 +1,6 @@
 package com.example.social_media.service;
 
-import com.example.social_media.dto.friend.PageResponseDto;
+import com.example.social_media.dto.friend.*;
 import com.example.social_media.dto.user.UserTagDto;
 import com.example.social_media.entity.Friendship;
 import com.example.social_media.entity.FriendshipId;
