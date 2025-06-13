@@ -20,6 +20,8 @@ public class FollowId implements Serializable {
     private Integer followeeId;
 
     public FollowId(Integer followerId, Integer followeeId) {
+        this.followerId = followerId;
+        this.followeeId = followeeId;
     }
 
     public FollowId() {
