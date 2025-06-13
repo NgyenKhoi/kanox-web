@@ -5,13 +5,9 @@ import com.example.social_media.dto.user.UserTagDto;
 import com.example.social_media.entity.Friendship;
 import com.example.social_media.entity.FriendshipId;
 import com.example.social_media.entity.User;
-import com.example.social_media.exception.RegistrationException;
 import com.example.social_media.exception.UserNotFoundException;
 import com.example.social_media.repository.FriendshipRepository;
 import com.example.social_media.repository.UserRepository;
-import com.example.social_media.service.CustomUserDetailsService;
-import com.example.social_media.service.NotificationService;
-import com.example.social_media.service.UserProfileService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -82,7 +78,7 @@ public class FriendshipService {
         notificationService.sendNotification(
                 receiverId,
                 "FRIEND_REQUEST",
-                "Người dùng " + userId + " đã gửi cho bạn lời mời kết bạn",
+                "{displayName} đã gửi cho bạn lời mời kết bạn",
                 userId,
                 "PROFILE"
         );
@@ -108,9 +104,9 @@ public class FriendshipService {
         notificationService.sendNotification(
                 requesterId,
                 "FRIEND_ACCEPTED",
-                user.getDisplayName() + " đã chấp nhận lời mời kết bạn của bạn",
+                "{displayName} đã chấp nhận lời mời kết bạn của bạn",
                 userId,
-                "friendship"
+                "PROFILE"
         );
     }
 

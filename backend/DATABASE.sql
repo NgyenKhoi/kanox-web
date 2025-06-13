@@ -2485,7 +2485,8 @@ GO
     ('FRIEND_REQUEST', 'New friend request received', 1),
     ('POST_COMMENT', 'New comment on your post', 1),
     ('STORY_VIEW', 'Someone viewed your story', 1),
-    ('REACTION', 'Someone reacted to your content', 1);
+    ('REACTION', 'Someone reacted to your content', 1),
+	('FOLLOW', 'Someone followed you', 1);
 
 
     -- tblReactionType (Loại phản hồi: Like, Love, Haha, v.v.)
@@ -2676,4 +2677,3 @@ GO
     INSERT INTO tblAnalytics (field_name, field_value, update_time, status) VALUES
     ('ActiveUsers', '1000', GETDATE(), 1),
     ('PostCount', '500', GETDATE(), 1);
-

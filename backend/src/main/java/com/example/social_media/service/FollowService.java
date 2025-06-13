@@ -82,7 +82,7 @@ public class FollowService {
         notificationService.sendNotification(
                 followeeId,
                 "FOLLOW",
-                String.format("%s started following you.", follower.getUsername()),
+                "{displayName} đã theo dõi bạn",
                 followerId,
                 "PROFILE"
         );
