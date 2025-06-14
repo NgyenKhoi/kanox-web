@@ -1,6 +1,6 @@
 package com.example.social_media.service;
 
-import com.example.social_media.dto.notification.NotificationDto;
+import com.example.social_media.dto.notification.*;
 import com.example.social_media.entity.*;
 import com.example.social_media.exception.UserNotFoundException;
 import com.example.social_media.repository.*;

@@ -123,3 +123,22 @@
 .text-muted {
     color: var(--text-color-muted) !important; /* Define --text-color-muted in theme.css */
 }
+
+.opacity-75 {
+  opacity: 0.75;
+}
+
+/* Định nghĩa cursor-pointer cho liên kết tên người dùng */
+.cursor-pointer {
+  cursor: pointer;
+}
+
+/* Đảm bảo text-primary sử dụng biến theme */
+.text-primary {
+  color: var(--primary-color) !important;
+}
+
+/* Nếu cần, thêm style cho bg-light-primary (dùng trong NotificationPage) */
+.bg-light-primary {
+  background-color: var(--hover-bg-color); /* Hoặc màu khác phù hợp với theme */
+}
