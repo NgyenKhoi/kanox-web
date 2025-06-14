@@ -1,7 +1,7 @@
 package com.example.social_media.controller;
 
 import com.example.social_media.config.URLConfig;
-import com.example.social_media.dto.notification.NotificationDto;
+import com.example.social_media.dto.notification.*;
 import com.example.social_media.entity.User;
 import com.example.social_media.exception.UserNotFoundException;
 import com.example.social_media.service.CustomUserDetailsService;

@@ -48,14 +48,14 @@ function FriendsPage() {
             setError("Không tìm thấy token. Vui lòng đăng nhập lại.");
             setLoading(false);
             logout();
-            navigate("/signup");
+            navigate("/");
             return;
         }
         if (!user?.id) {
             setError("Không tìm thấy thông tin người dùng.");
             setLoading(false);
             logout();
-            navigate("/signup");
+            navigate("/");
             return;
         }
 
@@ -137,7 +137,7 @@ function FriendsPage() {
     useEffect(() => {
         console.log("Current user:", user);
         if (!user) {
-            navigate("/signup");
+            navigate("/");
             return;
         }
         if (activeTab === "friends") {
