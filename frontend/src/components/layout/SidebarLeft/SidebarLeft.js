@@ -22,8 +22,8 @@ import {
 import { BsStars } from "react-icons/bs";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import KLogoSvg from "../../svgs/KSvg";
-import { AuthContext } from "../../context/AuthContext";
-import { useWebSocket } from "../../hooks/useWebSocket";
+import { AuthContext } from "../../../context/AuthContext";
+import { useWebSocket } from "../../../hooks/useWebSocket";
 import "./SidebarLeft.css";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
