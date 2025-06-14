@@ -67,4 +67,5 @@ public class URLConfig {
     public static final String BLOCK_BASE = "/api/blocks";
     public static final String BLOCK_USER = "/{blockedUserId}";
     public static final String UNBLOCK_USER = "/{blockedUserId}";
+    public static final String CHECK_BLOCK_STATUS = "{blockedUserId}/status";
 }

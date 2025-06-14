@@ -22,7 +22,7 @@ function CustomPrivacyListPage() {
 
     useEffect(() => {
         if (!user) {
-            navigate("/signup");
+            navigate("/");
             return;
         }
         fetchLists();
@@ -34,7 +34,7 @@ function CustomPrivacyListPage() {
         if (!token) {
             toast.error("Không tìm thấy token. Vui lòng đăng nhập lại.");
             setLoading(false);
-            navigate("/signup");
+            navigate("/");
             return;
         }
 
@@ -78,7 +78,7 @@ function CustomPrivacyListPage() {
         const token = sessionStorage.getItem("token") || localStorage.getItem("token");
         if (!token) {
             toast.error("Không tìm thấy token. Vui lòng đăng nhập lại.");
-            navigate("/signup");
+            navigate("/");
             return;
         }
 
@@ -124,7 +124,7 @@ function CustomPrivacyListPage() {
         const token = sessionStorage.getItem("token") || localStorage.getItem("token");
         if (!token) {
             toast.error("Không tìm thấy token. Vui lòng đăng nhập lại!");
-            navigate("/signup");
+            navigate("/");
             return;
         }
 
@@ -164,7 +164,7 @@ function CustomPrivacyListPage() {
         const token = sessionStorage.getItem("token") || localStorage.getItem("token");
         if (!token) {
             toast.error("Không tìm thấy token!");
-            navigate("/signup");
+            navigate("/");
             return;
         }
 

@@ -69,4 +69,18 @@ public class BlockController {
             return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage(), "errors", Map.of()));
         }
     }
+
+    @GetMapping(URLConfig.CHECK_BLOCK_STATUS)
+    public ResponseEntity<?> checkBlockStatus(@PathVariable Integer blockedUserId) {
+        try {
+            String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+            User currentUser = customUserDetailsService.getUserByUsername(currentUsername);
+            boolean isBlocked = blockService.isUserBlocked(currentUser.getId(), blockedUserId);
+            return ResponseEntity.ok(Map.of("isBlocked", isBlocked));
+        } catch (UserNotFoundException e) {
+            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage(), "errors", Map.of()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage(), "errors", Map.of()));
+        }
+    }
 }

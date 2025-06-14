@@ -76,4 +76,13 @@ public class BlockService {
                 ))
                 .collect(Collectors.toList()) : Collections.emptyList();
     }
+
+    @Transactional(readOnly = true)
+    public boolean isUserBlocked(Integer userId, Integer blockedUserId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("Không tìm thấy người dùng với id: " + userId));
+        User blockedUser = userRepository.findById(blockedUserId)
+                .orElseThrow(() -> new UserNotFoundException("Không tìm thấy người dùng với id: " + blockedUserId));
+        return blockRepository.existsByUserAndBlockedUserAndStatus(user, blockedUser, true);
+    }
 }

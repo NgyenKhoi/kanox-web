@@ -23,8 +23,8 @@ import TweetCard from "../../components/posts/TweetCard/TweetCard";
 import EditProfileModal from "../../components/profile/EditProfileModal";
 import SidebarLeft from "../../components/layout/SidebarLeft/SidebarLeft";
 import SidebarRight from "../../components/layout/SidebarRight/SidebarRight";
-import FriendshipButton from "../../components/friendship/FriendshipButton"; // Import FriendshipButton
-import FollowActionButton from "../../components/utils/FollowActionButton"; // Import FollowActionButton
+import FriendshipButton from "../../components/friendship/FriendshipButton";
+import FollowActionButton from "../../components/utils/FollowActionButton";
 import { AuthContext } from "../../context/AuthContext";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -42,6 +42,7 @@ function ProfilePage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showPremiumAlert, setShowPremiumAlert] = useState(true);
   const [isBlocked, setIsBlocked] = useState(false);
+  const [isUserBlocked, setIsUserBlocked] = useState(false); // State mới để kiểm tra trạng thái chặn
 
   const defaultUserProfile = {
     name: "User Testing",
@@ -140,6 +141,7 @@ function ProfilePage() {
       }
 
       try {
+        // Lấy thông tin hồ sơ trước để có userProfile.id
         const profileResponse = await fetch(
           `${process.env.REACT_APP_API_URL}/user/profile/${username}`,
           {
@@ -156,6 +158,32 @@ function ProfilePage() {
           throw new Error(profileData.message || "Lỗi khi lấy thông tin hồ sơ.");
         }
 
+        // Kiểm tra trạng thái chặn
+        if (user.username !== username) { // Chỉ kiểm tra nếu không phải hồ sơ của chính người dùng
+          const blockResponse = await fetch(
+            `${process.env.REACT_APP_API_URL}/blocks/${profileData.id}/status`,
+            {
+              headers: {
+                "Content-Type": "application/json",
+                Accept: "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+
+          const blockData = await blockResponse.json();
+          if (!blockResponse.ok) {
+            throw new Error(blockData.message || "Lỗi khi kiểm tra trạng thái chặn.");
+          }
+
+          if (blockData.isBlocked) {
+            setIsUserBlocked(true);
+            setLoading(false);
+            return; // Dừng lại nếu người dùng đã bị chặn
+          }
+        }
+
+        // Nếu không bị chặn, tiếp tục thiết lập hồ sơ
         setUserProfile({
           ...profileData,
           id: profileData.id,
@@ -166,7 +194,25 @@ function ProfilePage() {
           isPremium: profileData.isPremium || false,
         });
 
-        // Fetch sent pending friend requests if own profile
+        // Lấy bài đăng
+        const postsResponse = await fetch(
+          `${process.env.REACT_APP_API_URL}/posts/user/${username}`,
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        const postsData = await postsResponse.json();
+        if (!postsResponse.ok) {
+          throw new Error(postsData.message || "Lỗi khi lấy bài đăng.");
+        }
+
+        setPosts(postsData);
+
+        // Lấy yêu cầu kết bạn đã gửi nếu là hồ sơ của chính người dùng
         if (user.username === username) {
           const sentRequestsResponse = await fetch(
             `${process.env.REACT_APP_API_URL}/friends/sent-pending?page=0&size=10`,
@@ -186,7 +232,7 @@ function ProfilePage() {
       } catch (error) {
         console.error("Lỗi khi lấy hồ sơ:", error);
         toast.error(error.message || "Lỗi khi lấy hồ sơ.");
-        setUserProfile(defaultUserProfile);
+        setUserProfile(null);
         setPosts([]);
         setSentRequests([]);
       } finally {
@@ -236,7 +282,6 @@ function ProfilePage() {
         setIsBlocked(!isBlocked);
         toast.success(isBlocked ? "Đã bỏ chặn người dùng!" : "Đã chặn người dùng!");
         if (!isBlocked) {
-          // Khi chặn, đảm bảo trạng thái bạn bè và theo dõi bị xóa
           setUserProfile((prev) => ({
             ...prev,
             followerCount: prev.followerCount,
@@ -454,6 +499,19 @@ function ProfilePage() {
     );
   }
 
+  // Hiển thị thông báo nếu người dùng bị chặn
+  if (isUserBlocked) {
+    return (
+      <div className="text-center p-4">
+        <p className="text-dark">Xin lỗi, hiện tại không thể tìm thấy người dùng.</p>
+        <Button variant="primary" onClick={() => navigate("/home")}>
+          Quay lại trang chủ
+        </Button>
+      </div>
+    );
+  }
+
+  // Hiển thị thông báo nếu không tải được hồ sơ
   if (!userProfile) {
     return (
       <div className="text-center p-4">
@@ -632,7 +690,6 @@ function ProfilePage() {
                       className="ms-auto text-dark p-0"
                       onClick={() => setShowPremiumAlert(false)}
                     >
-                      ×
                     </Button>
                   </div>
                 )}

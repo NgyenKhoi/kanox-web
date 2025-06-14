@@ -9,7 +9,6 @@ import com.example.social_media.exception.UserNotFoundException;
 import com.example.social_media.repository.FriendshipRepository;
 import com.example.social_media.repository.UserRepository;
 import com.example.social_media.service.FriendshipService;
-import com.example.social_media.service.UserProfileService;
 import com.example.social_media.service.CustomUserDetailsService;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;

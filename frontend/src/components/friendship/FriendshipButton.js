@@ -114,7 +114,7 @@ function FriendshipButton({ targetId, disabled, onAction }) {
       {status === "none" && "Kết bạn"}
       {status === "pendingSent" && "Đã gửi"}
       {status === "pendingReceived" && "Chấp nhận"}
-      {status === "accepted" && "Bạn bè"}
+      {status === "accepted" && "Hủy kết bạn"}
     </Button>
   );
 }
