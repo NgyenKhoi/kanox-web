@@ -102,11 +102,13 @@ function FriendshipButton({ targetId, disabled, onAction }) {
       disabled={loading || disabled}
       variant={
         status === "accepted"
-          ? "secondary"
+          ? "outline-danger"
           : status === "pendingSent"
           ? "outline-secondary"
           : status === "pendingReceived"
           ? "primary"
+          : status === "none"
+          ? "success"
           : "primary"
       }
       className="rounded-pill px-3 py-1"
