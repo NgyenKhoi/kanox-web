@@ -1,14 +1,11 @@
 package com.example.social_media.dto.notification;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
 import java.time.Instant;
 
 public class NotificationDto {
     private Integer id;
     private String message;
     private String type;
-    @JsonIgnore
     private String username;
     private Integer targetId;
     private String targetType;

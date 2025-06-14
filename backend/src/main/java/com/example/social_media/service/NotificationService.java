@@ -53,6 +53,7 @@ public class NotificationService {
         User targetUser = userRepository.findById(targetId)
                 .orElseThrow(() -> new UserNotFoundException("User not found with id: " + targetId));
         String displayName = targetUser.getDisplayName() != null ? targetUser.getDisplayName() : targetUser.getUsername();
+        String username = targetUser.getUsername();
 
         Notification notification = new Notification();
         notification.setUser(user);
@@ -72,6 +73,7 @@ public class NotificationService {
         notificationDto.setTargetId(savedNotification.getTargetId());
         notificationDto.setTargetType(targetType.getCode());
         notificationDto.setDisplayName(displayName);
+        notificationDto.setUsername(username);
         notificationDto.setCreatedAt(savedNotification.getCreatedAt());
         notificationDto.setStatus(status.getName());
 
@@ -84,7 +86,7 @@ public class NotificationService {
             User targetUser = userRepository.findById(notification.getTargetId())
                     .orElseThrow(() -> new UserNotFoundException("User not found with id: " + notification.getTargetId()));
             String displayName = targetUser.getDisplayName() != null ? targetUser.getDisplayName() : targetUser.getUsername();
-
+            String username = targetUser.getUsername();
             NotificationDto dto = new NotificationDto();
             dto.setId(notification.getId());
             dto.setType(notification.getType().getName());
@@ -92,6 +94,7 @@ public class NotificationService {
             dto.setTargetId(notification.getTargetId());
             dto.setTargetType(notification.getTargetType().getCode());
             dto.setDisplayName(displayName);
+            dto.setUsername(username);
             dto.setCreatedAt(notification.getCreatedAt());
             dto.setStatus(notification.getStatus().getName());
             return dto;
