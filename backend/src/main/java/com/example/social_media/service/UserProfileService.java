@@ -1,9 +1,9 @@
 package com.example.social_media.service;
 
+import com.example.social_media.dto.media.MediaDto;
 import com.example.social_media.dto.user.UserProfileDto;
 import com.example.social_media.dto.user.UserTagDto;
 import com.example.social_media.dto.user.UserUpdateProfileDto;
-import com.example.social_media.entity.Media;
 import com.example.social_media.entity.User;
 import com.example.social_media.exception.UserNotFoundException;
 import com.example.social_media.repository.FollowRepository;
@@ -39,9 +39,9 @@ public class UserProfileService {
         int followeeCount = followRepository.countByFollowerAndStatusTrue(user);
 
         String profileImageUrl = null;
-        List<Media> profileMedia = mediaService.getMediaByTarget(user.getId(), "PROFILE", "image", true);
+        List<MediaDto> profileMedia = mediaService.getMediaByTargetDto(user.getId(), "PROFILE", "image", true);
         if (!profileMedia.isEmpty()) {
-            profileImageUrl = profileMedia.get(0).getMediaUrl();
+            profileImageUrl = profileMedia.getFirst().getUrl();
         }
 
         return new UserProfileDto(
@@ -65,7 +65,7 @@ public class UserProfileService {
 
         if (avatarFile != null && !avatarFile.isEmpty()) {
             profileImageUrl = gcsService.uploadFile(avatarFile);
-            List<Media> existingMedia = mediaService.getMediaByTarget(user.getId(), "PROFILE", "image", true);
+            List<MediaDto> existingMedia = mediaService.getMediaByTargetDto(user.getId(), "PROFILE", "image", true);
             existingMedia.forEach(m -> m.setStatus(false));
 
             mediaService.saveMediaWithUrl(user.getId(), user.getId(), "PROFILE", "image", profileImageUrl, null);
@@ -96,7 +96,4 @@ public class UserProfileService {
         userRepository.updateProfilePrivacy(userId, privacySetting, customListId);
     }
 
-    public String uploadProfileImage(MultipartFile file) throws IOException {
-        return gcsService.uploadFile(file);
-    }
 }
