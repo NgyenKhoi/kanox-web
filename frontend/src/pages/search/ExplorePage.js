@@ -7,7 +7,7 @@ import {
     InputGroup,
     Nav,
     Button,
-    Image as BootstrapImage, // Alias Image
+    Image as BootstrapImage,
     Spinner,
     ListGroup,
 } from "react-bootstrap";

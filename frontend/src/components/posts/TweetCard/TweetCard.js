@@ -1,5 +1,5 @@
 import React, { useState, useContext } from "react";
-import { Card, Button, Dropdown, OverlayTrigger, Tooltip, Image as BootstrapImage } from "react-bootstrap"; // Alias Image to avoid conflicts
+import { Card, Button, Dropdown, OverlayTrigger, Tooltip, Image as BootstrapImage } from "react-bootstrap";
 import {
     FaRegComment,
     FaRetweet,

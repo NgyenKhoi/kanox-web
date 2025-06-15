@@ -2,7 +2,7 @@ import { useState, useEffect, useContext } from "react";
 import { toast } from "react-toastify";
 import { AuthContext } from "../context/AuthContext";
 
-const useUserMedia = (userId, targetTypeId = "PROFILE", mediaTypeId = "image") => {
+const useUserMedia = (userId, targetTypeCode = "PROFILE", mediaTypeName = "image") => {
     const [mediaUrl, setMediaUrl] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -22,7 +22,7 @@ const useUserMedia = (userId, targetTypeId = "PROFILE", mediaTypeId = "image") =
 
             try {
                 const response = await fetch(
-                    `https://kanox.duckdns.org/api/media/target?targetId=${userId}&targetTypeId=${targetTypeId}&mediaTypeId=${mediaTypeId}&status=true`,
+                    `${process.env.REACT_APP_API_URL}/media/target?targetId=${userId}&targetTypeCode=${targetTypeCode}&mediaTypeName=${mediaTypeName}&status=true`,
                     {
                         headers: {
                             "Content-Type": "application/json",
@@ -47,7 +47,7 @@ const useUserMedia = (userId, targetTypeId = "PROFILE", mediaTypeId = "image") =
         };
 
         fetchMedia();
-    }, [userId, targetTypeId, mediaTypeId, token]); // Thêm token vào dependencies
+    }, [userId, targetTypeCode, mediaTypeName, token]);
 
     return { mediaUrl, loading, error };
 };
