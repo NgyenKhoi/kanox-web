@@ -44,9 +44,7 @@ function ProfilePage() {
   const [showPremiumAlert, setShowPremiumAlert] = useState(true);
   const [isBlocked, setIsBlocked] = useState(false);
   const [isUserBlocked, setIsUserBlocked] = useState(false);
-  const { mediaUrl: avatarUrl, loading: avatarLoading } = useUserMedia(user?.id);
-
-  const defaultUserProfile = {
+  const { mediaUrl, loading: mediaLoading } = useUserMedia(userProfile?.id);  const defaultUserProfile = {
     id: null,
     username: "testuser",
     displayName: "Người dùng Test",
