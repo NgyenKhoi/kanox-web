@@ -3,21 +3,22 @@ package com.example.social_media.dto.user;
 import java.time.LocalDate;
 
 public class UserProfileDto {
-    private Integer id; // Thêm trường id
+    private Integer id;
     private String username;
     private String displayName;
     private String email;
     private String bio;
     private Short gender;
     private LocalDate dateOfBirth;
-
     private int followerCount;
     private int followeeCount;
+    private String profileImageUrl; // Thêm trường cho URL ảnh đại diện
 
     // Constructors
     public UserProfileDto() {}
 
-    public UserProfileDto(Integer id, String username, String displayName, String email, String bio, Short gender, LocalDate dateOfBirth, int followerCount, int followeeCount) {
+    public UserProfileDto(Integer id, String username, String displayName, String email, String bio, Short gender,
+                          LocalDate dateOfBirth, int followerCount, int followeeCount, String profileImageUrl) {
         this.id = id;
         this.username = username;
         this.displayName = displayName;
@@ -27,9 +28,10 @@ public class UserProfileDto {
         this.dateOfBirth = dateOfBirth;
         this.followerCount = followerCount;
         this.followeeCount = followeeCount;
+        this.profileImageUrl = profileImageUrl;
     }
 
-    // Getters and setters
+    // Getters và setters
     public Integer getId() { return id; }
     public void setId(Integer id) { this.id = id; }
 
@@ -51,19 +53,12 @@ public class UserProfileDto {
     public LocalDate getDateOfBirth() { return dateOfBirth; }
     public void setDateOfBirth(LocalDate dateOfBirth) { this.dateOfBirth = dateOfBirth; }
 
-    public int getFollowerCount() {
-        return followerCount;
-    }
+    public int getFollowerCount() { return followerCount; }
+    public void setFollowerCount(int followerCount) { this.followerCount = followerCount; }
 
-    public void setFollowerCount(int followerCount) {
-        this.followerCount = followerCount;
-    }
+    public int getFolloweeCount() { return followeeCount; }
+    public void setFolloweeCount(int followeeCount) { this.followeeCount = followeeCount; }
 
-    public int getFolloweeCount() {
-        return followeeCount;
-    }
-
-    public void setFolloweeCount(int followeeCount) {
-        this.followeeCount = followeeCount;
-    }
+    public String getProfileImageUrl() { return profileImageUrl; }
+    public void setProfileImageUrl(String profileImageUrl) { this.profileImageUrl = profileImageUrl; }
 }

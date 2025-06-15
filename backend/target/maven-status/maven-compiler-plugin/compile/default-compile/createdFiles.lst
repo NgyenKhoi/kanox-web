@@ -17,7 +17,6 @@ com\example\social_media\repository\MediaTypeRepository.class
 com\example\social_media\service\AuthService.class
 com\example\social_media\entity\FriendshipId.class
 com\example\social_media\controller\PrivacyController.class
-com\example\social_media\controller\UploadController.class
 com\example\social_media\entity\HiddenPostId.class
 com\example\social_media\dto\user\PageDto.class
 com\example\social_media\exception\GlobalExceptionHandle.class
@@ -54,6 +53,7 @@ com\example\social_media\jwt\JwtAuthenticationFilter.class
 com\example\social_media\service\MailService.class
 com\example\social_media\entity\HiddenPost.class
 com\example\social_media\repository\ActivityLogRepository.class
+com\example\social_media\dto\media\MediaDto.class
 com\example\social_media\dto\user\UserProfileDto.class
 com\example\social_media\service\FollowService.class
 com\example\social_media\service\PrivacyService.class
@@ -61,6 +61,7 @@ com\example\social_media\entity\StoryViewer.class
 com\example\social_media\exception\RegistrationException.class
 com\example\social_media\config\URLConfig.class
 com\example\social_media\repository\GroupRepository.class
+com\example\social_media\controller\MediaController.class
 com\example\social_media\repository\GroupMemberRepository.class
 com\example\social_media\entity\Friendship.class
 com\example\social_media\entity\FollowId.class
@@ -110,7 +111,6 @@ com\example\social_media\entity\GroupMember.class
 com\example\social_media\entity\ActivityLog.class
 com\example\social_media\exception\TokenExpiredException.class
 com\example\social_media\entity\NotificationType.class
-com\example\social_media\service\FileUploadService.class
 com\example\social_media\dto\privacy\CreateCustomListDto.class
 com\example\social_media\entity\CallSession.class
 com\example\social_media\service\GcsService.class

@@ -111,38 +111,43 @@ function EditProfileModal({
 
     setLoading(true);
     const token = localStorage.getItem("token");
-    const payload = { ...formData };
 
     try {
+      const payload = {
+        displayName: formData.displayName,
+        bio: formData.bio,
+        location: formData.location,
+        website: formData.website,
+        dateOfBirth: formData.dateOfBirth,
+        gender: formData.gender ? Number(formData.gender) : null,
+        theme: formData.theme,
+      };
+
+      const form = new FormData();
+      form.append(
+          "data",
+          new Blob([JSON.stringify(payload)], { type: "application/json" })
+      );
+
+      // Chỉ gửi avatar nếu có
       if (avatarFile) {
-        const newAvatarUrl = await uploadFile(avatarFile);
-        payload.avatar = newAvatarUrl;
+        form.append("avatar", avatarFile);
       }
-      if (!formData.avatar && userProfile.avatar) {
-        payload.avatar = "";
-      }
+
+      // Chỉ gửi banner nếu có
       if (bannerFile) {
-        const newBannerUrl = await uploadFile(bannerFile);
-        payload.banner = newBannerUrl;
+        form.append("banner", bannerFile);
       }
-      if (!formData.banner && userProfile.banner) {
-        payload.banner = "";
-      }
-      if (payload.dateOfBirth) {
-        payload.dateOfBirth = payload.dateOfBirth;
-      }
-      payload.gender = payload.gender ? Number(payload.gender) : null;
 
       const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/user/profile/${username}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(payload),
-        }
+          `${process.env.REACT_APP_API_URL}/user/profile/${username}`,
+          {
+            method: "PUT",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            body: form,
+          }
       );
 
       if (!response.ok) {
@@ -150,19 +155,10 @@ function EditProfileModal({
         throw new Error(errorData.message || "Lỗi khi cập nhật hồ sơ.");
       }
 
-      const updatedProfileResponse = await fetch(
-        `${process.env.REACT_APP_API_URL}/user/profile/${username}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      if (!updatedProfileResponse.ok) {
-        throw new Error("Lỗi khi tải lại hồ sơ sau cập nhật.");
-      }
-      const updatedProfile = await updatedProfileResponse.json();
+      // ✅ Dùng luôn kết quả trả về từ PUT
+      const updatedProfile = await response.json();
 
+      // ✅ Cập nhật giao diện qua callback
       onSave(updatedProfile);
       handleClose();
       toast.success("Hồ sơ đã được cập nhật thành công!");
