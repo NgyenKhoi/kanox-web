@@ -234,6 +234,7 @@ function ProfilePage() {
 
     setUserProfile(updatedProfile);
     setUser(updatedProfile);
+    localStorage.setItem("user", JSON.stringify(updatedProfile));
     toast.success("Cập nhật hồ sơ thành công!");
   };
 
