@@ -60,6 +60,7 @@ com\example\social_media\entity\StoryViewer.class
 com\example\social_media\exception\RegistrationException.class
 com\example\social_media\config\URLConfig.class
 com\example\social_media\repository\GroupRepository.class
+com\example\social_media\controller\MediaController.class
 com\example\social_media\repository\GroupMemberRepository.class
 com\example\social_media\entity\Friendship.class
 com\example\social_media\entity\FollowId.class

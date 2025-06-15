@@ -44,6 +44,7 @@ D:\social-media\backend\src\main\java\com\example\social_media\entity\SavedPost.
 D:\social-media\backend\src\main\java\com\example\social_media\controller\FriendshipController.java
 D:\social-media\backend\src\main\java\com\example\social_media\repository\PasswordResetRepository.java
 D:\social-media\backend\src\main\java\com\example\social_media\repository\PostRepository.java
+D:\social-media\backend\src\main\java\com\example\social_media\controller\MediaController.java
 D:\social-media\backend\src\main\java\com\example\social_media\dto\notification\NotificationDto.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\Block.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\Group.java

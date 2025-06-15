@@ -18,6 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -61,6 +62,8 @@ public class UserController {
             return ResponseEntity.ok(updatedProfile);
         } catch (RuntimeException e) {
             return ResponseEntity.status(404).body("User not found");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 

@@ -7,17 +7,9 @@ public class UserUpdateProfileDto {
     private String bio;
     private Short gender;
     private LocalDate dateOfBirth;
+    private String profileImageUrl; // Thêm trường profileImageUrl
 
-    public UserUpdateProfileDto() {
-    }
-
-    public UserUpdateProfileDto(String displayName, String bio, Short gender, LocalDate dateOfBirth) {
-        this.displayName = displayName;
-        this.bio = bio;
-        this.gender = gender;
-        this.dateOfBirth = dateOfBirth;
-    }
-
+    // Getters và setters
     public String getDisplayName() { return displayName; }
     public void setDisplayName(String displayName) { this.displayName = displayName; }
 
@@ -30,4 +22,6 @@ public class UserUpdateProfileDto {
     public LocalDate getDateOfBirth() { return dateOfBirth; }
     public void setDateOfBirth(LocalDate dateOfBirth) { this.dateOfBirth = dateOfBirth; }
 
+    public String getProfileImageUrl() { return profileImageUrl; }
+    public void setProfileImageUrl(String profileImageUrl) { this.profileImageUrl = profileImageUrl; }
 }
