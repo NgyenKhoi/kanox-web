@@ -226,46 +226,15 @@ function ProfilePage() {
     }
   };
 
-  const handleEditProfile = async (updatedData) => {
-    if (!user) {
-      toast.error("Vui lòng đăng nhập để chỉnh sửa hồ sơ.");
-      navigate("/");
+  const handleEditProfile = (updatedProfile) => {
+    if (!updatedProfile) {
+      toast.error("Không thể cập nhật hồ sơ.");
       return;
     }
 
-    const token = sessionStorage.getItem("token") || localStorage.getItem("token");
-    if (!token) {
-      toast.error("Không tìm thấy token. Vui lòng đăng nhập lại.");
-      navigate("/");
-      return;
-    }
-
-    try {
-      const response = await fetch(
-          `${process.env.REACT_APP_API_URL}/user/profile/${username}`,
-          {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-              Accept: "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify(updatedData),
-          }
-      );
-
-      const data = await response.json();
-      if (response.ok) {
-        setUserProfile(data);
-        setUser(data);
-        toast.success("Cập nhật hồ sơ thành công!");
-      } else {
-        throw new Error(data.message || "Lỗi khi cập nhật hồ sơ.");
-      }
-    } catch (error) {
-      console.error("Lỗi khi cập nhật hồ sơ:", error);
-      toast.error(error.message || "Lỗi khi cập nhật hồ sơ.");
-    }
+    setUserProfile(updatedProfile);
+    setUser(updatedProfile);
+    toast.success("Cập nhật hồ sơ thành công!");
   };
 
   const fetchProfileAndPosts = async () => {

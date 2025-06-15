@@ -129,8 +129,14 @@ function EditProfileModal({
           new Blob([JSON.stringify(payload)], { type: "application/json" })
       );
 
+      // Chỉ gửi avatar mới nếu có chọn file mới
       if (avatarFile) {
         form.append("avatar", avatarFile);
+      }
+
+      // Chỉ gửi banner mới nếu có chọn file mới
+      if (bannerFile) {
+        form.append("banner", bannerFile);
       }
 
       const response = await fetch(
