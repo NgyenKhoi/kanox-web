@@ -28,6 +28,7 @@ import FollowActionButton from "../../components/utils/FollowActionButton";
 import { AuthContext } from "../../context/AuthContext";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import useUserMedia from "../../hooks/useUserMedia";
 
 function ProfilePage() {
   const { user, setUser } = useContext(AuthContext);
@@ -43,6 +44,7 @@ function ProfilePage() {
   const [showPremiumAlert, setShowPremiumAlert] = useState(true);
   const [isBlocked, setIsBlocked] = useState(false);
   const [isUserBlocked, setIsUserBlocked] = useState(false);
+  const { mediaUrl: avatarUrl, loading: avatarLoading } = useUserMedia(user?.id);
 
   const defaultUserProfile = {
     id: null,
@@ -335,11 +337,12 @@ function ProfilePage() {
                 >
                   <div className="d-flex align-items-center">
                     <Image
-                        src={req.profileImageUrl || "https://via.placeholder.com/40"}
+                        src={mediaUrl || "https://via.placeholder.com/40?text=Avatar"}
                         roundedCircle
                         width={40}
                         height={40}
                         className="me-2"
+                        alt="Avatar"
                     />
                     <div>
                       <strong>{req.displayName || req.username}</strong>

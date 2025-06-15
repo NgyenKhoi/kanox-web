@@ -13,9 +13,11 @@ const useUserMedia = (userId, targetTypeCode = "PROFILE", mediaTypeName = "image
 
         const fetchMedia = async () => {
             setLoading(true);
+
             if (!token) {
-                setError("Không tìm thấy token. Vui lòng đăng nhập lại.");
-                toast.error("Không tìm thấy token. Vui lòng đăng nhập lại.");
+                const msg = "Không tìm thấy token. Vui lòng đăng nhập lại.";
+                setError(msg);
+                toast.error(msg);
                 setLoading(false);
                 return;
             }
@@ -32,14 +34,21 @@ const useUserMedia = (userId, targetTypeCode = "PROFILE", mediaTypeName = "image
                 );
 
                 const data = await response.json();
+
                 if (!response.ok) {
                     throw new Error(data.message || "Lỗi khi lấy ảnh.");
                 }
 
-                setMediaUrl(data.length > 0 ? data[0].url : null);
+                // ✅ Nếu API trả về object có key `url`
+                if (data?.url) {
+                    setMediaUrl(data.url);
+                } else {
+                    setMediaUrl(null);
+                }
             } catch (err) {
-                setError(err.message);
-                toast.error(err.message || "Lỗi khi lấy ảnh.");
+                const msg = err.message || "Lỗi khi lấy ảnh.";
+                setError(msg);
+                toast.error(msg);
                 setMediaUrl(null);
             } finally {
                 setLoading(false);
