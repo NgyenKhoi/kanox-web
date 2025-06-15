@@ -95,6 +95,59 @@ CREATE UNIQUE INDEX IDX_VerificationToken_Token ON VerificationToken(Token);
     );
 
     --Lưu danh sách người dùng trong mỗi danh sách custom.
+		CREATE PROCEDURE sp_DeleteCustomList
+		@user_id INT,
+		@list_id INT
+	AS
+	BEGIN
+		SET NOCOUNT ON;
+		BEGIN TRY
+			BEGIN TRANSACTION;
+
+			-- Kiểm tra user_id tồn tại và active
+			IF NOT EXISTS (SELECT 1 FROM tblUser WHERE id = @user_id AND status = 1)
+			BEGIN
+				RAISERROR(N'Người dùng không hợp lệ hoặc không hoạt động.', 16, 1);
+				RETURN;
+			END
+
+			-- Kiểm tra list_id tồn tại và thuộc về user_id
+			IF NOT EXISTS (SELECT 1 FROM tblCustomPrivacyLists WHERE id = @list_id AND user_id = @user_id AND status = 1)
+			BEGIN
+				RAISERROR(N'Danh sách không tồn tại hoặc không thuộc về người dùng.', 16, 1);
+				RETURN;
+			END
+
+			-- Xóa các thành viên trong danh sách
+			UPDATE tblCustomPrivacyListMembers
+			SET status = 0
+			WHERE list_id = @list_id AND status = 1;
+
+			-- Xóa danh sách
+			UPDATE tblCustomPrivacyLists
+			SET status = 0
+			WHERE id = @list_id AND user_id = @user_id;
+
+			-- Cập nhật các quyền riêng tư liên quan (nếu danh sách được sử dụng)
+			UPDATE tblContentPrivacy
+			SET custom_list_id = NULL,
+				privacy_setting = 'public',
+				updated_at = GETDATE()
+			WHERE custom_list_id = @list_id AND status = 1;
+
+			COMMIT TRANSACTION;
+		END TRY
+		BEGIN CATCH
+			IF @@TRANCOUNT > 0
+				ROLLBACK TRANSACTION;
+			DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+			INSERT INTO tblErrorLog (error_message, error_time)
+			VALUES (@ErrorMessage, GETDATE());
+			RAISERROR (@ErrorMessage, 16, 1);
+		END CATCH;
+	END;
+	GO
+
 
     CREATE TABLE tblCustomPrivacyListMembers (
         list_id INT NOT NULL FOREIGN KEY REFERENCES tblCustomPrivacyLists(id),
@@ -124,6 +177,105 @@ CREATE UNIQUE INDEX IDX_VerificationToken_Token ON VerificationToken(Token);
         SELECT list_id, member_user_id, added_at, status
         FROM inserted;
     END;
+
+	CREATE PROCEDURE sp_GetCustomListMembers
+    @user_id INT,
+    @list_id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    BEGIN TRY
+        -- Kiểm tra user_id tồn tại và active
+        IF NOT EXISTS (SELECT 1 FROM tblUser WHERE id = @user_id AND status = 1)
+        BEGIN
+            RAISERROR(N'Người dùng không hợp lệ hoặc không hoạt động.', 16, 1);
+            RETURN;
+        END
+
+        -- Kiểm tra list_id tồn tại và thuộc về user_id
+        IF NOT EXISTS (SELECT 1 FROM tblCustomPrivacyLists WHERE id = @list_id AND user_id = @user_id AND status = 1)
+        BEGIN
+            RAISERROR(N'Danh sách không tồn tại hoặc không thuộc về người dùng.', 16, 1);
+            RETURN;
+        END
+
+        -- Lấy danh sách thành viên
+        SELECT 
+            u.id AS member_user_id,
+            u.username,
+            u.display_name,
+            cplm.added_at
+        FROM tblCustomPrivacyListMembers cplm
+        JOIN tblUser u ON cplm.member_user_id = u.id
+        WHERE cplm.list_id = @list_id AND cplm.status = 1 AND u.status = 1
+        ORDER BY cplm.added_at DESC;
+
+    END TRY
+    BEGIN CATCH
+        DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+        INSERT INTO tblErrorLog (error_message, error_time)
+        VALUES (@ErrorMessage, GETDATE());
+        RAISERROR (@ErrorMessage, 16, 1);
+    END CATCH;
+END;
+GO
+
+CREATE PROCEDURE sp_RemoveMemberFromCustomList
+    @user_id INT,
+    @list_id INT,
+    @member_user_id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    BEGIN TRY
+        BEGIN TRANSACTION;
+
+        -- Kiểm tra user_id tồn tại và active
+        IF NOT EXISTS (SELECT 1 FROM tblUser WHERE id = @user_id AND status = 1)
+        BEGIN
+            RAISERROR(N'Người dùng không hợp lệ hoặc không hoạt động.', 16, 1);
+            RETURN;
+        END
+
+        -- Kiểm tra list_id tồn tại và thuộc về user_id
+        IF NOT EXISTS (SELECT 1 FROM tblCustomPrivacyLists WHERE id = @list_id AND user_id = @user_id AND status = 1)
+        BEGIN
+            RAISERROR(N'Danh sách không tồn tại hoặc không thuộc về người dùng.', 16, 1);
+            RETURN;
+        END
+
+        -- Kiểm tra member_user_id tồn tại và active
+        IF NOT EXISTS (SELECT 1 FROM tblUser WHERE id = @member_user_id AND status = 1)
+        BEGIN
+            RAISERROR(N'Thành viên không hợp lệ hoặc không hoạt động.', 16, 1);
+            RETURN;
+        END
+
+        -- Kiểm tra xem thành viên có trong danh sách không
+        IF NOT EXISTS (SELECT 1 FROM tblCustomPrivacyListMembers WHERE list_id = @list_id AND member_user_id = @member_user_id AND status = 1)
+        BEGIN
+            RAISERROR(N'Thành viên không có trong danh sách.', 16, 1);
+            RETURN;
+        END
+
+        -- Xóa thành viên khỏi danh sách
+        UPDATE tblCustomPrivacyListMembers
+        SET status = 0
+        WHERE list_id = @list_id AND member_user_id = @member_user_id;
+
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0
+            ROLLBACK TRANSACTION;
+        DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+        INSERT INTO tblErrorLog (error_message, error_time)
+        VALUES (@ErrorMessage, GETDATE());
+        RAISERROR (@ErrorMessage, 16, 1);
+    END CATCH;
+END;
+GO
+
 
     --Lưu cài đặt quyền riêng tư riêng lẻ cho từng nội dung (post, comment, story, profile).
 
@@ -2048,7 +2200,9 @@ GO
             @user_id, @type_id, @message, GETDATE(), 1, @target_id, @target_type_id
         );
     END;
-
+	SELECT OBJECT_NAME(object_id), definition
+FROM sys.sql_modules
+WHERE definition LIKE '%friendship%';
 
     --GROUP & PAGE
 
@@ -2487,7 +2641,7 @@ GO
     ('STORY_VIEW', 'Someone viewed your story', 1),
     ('REACTION', 'Someone reacted to your content', 1),
 	('FOLLOW', 'Someone followed you', 1);
-
+	select * from tblTargetType
 
     -- tblReactionType (Loại phản hồi: Like, Love, Haha, v.v.)
     INSERT INTO tblReactionType (name, description, status) VALUES
@@ -2547,14 +2701,14 @@ GO
 
     -- tblCustomPrivacyLists (Danh sách quyền riêng tư tùy chỉnh)
     INSERT INTO tblCustomPrivacyLists (user_id, list_name, created_at, status) VALUES
-    (4, 'CloseFriends', GETDATE(), 1),
-    (4, 'Family', GETDATE(), 1);
+    (1, 'CloseFriends', GETDATE(), 1),
+    (9, 'Family', GETDATE(), 1);
 
     -- tblCustomPrivacyListMembers (Thành viên trong danh sách tùy chỉnh)
     INSERT INTO tblCustomPrivacyListMembers (list_id, member_user_id, added_at, status) VALUES
-    (1, 1, GETDATE(), 1), -- User 1 trong danh sách CloseFriends của User 4
-    (1, 2, GETDATE(), 1), -- User 2 trong danh sách CloseFriends của User 4
-    (2, 3, GETDATE(), 1); -- User 3 trong danh sách Family của User 4
+    (1, 46, GETDATE(), 1), -- User 1 trong danh sách CloseFriends của User 4
+    (1, 47, GETDATE(), 1), -- User 2 trong danh sách CloseFriends của User 4
+    (2, 49, GETDATE(), 1); -- User 3 trong danh sách Family của User 4
 
     ------the third-----
 
