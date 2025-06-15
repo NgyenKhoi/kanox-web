@@ -10,6 +10,7 @@ import com.example.social_media.repository.FollowRepository;
 import com.example.social_media.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
@@ -19,12 +20,15 @@ public class UserProfileService {
 
     private final UserRepository userRepository;
     private final FollowRepository followRepository;
-    private final MediaService mediaService; // Thêm MediaService
+    private final MediaService mediaService;
+    private final GcsService gcsService;
 
-    public UserProfileService(UserRepository userRepository, FollowRepository followRepository, MediaService mediaService) {
+    public UserProfileService(UserRepository userRepository, FollowRepository followRepository,
+                              MediaService mediaService, GcsService gcsService) {
         this.userRepository = userRepository;
         this.followRepository = followRepository;
         this.mediaService = mediaService;
+        this.gcsService = gcsService;
     }
 
     public UserProfileDto getUserProfile(String username) {
@@ -34,51 +38,37 @@ public class UserProfileService {
         int followerCount = followRepository.countByFolloweeAndStatusTrue(user);
         int followeeCount = followRepository.countByFollowerAndStatusTrue(user);
 
-        // Lấy ảnh đại diện từ tblMedia
         String profileImageUrl = null;
         List<Media> profileMedia = mediaService.getMediaByTarget(user.getId(), "PROFILE", "image", true);
         if (!profileMedia.isEmpty()) {
-            profileImageUrl = profileMedia.get(0).getMediaUrl(); // Lấy URL của ảnh đầu tiên
+            profileImageUrl = profileMedia.get(0).getMediaUrl();
         }
 
         return new UserProfileDto(
-                user.getId(),
-                user.getUsername(),
-                user.getDisplayName(),
-                user.getEmail(),
-                user.getBio(),
-                user.getGender(),
-                user.getDateOfBirth(),
-                followerCount,
-                followeeCount,
-                profileImageUrl
+                user.getId(), user.getUsername(), user.getDisplayName(), user.getEmail(),
+                user.getBio(), user.getGender(), user.getDateOfBirth(),
+                followerCount, followeeCount, profileImageUrl
         );
     }
 
     @Transactional
-    public UserProfileDto updateUserProfile(String username, UserUpdateProfileDto updateDto) throws IOException {
+    public UserProfileDto updateUserProfile(String username, UserUpdateProfileDto updateDto, MultipartFile avatarFile) throws IOException {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Người dùng không tìm thấy"));
+                .orElseThrow(() -> new UserNotFoundException("Người dùng không tìm thấy"));
 
         user.setDisplayName(updateDto.getDisplayName());
         user.setBio(updateDto.getBio());
         user.setGender(updateDto.getGender());
         user.setDateOfBirth(updateDto.getDateOfBirth());
 
-        // Lưu hoặc cập nhật ảnh đại diện nếu có
-        String profileImageUrl = updateDto.getProfileImageUrl();
-        if (profileImageUrl != null) {
-            // Nếu có profileImageUrl mới, cập nhật hoặc thêm vào tblMedia
+        String profileImageUrl = null;
+
+        if (avatarFile != null && !avatarFile.isEmpty()) {
+            profileImageUrl = gcsService.uploadFile(avatarFile);
             List<Media> existingMedia = mediaService.getMediaByTarget(user.getId(), "PROFILE", "image", true);
-            if (!existingMedia.isEmpty()) {
-                // Cập nhật media hiện có (giả sử chỉ có một ảnh đại diện)
-                Media media = existingMedia.get(0);
-                media.setMediaUrl(profileImageUrl);
-                mediaService.uploadMedia(user.getId(), user.getId(), "PROFILE", "image", null, media.getCaption());
-            } else {
-                // Thêm media mới
-                mediaService.uploadMedia(user.getId(), user.getId(), "PROFILE", "image", null, null);
-            }
+            existingMedia.forEach(m -> m.setStatus(false));
+
+            mediaService.saveMediaWithUrl(user.getId(), user.getId(), "PROFILE", "image", profileImageUrl, null);
         }
 
         userRepository.save(user);
@@ -87,16 +77,9 @@ public class UserProfileService {
         int followeeCount = followRepository.countByFollowerAndStatusTrue(user);
 
         return new UserProfileDto(
-                user.getId(),
-                user.getUsername(),
-                user.getDisplayName(),
-                user.getEmail(),
-                user.getBio(),
-                user.getGender(),
-                user.getDateOfBirth(),
-                followerCount,
-                followeeCount,
-                profileImageUrl
+                user.getId(), user.getUsername(), user.getDisplayName(), user.getEmail(),
+                user.getBio(), user.getGender(), user.getDateOfBirth(),
+                followerCount, followeeCount, profileImageUrl
         );
     }
 
@@ -110,7 +93,10 @@ public class UserProfileService {
     public void updateProfilePrivacy(Integer userId, String privacySetting, Integer customListId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("Không tìm thấy người dùng với id: " + userId));
-
         userRepository.updateProfilePrivacy(userId, privacySetting, customListId);
+    }
+
+    public String uploadProfileImage(MultipartFile file) throws IOException {
+        return gcsService.uploadFile(file);
     }
 }

@@ -22,7 +22,6 @@ import java.util.stream.Collectors;
 public class FriendshipService {
     private final FriendshipRepository friendshipRepository;
     private final CustomUserDetailsService customUserDetailsService;
-    private final UserProfileService userProfileService;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
     private final PrivacyService privacyService;
@@ -30,14 +29,12 @@ public class FriendshipService {
     public FriendshipService(
             FriendshipRepository friendshipRepository,
             CustomUserDetailsService customUserDetailsService,
-            UserProfileService userProfileService,
             UserRepository userRepository,
             NotificationService notificationService,
             PrivacyService privacyService
     ) {
         this.friendshipRepository = friendshipRepository;
         this.customUserDetailsService = customUserDetailsService;
-        this.userProfileService = userProfileService;
         this.userRepository = userRepository;
         this.notificationService = notificationService;
         this.privacyService = privacyService;

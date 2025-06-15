@@ -1,6 +1,6 @@
 package com.example.social_media.service;
 
-import com.google.api.client.util.Value;
+import org.springframework.beans.factory.annotation.Value;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import org.springframework.stereotype.Service;
@@ -15,11 +15,12 @@ public class GcsService {
     private String bucketName;
 
     private final Storage storage;
+    private static final String FORMAT_URL_UPLOAD = "https://storage.googleapis.com/%s/%s";
 
     public GcsService(Storage storage) {
         this.storage = storage;
     }
-    private static final String FORMAT_URL_UPLOAD = "https://storage.googleapis.com/%s/%s";
+
     public String uploadFile(MultipartFile file) throws IOException {
         String objectName = UUID.randomUUID() + "_" + file.getOriginalFilename();
         BlobId blobId = BlobId.of(bucketName, objectName);

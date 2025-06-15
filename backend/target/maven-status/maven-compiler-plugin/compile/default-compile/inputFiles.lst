@@ -50,7 +50,6 @@ D:\social-media\backend\src\main\java\com\example\social_media\entity\Block.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\Group.java
 D:\social-media\backend\src\main\java\com\example\social_media\repository\TargetTypeRepository.java
 D:\social-media\backend\src\main\java\com\example\social_media\controller\FollowController.java
-D:\social-media\backend\src\main\java\com\example\social_media\controller\UploadController.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\HiddenPost.java
 D:\social-media\backend\src\main\java\com\example\social_media\repository\MediaRepository.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\FriendSuggestionId.java
@@ -131,7 +130,6 @@ D:\social-media\backend\src\main\java\com\example\social_media\dto\block\Blocked
 D:\social-media\backend\src\main\java\com\example\social_media\entity\FriendSuggestion.java
 D:\social-media\backend\src\main\java\com\example\social_media\repository\GroupMemberRepository.java
 D:\social-media\backend\src\main\java\com\example\social_media\controller\PostController.java
-D:\social-media\backend\src\main\java\com\example\social_media\service\FileUploadService.java
 D:\social-media\backend\src\main\java\com\example\social_media\dto\authentication\LoginRequestDto.java
 D:\social-media\backend\src\main\java\com\example\social_media\controller\NotificationController.java
 D:\social-media\backend\src\main\java\com\example\social_media\dto\user\PageDto.java
@@ -155,6 +153,7 @@ D:\social-media\backend\src\main\java\com\example\social_media\config\WebSocketC
 D:\social-media\backend\src\main\java\com\example\social_media\exception\EmailAlreadyExistsException.java
 D:\social-media\backend\src\main\java\com\example\social_media\dto\user\UserUpdateProfileDto.java
 D:\social-media\backend\src\main\java\com\example\social_media\repository\GroupRepository.java
+D:\social-media\backend\src\main\java\com\example\social_media\dto\media\MediaDto.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\User.java
 D:\social-media\backend\src\main\java\com\example\social_media\service\PrivacyService.java
 D:\social-media\backend\src\main\java\com\example\social_media\repository\ActionTypeRepository.java

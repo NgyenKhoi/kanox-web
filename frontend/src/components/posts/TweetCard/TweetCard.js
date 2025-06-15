@@ -1,5 +1,12 @@
 import React, { useState, useContext } from "react";
-import { Card, Button, Dropdown, OverlayTrigger, Tooltip, Image as BootstrapImage } from "react-bootstrap";
+import {
+    Card,
+    Button,
+    Dropdown,
+    OverlayTrigger,
+    Tooltip,
+    Image as BootstrapImage,
+} from "react-bootstrap";
 import {
     FaRegComment,
     FaRetweet,
@@ -10,7 +17,6 @@ import {
     FaFlag,
     FaEdit,
     FaTrash,
-    FaSmile,
 } from "react-icons/fa";
 import moment from "moment";
 import { AuthContext } from "../../../context/AuthContext";
@@ -19,39 +25,38 @@ import useUserMedia from "../../../hooks/useUserMedia";
 
 function TweetCard({ tweet, onPostUpdate }) {
     const { user } = useContext(AuthContext);
-    const { id, owner, content, createdAt, commentCount, shareCount, likeCount, taggedUsers = [], privacySetting = "public" } = tweet;
+    const {
+        id,
+        owner,
+        content,
+        createdAt,
+        commentCount,
+        shareCount,
+        likeCount,
+        taggedUsers = [],
+        privacySetting = "public",
+    } = tweet;
+
     const isOwnTweet = user && user.username === owner.username;
     const [reaction, setReaction] = useState(null);
     const [showEditModal, setShowEditModal] = useState(false);
 
-    const { mediaUrl, loading: mediaLoading, error: mediaError } = useUserMedia(owner.id, "PROFILE", "image");
+    const { mediaUrl } = useUserMedia(owner.id, "PROFILE", "image");
 
-    const handleEditTweet = () => {
-        setShowEditModal(true);
-    };
-
+    const handleEditTweet = () => setShowEditModal(true);
     const handleDeleteTweet = () => {
         if (window.confirm("Bạn có chắc muốn xóa bài đăng này?")) {
             alert(`Đã xóa bài đăng: ${content}`);
         }
     };
-
-    const handleSaveTweet = () => {
-        alert(`Đã lưu bài đăng: ${content}`);
-    };
-
-    const handleReportTweet = () => {
-        alert(`Đã báo cáo bài đăng: ${content}`);
-    };
-
+    const handleSaveTweet = () => alert(`Đã lưu bài đăng: ${content}`);
+    const handleReportTweet = () => alert(`Đã báo cáo bài đăng: ${content}`);
     const handleEmojiReaction = (emoji) => {
         setReaction(emoji);
         alert(`Phản ứng với ${emoji}`);
     };
-
-    const handleStatusChange = (newStatus) => {
+    const handleStatusChange = (newStatus) =>
         alert(`Đổi trạng thái bài đăng thành: ${newStatus}`);
-    };
 
     return React.createElement(
         Card,
@@ -72,7 +77,10 @@ function TweetCard({ tweet, onPostUpdate }) {
                 { className: "flex-grow-1" },
                 React.createElement(
                     "div",
-                    { className: "d-flex align-items-center justify-content-between mb-1" },
+                    {
+                        className:
+                            "d-flex align-items-center justify-content-between mb-1",
+                    },
                     React.createElement(
                         "div",
                         { className: "d-flex align-items-center" },
@@ -100,56 +108,68 @@ function TweetCard({ tweet, onPostUpdate }) {
                             {
                                 variant: "link",
                                 className: "text-muted p-1 rounded-circle",
-                                id: "dropdown-tweet-options",
                             },
                             React.createElement(FaEllipsisH, null)
                         ),
                         React.createElement(
                             Dropdown.Menu,
                             null,
-                            isOwnTweet && [
+                            isOwnTweet &&
+                            [
                                 React.createElement(
                                     Dropdown.Item,
-                                    { key: "edit", onClick: handleEditTweet },
-                                    React.createElement(FaEdit, { className: "me-2" }),
+                                    {
+                                        key: "edit",
+                                        onClick: handleEditTweet,
+                                    },
+                                    React.createElement(FaEdit, {
+                                        className: "me-2",
+                                    }),
                                     "Chỉnh sửa"
                                 ),
                                 React.createElement(
                                     Dropdown.Item,
-                                    { key: "delete", onClick: handleDeleteTweet },
-                                    React.createElement(FaTrash, { className: "me-2" }),
+                                    {
+                                        key: "delete",
+                                        onClick: handleDeleteTweet,
+                                    },
+                                    React.createElement(FaTrash, {
+                                        className: "me-2",
+                                    }),
                                     "Xóa"
                                 ),
                                 React.createElement(
-                                    Dropdown.Item,
-                                    { key: "status" },
+                                    Dropdown,
+                                    { key: "status", drop: "end" },
                                     React.createElement(
-                                        Dropdown,
-                                        { drop: "end" },
-                                        React.createElement(
-                                            Dropdown.Toggle,
-                                            { variant: "link", className: "text-dark p-0" },
-                                            React.createElement(FaShareAlt, { className: "me-2" }),
-                                            `Trạng thái: ${privacySetting}`
-                                        ),
-                                        React.createElement(
-                                            Dropdown.Menu,
-                                            null,
-                                            React.createElement(
-                                                Dropdown.Item,
-                                                { onClick: () => handleStatusChange("public") },
-                                                "Công khai"
-                                            ),
-                                            React.createElement(
-                                                Dropdown.Item,
-                                                { onClick: () => handleStatusChange("friends") },
-                                                "Bạn bè"
-                                            ),
-                                            React.createElement(
-                                                Dropdown.Item,
-                                                { onClick: () => handleStatusChange("private") },
-                                                "Riêng tư"
-                                            )
+                                        Dropdown.Toggle,
+                                        {
+                                            variant: "link",
+                                            className: "text-dark p-0",
+                                        },
+                                        React.createElement(FaShareAlt, {
+                                            className: "me-2",
+                                        }),
+                                        `Trạng thái: ${privacySetting}`
+                                    ),
+                                    React.createElement(
+                                        Dropdown.Menu,
+                                        null,
+                                        ["public", "friends", "private"].map(
+                                            (status) =>
+                                                React.createElement(
+                                                    Dropdown.Item,
+                                                    {
+                                                        key: status,
+                                                        onClick: () =>
+                                                            handleStatusChange(status),
+                                                    },
+                                                    status === "public"
+                                                        ? "Công khai"
+                                                        : status === "friends"
+                                                            ? "Bạn bè"
+                                                            : "Riêng tư"
+                                                )
                                         )
                                     )
                                 ),
@@ -181,7 +201,10 @@ function TweetCard({ tweet, onPostUpdate }) {
                         taggedUsers.map((tag, index) =>
                             React.createElement(
                                 "span",
-                                { key: index, className: "text-primary me-1" },
+                                {
+                                    key: index,
+                                    className: "text-primary me-1",
+                                },
                                 `@${tag.username}`
                             )
                         )
@@ -189,14 +212,20 @@ function TweetCard({ tweet, onPostUpdate }) {
                 ),
                 React.createElement(
                     "div",
-                    { className: "d-flex justify-content-between text-muted mt-2" },
+                    {
+                        className:
+                            "d-flex justify-content-between text-muted mt-2",
+                    },
                     React.createElement(
                         Button,
                         {
                             variant: "link",
                             className: "text-muted p-1 rounded-circle hover-bg-light",
                         },
-                        React.createElement(FaRegComment, { size: 18, className: "me-1" }),
+                        React.createElement(FaRegComment, {
+                            size: 18,
+                            className: "me-1",
+                        }),
                         commentCount > 0 && commentCount
                     ),
                     React.createElement(
@@ -205,14 +234,21 @@ function TweetCard({ tweet, onPostUpdate }) {
                             variant: "link",
                             className: "text-muted p-1 rounded-circle hover-bg-light",
                         },
-                        React.createElement(FaRetweet, { size: 18, className: "me-1" }),
+                        React.createElement(FaRetweet, {
+                            size: 18,
+                            className: "me-1",
+                        }),
                         shareCount > 0 && shareCount
                     ),
                     React.createElement(
                         OverlayTrigger,
                         {
                             placement: "top",
-                            overlay: React.createElement(Tooltip, { id: "emoji-tooltip" }, "Chọn biểu cảm"),
+                            overlay: React.createElement(
+                                Tooltip,
+                                { id: "emoji-tooltip" },
+                                "Chọn biểu cảm"
+                            ),
                         },
                         React.createElement(
                             Dropdown,
@@ -221,35 +257,30 @@ function TweetCard({ tweet, onPostUpdate }) {
                                 Dropdown.Toggle,
                                 {
                                     variant: "link",
-                                    className: "text-muted p-1 rounded-circle hover-bg-light",
+                                    className:
+                                        "text-muted p-1 rounded-circle hover-bg-light",
                                 },
                                 reaction
                                     ? React.createElement("span", null, `${reaction} `)
-                                    : React.createElement(FaRegHeart, { size: 18, className: "me-1" }),
+                                    : React.createElement(FaRegHeart, {
+                                        size: 18,
+                                        className: "me-1",
+                                    }),
                                 likeCount > 0 && likeCount
                             ),
                             React.createElement(
                                 Dropdown.Menu,
                                 null,
-                                React.createElement(
-                                    Dropdown.Item,
-                                    { onClick: () => handleEmojiReaction("😊") },
-                                    "😊"
-                                ),
-                                React.createElement(
-                                    Dropdown.Item,
-                                    { onClick: () => handleEmojiReaction("❤️") },
-                                    "❤️"
-                                ),
-                                React.createElement(
-                                    Dropdown.Item,
-                                    { onClick: () => handleEmojiReaction("👍") },
-                                    "👍"
-                                ),
-                                React.createElement(
-                                    Dropdown.Item,
-                                    { onClick: () => handleEmojiReaction("😂") },
-                                    "😂"
+                                ["😊", "❤️", "👍", "😂"].map((emoji) =>
+                                    React.createElement(
+                                        Dropdown.Item,
+                                        {
+                                            key: emoji,
+                                            onClick: () =>
+                                                handleEmojiReaction(emoji),
+                                        },
+                                        emoji
+                                    )
                                 )
                             )
                         )
