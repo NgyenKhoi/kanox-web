@@ -129,12 +129,12 @@ function EditProfileModal({
           new Blob([JSON.stringify(payload)], { type: "application/json" })
       );
 
-      // Chỉ gửi avatar mới nếu có chọn file mới
+      // Chỉ gửi avatar nếu có
       if (avatarFile) {
         form.append("avatar", avatarFile);
       }
 
-      // Chỉ gửi banner mới nếu có chọn file mới
+      // Chỉ gửi banner nếu có
       if (bannerFile) {
         form.append("banner", bannerFile);
       }
@@ -155,21 +155,10 @@ function EditProfileModal({
         throw new Error(errorData.message || "Lỗi khi cập nhật hồ sơ.");
       }
 
-      const updatedProfileResponse = await fetch(
-          `${process.env.REACT_APP_API_URL}/user/profile/${username}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-      );
+      // ✅ Dùng luôn kết quả trả về từ PUT
+      const updatedProfile = await response.json();
 
-      if (!updatedProfileResponse.ok) {
-        throw new Error("Lỗi khi tải lại hồ sơ sau cập nhật.");
-      }
-
-      const updatedProfile = await updatedProfileResponse.json();
-
+      // ✅ Cập nhật giao diện qua callback
       onSave(updatedProfile);
       handleClose();
       toast.success("Hồ sơ đã được cập nhật thành công!");
