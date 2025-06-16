@@ -212,7 +212,7 @@ public class PostService {
         logger.debug("Checking access for userId: {}, contentId: {}, contentTypeId: {}", userId, contentId, contentTypeId);
         Post post = postRepository.findById(contentId)
                 .orElseThrow(() -> new UserNotFoundException("Post not found with id: " + contentId));
-        boolean hasAccess = privacyService.checkContentAccess(userId, post.getOwner().getId(), "post");
+        boolean hasAccess = privacyService.checkContentAccess(userId, contentId, "post");
         logger.debug("Access result for userId: {}, contentId: {} - {}", userId, contentId, hasAccess);
         return hasAccess;
     }
