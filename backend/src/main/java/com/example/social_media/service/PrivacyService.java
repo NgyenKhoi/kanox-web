@@ -30,7 +30,6 @@ public class PrivacyService {
             TargetTypeRepository targetTypeRepository,
             PrivacySettingRepository privacySettingRepository,
             FriendshipRepository friendshipRepository
-
     ) {
         this.customPrivacyListRepository = customPrivacyListRepository;
         this.customPrivacyListMemberRepository = customPrivacyListMemberRepository;
@@ -40,6 +39,18 @@ public class PrivacyService {
         this.privacySettingRepository = privacySettingRepository;
         this.friendshipRepository = friendshipRepository;
     }
+
+    // Thêm phương thức để lấy PrivacySetting
+    public PrivacySetting getPrivacySettingByUserId(Integer userId) {
+        return privacySettingRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy cài đặt quyền riêng tư cho người dùng với id: " + userId));
+    }
+
+    // Thêm phương thức để lưu PrivacySetting
+    public void savePrivacySetting(PrivacySetting privacySetting) {
+        privacySettingRepository.save(privacySetting);
+    }
+
     public boolean checkContentAccess(Integer viewerId, Integer ownerId, String targetTypeCode) {
         if (Objects.equals(viewerId, ownerId)) {
             return true; // Owner always has access
@@ -61,7 +72,7 @@ public class PrivacyService {
 
         if (privacySetting == null) {
             // Fall back to global privacy settings
-            PrivacySetting privacySettingEntity = privacySettingRepository.findByTblUserId(ownerId)
+            PrivacySetting privacySettingEntity = privacySettingRepository.findById(ownerId)
                     .orElse(null);
             privacySetting = privacySettingEntity != null ? privacySettingEntity.getProfileViewer() : "public";
         }
