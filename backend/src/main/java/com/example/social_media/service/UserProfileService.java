@@ -65,8 +65,8 @@ public class UserProfileService {
 
         if (avatarFile != null && !avatarFile.isEmpty()) {
             profileImageUrl = gcsService.uploadFile(avatarFile);
-            List<MediaDto> existingMedia = mediaService.getMediaByTargetDto(user.getId(), "PROFILE", "image", true);
-            existingMedia.forEach(m -> m.setStatus(false));
+
+            mediaService.disableOldProfileMedia(user.getId());
 
             mediaService.saveMediaWithUrl(user.getId(), user.getId(), "PROFILE", "image", profileImageUrl, null);
         }

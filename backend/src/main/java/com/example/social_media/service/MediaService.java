@@ -10,6 +10,7 @@ import com.example.social_media.repository.MediaTypeRepository;
 import com.example.social_media.repository.TargetTypeRepository;
 import com.example.social_media.repository.UserRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -115,4 +116,19 @@ public class MediaService {
         dto.setStatus(media.getStatus());
         return dto;
     }
+
+    @Transactional
+    public void disableOldProfileMedia(Integer userId) {
+        TargetType targetType = targetTypeRepository.findByCode("PROFILE")
+                .orElseThrow(() -> new IllegalArgumentException("Loại target không hợp lệ"));
+        MediaType mediaType = mediaTypeRepository.findByName("image")
+                .orElseThrow(() -> new IllegalArgumentException("Loại media không hợp lệ"));
+
+        List<Media> oldMedia = mediaRepository.findByTargetIdAndTargetTypeAndMediaTypeAndStatusTrue(userId, targetType, mediaType);
+        for (Media media : oldMedia) {
+            media.setStatus(false);
+        }
+        mediaRepository.saveAll(oldMedia);
+    }
+
 }
