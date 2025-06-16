@@ -67,18 +67,14 @@ public class PrivacyService {
 
         String privacySetting = contentPrivacy != null ? contentPrivacy.getPrivacySetting() : null;
 
-        // Find post to get owner
-        Post post = contentPrivacyRepository.findById(new ContentPrivacyId(contentId, targetType.getId()))
-                .map(ContentPrivacy::getContentType)
-                .map(ct -> ct.getId() == 1 ? postRepository.findById(contentId).orElse(null) : null)
+        // Get ownerId from tblPosts
+        Integer ownerId = contentPrivacyRepository.findOwnerIdByContentId(contentId)
                 .orElse(null);
 
-        if (post == null) {
-            logger.warn("Post not found for contentId: {}", contentId);
+        if (ownerId == null) {
+            logger.warn("Owner not found for contentId: {}", contentId);
             return false;
         }
-
-        Integer ownerId = post.getOwner().getId();
 
         if (Objects.equals(viewerId, ownerId)) {
             logger.debug("Viewer is owner, granting access");
@@ -237,12 +233,5 @@ public class PrivacyService {
         if (updated == 0) {
             throw new IllegalArgumentException("Thành viên không có trong danh sách hoặc đã bị xóa");
         }
-    }
-
-    private PostRepository postRepository;
-
-    // Inject PostRepository
-    public void setPostRepository(PostRepository postRepository) {
-        this.postRepository = postRepository;
     }
 }

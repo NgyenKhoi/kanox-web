@@ -5,6 +5,7 @@ import com.example.social_media.entity.ContentPrivacyId;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -24,4 +25,6 @@ public interface ContentPrivacyRepository extends JpaRepository<ContentPrivacy, 
     @Query("UPDATE ContentPrivacy cp SET cp.privacySetting = 'default', cp.customList = null, cp.updatedAt = CURRENT_TIMESTAMP " +
             "WHERE cp.customList.id = :customListId AND cp.status = true")
     int updatePrivacySettingByCustomListId(Integer customListId);
+    @Query("SELECT p.owner.id FROM Post p WHERE p.id = :contentId AND p.status = true")
+    Optional<Integer> findOwnerIdByContentId(@Param("contentId") Integer contentId);
 }
