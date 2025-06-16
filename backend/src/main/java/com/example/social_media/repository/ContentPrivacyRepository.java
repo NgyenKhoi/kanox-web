@@ -29,6 +29,4 @@ public interface ContentPrivacyRepository extends JpaRepository<ContentPrivacy, 
 
     Optional<Integer> findOwnerIdByContentId(@Param("contentId") Integer contentId);
 
-    Optional<ContentPrivacy> findByContentIdAndContentTypeIdAndStatusTrue(Integer contentId, Integer contentTypeId);
-
 }

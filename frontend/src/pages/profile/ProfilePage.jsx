@@ -8,7 +8,6 @@ import {
   Nav,
   Spinner,
   ListGroup,
-  Alert,
 } from "react-bootstrap";
 import {
   FaArrowLeft,
@@ -18,7 +17,6 @@ import {
   FaLink,
   FaEllipsisH,
   FaUserSlash,
-  FaLock,
 } from "react-icons/fa";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import TweetCard from "../../components/posts/TweetCard/TweetCard";
@@ -38,7 +36,6 @@ function ProfilePage() {
   const navigate = useNavigate();
 
   const [userProfile, setUserProfile] = useState(null);
-  const [hasProfileAccess, setHasProfileAccess] = useState(true);
   const [activeTab, setActiveTab] = useState("posts");
   const [posts, setPosts] = useState([]);
   const [sentRequests, setSentRequests] = useState([]);
@@ -113,7 +110,7 @@ function ProfilePage() {
 
         if (user.username !== username) {
           const blockResponse = await fetch(
-              `${process.env.REACT_APP_API_URL}/blocks/${profileData.data.id}/status`,
+              `${process.env.REACT_APP_API_URL}/blocks/${profileData.id}/status`,
               {
                 headers: {
                   "Content-Type": "application/json",
@@ -136,14 +133,13 @@ function ProfilePage() {
         }
 
         setUserProfile({
-          ...profileData.data,
-          id: profileData.data.id,
-          postCount: profileData.data.postCount || 0,
-          website: profileData.data.website || "",
-          isPremium: profileData.data.isPremium || false,
-          profileImageUrl: profileData.data.profileImageUrl || "https://via.placeholder.com/150?text=Avatar",
+          ...profileData,
+          id: profileData.id,
+          postCount: profileData.postCount || 0,
+          website: profileData.website || "",
+          isPremium: profileData.isPremium || false,
+          profileImageUrl: profileData.profileImageUrl || "https://via.placeholder.com/150?text=Avatar",
         });
-        setHasProfileAccess(profileData.hasAccess || user.username === username);
 
         const postsResponse = await fetch(
             `${process.env.REACT_APP_API_URL}/posts/user/${username}`,
@@ -156,7 +152,7 @@ function ProfilePage() {
         );
 
         const postsData = await postsResponse.json();
-        console.log("Posts API response:", postsData);
+        console.log("Posts API response:", postsData); // Debug
         if (!postsResponse.ok) {
           throw new Error(postsData.message || "Lỗi khi lấy bài đăng.");
         }
@@ -270,13 +266,12 @@ function ProfilePage() {
       }
 
       setUserProfile({
-        ...profileData.data,
-        postCount: profileData.data.postCount || 0,
-        website: profileData.data.website || "",
-        isPremium: profileData.data.isPremium || false,
-        profileImageUrl: profileData.data.profileImageUrl || "https://via.placeholder.com/150?text=Avatar",
+        ...profileData,
+        postCount: profileData.postCount || 0,
+        website: profileData.website || "",
+        isPremium: profileData.isPremium || false,
+        profileImageUrl: profileData.profileImageUrl || "https://via.placeholder.com/150?text=Avatar",
       });
-      setHasProfileAccess(profileData.hasAccess || user.username === username);
 
       const postsResponse = await fetch(
           `${process.env.REACT_APP_API_URL}/posts/user/${username}`,
@@ -289,7 +284,7 @@ function ProfilePage() {
       );
 
       const postsData = await postsResponse.json();
-      console.log("Posts refresh API response:", postsData);
+      console.log("Posts refresh API response:", postsData); // Debug
       if (!postsResponse.ok) {
         throw new Error(postsData.message || "Không thể lấy bài đăng!");
       }
@@ -333,7 +328,7 @@ function ProfilePage() {
       );
     }
 
-    if (activeTab === "sentRequests" && isOwnProfile) {
+    if (activeTab === "sentRequests") {
       return sentRequests.length > 0 ? (
           <ListGroup>
             {sentRequests.map((req) => (
@@ -383,7 +378,7 @@ function ProfilePage() {
       );
     }
 
-    return null;
+    return null; // Dự phòng cho các tab không xác định
   };
 
   if (loading) {
@@ -441,8 +436,8 @@ function ProfilePage() {
                   <div>
                     <h5 className="mb-0 fw-bold text-dark">{userProfile.displayName}</h5>
                     <span className="text-dark small">
-                      {userProfile.postCount || 0} bài đăng
-                    </span>
+                   {userProfile.postCount || 0} bài đăng
+                 </span>
                   </div>
                 </Col>
               </Row>
@@ -509,59 +504,49 @@ function ProfilePage() {
 
                   <h4 className="mb-0 fw-bold text-dark">{userProfile.displayName}</h4>
                   <p className="text-dark small mb-2">@{userProfile.username}</p>
-
-                  {isOwnProfile || hasProfileAccess ? (
-                      <>
-                        {userProfile.bio && <p className="mb-2 text-dark">{userProfile.bio}</p>}
-                        {userProfile.location && (
-                            <p className="text-secondary small d-flex align-items-center mb-2">
-                              <FaMapMarkerAlt size={16} className="me-2" /> {userProfile.location}
-                            </p>
-                        )}
-                        {userProfile.website && (
-                            <p className="text-secondary small d-flex align-items-center mb-2">
-                              <FaLink size={16} className="me-2" />
-                              <a
-                                  href={userProfile.website}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-primary"
-                              >
-                                {userProfile.website}
-                              </a>
-                            </p>
-                        )}
-                        <p className="text-secondary small d-flex align-items-center mb-2">
-                          <FaCalendarAlt size={16} className="me-2" /> Ngày sinh:{" "}
-                          {userProfile.dateOfBirth
-                              ? new Date(userProfile.dateOfBirth).toLocaleDateString("vi-VN")
-                              : "Chưa cập nhật"}
-                        </p>
-                        {userProfile.gender !== undefined && (
-                            <p className="text-secondary small d-flex align-items-center mb-2">
-                              <FaEllipsisH size={16} className="me-2" />
-                              Giới tính: {userProfile.gender === 0 ? "Nam" : userProfile.gender === 1 ? "Nữ" : "Khác"}
-                            </p>
-                        )}
-                        <div className="d-flex mb-3">
-                          <Link to="#" className="me-3 text-dark text-decoration-none">
-                            <span className="fw-bold">{userProfile.followeeCount || 0}</span>{" "}
-                            <span className="text-secondary small">Đang theo dõi</span>
-                          </Link>
-                          <Link to="#" className="text-dark text-decoration-none">
-                            <span className="fw-bold">{userProfile.followerCount || 0}</span>{" "}
-                            <span className="text-secondary small">Người theo dõi</span>
-                          </Link>
-                        </div>
-                      </>
-                  ) : (
-                      <Alert variant="warning" className="mt-3">
-                        <FaLock className="me-2" />
-                        Bạn không có quyền xem chi tiết hồ sơ này.
-                      </Alert>
+                  {userProfile.bio && <p className="mb-2 text-dark">{userProfile.bio}</p>}
+                  {userProfile.location && (
+                      <p className="text-secondary small d-flex align-items-center mb-2">
+                        <FaMapMarkerAlt size={16} className="me-2" /> {userProfile.location}
+                      </p>
                   )}
+                  {userProfile.website && (
+                      <p className="text-secondary small d-flex align-items-center mb-2">
+                        <FaLink size={16} className="me-2" />
+                        <a
+                            href={userProfile.website}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary"
+                        >
+                          {userProfile.website}
+                        </a>
+                      </p>
+                  )}
+                  <p className="text-secondary small d-flex align-items-center mb-2">
+                    <FaCalendarAlt size={16} className="me-2" /> Ngày sinh:{" "}
+                    {userProfile.dateOfBirth
+                        ? new Date(userProfile.dateOfBirth).toLocaleDateString("vi-VN")
+                        : "Chưa cập nhật"}
+                  </p>
+                  {userProfile.gender !== undefined && (
+                      <p className="text-secondary small d-flex align-items-center mb-2">
+                        <FaEllipsisH size={16} className="me-2" />
+                        Giới tính: {userProfile.gender === 0 ? "Nam" : userProfile.gender === 1 ? "Nữ" : "Khác"}
+                      </p>
+                  )}
+                  <div className="d-flex mb-3">
+                    <Link to="#" className="me-3 text-dark text-decoration-none">
+                      <span className="fw-bold">{userProfile.followeeCount || 0}</span>{" "}
+                      <span className="text-secondary small">Đang theo dõi</span>
+                    </Link>
+                    <Link to="#" className="text-dark text-decoration-none">
+                      <span className="fw-bold">{userProfile.followerCount || 0}</span>{" "}
+                      <span className="text-secondary small">Người theo dõi</span>
+                    </Link>
+                  </div>
 
-                  {showPremiumAlert && !userProfile.isPremium && (isOwnProfile || hasProfileAccess) && (
+                  {showPremiumAlert && !userProfile.isPremium && (
                       <div className="alert alert-light d-flex align-items-start border border-light rounded-3 p-3">
                         <div>
                           <h6 className="fw-bold text-dark mb-1">
@@ -582,12 +567,13 @@ function ProfilePage() {
                             variant="link"
                             className="ms-auto text-dark p-0"
                             onClick={() => setShowPremiumAlert(false)}
-                        />
+                        >
+                        </Button>
                       </div>
                   )}
 
                   <Nav variant="tabs" className="mt-4 profile-tabs nav-justified">
-                    {["posts", ...(isOwnProfile ? ["sentRequests", "shares", "savedArticles"] : [])].map((tab) => (
+                    {["posts", "shares", "savedArticles", ...(isOwnProfile ? ["sentRequests"] : [])].map((tab) => (
                         <Nav.Item key={tab}>
                           <Nav.Link
                               onClick={() => setActiveTab(tab)}

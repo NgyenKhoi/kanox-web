@@ -6,16 +6,17 @@ import com.example.social_media.dto.user.*;
 import com.example.social_media.entity.User;
 import com.example.social_media.exception.UserNotFoundException;
 import com.example.social_media.service.*;
+
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
 
 @RestController
@@ -26,39 +27,31 @@ public class UserController {
     private final FriendshipService friendshipService;
     private final FollowService followService;
     private final CustomUserDetailsService customUserDetailsService;
-    private final PrivacyService privacyService;
 
     public UserController(
             UserProfileService userProfileService,
             FriendshipService friendshipService,
             FollowService followService,
-            CustomUserDetailsService customUserDetailsService,
-            PrivacyService privacyService
+            CustomUserDetailsService customUserDetailsService
     ) {
         this.userProfileService = userProfileService;
         this.friendshipService = friendshipService;
         this.followService = followService;
         this.customUserDetailsService = customUserDetailsService;
-        this.privacyService = privacyService;
     }
 
+    // Lấy profile người dùng
     @GetMapping(URLConfig.PROFILE)
-    public ResponseEntity<?> getUserProfile(
-            @PathVariable("username") String username
-    ) {
+    public ResponseEntity<?> getUserProfile(@PathVariable("username") String username) {
         try {
-            String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-            User currentUser = customUserDetailsService.getUserByUsername(currentUsername);
-            UserProfileDto userProfileDto = userProfileService.getUserProfile(username, currentUser.getId());
-            Map<String, Object> response = new HashMap<>();
-            response.put("data", userProfileDto);
-            response.put("hasAccess", privacyService.checkContentAccess(currentUser.getId(), userProfileDto.getId(), "PROFILE"));
-            return ResponseEntity.ok(response);
+            UserProfileDto userProfileDto = userProfileService.getUserProfile(username);
+            return ResponseEntity.ok(userProfileDto);
         } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
         }
     }
 
+    // Cập nhật profile (thông tin + avatar nếu có)
     @PutMapping(value = URLConfig.PROFILE, consumes = "multipart/form-data")
     public ResponseEntity<?> updateUserProfile(
             @PathVariable("username") String username,
@@ -74,22 +67,24 @@ public class UserController {
             UserProfileDto updatedProfile = userProfileService.updateUserProfile(username, updateDto, avatarFile);
             return ResponseEntity.ok(updatedProfile);
         } catch (UserNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
         } catch (IOException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to upload avatar: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to upload avatar");
         }
     }
 
+    // Lấy thông tin dạng tag (dùng để mention/tag user)
     @GetMapping("/username/{username}")
     public ResponseEntity<?> getUserByUsername(@PathVariable String username) {
         try {
             UserTagDto userTagDto = userProfileService.getUserTagByUsername(username);
             return ResponseEntity.ok(userTagDto);
         } catch (UserNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
         }
     }
 
+    // Lấy danh sách bạn bè của người dùng
     @GetMapping("/{userId}/friends")
     public ResponseEntity<?> getFriends(
             @PathVariable Integer userId,
@@ -107,6 +102,7 @@ public class UserController {
         }
     }
 
+    // Lấy danh sách người dùng đang theo dõi
     @GetMapping("/{userId}/following")
     public ResponseEntity<?> getFollowing(
             @PathVariable Integer userId,
@@ -124,6 +120,7 @@ public class UserController {
         }
     }
 
+    // Lấy danh sách người theo dõi
     @GetMapping("/{userId}/followers")
     public ResponseEntity<?> getFollowers(
             @PathVariable Integer userId,
@@ -141,6 +138,7 @@ public class UserController {
         }
     }
 
+    // Cập nhật quyền riêng tư của profile
     @PutMapping("/profile/{username}/privacy")
     public ResponseEntity<?> updateProfilePrivacy(
             @PathVariable String username,
