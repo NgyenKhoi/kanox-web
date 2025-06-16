@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, Form, Button, Dropdown, FormControl } from "react-bootstrap";
 import {
   FaPollH, FaSmile, FaCalendarAlt, FaUserFriends, FaUser
@@ -12,8 +12,32 @@ function TweetInput({ onPostSuccess }) {
   const [status, setStatus] = useState("public");
   const [taggedUserIds, setTaggedUserIds] = useState([]);
   const [tagInput, setTagInput] = useState("");
+  const [customLists, setCustomLists] = useState([]);
+  const [customListId, setCustomListId] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  // Fetch custom lists
+  useEffect(() => {
+    const fetchCustomLists = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/privacy/lists`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (!response.ok) {
+          throw new Error("Không thể lấy danh sách tùy chỉnh!");
+        }
+        const { data } = await response.json();
+        setCustomLists(data);
+      } catch (err) {
+        console.error("Error fetching custom lists:", err);
+      }
+    };
+    fetchCustomLists();
+  }, []);
 
   const handleTweetChange = (e) => {
     setTweetContent(e.target.value);
@@ -54,11 +78,22 @@ function TweetInput({ onPostSuccess }) {
 
   const handleStatusChange = (newStatus) => {
     setStatus(newStatus);
+    if (newStatus !== "custom") {
+      setCustomListId(null);
+    }
+  };
+
+  const handleCustomListSelect = (listId) => {
+    setCustomListId(listId);
   };
 
   const handleSubmitTweet = async () => {
     if (!tweetContent.trim()) {
       setError("Tweet không được để trống!");
+      return;
+    }
+    if (status === "custom" && !customListId) {
+      setError("Vui lòng chọn danh sách tùy chỉnh!");
       return;
     }
     setLoading(true);
@@ -74,6 +109,7 @@ function TweetInput({ onPostSuccess }) {
           content: tweetContent,
           privacySetting: status,
           taggedUserIds,
+          customListId: status === "custom" ? customListId : null,
         }),
       });
       if (!response.ok) {
@@ -83,9 +119,10 @@ function TweetInput({ onPostSuccess }) {
       setTweetContent("");
       setTaggedUserIds([]);
       setStatus("public");
+      setCustomListId(null);
       setError(null);
       const newPost = await response.json();
-      if (onPostSuccess) onPostSuccess(newPost);
+      if (onPostSuccess) onPostSuccess(newPost.data);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -118,17 +155,31 @@ function TweetInput({ onPostSuccess }) {
                             key={index}
                             className="badge bg-primary text-white me-2 mb-1"
                         >
-                    @User_{tagId}
+                          @User_{tagId}
                           <Button
                               variant="link"
                               className="text-white p-0"
                               onClick={() => handleRemoveTag(tagId)}
                           >
-                      x
-                    </Button>
-                  </span>
+                            x
+                          </Button>
+                        </span>
                     ))}
                   </div>
+              )}
+              {status === "custom" && (
+                  <Dropdown className="mb-2">
+                    <Dropdown.Toggle variant="outline-primary" className="w-100 text-start">
+                      {customListId ? customLists.find(list => list.id === customListId)?.listName : "Chọn danh sách tùy chỉnh"}
+                    </Dropdown.Toggle>
+                    <Dropdown.Menu>
+                      {customLists.map(list => (
+                          <Dropdown.Item key={list.id} onClick={() => handleCustomListSelect(list.id)}>
+                            {list.listName}
+                          </Dropdown.Item>
+                      ))}
+                    </Dropdown.Menu>
+                  </Dropdown>
               )}
               {error && <p className="text-danger">{error}</p>}
             </div>
@@ -185,7 +236,7 @@ function TweetInput({ onPostSuccess }) {
                     variant="link"
                     className="text-primary p-2 rounded-circle hover-bg-light"
                 >
-                  Trạng thái: {status}
+                  Trạng thái: {status === "only_me" ? "Riêng tư" : status === "custom" ? "Tùy chỉnh" : status === "friends" ? "Bạn bè" : "Công khai"}
                 </Dropdown.Toggle>
                 <Dropdown.Menu>
                   <Dropdown.Item onClick={() => handleStatusChange("public")}>
@@ -194,8 +245,11 @@ function TweetInput({ onPostSuccess }) {
                   <Dropdown.Item onClick={() => handleStatusChange("friends")}>
                     Bạn bè
                   </Dropdown.Item>
-                  <Dropdown.Item onClick={() => handleStatusChange("private")}>
+                  <Dropdown.Item onClick={() => handleStatusChange("only_me")}>
                     Riêng tư
+                  </Dropdown.Item>
+                  <Dropdown.Item onClick={() => handleStatusChange("custom")}>
+                    Tùy chỉnh
                   </Dropdown.Item>
                 </Dropdown.Menu>
               </Dropdown>
@@ -204,7 +258,7 @@ function TweetInput({ onPostSuccess }) {
                 variant="primary"
                 className="rounded-pill px-4 fw-bold"
                 onClick={handleSubmitTweet}
-                disabled={!tweetContent.trim() || loading}
+                disabled={!tweetContent.trim() || (status === "custom" && !customListId) || loading}
             >
               {loading ? "Đang đăng..." : "Tweet"}
             </Button>

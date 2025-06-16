@@ -5,12 +5,14 @@ import com.example.social_media.dto.post.PostResponseDto;
 import com.example.social_media.dto.user.UserTagDto;
 import com.example.social_media.entity.ContentPrivacy;
 import com.example.social_media.entity.ContentPrivacyId;
+import com.example.social_media.entity.CustomPrivacyList;
 import com.example.social_media.entity.Post;
 import com.example.social_media.entity.PostTag;
 import com.example.social_media.exception.RegistrationException;
 import com.example.social_media.exception.UserNotFoundException;
 import com.example.social_media.exception.UnauthorizedException;
 import com.example.social_media.repository.ContentPrivacyRepository;
+import com.example.social_media.repository.CustomPrivacyListRepository;
 import com.example.social_media.repository.PostRepository;
 import com.example.social_media.repository.PostTagRepository;
 import com.example.social_media.repository.UserRepository;
@@ -30,21 +32,24 @@ public class PostService {
     private final PostTagRepository postTagRepository;
     private final UserRepository userRepository;
     private final ContentPrivacyRepository contentPrivacyRepository;
+    private final CustomPrivacyListRepository customPrivacyListRepository;
     private final PrivacyService privacyService;
 
     public PostService(PostRepository postRepository, PostTagRepository postTagRepository,
                        UserRepository userRepository, ContentPrivacyRepository contentPrivacyRepository,
-                       PrivacyService privacyService) {
+                       CustomPrivacyListRepository customPrivacyListRepository, PrivacyService privacyService) {
         this.postRepository = postRepository;
         this.postTagRepository = postTagRepository;
         this.userRepository = userRepository;
         this.contentPrivacyRepository = contentPrivacyRepository;
+        this.customPrivacyListRepository = customPrivacyListRepository;
         this.privacyService = privacyService;
     }
 
     @Transactional
     public PostResponseDto createPost(PostRequestDto dto, String username) {
         logger.info("Creating post for user: {}", username);
+        logger.debug("PostRequestDto: {}", dto);
 
         var user = userRepository.findByUsernameAndStatusTrue(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found or inactive"));
@@ -52,15 +57,32 @@ public class PostService {
         String privacySetting = dto.getPrivacySetting() != null ? dto.getPrivacySetting() :
                 privacyService.getPrivacySettingByUserId(user.getId()).getPostViewer();
 
+        // Normalize privacySetting: map 'private' to 'only_me'
+        if ("private".equals(privacySetting)) {
+            privacySetting = "only_me";
+        }
+
         // Validate privacySetting
         if (!List.of("public", "friends", "only_me", "custom").contains(privacySetting)) {
             throw new IllegalArgumentException("Invalid privacy setting: " + privacySetting);
         }
 
-        String taggedUserIds = dto.getTaggedUserIds() != null ? String.join(",", dto.getTaggedUserIds().stream().map(String::valueOf).toList()) : null;
+        // Validate and fetch CustomPrivacyList if privacySetting is 'custom'
+        CustomPrivacyList customList = null;
+        Integer customListId = dto.getCustomListId();
+        if ("custom".equals(privacySetting)) {
+            if (customListId == null) {
+                throw new IllegalArgumentException("Custom list ID is required for custom privacy setting");
+            }
+            customList = customPrivacyListRepository.findByIdAndStatus(customListId, true)
+                    .orElseThrow(() -> new IllegalArgumentException("Custom list not found with id: " + customListId));
+        }
+
+        String taggedUserIds = dto.getTaggedUserIds() != null ?
+                String.join(",", dto.getTaggedUserIds().stream().map(String::valueOf).toList()) : null;
 
         Integer newPostId = postRepository.createPost(
-                user.getId(), dto.getContent(), dto.getPrivacySetting(), null, taggedUserIds, dto.getCustomList().getId());
+                user.getId(), dto.getContent(), privacySetting, null, taggedUserIds, customListId);
 
         if (newPostId == null) {
             throw new RegistrationException("Failed to create post");
@@ -75,7 +97,8 @@ public class PostService {
         id.setContentId(newPostId);
         id.setContentTypeId(1); // Giả định content_type_id = 1 cho tblPost
         contentPrivacy.setId(id);
-        contentPrivacy.setPrivacySetting(dto.getPrivacySetting());
+        contentPrivacy.setPrivacySetting(privacySetting);
+        contentPrivacy.setCustomList(customList);
         contentPrivacy.setStatus(true);
         contentPrivacyRepository.save(contentPrivacy);
 
@@ -85,6 +108,7 @@ public class PostService {
     @Transactional
     public PostResponseDto updatePost(Integer postId, PostRequestDto dto, String username) {
         logger.info("Updating post {} for user: {}", postId, username);
+        logger.debug("PostRequestDto: {}", dto);
 
         var user = userRepository.findByUsernameAndStatusTrue(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found or inactive"));
@@ -100,9 +124,25 @@ public class PostService {
         String privacySetting = dto.getPrivacySetting() != null ? dto.getPrivacySetting() :
                 privacyService.getPrivacySettingByUserId(user.getId()).getPostViewer();
 
+        // Normalize privacySetting: map 'private' to 'only_me'
+        if ("private".equals(privacySetting)) {
+            privacySetting = "only_me";
+        }
+
         // Validate privacySetting
         if (!List.of("public", "friends", "only_me", "custom").contains(privacySetting)) {
             throw new IllegalArgumentException("Invalid privacy setting: " + privacySetting);
+        }
+
+        // Validate and fetch CustomPrivacyList if privacySetting is 'custom'
+        CustomPrivacyList customList = null;
+        Integer customListId = dto.getCustomListId();
+        if ("custom".equals(privacySetting)) {
+            if (customListId == null) {
+                throw new IllegalArgumentException("Custom list ID is required for custom privacy setting");
+            }
+            customList = customPrivacyListRepository.findByIdAndStatus(customListId, true)
+                    .orElseThrow(() -> new IllegalArgumentException("Custom list not found with id: " + customListId));
         }
 
         // Update ContentPrivacy
@@ -117,7 +157,7 @@ public class PostService {
                     return newPrivacy;
                 });
         existingPrivacy.setPrivacySetting(privacySetting);
-        existingPrivacy.setCustomList(dto.getCustomList());
+        existingPrivacy.setCustomList(customList);
         contentPrivacyRepository.save(existingPrivacy);
 
         // Update post

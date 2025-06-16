@@ -11,7 +11,7 @@ public class PostRequestDto {
     private String privacySetting = "public";
 
     private List<Integer> taggedUserIds;
-    private CustomPrivacyList customList;
+    private Integer customListId;
 
     public String getContent() { return content; }
     public void setContent(String content) { this.content = content; }
@@ -22,11 +22,11 @@ public class PostRequestDto {
     public List<Integer> getTaggedUserIds() { return taggedUserIds; }
     public void setTaggedUserIds(List<Integer> taggedUserIds) { this.taggedUserIds = taggedUserIds; }
 
-    public CustomPrivacyList getCustomList() {
-        return customList;
+    public Integer getCustomListId() {
+        return customListId;
     }
 
-    public void setCustomListId(CustomPrivacyList customList) {
-        this.customList = customList;
+    public void setCustomListId(Integer customListId) {
+        this.customListId = customListId;
     }
 }
