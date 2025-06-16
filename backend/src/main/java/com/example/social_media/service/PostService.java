@@ -92,14 +92,18 @@ public class PostService {
                 .orElseThrow(() -> new RegistrationException("Post creation failed - not found"));
 
         // Tạo ContentPrivacy cho post mới
-        ContentPrivacy contentPrivacy = new ContentPrivacy();
-        ContentPrivacyId id = new ContentPrivacyId();
-        id.setContentId(newPostId);
-        id.setContentTypeId(1); // Giả định content_type_id = 1 cho tblPost
-        contentPrivacy.setId(id);
+        ContentPrivacy contentPrivacy = contentPrivacyRepository.findByContentIdAndContentTypeId(newPostId, 1)
+                .orElseGet(() -> {
+                    ContentPrivacy newPrivacy = new ContentPrivacy();
+                    ContentPrivacyId id = new ContentPrivacyId();
+                    id.setContentId(newPostId);
+                    id.setContentTypeId(1);
+                    newPrivacy.setId(id);
+                    newPrivacy.setStatus(true);
+                    return newPrivacy;
+                });
         contentPrivacy.setPrivacySetting(privacySetting);
         contentPrivacy.setCustomList(customList);
-        contentPrivacy.setStatus(true);
         contentPrivacyRepository.save(contentPrivacy);
 
         return convertToDto(latestPost);
@@ -202,6 +206,12 @@ public class PostService {
                 .orElseThrow(() -> new UserNotFoundException("Current user not found or inactive"));
 
         List<Post> posts = postRepository.findActivePostsByUsername(targetUsername);
+        if (currentUsername.equals(targetUsername)) {
+            // Chủ bài đăng thấy tất cả bài của mình
+            return posts.stream()
+                    .map(this::convertToDto)
+                    .collect(Collectors.toList());
+        }
         return posts.stream()
                 .filter(post -> hasAccess(currentUser.getId(), post.getId(), 1))
                 .map(this::convertToDto)

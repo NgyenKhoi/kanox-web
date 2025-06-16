@@ -44,7 +44,8 @@ function ProfilePage() {
   const [showPremiumAlert, setShowPremiumAlert] = useState(true);
   const [isBlocked, setIsBlocked] = useState(false);
   const [isUserBlocked, setIsUserBlocked] = useState(false);
-  const { mediaUrl, loading: mediaLoading } = useUserMedia(userProfile?.id);  const defaultUserProfile = {
+  const { mediaUrl, loading: mediaLoading } = useUserMedia(userProfile?.id);
+  const defaultUserProfile = {
     id: null,
     username: "testuser",
     displayName: "Người dùng Test",
@@ -151,11 +152,12 @@ function ProfilePage() {
         );
 
         const postsData = await postsResponse.json();
+        console.log("Posts API response:", postsData); // Debug
         if (!postsResponse.ok) {
           throw new Error(postsData.message || "Lỗi khi lấy bài đăng.");
         }
 
-        setPosts(postsData);
+        setPosts(Array.isArray(postsData.data) ? postsData.data : []);
 
         if (user.username === username) {
           const sentRequestsResponse = await fetch(
@@ -282,11 +284,12 @@ function ProfilePage() {
       );
 
       const postsData = await postsResponse.json();
+      console.log("Posts refresh API response:", postsData); // Debug
       if (!postsResponse.ok) {
         throw new Error(postsData.message || "Không thể lấy bài đăng!");
       }
 
-      setPosts(postsData);
+      setPosts(Array.isArray(postsData.data) ? postsData.data : []);
 
       if (user.username === username) {
         const sentRequestsResponse = await fetch(
