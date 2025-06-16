@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { Card, Form, Button, Dropdown, FormControl } from "react-bootstrap";
-import {
-  FaPollH, FaSmile, FaCalendarAlt, FaUserFriends, FaUser
-} from "react-icons/fa";
+import { Card, Form, Button, Dropdown, FormControl, OverlayTrigger, Tooltip } from "react-bootstrap";
+import { FaPollH, FaSmile, FaCalendarAlt, FaUserFriends, FaGlobeAmericas, FaLock, FaList } from "react-icons/fa";
 import { useContext } from "react";
 import { AuthContext } from "../../../context/AuthContext";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 function TweetInput({ onPostSuccess }) {
   const { user } = useContext(AuthContext);
@@ -17,8 +17,29 @@ function TweetInput({ onPostSuccess }) {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // Fetch custom lists
+  // Fetch privacy settings and custom lists
   useEffect(() => {
+    const fetchPrivacySettings = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/privacy`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+        });
+        if (!response.ok) {
+          throw new Error("Không thể lấy cài đặt quyền riêng tư!");
+        }
+        const { data } = await response.json();
+        setStatus(data.postVisibility || "public");
+      } catch (err) {
+        console.error("Error fetching privacy settings:", err);
+        toast.error(err.message);
+      }
+    };
+
     const fetchCustomLists = async () => {
       try {
         const token = localStorage.getItem("token");
@@ -34,8 +55,11 @@ function TweetInput({ onPostSuccess }) {
         setCustomLists(data);
       } catch (err) {
         console.error("Error fetching custom lists:", err);
+        toast.error(err.message);
       }
     };
+
+    fetchPrivacySettings();
     fetchCustomLists();
   }, []);
 
@@ -122,11 +146,43 @@ function TweetInput({ onPostSuccess }) {
       setCustomListId(null);
       setError(null);
       const newPost = await response.json();
+      toast.success("Đăng bài thành công!");
       if (onPostSuccess) onPostSuccess(newPost.data);
     } catch (err) {
       setError(err.message);
+      toast.error(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const renderStatusIcon = (status) => {
+    switch (status) {
+      case "public":
+        return <FaGlobeAmericas className="me-1" />;
+      case "friends":
+        return <FaUserFriends className="me-1" />;
+      case "only_me":
+        return <FaLock className="me-1" />;
+      case "custom":
+        return <FaList className="me-1" />;
+      default:
+        return null;
+    }
+  };
+
+  const renderStatusText = (status) => {
+    switch (status) {
+      case "public":
+        return "Công khai";
+      case "friends":
+        return "Bạn bè";
+      case "only_me":
+        return "Chỉ mình tôi";
+      case "custom":
+        return "Tùy chỉnh";
+      default:
+        return "Công khai";
     }
   };
 
@@ -134,10 +190,7 @@ function TweetInput({ onPostSuccess }) {
       <Card className="mb-3 rounded-4 shadow-sm border-0">
         <Card.Body>
           <div className="d-flex align-items-start">
-            <FaUser
-                size={50}
-                className="me-3 d-none d-md-block text-muted"
-            />
+            <FaUserFriends size={50} className="me-3 d-none d-md-block text-muted" />
             <div className="flex-grow-1">
               <Form.Control
                   as="textarea"
@@ -151,25 +204,22 @@ function TweetInput({ onPostSuccess }) {
               {taggedUserIds.length > 0 && (
                   <div className="d-flex flex-wrap mb-2">
                     {taggedUserIds.map((tagId, index) => (
-                        <span
-                            key={index}
-                            className="badge bg-primary text-white me-2 mb-1"
-                        >
-                          @User_{tagId}
+                        <span key={index} className="badge bg-primary text-white me-2 mb-1">
+                    @User_{tagId}
                           <Button
                               variant="link"
                               className="text-white p-0"
                               onClick={() => handleRemoveTag(tagId)}
                           >
-                            x
-                          </Button>
-                        </span>
+                      x
+                    </Button>
+                  </span>
                     ))}
                   </div>
               )}
               {status === "custom" && (
                   <Dropdown className="mb-2">
-                    <Dropdown.Toggle variant="outline-primary" className="w-100 text-start">
+                    <Dropdown.Toggle variant="outline-primary" className="w-100 text-start rounded-pill">
                       {customListId ? customLists.find(list => list.id === customListId)?.listName : "Chọn danh sách tùy chỉnh"}
                     </Dropdown.Toggle>
                     <Dropdown.Menu>
@@ -186,29 +236,17 @@ function TweetInput({ onPostSuccess }) {
           </div>
           <div className="d-flex justify-content-between align-items-center mt-3 pt-3 border-top flex-wrap">
             <div className="d-flex align-items-center mb-2 mb-md-0">
-              <Button
-                  variant="link"
-                  className="text-primary p-2 rounded-circle hover-bg-light me-2"
-              >
+              <Button variant="link" className="text-primary p-2 rounded-circle hover-bg-light me-2">
                 <FaPollH size={20} />
               </Button>
-              <Button
-                  variant="link"
-                  className="text-primary p-2 rounded-circle hover-bg-light me-2"
-              >
+              <Button variant="link" className="text-primary p-2 rounded-circle hover-bg-light me-2">
                 <FaSmile size={20} />
               </Button>
-              <Button
-                  variant="link"
-                  className="text-primary p-2 rounded-circle hover-bg-light me-2"
-              >
+              <Button variant="link" className="text-primary p-2 rounded-circle hover-bg-light me-2">
                 <FaCalendarAlt size={20} />
               </Button>
               <Dropdown className="me-2">
-                <Dropdown.Toggle
-                    variant="link"
-                    className="text-primary p-2 rounded-circle hover-bg-light"
-                >
+                <Dropdown.Toggle variant="link" className="text-primary p-2 rounded-circle hover-bg-light">
                   <FaUserFriends size={20} />
                 </Dropdown.Toggle>
                 <Dropdown.Menu>
@@ -220,39 +258,40 @@ function TweetInput({ onPostSuccess }) {
                         onChange={handleTagInputChange}
                         className="me-2"
                     />
-                    <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={handleAddTag}
-                        disabled={!tagInput.trim()}
-                    >
+                    <Button variant="primary" size="sm" onClick={handleAddTag} disabled={!tagInput.trim()}>
                       Thêm
                     </Button>
                   </div>
                 </Dropdown.Menu>
               </Dropdown>
-              <Dropdown>
-                <Dropdown.Toggle
-                    variant="link"
-                    className="text-primary p-2 rounded-circle hover-bg-light"
-                >
-                  Trạng thái: {status === "only_me" ? "Riêng tư" : status === "custom" ? "Tùy chỉnh" : status === "friends" ? "Bạn bè" : "Công khai"}
-                </Dropdown.Toggle>
-                <Dropdown.Menu>
-                  <Dropdown.Item onClick={() => handleStatusChange("public")}>
-                    Công khai
-                  </Dropdown.Item>
-                  <Dropdown.Item onClick={() => handleStatusChange("friends")}>
-                    Bạn bè
-                  </Dropdown.Item>
-                  <Dropdown.Item onClick={() => handleStatusChange("only_me")}>
-                    Riêng tư
-                  </Dropdown.Item>
-                  <Dropdown.Item onClick={() => handleStatusChange("custom")}>
-                    Tùy chỉnh
-                  </Dropdown.Item>
-                </Dropdown.Menu>
-              </Dropdown>
+              <OverlayTrigger
+                  placement="top"
+                  overlay={<Tooltip id="status-tooltip">Chọn đối tượng xem bài đăng</Tooltip>}
+              >
+                <Dropdown>
+                  <Dropdown.Toggle
+                      variant="outline-primary"
+                      className="rounded-pill px-3 py-1 d-flex align-items-center"
+                  >
+                    {renderStatusIcon(status)}
+                    {renderStatusText(status)}
+                  </Dropdown.Toggle>
+                  <Dropdown.Menu>
+                    <Dropdown.Item onClick={() => handleStatusChange("public")}>
+                      <FaGlobeAmericas className="me-2" /> Công khai
+                    </Dropdown.Item>
+                    <Dropdown.Item onClick={() => handleStatusChange("friends")}>
+                      <FaUserFriends className="me-2" /> Bạn bè
+                    </Dropdown.Item>
+                    <Dropdown.Item onClick={() => handleStatusChange("only_me")}>
+                      <FaLock className="me-2" /> Chỉ mình tôi
+                    </Dropdown.Item>
+                    <Dropdown.Item onClick={() => handleStatusChange("custom")}>
+                      <FaList className="me-2" /> Tùy chỉnh
+                    </Dropdown.Item>
+                  </Dropdown.Menu>
+                </Dropdown>
+              </OverlayTrigger>
             </div>
             <Button
                 variant="primary"

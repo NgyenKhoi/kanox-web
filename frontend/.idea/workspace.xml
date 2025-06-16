@@ -5,13 +5,6 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="c6c17ae2-c6cb-4c94-a6b8-91c54839fa5e" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/repository/ContentPrivacyRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/repository/ContentPrivacyRepository.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/service/PrivacyService.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/service/PrivacyService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/target/maven-archiver/pom.properties" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/target/social-media-0.0.1-SNAPSHOT.jar.original" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/target/surefire-reports/2025-06-16T17-47-15_656.dumpstream" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/target/surefire-reports/TEST-com.example.social_media.SocialMediaApplicationTests.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/target/surefire-reports/TEST-com.example.social_media.SocialMediaApplicationTests.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/target/surefire-reports/com.example.social_media.SocialMediaApplicationTests.txt" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/target/surefire-reports/com.example.social_media.SocialMediaApplicationTests.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -104,7 +97,7 @@
       <workItem from="1749191329113" duration="2808000" />
       <workItem from="1749300795173" duration="13355000" />
       <workItem from="1749996368964" duration="11202000" />
-      <workItem from="1750063869825" duration="5907000" />
+      <workItem from="1750063869825" duration="6495000" />
     </task>
     <servers />
   </component>
