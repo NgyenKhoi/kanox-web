@@ -10,17 +10,41 @@ function EditPostModal({ show, onHide, post, onSave }) {
         privacySetting: "public",
         taggedUserIds: [],
         tagInput: "",
+        customListId: null,
     });
+    const [customLists, setCustomLists] = useState([]);
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        const fetchCustomLists = async () => {
+            try {
+                const token = localStorage.getItem("token");
+                const response = await fetch(`${process.env.REACT_APP_API_URL}/privacy/lists`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+                if (!response.ok) {
+                    throw new Error("Không thể lấy danh sách tùy chỉnh!");
+                }
+                const { data } = await response.json();
+                setCustomLists(data);
+            } catch (err) {
+                console.error("Error fetching custom lists:", err);
+            }
+        };
+        fetchCustomLists();
+    }, []);
 
     useEffect(() => {
         if (post) {
             setFormData({
                 content: post.content || "",
-                privacySetting: post.privacySetting || "public",
+                privacySetting: post.privacySetting === "private" ? "only_me" : post.privacySetting || "public",
                 taggedUserIds: post.taggedUsers ? post.taggedUsers.map(tag => parseInt(tag.id)) : [],
                 tagInput: "",
+                customListId: post.customListId || null,
             });
         }
     }, [post]);
@@ -40,7 +64,7 @@ function EditPostModal({ show, onHide, post, onSave }) {
             try {
                 const token = localStorage.getItem("token");
                 const response = await fetch(
-                    `${process.env.REACT_APP_API_URL}/users/${tagInput}`,
+                    `${process.env.REACT_APP_API_URL}/users/username/${tagInput}`,
                     {
                         headers: {
                             Authorization: `Bearer ${token}`,
@@ -48,13 +72,10 @@ function EditPostModal({ show, onHide, post, onSave }) {
                     }
                 );
 
-                const responseText = await response.text();
-                console.log("Tag user response:", response.status, responseText);
-
                 if (!response.ok) {
                     throw new Error("Không tìm thấy người dùng!");
                 }
-                const data = JSON.parse(responseText);
+                const data = await response.json();
                 setFormData((prev) => ({
                     ...prev,
                     taggedUserIds: [...prev.taggedUserIds, parseInt(data.id)],
@@ -75,7 +96,15 @@ function EditPostModal({ show, onHide, post, onSave }) {
     };
 
     const handleStatusChange = (newStatus) => {
-        setFormData((prev) => ({ ...prev, privacySetting: newStatus }));
+        setFormData((prev) => ({
+            ...prev,
+            privacySetting: newStatus,
+            customListId: newStatus !== "custom" ? null : prev.customListId
+        }));
+    };
+
+    const handleCustomListSelect = (listId) => {
+        setFormData((prev) => ({ ...prev, customListId: listId }));
     };
 
     const handleSubmit = async (e) => {
@@ -83,6 +112,11 @@ function EditPostModal({ show, onHide, post, onSave }) {
         setError(null);
         if (!formData.content.trim()) {
             setError("Nội dung không được để trống!");
+            setLoading(false);
+            return;
+        }
+        if (formData.privacySetting === "custom" && !formData.customListId) {
+            setError("Vui lòng chọn danh sách tùy chỉnh!");
             setLoading(false);
             return;
         }
@@ -102,18 +136,18 @@ function EditPostModal({ show, onHide, post, onSave }) {
                         content: formData.content,
                         privacySetting: formData.privacySetting,
                         taggedUserIds: formData.taggedUserIds,
+                        customListId: formData.customListId,
                     }),
                 }
             );
 
-            // Đọc body một lần và lưu
             const responseText = await response.text();
             console.log("Update post response:", response.status, responseText);
 
             if (!response.ok) {
                 let errorData;
                 try {
-                    errorData = JSON.parse(responseText); // Sử dụng responseText đã lưu
+                    errorData = JSON.parse(responseText);
                 } catch {
                     throw new Error(`Lỗi server: ${response.status} - ${responseText || "No response body"}`);
                 }
@@ -122,7 +156,7 @@ function EditPostModal({ show, onHide, post, onSave }) {
 
             let responseData = {};
             try {
-                responseData = JSON.parse(responseText); // Sử dụng responseText đã lưu
+                responseData = JSON.parse(responseText);
             } catch {
                 console.warn("Response body is empty or not JSON");
             }
@@ -158,15 +192,33 @@ function EditPostModal({ show, onHide, post, onSave }) {
                         <FormLabel>Trạng thái</FormLabel>
                         <Dropdown>
                             <Dropdown.Toggle variant="outline-primary" className="w-100 text-start">
-                                Trạng thái: {formData.privacySetting}
+                                Trạng thái: {formData.privacySetting === "only_me" ? "Riêng tư" : formData.privacySetting === "custom" ? "Tùy chỉnh" : formData.privacySetting === "friends" ? "Bạn bè" : "Công khai"}
                             </Dropdown.Toggle>
                             <Dropdown.Menu>
                                 <Dropdown.Item onClick={() => handleStatusChange("public")}>Công khai</Dropdown.Item>
                                 <Dropdown.Item onClick={() => handleStatusChange("friends")}>Bạn bè</Dropdown.Item>
-                                <Dropdown.Item onClick={() => handleStatusChange("private")}>Riêng tư</Dropdown.Item>
+                                <Dropdown.Item onClick={() => handleStatusChange("only_me")}>Riêng tư</Dropdown.Item>
+                                <Dropdown.Item onClick={() => handleStatusChange("custom")}>Tùy chỉnh</Dropdown.Item>
                             </Dropdown.Menu>
                         </Dropdown>
                     </FormGroup>
+                    {formData.privacySetting === "custom" && (
+                        <FormGroup className="mb-3">
+                            <FormLabel>Danh sách tùy chỉnh</FormLabel>
+                            <Dropdown>
+                                <Dropdown.Toggle variant="outline-primary" className="w-100 text-start">
+                                    {formData.customListId ? customLists.find(list => list.id === formData.customListId)?.listName : "Chọn danh sách tùy chỉnh"}
+                                </Dropdown.Toggle>
+                                <Dropdown.Menu>
+                                    {customLists.map(list => (
+                                        <Dropdown.Item key={list.id} onClick={() => handleCustomListSelect(list.id)}>
+                                            {list.listName}
+                                        </Dropdown.Item>
+                                    ))}
+                                </Dropdown.Menu>
+                            </Dropdown>
+                        </FormGroup>
+                    )}
                     <FormGroup className="mb-3">
                         <FormLabel>Tag người dùng</FormLabel>
                         <div className="d-flex align-items-center mb-2">
@@ -208,7 +260,7 @@ function EditPostModal({ show, onHide, post, onSave }) {
                         <Button variant="secondary" onClick={onHide} className="me-2" disabled={loading}>
                             Hủy
                         </Button>
-                        <Button variant="primary" type="submit" disabled={loading}>
+                        <Button variant="primary" type="submit" disabled={loading || (formData.privacySetting === "custom" && !formData.customListId)}>
                             {loading ? "Đang lưu..." : "Lưu"}
                         </Button>
                     </div>

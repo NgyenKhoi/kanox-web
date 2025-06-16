@@ -19,6 +19,14 @@ public class ContentPrivacyId implements Serializable {
     @Column(name = "content_type_id", nullable = false)
     private Integer contentTypeId;
 
+    public ContentPrivacyId(Integer contentId, Integer id) {
+        this.contentId = contentId;
+        this.contentTypeId = id;
+    }
+
+    public ContentPrivacyId() {
+    }
+
     public Integer getContentId() {
         return contentId;
     }

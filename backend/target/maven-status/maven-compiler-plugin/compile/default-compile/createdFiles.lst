@@ -9,6 +9,7 @@ com\example\social_media\dto\user\GroupDto.class
 com\example\social_media\entity\ReactionId.class
 com\example\social_media\repository\CustomPrivacyListRepository.class
 com\example\social_media\service\FriendshipService.class
+com\example\social_media\dto\privacy\CustomListMemberDto.class
 com\example\social_media\dto\authentication\ResetPasswordRequestDto.class
 com\example\social_media\entity\FriendSuggestionId.class
 com\example\social_media\service\CustomUserDetailsService.class

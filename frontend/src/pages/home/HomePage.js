@@ -5,6 +5,8 @@ import SidebarRight from "../../components/layout/SidebarRight/SidebarRight";
 import TweetInput from "../../components/posts/TweetInput/TweetInput";
 import TweetCard from "../../components/posts/TweetCard/TweetCard";
 import { AuthContext } from "../../context/AuthContext";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 function HomePage({ onShowCreatePost, isDarkMode, onToggleDarkMode }) {
   const { user } = useContext(AuthContext);
@@ -27,18 +29,22 @@ function HomePage({ onShowCreatePost, isDarkMode, onToggleDarkMode }) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to fetch posts!");
       }
-      const data = await response.json();
+      const { message, data } = await response.json();
       console.log("Fetched posts:", data);
       if (Array.isArray(data)) {
         setPosts(data);
+        toast.success(message || "Lấy newsfeed thành công");
       } else {
         setPosts([]);
         setError("Invalid data format from API");
+        toast.error("Dữ liệu không đúng định dạng");
       }
     } catch (err) {
       setError(err.message);
+      toast.error(err.message);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {

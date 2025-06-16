@@ -123,12 +123,6 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
     { icon: <BsStars size={24} />, label: "Premium", path: "/premium" },
     { icon: <FaUserFriends size={24} />, label: "Bạn bè", path: "/friends" },
     {
-      icon: <FaListAlt size={24} />,
-      label: "Danh sách tùy chỉnh",
-      path: "/privacy/lists",
-      protected: true,
-    },
-    {
       icon: <FaUserSlash size={24} />,
       label: "Người bị chặn",
       path: "/blocks",

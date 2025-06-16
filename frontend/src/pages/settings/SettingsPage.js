@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useContext } from "react";
 import { Container, Row, Col, Form, Button, Spinner } from "react-bootstrap";
-import { FaArrowLeft, FaLock } from "react-icons/fa";
+import { FaArrowLeft, FaLock, FaList } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 import SidebarLeft from "../../components/layout/SidebarLeft/SidebarLeft";
-import SidebarRight from "../../components/layout/SidebarRight/SidebarRight";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -13,8 +12,8 @@ function SettingsPage() {
     const navigate = useNavigate();
     const [settings, setSettings] = useState({
         postVisibility: "public",
-        commentPermission: "everyone",
-        friendRequestPermission: "everyone",
+        commentPermission: "public",
+        friendRequestPermission: "friends",
     });
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -31,7 +30,6 @@ function SettingsPage() {
             const token = sessionStorage.getItem("token") || localStorage.getItem("token");
             if (!token) {
                 toast.error("Không tìm thấy token. Vui lòng đăng nhập lại.");
-                setLoading(false);
                 navigate("/login");
                 return;
             }
@@ -45,24 +43,17 @@ function SettingsPage() {
                     },
                 });
 
-                const contentType = response.headers.get("content-type");
-                let data;
-                if (contentType && contentType.includes("application/json")) {
-                    data = await response.json();
-                } else {
-                    const text = await response.text();
-                    data = { message: text };
-                }
-
+                const data = await response.json();
                 if (!response.ok) {
                     throw new Error(data.message || "Không thể lấy cài đặt quyền riêng tư.");
                 }
 
-                setSettings(data || {
-                    postVisibility: "public",
-                    commentPermission: "everyone",
-                    friendRequestPermission: "everyone",
-                });
+                if (data.data) {
+                    setSettings(data.data);
+                    toast.success(data.message || "Lấy cài đặt thành công");
+                } else {
+                    throw new Error("Dữ liệu không đúng định dạng.");
+                }
             } catch (error) {
                 console.error("Lỗi khi lấy cài đặt quyền riêng tư:", error);
                 toast.error(error.message || "Không thể tải cài đặt!");
@@ -84,7 +75,6 @@ function SettingsPage() {
         const token = sessionStorage.getItem("token") || localStorage.getItem("token");
         if (!token) {
             toast.error("Không tìm thấy token. Vui lòng đăng nhập lại.");
-            setSaving(false);
             navigate("/login");
             return;
         }
@@ -96,23 +86,15 @@ function SettingsPage() {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
                 },
-                body: JSON.stringify(settings),
+                body: JSON.stringify({ data: settings }),
             });
 
-            const contentType = response.headers.get("content-type");
-            let data;
-            if (contentType && contentType.includes("application/json")) {
-                data = await response.json();
-            } else {
-                const text = await response.text();
-                data = { message: text };
-            }
-
+            const data = await response.json();
             if (!response.ok) {
                 throw new Error(data.message || "Không thể lưu cài đặt!");
             }
 
-            toast.success("Cài đặt quyền riêng tư đã được lưu thành công!");
+            toast.success(data.message || "Cài đặt quyền riêng tư đã được lưu thành công!");
         } catch (error) {
             console.error("Lỗi khi lưu cài đặt quyền riêng tư:", error);
             toast.error(error.message || "Không thể lưu cài đặt!");
@@ -157,7 +139,6 @@ function SettingsPage() {
                         </Row>
                     </Container>
                 </div>
-
                 <Container fluid className="flex-grow-1">
                     <Row className="h-100">
                         <Col xs={0} lg={3} className="d-none d-lg-block p-0">
@@ -182,7 +163,8 @@ function SettingsPage() {
                                         >
                                             <option value="public">Mọi người</option>
                                             <option value="friends">Bạn bè</option>
-                                            <option value="private">Chỉ mình tôi</option>
+                                            <option value="only_me">Chỉ mình tôi</option>
+                                            <option value="custom">Tùy chỉnh</option>
                                         </Form.Select>
                                     </Form.Group>
                                     <Form.Group className="mb-3">
@@ -192,9 +174,10 @@ function SettingsPage() {
                                             value={settings.commentPermission}
                                             onChange={handleChange}
                                         >
-                                            <option value="everyone">Mọi người</option>
+                                            <option value="public">Mọi người</option>
                                             <option value="friends">Bạn bè</option>
-                                            <option value="nobody">Không ai</option>
+                                            <option value="only_me">Chỉ mình tôi</option>
+                                            <option value="custom">Tùy chỉnh</option>
                                         </Form.Select>
                                     </Form.Group>
                                     <Form.Group className="mb-4">
@@ -204,11 +187,16 @@ function SettingsPage() {
                                             value={settings.friendRequestPermission}
                                             onChange={handleChange}
                                         >
-                                            <option value="everyone">Mọi người</option>
-                                            <option value="friends_of_friends">Bạn của bạn bè</option>
-                                            <option value="nobody">Không ai</option>
+                                            <option value="public">Mọi người</option>
+                                            <option value="friends">Bạn bè</option>
+                                            <option value="only_me">Chỉ mình tôi</option>
                                         </Form.Select>
                                     </Form.Group>
+                                    <div className="mb-4">
+                                        <Link to="/privacy/lists" className="btn btn-outline-primary rounded-pill px-4">
+                                            <FaList className="me-2" /> Quản lý danh sách tùy chỉnh
+                                        </Link>
+                                    </div>
                                     <Button
                                         variant="primary"
                                         className="rounded-pill px-4 py-2 fw-bold"
@@ -227,9 +215,7 @@ function SettingsPage() {
                                 </Form>
                             </div>
                         </Col>
-                        <Col xs={0} lg={3} className="d-none d-lg-block p-0">
-                            <SidebarRight />
-                        </Col>
+                        <Col xs={0} lg={3} className="d-none d-lg-block p-0" />
                     </Row>
                 </Container>
             </Container>
