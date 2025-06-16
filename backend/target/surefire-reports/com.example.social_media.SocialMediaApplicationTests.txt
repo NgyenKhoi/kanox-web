@@ -1,4 +1,8 @@
 -------------------------------------------------------------------------------
 Test set: com.example.social_media.SocialMediaApplicationTests
 -------------------------------------------------------------------------------
+<<<<<<< HEAD
 Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 10.87 s -- in com.example.social_media.SocialMediaApplicationTests
+=======
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 26.36 s -- in com.example.social_media.SocialMediaApplicationTests
+>>>>>>> cc5bfded91fd50223e851d5483381ea0937039dc
