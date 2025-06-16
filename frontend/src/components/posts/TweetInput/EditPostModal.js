@@ -1,6 +1,16 @@
 import React, { useState, useEffect, useContext } from "react";
-import { Modal, Form, Button, FormControl, FormGroup, FormLabel, Dropdown } from "react-bootstrap";
-import { FaUserFriends } from "react-icons/fa";
+import {
+    Modal,
+    Form,
+    Button,
+    FormControl,
+    FormGroup,
+    FormLabel,
+    Dropdown,
+    Badge,
+    Row,
+    Col,
+} from "react-bootstrap";
 import { AuthContext } from "../../../context/AuthContext";
 
 function EditPostModal({ show, onHide, post, onSave }) {
@@ -21,17 +31,13 @@ function EditPostModal({ show, onHide, post, onSave }) {
             try {
                 const token = localStorage.getItem("token");
                 const response = await fetch(`${process.env.REACT_APP_API_URL}/privacy/lists`, {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
+                    headers: { Authorization: `Bearer ${token}` },
                 });
-                if (!response.ok) {
-                    throw new Error("Không thể lấy danh sách tùy chỉnh!");
-                }
+                if (!response.ok) throw new Error("Không thể lấy danh sách tùy chỉnh!");
                 const { data } = await response.json();
                 setCustomLists(data);
             } catch (err) {
-                console.error("Error fetching custom lists:", err);
+                console.error("Lỗi lấy danh sách:", err);
             }
         };
         fetchCustomLists();
@@ -51,120 +57,93 @@ function EditPostModal({ show, onHide, post, onSave }) {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormData((prev) => ({ ...prev, [name]: value }));
+        setFormData(prev => ({ ...prev, [name]: value }));
     };
 
     const handleTagInputChange = (e) => {
-        setFormData((prev) => ({ ...prev, tagInput: e.target.value }));
+        setFormData(prev => ({ ...prev, tagInput: e.target.value }));
     };
 
     const handleAddTag = async () => {
-        const tagInput = formData.tagInput.trim();
-        if (tagInput && !formData.taggedUserIds.includes(parseInt(tagInput))) {
+        const username = formData.tagInput.trim();
+        if (username && !formData.taggedUserIds.includes(username)) {
             try {
                 const token = localStorage.getItem("token");
-                const response = await fetch(
-                    `${process.env.REACT_APP_API_URL}/users/username/${tagInput}`,
-                    {
-                        headers: {
-                            Authorization: `Bearer ${token}`,
-                        },
-                    }
-                );
-
-                if (!response.ok) {
-                    throw new Error("Không tìm thấy người dùng!");
-                }
-                const data = await response.json();
-                setFormData((prev) => ({
+                const res = await fetch(`${process.env.REACT_APP_API_URL}/users/username/${username}`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                if (!res.ok) throw new Error("Không tìm thấy người dùng!");
+                const data = await res.json();
+                setFormData(prev => ({
                     ...prev,
                     taggedUserIds: [...prev.taggedUserIds, parseInt(data.id)],
                     tagInput: "",
                 }));
             } catch (err) {
                 setError(err.message);
-                console.error("Tag user exception:", err);
             }
         }
     };
 
     const handleRemoveTag = (tagId) => {
-        setFormData((prev) => ({
+        setFormData(prev => ({
             ...prev,
-            taggedUserIds: prev.taggedUserIds.filter((id) => id !== tagId),
+            taggedUserIds: prev.taggedUserIds.filter(id => id !== tagId),
         }));
     };
 
-    const handleStatusChange = (newStatus) => {
-        setFormData((prev) => ({
+    const handleStatusChange = (status) => {
+        setFormData(prev => ({
             ...prev,
-            privacySetting: newStatus,
-            customListId: newStatus !== "custom" ? null : prev.customListId
+            privacySetting: status,
+            customListId: status !== "custom" ? null : prev.customListId,
         }));
     };
 
-    const handleCustomListSelect = (listId) => {
-        setFormData((prev) => ({ ...prev, customListId: listId }));
+    const handleCustomListSelect = (id) => {
+        setFormData(prev => ({ ...prev, customListId: id }));
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError(null);
-        if (!formData.content.trim()) {
-            setError("Nội dung không được để trống!");
-            setLoading(false);
-            return;
-        }
+
+        if (!formData.content.trim()) return setError("Nội dung không được để trống!");
         if (formData.privacySetting === "custom" && !formData.customListId) {
-            setError("Vui lòng chọn danh sách tùy chỉnh!");
-            setLoading(false);
-            return;
+            return setError("Vui lòng chọn danh sách tùy chỉnh!");
         }
 
         try {
             setLoading(true);
             const token = localStorage.getItem("token");
-            const response = await fetch(
-                `${process.env.REACT_APP_API_URL}/posts/${post.id}`,
-                {
-                    method: "PUT",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${token}`,
-                    },
-                    body: JSON.stringify({
-                        content: formData.content,
-                        privacySetting: formData.privacySetting,
-                        taggedUserIds: formData.taggedUserIds,
-                        customListId: formData.customListId,
-                    }),
-                }
-            );
+            const res = await fetch(`${process.env.REACT_APP_API_URL}/posts/${post.id}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    content: formData.content,
+                    privacySetting: formData.privacySetting,
+                    taggedUserIds: formData.taggedUserIds,
+                    customListId: formData.customListId,
+                }),
+            });
 
-            const responseText = await response.text();
-            console.log("Update post response:", response.status, responseText);
-
-            if (!response.ok) {
-                let errorData;
+            const text = await res.text();
+            if (!res.ok) {
+                let errData;
                 try {
-                    errorData = JSON.parse(responseText);
+                    errData = JSON.parse(text);
                 } catch {
-                    throw new Error(`Lỗi server: ${response.status} - ${responseText || "No response body"}`);
+                    throw new Error(`Lỗi server: ${res.status} - ${text || "Không rõ lỗi"}`);
                 }
-                throw new Error(errorData.message || `Không thể cập nhật bài đăng! (Status: ${response.status})`);
-            }
-
-            let responseData = {};
-            try {
-                responseData = JSON.parse(responseText);
-            } catch {
-                console.warn("Response body is empty or not JSON");
+                throw new Error(errData.message || `Không thể cập nhật bài đăng!`);
             }
 
             onSave();
         } catch (err) {
             setError(err.message);
-            console.error("Update post exception:", err);
         } finally {
             setLoading(false);
         }
@@ -181,18 +160,25 @@ function EditPostModal({ show, onHide, post, onSave }) {
                         <FormLabel>Nội dung</FormLabel>
                         <FormControl
                             as="textarea"
-                            rows={3}
+                            rows={4}
                             name="content"
                             value={formData.content}
                             onChange={handleChange}
                             placeholder="Bạn đang nghĩ gì?"
                         />
                     </FormGroup>
+
                     <FormGroup className="mb-3">
-                        <FormLabel>Trạng thái</FormLabel>
+                        <FormLabel>Trạng thái hiển thị</FormLabel>
                         <Dropdown>
-                            <Dropdown.Toggle variant="outline-primary" className="w-100 text-start">
-                                Trạng thái: {formData.privacySetting === "only_me" ? "Riêng tư" : formData.privacySetting === "custom" ? "Tùy chỉnh" : formData.privacySetting === "friends" ? "Bạn bè" : "Công khai"}
+                            <Dropdown.Toggle variant="outline-secondary" className="w-100 text-start">
+                                {formData.privacySetting === "only_me"
+                                    ? "Riêng tư"
+                                    : formData.privacySetting === "friends"
+                                        ? "Bạn bè"
+                                        : formData.privacySetting === "custom"
+                                            ? "Tùy chỉnh"
+                                            : "Công khai"}
                             </Dropdown.Toggle>
                             <Dropdown.Menu>
                                 <Dropdown.Item onClick={() => handleStatusChange("public")}>Công khai</Dropdown.Item>
@@ -202,12 +188,15 @@ function EditPostModal({ show, onHide, post, onSave }) {
                             </Dropdown.Menu>
                         </Dropdown>
                     </FormGroup>
+
                     {formData.privacySetting === "custom" && (
                         <FormGroup className="mb-3">
                             <FormLabel>Danh sách tùy chỉnh</FormLabel>
                             <Dropdown>
-                                <Dropdown.Toggle variant="outline-primary" className="w-100 text-start">
-                                    {formData.customListId ? customLists.find(list => list.id === formData.customListId)?.listName : "Chọn danh sách tùy chỉnh"}
+                                <Dropdown.Toggle variant="outline-secondary" className="w-100 text-start">
+                                    {formData.customListId
+                                        ? customLists.find(l => l.id === formData.customListId)?.listName
+                                        : "Chọn danh sách"}
                                 </Dropdown.Toggle>
                                 <Dropdown.Menu>
                                     {customLists.map(list => (
@@ -219,48 +208,52 @@ function EditPostModal({ show, onHide, post, onSave }) {
                             </Dropdown>
                         </FormGroup>
                     )}
+
                     <FormGroup className="mb-3">
                         <FormLabel>Tag người dùng</FormLabel>
-                        <div className="d-flex align-items-center mb-2">
-                            <FormControl
-                                type="text"
-                                placeholder="Nhập username"
-                                value={formData.tagInput}
-                                onChange={handleTagInputChange}
-                                className="me-2"
-                            />
-                            <Button
-                                variant="primary"
-                                size="sm"
-                                onClick={handleAddTag}
-                                disabled={!formData.tagInput.trim()}
-                            >
-                                Thêm
-                            </Button>
+                        <Row className="g-2">
+                            <Col xs={9}>
+                                <FormControl
+                                    type="text"
+                                    placeholder="Nhập username"
+                                    value={formData.tagInput}
+                                    onChange={handleTagInputChange}
+                                />
+                            </Col>
+                            <Col xs={3}>
+                                <Button variant="primary" onClick={handleAddTag} disabled={!formData.tagInput.trim()} className="w-100">
+                                    Thêm
+                                </Button>
+                            </Col>
+                        </Row>
+                        <div className="mt-2">
+                            {formData.taggedUserIds.map((tagId) => (
+                                <Badge key={tagId} bg="primary" className="me-2 mb-2">
+                                    @User_{tagId}{" "}
+                                    <Button
+                                        variant="link"
+                                        size="sm"
+                                        className="text-white p-0 ms-1"
+                                        onClick={() => handleRemoveTag(tagId)}
+                                    >
+                                        &times;
+                                    </Button>
+                                </Badge>
+                            ))}
                         </div>
-                        {formData.taggedUserIds.length > 0 && (
-                            <div className="d-flex flex-wrap">
-                                {formData.taggedUserIds.map((tagId, index) => (
-                                    <span key={index} className="badge bg-primary text-white me-2 mb-1">
-                                        @User_{tagId}
-                                        <Button
-                                            variant="link"
-                                            className="text-white p-0"
-                                            onClick={() => handleRemoveTag(tagId)}
-                                        >
-                                            x
-                                        </Button>
-                                    </span>
-                                ))}
-                            </div>
-                        )}
                     </FormGroup>
+
                     {error && <p className="text-danger text-center">{error}</p>}
+
                     <div className="d-flex justify-content-end">
                         <Button variant="secondary" onClick={onHide} className="me-2" disabled={loading}>
                             Hủy
                         </Button>
-                        <Button variant="primary" type="submit" disabled={loading || (formData.privacySetting === "custom" && !formData.customListId)}>
+                        <Button
+                            type="submit"
+                            variant="primary"
+                            disabled={loading || (formData.privacySetting === "custom" && !formData.customListId)}
+                        >
                             {loading ? "Đang lưu..." : "Lưu"}
                         </Button>
                     </div>
