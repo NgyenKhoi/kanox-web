@@ -40,13 +40,11 @@ public class PrivacyService {
         this.friendshipRepository = friendshipRepository;
     }
 
-    // Thêm phương thức để lấy PrivacySetting
     public PrivacySetting getPrivacySettingByUserId(Integer userId) {
         return privacySettingRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy cài đặt quyền riêng tư cho người dùng với id: " + userId));
     }
 
-    // Thêm phương thức để lưu PrivacySetting
     public void savePrivacySetting(PrivacySetting privacySetting) {
         privacySettingRepository.save(privacySetting);
     }
@@ -64,7 +62,7 @@ public class PrivacyService {
         User owner = userRepository.findById(ownerId)
                 .orElseThrow(() -> new UserNotFoundException("Owner not found with id: " + ownerId));
 
-        // Check content-specific privacy
+        // Check content-specific privacy for the specific post
         ContentPrivacy contentPrivacy = contentPrivacyRepository.findByContentIdAndContentTypeId(ownerId, targetType.getId())
                 .orElse(null);
 
@@ -72,9 +70,9 @@ public class PrivacyService {
 
         if (privacySetting == null) {
             // Fall back to global privacy settings
-            PrivacySetting privacySettingEntity = privacySettingRepository.findById(ownerId)
+            PrivacySetting privacySettingEntity = privacySettingRepository.findById(owner.getId())
                     .orElse(null);
-            privacySetting = privacySettingEntity != null ? privacySettingEntity.getProfileViewer() : "public";
+            privacySetting = privacySettingEntity != null ? privacySettingEntity.getPostViewer() : "public";
         }
 
         switch (privacySetting) {
@@ -132,15 +130,12 @@ public class PrivacyService {
         CustomPrivacyList customList = customPrivacyListRepository.findByIdAndUserIdAndStatus(listId, userId, true)
                 .orElseThrow(() -> new IllegalArgumentException("Danh sách không tồn tại hoặc bạn không có quyền"));
 
-        // Xóa mềm các thành viên trong danh sách
         List<CustomPrivacyListMember> members = customPrivacyListMemberRepository.findAllByListIdAndStatus(listId, true);
         members.forEach(member -> member.setStatus(false));
         customPrivacyListMemberRepository.saveAll(members);
 
-        // Đặt lại privacy_setting và custom_list_id
         contentPrivacyRepository.updatePrivacySettingByCustomListId(listId);
 
-        // Xóa mềm danh sách
         customList.setStatus(false);
         customPrivacyListRepository.save(customList);
     }

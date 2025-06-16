@@ -30,13 +30,16 @@ public class PostService {
     private final PostTagRepository postTagRepository;
     private final UserRepository userRepository;
     private final ContentPrivacyRepository contentPrivacyRepository;
+    private final PrivacyService privacyService;
 
     public PostService(PostRepository postRepository, PostTagRepository postTagRepository,
-                       UserRepository userRepository, ContentPrivacyRepository contentPrivacyRepository) {
+                       UserRepository userRepository, ContentPrivacyRepository contentPrivacyRepository,
+                       PrivacyService privacyService) {
         this.postRepository = postRepository;
         this.postTagRepository = postTagRepository;
         this.userRepository = userRepository;
         this.contentPrivacyRepository = contentPrivacyRepository;
+        this.privacyService = privacyService;
     }
 
     @Transactional
@@ -46,10 +49,18 @@ public class PostService {
         var user = userRepository.findByUsernameAndStatusTrue(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found or inactive"));
 
+        String privacySetting = dto.getPrivacySetting() != null ? dto.getPrivacySetting() :
+                privacyService.getPrivacySettingByUserId(user.getId()).getPostViewer();
+
+        // Validate privacySetting
+        if (!List.of("public", "friends", "only_me", "custom").contains(privacySetting)) {
+            throw new IllegalArgumentException("Invalid privacy setting: " + privacySetting);
+        }
+
         String taggedUserIds = dto.getTaggedUserIds() != null ? String.join(",", dto.getTaggedUserIds().stream().map(String::valueOf).toList()) : null;
 
         Integer newPostId = postRepository.createPost(
-                user.getId(), dto.getContent(), dto.getPrivacySetting(), null, taggedUserIds, dto.getCustomListId());
+                user.getId(), dto.getContent(), dto.getPrivacySetting(), null, taggedUserIds, dto.getCustomList().getId());
 
         if (newPostId == null) {
             throw new RegistrationException("Failed to create post");
@@ -85,26 +96,33 @@ public class PostService {
             throw new UnauthorizedException("You are not authorized to update this post");
         }
 
-        // Validate and update privacy setting
+        // Lấy post_viewer từ tblPrivacySettings nếu privacySetting không được chỉ định
+        String privacySetting = dto.getPrivacySetting() != null ? dto.getPrivacySetting() :
+                privacyService.getPrivacySettingByUserId(user.getId()).getPostViewer();
+
+        // Validate privacySetting
+        if (!List.of("public", "friends", "only_me", "custom").contains(privacySetting)) {
+            throw new IllegalArgumentException("Invalid privacy setting: " + privacySetting);
+        }
+
+        // Update ContentPrivacy
         ContentPrivacy existingPrivacy = contentPrivacyRepository.findByContentIdAndContentTypeId(postId, 1)
                 .orElseGet(() -> {
                     ContentPrivacy newPrivacy = new ContentPrivacy();
                     ContentPrivacyId id = new ContentPrivacyId();
                     id.setContentId(postId);
-                    id.setContentTypeId(1); // Giả định content_type_id = 1 cho tblPost
+                    id.setContentTypeId(1);
                     newPrivacy.setId(id);
-                    newPrivacy.setPrivacySetting(dto.getPrivacySetting());
                     newPrivacy.setStatus(true);
                     return newPrivacy;
                 });
-        if (!existingPrivacy.getPrivacySetting().equals(dto.getPrivacySetting())) {
-            existingPrivacy.setPrivacySetting(dto.getPrivacySetting());
-            contentPrivacyRepository.save(existingPrivacy);
-        }
+        existingPrivacy.setPrivacySetting(privacySetting);
+        existingPrivacy.setCustomList(dto.getCustomList());
+        contentPrivacyRepository.save(existingPrivacy);
 
         // Update post
         post.setContent(dto.getContent());
-        post.setPrivacySetting(dto.getPrivacySetting());
+        post.setPrivacySetting(privacySetting);
         postRepository.save(post);
 
         // Update tags
@@ -151,8 +169,12 @@ public class PostService {
     }
 
     private boolean hasAccess(Integer userId, Integer contentId, Integer contentTypeId) {
-        // Gọi sp_CheckContentAccess (giả định trả về true)
-        return true;
+        logger.debug("Checking access for userId: {}, contentId: {}, contentTypeId: {}", userId, contentId, contentTypeId);
+        Post post = postRepository.findById(contentId)
+                .orElseThrow(() -> new UserNotFoundException("Post not found with id: " + contentId));
+        boolean hasAccess = privacyService.checkContentAccess(userId, post.getOwner().getId(), "post");
+        logger.debug("Access result for userId: {}, contentId: {} - {}", userId, contentId, hasAccess);
+        return hasAccess;
     }
 
     private PostResponseDto convertToDto(Post post) {

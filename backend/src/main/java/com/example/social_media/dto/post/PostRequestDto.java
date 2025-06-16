@@ -1,6 +1,8 @@
 package com.example.social_media.dto.post;
 
 
+import com.example.social_media.entity.CustomPrivacyList;
+
 import java.util.List;
 
 public class PostRequestDto {
@@ -9,7 +11,7 @@ public class PostRequestDto {
     private String privacySetting = "public";
 
     private List<Integer> taggedUserIds;
-    private Integer customListId;
+    private CustomPrivacyList customList;
 
     public String getContent() { return content; }
     public void setContent(String content) { this.content = content; }
@@ -20,6 +22,11 @@ public class PostRequestDto {
     public List<Integer> getTaggedUserIds() { return taggedUserIds; }
     public void setTaggedUserIds(List<Integer> taggedUserIds) { this.taggedUserIds = taggedUserIds; }
 
-    public Integer getCustomListId() { return customListId; }
-    public void setCustomListId(Integer customListId) { this.customListId = customListId; }
+    public CustomPrivacyList getCustomList() {
+        return customList;
+    }
+
+    public void setCustomListId(CustomPrivacyList customList) {
+        this.customList = customList;
+    }
 }
