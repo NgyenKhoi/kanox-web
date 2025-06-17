@@ -77,19 +77,21 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
   // Xử lý WebSocket thông báo mới
   useWebSocket(
     (notification) => {
-      const formattedNotification = {
-        id: notification.id,
-        type: notification.type,
-        userId: notification.userId || null,
-        user: notification.displayName || notification.user || "Người dùng",
-        username: notification.username || "unknown",
-        content: notification.message,
-        tags: notification.tags || [],
-        timestamp: notification.createdAt || new Date().toISOString(),
-        isRead: notification.status === "read",
-        image: notification.image || null,
-        isNew: true,
-      };
+      const formattedNotification = Array.isArray(data.data?.content)
+        ? data.data.content.map((notif) => ({
+            id: notif.id,
+            type: notif.type,
+            userId: notif.userId || null,
+            displayName: notif.displayName || "Người dùng", // thêm dòng này
+            user: notif.displayName || notif.user || "Người dùng", // giữ nếu bạn dùng 'user' ở nơi khác
+            username: notif.username || "unknown",
+            content: notif.message,
+            tags: notif.tags || [],
+            timestamp: notif.createdAt,
+            isRead: notif.status === "read",
+            image: notif.image || null,
+          }))
+        : [];
 
       setNotifications((prev) => [formattedNotification, ...prev]);
       toast.info(notification.message);

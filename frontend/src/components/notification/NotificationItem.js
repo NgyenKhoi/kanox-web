@@ -10,6 +10,16 @@ function NotificationItem({ notification, handleMarkRead, handleMarkUnread }) {
     error: mediaError,
   } = useUserMedia(notification.targetId, "PROFILE", "image");
 
+  // ✅ Debug: kiểm tra xem có dữ liệu avatar không
+  console.log("🔍 Notification Debug:", {
+    id: notification.id,
+    targetId: notification.targetId,
+    avatarUrl,
+    mediaLoading,
+    mediaError,
+    displayName: notification.displayName,
+  });
+
   const renderAvatar = () => {
     if (mediaLoading) {
       return <Spinner animation="border" size="sm" className="me-2 mt-1" />;
