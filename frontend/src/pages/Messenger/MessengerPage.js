@@ -16,18 +16,19 @@ import SidebarLeft from "../../components/layout/SidebarLeft/SidebarLeft";
 import Chat from "../../components/messages/Chat";
 import { AuthContext } from "../../context/AuthContext";
 import UserSelectionModal from "../../components/messages/UserSelectionModal";
+import useUserSearch from "../../hooks/useUserSearch";
 
 function MessengerPage() {
   const { token, user } = useContext(AuthContext);
   const [chats, setChats] = useState([]);
   const [selectedChatId, setSelectedChatId] = useState(null);
-  const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // New state for controlling the UserSelectionModal visibility
+  // Use user search hook
+  const { searchKeyword, setSearchKeyword } = useUserSearch();
+
   const [showUserSelectionModal, setShowUserSelectionModal] = useState(false);
 
-  // Handlers for opening and closing the UserSelectionModal
   const handleOpenUserSelectionModal = () => {
     setShowUserSelectionModal(true);
   };
@@ -36,17 +37,13 @@ function MessengerPage() {
     setShowUserSelectionModal(false);
   };
 
-  // Define local placeholder functions/states for SidebarLeft since App.js isn't passing them
   const [localIsDarkMode, setLocalIsDarkMode] = useState(false);
   const localOnToggleDarkMode = () => {
     setLocalIsDarkMode((prev) => !prev);
     console.log("Dark mode toggled locally within MessengerPage's sidebar.");
   };
   const localOnShowCreatePost = () => {
-    // This placeholder won't open App.js's global modal
-    console.log(
-      "Create Post button clicked from MessengerPage Sidebar. (Modal control is outside MessengerPage)"
-    );
+    console.log("Create Post button clicked from MessengerPage Sidebar.");
   };
 
   useEffect(() => {
@@ -84,10 +81,9 @@ function MessengerPage() {
   }, [token, user]);
 
   const filteredChats = chats.filter((chat) => {
-    // Assuming chat.name is the display name for the chat, and chat.lastMessage exists
     const chatName = chat.name ? chat.name.toLowerCase() : "";
     const lastMessage = chat.lastMessage ? chat.lastMessage.toLowerCase() : "";
-    const search = searchQuery.toLowerCase();
+    const search = searchKeyword.toLowerCase();
     return chatName.includes(search) || lastMessage.includes(search);
   });
 
@@ -96,7 +92,6 @@ function MessengerPage() {
       <ToastContainer />
       <div className="d-flex min-vh-100 bg-light">
         <div className="d-none d-lg-block">
-          {/* Pass local functions/states to SidebarLeft */}
           <SidebarLeft
             onShowCreatePost={localOnShowCreatePost}
             isDarkMode={localIsDarkMode}
@@ -127,8 +122,8 @@ function MessengerPage() {
                 <Form.Control
                   type="text"
                   placeholder="Tìm kiếm"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  value={searchKeyword}
+                  onChange={(e) => setSearchKeyword(e.target.value)}
                   className="bg-light border-0 rounded-pill py-2"
                   style={{ height: "auto" }}
                 />
@@ -211,7 +206,6 @@ function MessengerPage() {
         <div className="d-none d-lg-block" style={{ width: "350px" }} />
       </div>
 
-      {/* Render the UserSelectionModal */}
       <UserSelectionModal
         show={showUserSelectionModal}
         handleClose={handleCloseUserSelectionModal}
