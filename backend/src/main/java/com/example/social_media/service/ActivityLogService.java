@@ -48,4 +48,25 @@ public class ActivityLogService {
 
         activityLogRepository.save(log);
     }
+    
+    /**
+     * Ghi log hành động của admin liên quan đến người dùng (không cần IP hoặc thiết bị)
+     */
+    @Transactional
+    public void logUserActivity(Integer userId, String actionTypeName, String description) {
+        ActionType actionType = actionTypeRepository.findByName(actionTypeName)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid action type: " + actionTypeName));
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
+
+        ActivityLog log = new ActivityLog();
+        log.setUser(user);
+        log.setActionType(actionType);
+        log.setActionTime(Instant.now());
+        log.setTargetType(description);
+        log.setStatus(true);
+
+        activityLogRepository.save(log);
+    }
 }

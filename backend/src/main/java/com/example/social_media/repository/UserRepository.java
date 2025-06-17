@@ -1,6 +1,8 @@
 package com.example.social_media.repository;
 
 import com.example.social_media.entity.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.query.Procedure;
 import org.springframework.stereotype.Repository;
@@ -19,7 +21,11 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     boolean existsByEmail(String email);
     boolean existsByUsername(String username);
     Optional<User> findByIdAndStatusTrue(Integer id);
+    
+    // Search method for Admin user management
+    Page<User> findByEmailContainingOrUsernameContainingOrDisplayNameContaining(
+            String email, String username, String displayName, Pageable pageable);
 
-    @Procedure(procedureName = "dbo.sp_UpdateProfilePrivacy") // Chỉ rõ schema
+    @Procedure(procedureName = "dbo.sp_UpdateProfilePrivacy")
     void updateProfilePrivacy(Integer userId, String privacySetting, Integer customListId);
 }
