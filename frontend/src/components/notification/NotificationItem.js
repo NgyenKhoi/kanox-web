@@ -5,7 +5,7 @@ import useUserMedia from "../../hooks/useUserMedia";
 
 function NotificationItem({ notification, handleMarkRead, handleMarkUnread }) {
   const { mediaUrl, loading: mediaLoading } = useUserMedia(
-    notification.userId,
+    notification.targetId,
     "PROFILE",
     "image"
   );
@@ -38,7 +38,7 @@ function NotificationItem({ notification, handleMarkRead, handleMarkUnread }) {
             <p
               className="fw-bold mb-0 cursor-pointer text-primary"
               onClick={() =>
-                handleMarkRead(notification.id, notification.username)
+                handleMarkRead(notification.id, notification.displayName)
               }
             >
               {notification.user}

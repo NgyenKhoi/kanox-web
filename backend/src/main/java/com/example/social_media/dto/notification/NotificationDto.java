@@ -6,7 +6,6 @@ public class NotificationDto {
     private Integer id;
     private String message;
     private String type;
-    private String username;
     private Integer targetId;
     private String targetType;
     private String displayName;
@@ -90,13 +89,5 @@ public class NotificationDto {
 
     public void setStatus(String status) {
         this.status = status;
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
     }
 }

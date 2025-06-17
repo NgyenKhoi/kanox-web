@@ -73,7 +73,6 @@ public class NotificationService {
         notificationDto.setTargetId(savedNotification.getTargetId());
         notificationDto.setTargetType(targetType.getCode());
         notificationDto.setDisplayName(displayName);
-        notificationDto.setUsername(username);
         notificationDto.setCreatedAt(savedNotification.getCreatedAt());
         notificationDto.setStatus(status.getName());
 
@@ -94,7 +93,6 @@ public class NotificationService {
             dto.setTargetId(notification.getTargetId());
             dto.setTargetType(notification.getTargetType().getCode());
             dto.setDisplayName(displayName);
-            dto.setUsername(username);
             dto.setCreatedAt(notification.getCreatedAt());
             dto.setStatus(notification.getStatus().getName());
             return dto;
