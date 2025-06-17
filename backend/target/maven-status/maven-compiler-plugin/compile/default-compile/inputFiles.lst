@@ -17,6 +17,7 @@ D:\social-media\backend\src\main\java\com\example\social_media\repository\Messag
 D:\social-media\backend\src\main\java\com\example\social_media\exception\GlobalExceptionHandle.java
 D:\social-media\backend\src\main\java\com\example\social_media\config\URLConfig.java
 D:\social-media\backend\src\main\java\com\example\social_media\repository\document_repository\GroupDocumentRepository.java
+D:\social-media\backend\src\main\java\com\example\social_media\repository\ReportRepository.java
 D:\social-media\backend\src\main\java\com\example\social_media\repository\UserRepository.java
 D:\social-media\backend\src\main\java\com\example\social_media\dto\authentication\GoogleLoginRequestDto.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\FriendshipId.java
@@ -26,7 +27,6 @@ D:\social-media\backend\src\main\java\com\example\social_media\entity\PostTag.ja
 D:\social-media\backend\src\main\java\com\example\social_media\controller\GroupController.java
 D:\social-media\backend\src\main\java\com\example\social_media\dto\user\GroupDto.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\FollowId.java
-D:\social-media\backend\src\main\java\com\example\social_media\service\MediaService.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\ReactionType.java
 D:\social-media\backend\src\main\java\com\example\social_media\controller\SearchController.java
 D:\social-media\backend\src\main\java\com\example\social_media\repository\NotificationRepository.java
@@ -70,6 +70,7 @@ D:\social-media\backend\src\main\java\com\example\social_media\service\DataSyncS
 D:\social-media\backend\src\main\java\com\example\social_media\controller\BlockController.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\Comment.java
 D:\social-media\backend\src\main\java\com\example\social_media\repository\document_repository\PageDocumentRepository.java
+D:\social-media\backend\src\main\java\com\example\social_media\service\media\MediaService.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\PasswordReset.java
 D:\social-media\backend\src\main\java\com\example\social_media\dto\privacy\CustomListMemberDto.java
 D:\social-media\backend\src\main\java\com\example\social_media\service\MailService.java
@@ -102,6 +103,7 @@ D:\social-media\backend\src\main\java\com\example\social_media\entity\Page.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\AccountUpgrade.java
 D:\social-media\backend\src\main\java\com\example\social_media\exception\UserNotFoundException.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\CallSession.java
+D:\social-media\backend\src\main\java\com\example\social_media\service\UserService.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\Chat.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\VerificationToken.java
 D:\social-media\backend\src\main\java\com\example\social_media\dto\user\UserTagDto.java
@@ -119,7 +121,6 @@ D:\social-media\backend\src\main\java\com\example\social_media\repository\Notifi
 D:\social-media\backend\src\main\java\com\example\social_media\entity\GroupMember.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\ReactionId.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\MediaType.java
-D:\social-media\backend\src\main\java\com\example\social_media\service\GcsService.java
 D:\social-media\backend\src\main\java\com\example\social_media\exception\InvalidTokenException.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\ContentPolicy.java
 D:\social-media\backend\src\main\java\com\example\social_media\repository\PostTagRepository.java
@@ -146,6 +147,7 @@ D:\social-media\backend\src\main\java\com\example\social_media\entity\Message.ja
 D:\social-media\backend\src\main\java\com\example\social_media\entity\ActivityLog.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\UpgradeType.java
 D:\social-media\backend\src\main\java\com\example\social_media\controller\GroupMemberController.java
+D:\social-media\backend\src\main\java\com\example\social_media\service\media\GcsService.java
 D:\social-media\backend\src\main\java\com\example\social_media\dto\authentication\ForgotPasswordRequestDto.java
 D:\social-media\backend\src\main\java\com\example\social_media\document\GroupDocument.java
 D:\social-media\backend\src\main\java\com\example\social_media\dto\post\PostResponseDto.java
@@ -153,6 +155,7 @@ D:\social-media\backend\src\main\java\com\example\social_media\entity\Friendship
 D:\social-media\backend\src\main\java\com\example\social_media\config\WebSocketConfig.java
 D:\social-media\backend\src\main\java\com\example\social_media\exception\EmailAlreadyExistsException.java
 D:\social-media\backend\src\main\java\com\example\social_media\dto\user\UserUpdateProfileDto.java
+D:\social-media\backend\src\main\java\com\example\social_media\controller\AdminController.java
 D:\social-media\backend\src\main\java\com\example\social_media\repository\GroupRepository.java
 D:\social-media\backend\src\main\java\com\example\social_media\dto\media\MediaDto.java
 D:\social-media\backend\src\main\java\com\example\social_media\entity\User.java

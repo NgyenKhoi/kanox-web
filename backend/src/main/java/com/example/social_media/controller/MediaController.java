@@ -22,36 +22,34 @@ public class MediaController {
     }
 
     @PostMapping(URLConfig.MEDIA_UPLOAD)
-    public ResponseEntity<?> uploadMedia(
+    public ResponseEntity<MediaDto> uploadMedia(
             @RequestParam("userId") Integer userId,
             @RequestParam("targetId") Integer targetId,
             @RequestParam("targetTypeCode") String targetTypeCode,
             @RequestParam("mediaTypeName") String mediaTypeName,
             @RequestParam("file") MultipartFile file,
-            @RequestParam(value = "caption", required = false) String caption) {
-        try {
-            MediaDto mediaDto = mediaService.uploadMedia(userId, targetId, targetTypeCode, mediaTypeName, file, caption);
-            return new ResponseEntity<>(mediaDto, HttpStatus.CREATED);
-        } catch (IOException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Failed to upload media: " + e.getMessage());
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest()
-                    .body("Invalid request: " + e.getMessage());
-        }
+            @RequestParam(value = "caption", required = false) String caption) throws IOException {
+        MediaDto mediaDto = mediaService.uploadMedia(userId, targetId, targetTypeCode, mediaTypeName, file, caption);
+        return new ResponseEntity<>(mediaDto, HttpStatus.CREATED);
     }
 
     @GetMapping(URLConfig.GET_MEDIA_BY_TARGET)
-    public ResponseEntity<?> getMediaByTarget(
+    public ResponseEntity<List<MediaDto>> getMediaByTarget(
             @RequestParam("targetId") Integer targetId,
             @RequestParam("targetTypeCode") String targetTypeCode,
             @RequestParam("mediaTypeName") String mediaTypeName,
             @RequestParam(value = "status", defaultValue = "true") Boolean status) {
-        try {
-            List<MediaDto> mediaList = mediaService.getMediaByTargetDto(targetId, targetTypeCode, mediaTypeName, status);
-            return ResponseEntity.ok(mediaList);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body("Invalid request: " + e.getMessage());
-        }
+        List<MediaDto> mediaList = mediaService.getMediaByTargetDto(targetId, targetTypeCode, mediaTypeName, status);
+        return ResponseEntity.ok(mediaList);
+    }
+
+    @PostMapping(URLConfig.MEDIA_FOR_POST)
+    public ResponseEntity<List<MediaDto>> uploadPostMedia(
+            @PathVariable Integer postId,
+            @RequestParam("userId") Integer userId,
+            @RequestParam("files") List<MultipartFile> files,
+            @RequestParam(value = "caption", required = false) String caption) throws IOException {
+        List<MediaDto> uploaded = mediaService.uploadPostMedia(userId, postId, files, caption);
+        return ResponseEntity.ok(uploaded);
     }
 }
