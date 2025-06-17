@@ -16,6 +16,7 @@ import {
     FaMoon,
     FaSun,
     FaUserFriends,
+    FaListAlt,
     FaUserSlash,
 } from "react-icons/fa";
 import { BsStars } from "react-icons/bs";
@@ -26,6 +27,7 @@ import { useWebSocket } from "../../../hooks/useWebSocket";
 import "./SidebarLeft.css";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+
 
 function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
     const { user, logout } = useContext(AuthContext);
@@ -153,83 +155,159 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
     ];
 
     const additionalTabs = [
-        { icon: <FaSignOutAlt />, label: "Đăng xuất", action: logout },
-        { icon: <FaLock />, label: "Đổi mật khẩu", path: "/change-password" },
-        { icon: <FaTrash />, label: "Xóa tài khoản", path: "/delete-account" },
+        { icon: <FaUserFriends size={24} />, label: "Bạn bè", path: "/friends" },
+        {
+            icon: <FaUserSlash size={24} />,
+            label: "Người bị chặn",
+            path: "/blocks",
+            protected: true,
+        },
+        {
+            icon: <FaRegPlusSquare size={24} />,
+            label: "Tạo Story",
+            path: "/create-story",
+            protected: true,
+        },
+        { icon: <FaLock size={24} />, label: "Cài đặt Bảo mật", path: "/settings" },
+        {
+            icon: <FaTrash size={24} />,
+            label: "Xóa Tài khoản",
+            path: "/delete-account",
+            protected: true,
+        },
     ];
 
-    const handleNavLinkClick = (path, action) => {
-        if (action) {
-            action();
-            handleCloseOffcanvas();
+    const handleNavLinkClick = (tab) => {
+        handleCloseOffcanvas();
+        if (tab.action === "logout") {
+            logout();
+            navigate("/");
             return;
         }
-        navigate(path);
-        handleCloseOffcanvas();
+        if (tab.protected && !user) {
+            navigate("/");
+        } else {
+            navigate(tab.path);
+        }
     };
 
-    const renderSidebarContent = () => {
-        return (
-            <>
-                <Nav className="flex-column mb-4">
-                    {mainTabs.map((tab, index) => (
-                        <Nav.Item key={index} className="mb-2">
-                            <Nav.Link
-                                as={Link}
-                                to={tab.path}
-                                onClick={() => handleNavLinkClick(tab.path)}
-                                className={`d-flex align-items-center text-dark rounded-pill px-3 py-2 ${
-                                    location.pathname === tab.path ? "active bg-light" : ""
-                                }`}
-                            >
-                                {tab.icon}
-                                <span className="ms-3">{tab.label}</span>
-                            </Nav.Link>
-                        </Nav.Item>
-                    ))}
-                </Nav>
-                <Button
-                    variant="primary"
-                    className="rounded-pill py-2 mb-4 mx-3 d-flex align-items-center justify-content-center"
-                    onClick={() => {
-                        onShowCreatePost();
-                        handleCloseOffcanvas();
-                    }}
-                >
-                    <FaRegPlusSquare size={20} className="me-2" />
-                    Tạo bài viết
-                </Button>
-                {user && (
-                    <Dropdown className="mx-3">
-                        <Dropdown.Toggle
-                            variant="light"
-                            className="d-flex align-items-center w-100 rounded-pill py-2 px-3"
-                        >
-                            <img
-                                src={user.avatar || "/default-avatar.png"}
-                                alt="Avatar"
-                                className="rounded-circle me-2"
-                                style={{ width: "32px", height: "32px" }}
-                            />
-                            <span className="text-dark">{user.username}</span>
-                        </Dropdown.Toggle>
-                        <Dropdown.Menu className="w-100">
-                            {additionalTabs.map((tab, index) => (
-                                <Dropdown.Item
-                                    key={index}
-                                    onClick={() => handleNavLinkClick(tab.path, tab.action)}
-                                    className="d-flex align-items-center"
-                                >
-                                    {tab.icon}
-                                    <span className="ms-2">{tab.label}</span>
-                                </Dropdown.Item>
-                            ))}
-                        </Dropdown.Menu>
-                    </Dropdown>
-                )}
-            </>
-        );
+    const isLinkActive = (path) => {
+        if (
+            path.startsWith("/profile/") &&
+            location.pathname.startsWith("/profile/")
+        ) {
+            return true;
+        }
+        if (
+            path === "/home" &&
+            (location.pathname === "/" || location.pathname === "/home")
+        ) {
+            return true;
+        }
+        return location.pathname === path;
     };
+
+    const renderSidebarContent = () => (
+        <>
+            <Nav className="flex-column mb-auto">
+                {mainTabs.map((tab) => (
+                    <Nav.Item key={tab.label} className="mb-1">
+                        <Nav.Link
+                            onClick={() => handleNavLinkClick(tab)}
+                            className={`d-flex align-items-center text-dark py-2 px-3 rounded-pill sidebar-nav-link ${
+                                isLinkActive(tab.path) ? "active-sidebar-link" : ""
+                            }`}
+                        >
+                            <span className="me-3">{tab.icon}</span>
+                            <span className="fs-5 d-none d-lg-inline">{tab.label}</span>
+                        </Nav.Link>
+                    </Nav.Item>
+                ))}
+                <Dropdown className="mt-2 sidebar-more-dropdown">
+                    <Dropdown.Toggle
+                        as={Nav.Link}
+                        className="d-flex align-items-center text-dark py-2 px-3 rounded-pill sidebar-nav-link"
+                    >
+            <span className="me-3">
+              <FaEllipsisH size={24} />
+            </span>
+                        <span className="fs-5 d-none d-lg-inline">Thêm</span>
+                    </Dropdown.Toggle>
+                    <Dropdown.Menu className="sidebar-dropdown-menu">
+                        {additionalTabs.map((tab) => (
+                            <Dropdown.Item
+                                key={tab.label}
+                                onClick={() => handleNavLinkClick(tab)}
+                                className="d-flex align-items-center py-2 px-3 sidebar-dropdown-item"
+                            >
+                                <span className="me-3">{tab.icon}</span>
+                                {tab.label}
+                            </Dropdown.Item>
+                        ))}
+                    </Dropdown.Menu>
+                </Dropdown>
+            </Nav>
+            <Button
+                variant="primary"
+                className="rounded-pill mt-3 py-3 fw-bold sidebar-post-button d-none d-lg-block"
+                onClick={() => {
+                    handleCloseOffcanvas();
+                    onShowCreatePost();
+                }}
+            >
+                Đăng
+            </Button>
+            <Button
+                variant="primary"
+                className="sidebar-fab d-lg-none rounded-circle p-3 shadow"
+                onClick={() => {
+                    handleCloseOffcanvas();
+                    onShowCreatePost();
+                }}
+            >
+                <FaPlusCircle size={24} />
+            </Button>
+            <div className="mt-auto pt-3">
+                <Dropdown drop="up" className="w-100">
+                    <Dropdown.Toggle
+                        as="div"
+                        className="d-flex align-items-center p-2 rounded-pill hover-bg-light cursor-pointer w-100"
+                        style={{ backgroundColor: isDarkMode ? "#222" : "#f8f9fa" }}
+                    >
+                        <img
+                            src={user?.avatar || "https://placehold.co/40x40"}
+                            alt="User Avatar"
+                            className="rounded-circle me-2"
+                            style={{ width: "40px", height: "40px", objectFit: "cover" }}
+                        />
+                        <div className="d-none d-lg-block flex-grow-1">
+                            <div className="fw-bold text-dark">
+                                {user?.name || "Người dùng"}
+                            </div>
+                            <div className="text-muted small">
+                                @{user?.username || "username"}
+                            </div>
+                        </div>
+                        <FaEllipsisH className="ms-auto me-2 text-dark d-none d-lg-block" />
+                    </Dropdown.Toggle>
+                    <Dropdown.Menu className="sidebar-user-dropdown-menu">
+                        <Dropdown.Item
+                            onClick={() =>
+                                navigate(`/profile/${user?.username || "default"}`)
+                            }
+                        >
+                            Xem hồ sơ
+                        </Dropdown.Item>
+                        <Dropdown.Item
+                            onClick={() => handleNavLinkClick({ action: "logout" })}
+                        >
+                            <FaSignOutAlt className="me-2" /> Đăng xuất
+                        </Dropdown.Item>
+                    </Dropdown.Menu>
+                </Dropdown>
+            </div>
+        </>
+    );
 
     return (
         <>

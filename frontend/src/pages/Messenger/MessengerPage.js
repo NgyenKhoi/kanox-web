@@ -40,8 +40,11 @@ function MessengerPage() {
   } = useUserSearchForChat(token, navigate);
 
   useEffect(() => {
-    debouncedSearch(searchKeyword);
-  }, [searchKeyword, debouncedSearch]);
+    if (showUserSelectionModal) {
+      console.log("Calling debouncedSearch with keyword:", searchKeyword); // Debug log
+      debouncedSearch(searchKeyword);
+    }
+  }, [searchKeyword, debouncedSearch, showUserSelectionModal]);
 
   const [localIsDarkMode, setLocalIsDarkMode] = useState(false);
   const localOnToggleDarkMode = () => {

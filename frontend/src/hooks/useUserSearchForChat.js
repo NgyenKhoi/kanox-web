@@ -1,7 +1,6 @@
 import { useState, useCallback } from "react";
 import { toast } from "react-toastify";
 
-// Sửa lỗi: Di chuyển hàm debounce lên đầu để đảm bảo nó được định nghĩa trước khi sử dụng
 const debounce = (func, delay) => {
     let timeoutId;
     return (...args) => {
@@ -30,10 +29,9 @@ function useUserSearchForChat(token, navigate) {
 
         setIsSearching(true);
         try {
+            console.log("Searching users with keyword:", keyword); // Debug log
             const response = await fetch(
-                `${
-                    process.env.REACT_APP_API_URL
-                }/search/users?keyword=${encodeURIComponent(keyword)}`,
+                `${process.env.REACT_APP_API_URL}/search/users?keyword=${encodeURIComponent(keyword)}`,
                 {
                     headers: {
                         "Content-Type": "application/json",
@@ -55,6 +53,7 @@ function useUserSearchForChat(token, navigate) {
             }
 
             const data = await response.json();
+            console.log("Search results:", data); // Debug log
             setSearchResults(data);
         } catch (error) {
             toast.error("Không thể tìm kiếm: " + error.message);
@@ -94,26 +93,24 @@ function useUserSearchForChat(token, navigate) {
             }
 
             const data = await response.json();
-            return data.chatId; // Giả định API trả về { chatId: number }
+            return data.chatId;
         } catch (error) {
             toast.error("Không thể tạo chat: " + error.message);
             return null;
         }
     };
 
-    // Sử dụng debounce đã được định nghĩa ở trên
     const debouncedSearch = useCallback(
         debounce(searchUsers, 300),
-        [token, navigate, searchUsers] // Thêm searchUsers vào dependency để đảm bảo hàm được cập nhật
+        [token, navigate] // Loại bỏ searchUsers
     );
 
-    // Hàm để xử lý khi chọn một người dùng từ kết quả tìm kiếm
     const handleSelectUser = async (userId) => {
         const chatId = await createChat(userId);
         if (chatId) {
-            navigate(`/messages?chatId=${chatId}`); // Chuyển hướng đến chat
-            setSearchKeyword(""); // Reset từ khóa tìm kiếm
-            setSearchResults([]); // Reset kết quả tìm kiếm
+            navigate(`/messages?chatId=${chatId}`);
+            setSearchKeyword("");
+            setSearchResults([]);
         }
     };
 
