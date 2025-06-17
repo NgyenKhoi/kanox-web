@@ -20,6 +20,6 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     boolean existsByUsername(String username);
     Optional<User> findByIdAndStatusTrue(Integer id);
 
-    @Procedure(name = "sp_UpdateProfilePrivacy")
+    @Procedure(procedureName = "dbo.sp_UpdateProfilePrivacy") // Chỉ rõ schema
     void updateProfilePrivacy(Integer userId, String privacySetting, Integer customListId);
 }
