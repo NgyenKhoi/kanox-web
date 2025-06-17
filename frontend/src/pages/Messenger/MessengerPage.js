@@ -23,14 +23,11 @@ import useUserMedia from "../../hooks/useUserMedia";
 function MessengerPage() {
   const { token, user } = useContext(AuthContext);
   const navigate = useNavigate();
-
   const [chats, setChats] = useState([]);
   const [selectedChatId, setSelectedChatId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showUserSelectionModal, setShowUserSelectionModal] = useState(false);
-  const [localIsDarkMode, setLocalIsDarkMode] = useState(false);
 
-  // Custom search hook
   const {
     searchKeyword,
     setSearchKeyword,
@@ -45,15 +42,6 @@ function MessengerPage() {
 
   const handleOpenUserSelectionModal = () => setShowUserSelectionModal(true);
   const handleCloseUserSelectionModal = () => setShowUserSelectionModal(false);
-
-  const localOnToggleDarkMode = () => {
-    setLocalIsDarkMode((prev) => !prev);
-    console.log("Dark mode toggled locally within MessengerPage's sidebar.");
-  };
-
-  const localOnShowCreatePost = () => {
-    console.log("Create Post button clicked from MessengerPage Sidebar.");
-  };
 
   useEffect(() => {
     if (!token || !user) {
@@ -70,21 +58,14 @@ function MessengerPage() {
       },
     })
       .then(async (response) => {
-        const contentType = response.headers.get("content-type");
-        let data;
-        if (contentType && contentType.includes("application/json")) {
-          data = await response.json();
-        } else {
-          throw new Error("Phản hồi không phải JSON");
+        if (!response.ok) {
+          throw new Error("Lỗi khi tải danh sách chat.");
         }
-        if (response.ok) {
-          setChats(data);
-        } else {
-          throw new Error(data.message || "Lỗi khi tải danh sách chat.");
-        }
+        const data = await response.json();
+        setChats(data);
       })
       .catch((err) => {
-        toast.error(err.message || "Lỗi khi tải danh sách chat.");
+        toast.error("Lỗi khi tải danh sách chat: " + err.message);
       })
       .finally(() => setLoading(false));
   }, [token, user]);
@@ -132,15 +113,13 @@ function MessengerPage() {
       <ToastContainer />
       <div className="d-flex min-vh-100 bg-light">
         <div className="d-none d-lg-block">
-          <SidebarLeft
-            onShowCreatePost={localOnShowCreatePost}
-            isDarkMode={localIsDarkMode}
-            onToggleDarkMode={localOnToggleDarkMode}
-          />
+          <SidebarLeft />
         </div>
-
         <div className="d-flex flex-column flex-grow-1 border-start border-end bg-white">
-          <div className="sticky-top bg-white border-bottom py-2" style={{ zIndex: 1020 }}>
+          <div
+            className="sticky-top bg-white border-bottom py-2"
+            style={{ zIndex: 1020 }}
+          >
             <Container fluid>
               <Row className="align-items-center">
                 <Col xs={6} className="text-start">
@@ -167,15 +146,19 @@ function MessengerPage() {
                       style={{ height: "auto" }}
                     />
                   </InputGroup>
-
                   {searchKeyword.trim() && (
                     <ListGroup
                       className="position-absolute w-100 mt-1 shadow-sm"
-                      style={{ zIndex: 1000, maxHeight: "400px", overflowY: "auto" }}
+                      style={{
+                        zIndex: 1000,
+                        maxHeight: "400px",
+                        overflowY: "auto",
+                      }}
                     >
                       {isSearching ? (
                         <ListGroup.Item className="text-center">
-                          <Spinner animation="border" size="sm" /> Đang tìm kiếm...
+                          <Spinner animation="border" size="sm" /> Đang tìm
+                          kiếm...
                         </ListGroup.Item>
                       ) : (
                         <>
@@ -189,7 +172,9 @@ function MessengerPage() {
                               ))}
                             </>
                           ) : (
-                            <ListGroup.Item>Không tìm thấy kết quả.</ListGroup.Item>
+                            <ListGroup.Item>
+                              Không tìm thấy kết quả.
+                            </ListGroup.Item>
                           )}
                         </>
                       )}
@@ -199,7 +184,6 @@ function MessengerPage() {
               </Row>
             </Container>
           </div>
-
           <div className="d-flex flex-grow-1">
             <div
               className="border-end overflow-auto"
@@ -248,7 +232,6 @@ function MessengerPage() {
                 </>
               )}
             </div>
-
             <div className="flex-grow-1 d-flex flex-column">
               {selectedChatId ? (
                 <Chat chatId={selectedChatId} />
@@ -260,8 +243,8 @@ function MessengerPage() {
                   />
                   <h4 className="fw-bold mb-2">Tin nhắn của bạn</h4>
                   <p className="text-muted text-center mb-4">
-                    Chọn một người để hiển thị cuộc trò chuyện của họ hoặc bắt
-                    đầu một cuộc trò chuyện mới.
+                    Chọn một người để hiển thị cuộc trò chuyện hoặc bắt đầu một
+                    cuộc trò chuyện mới.
                   </p>
                   <Button
                     variant="primary"
@@ -275,10 +258,8 @@ function MessengerPage() {
             </div>
           </div>
         </div>
-
         <div className="d-none d-lg-block" style={{ width: "350px" }} />
       </div>
-
       <UserSelectionModal
         show={showUserSelectionModal}
         handleClose={handleCloseUserSelectionModal}

@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import {
   Container,
   Row,
@@ -7,7 +7,7 @@ import {
   InputGroup,
   Nav,
   Button,
-  Image as BootstrapImage,
+  Image,
   Spinner,
   ListGroup,
 } from "react-bootstrap";
@@ -22,10 +22,8 @@ import useUserMedia from "../../hooks/useUserMedia";
 import useUserSearch from "../../hooks/useUserSearch";
 
 function ExplorePage() {
-  const { loading, isSyncing } = useContext(AuthContext);
+  const { token } = useContext(AuthContext);
   const navigate = useNavigate();
-  const token =
-    sessionStorage.getItem("token") || localStorage.getItem("token");
   const {
     searchKeyword,
     setSearchKeyword,
@@ -33,6 +31,7 @@ function ExplorePage() {
     isSearching,
     debouncedSearch,
   } = useUserSearch(token, navigate);
+
   useEffect(() => {
     debouncedSearch(searchKeyword);
   }, [searchKeyword, debouncedSearch]);
@@ -109,7 +108,7 @@ function ExplorePage() {
         className="d-flex align-items-start"
         onClick={() => navigate(`/profile/${item.username}`)}
       >
-        <BootstrapImage
+        <Image
           src={mediaUrl || "https://via.placeholder.com/30?text=Avatar"}
           roundedCircle
           width={30}
@@ -130,10 +129,8 @@ function ExplorePage() {
     );
   };
 
-  const renderSearchResults = () => {
-    if (!searchKeyword.trim()) return null;
-
-    return (
+  const renderSearchResults = () =>
+    searchKeyword.trim() && (
       <ListGroup
         className="position-absolute w-100 mt-1 shadow-sm"
         style={{ zIndex: 1000, maxHeight: "400px", overflowY: "auto" }}
@@ -144,7 +141,7 @@ function ExplorePage() {
           </ListGroup.Item>
         ) : (
           <>
-            {searchResults?.length > 0 && (
+            {searchResults?.length > 0 ? (
               <>
                 <ListGroup.Item className="bg-light fw-bold">
                   Người dùng
@@ -153,15 +150,13 @@ function ExplorePage() {
                   <UserSearchItem key={item.id} item={item} />
                 ))}
               </>
-            )}
-            {searchResults?.length === 0 && (
+            ) : (
               <ListGroup.Item>Không tìm thấy kết quả.</ListGroup.Item>
             )}
           </>
         )}
       </ListGroup>
     );
-  };
 
   const renderTabContent = () => (
     <div className="mt-0">
@@ -178,7 +173,7 @@ function ExplorePage() {
             <div>
               <p className="text-muted small mb-0">{topic.category}</p>
               <h6 className="fw-bold mb-0">{topic.title}</h6>
-              <p className="text-muted small mb-0">{topic.posts} N bài đăng</p>
+              <p className="text-muted small mb-0">{topic.posts} bài đăng</p>
             </div>
             <Button variant="link" className="text-dark p-0">
               <FaEllipsisH />
@@ -190,7 +185,7 @@ function ExplorePage() {
   );
 
   return (
-    <div className="d-flex min-vh-100" style={{ backgroundColor: "#fff" }}>
+    <div className="d-flex min-vh-100 bg-white">
       <div className="d-none d-lg-block">
         <SidebarLeft />
       </div>
@@ -255,19 +250,12 @@ function ExplorePage() {
             </Row>
           </Container>
         </div>
-
         <Container fluid className="flex-grow-1">
           <Row className="h-100">
             <Col xs={12} lg={6} className="px-md-0 border-start border-end">
               {renderTabContent()}
             </Col>
-            <Col
-              xs={0}
-              sm={0}
-              md={0}
-              lg={3}
-              className="d-none d-lg-block border-start p-0"
-            >
+            <Col xs={0} lg={3} className="d-none d-lg-block border-start p-0">
               <SidebarRight
                 trendingTopics={trendingTopics}
                 suggestedFollows={suggestedFollows}
