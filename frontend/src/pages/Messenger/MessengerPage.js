@@ -17,17 +17,17 @@ import Chat from "../../components/messages/Chat";
 import { AuthContext } from "../../context/AuthContext";
 import UserSelectionModal from "../../components/messages/UserSelectionModal";
 import { useWebSocket } from "../../hooks/useWebSocket";
-import useUserSearch from "../../hooks/useUserSearch";
-import useUserMedia from "../../hooks/useUserMedia";
+import useUserSearchForChat from "../../hooks/useUserSearchForChat";
+import { useNavigate } from "react-router-dom";
 
 function MessengerPage() {
   const { token, user } = useContext(AuthContext);
+  const navigate = useNavigate();
   const [chats, setChats] = useState([]);
   const [selectedChatId, setSelectedChatId] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
-
-  // New state for controlling the UserSelectionModal visibility
+  const [unreadChats, setUnreadChats] = useState(new Set());
   const [showUserSelectionModal, setShowUserSelectionModal] = useState(false);
 
   const {
@@ -36,16 +36,13 @@ function MessengerPage() {
     searchResults,
     isSearching,
     debouncedSearch,
-  } = useUserSearch(token, navigate);
-  const handleOpenUserSelectionModal = () => {
-    setShowUserSelectionModal(true);
-  };
+    handleSelectUser, // Thêm handleSelectUser
+  } = useUserSearchForChat(token, navigate);
 
   useEffect(() => {
     debouncedSearch(searchKeyword);
   }, [searchKeyword, debouncedSearch]);
 
-  // Local states/functions for SidebarLeft
   const [localIsDarkMode, setLocalIsDarkMode] = useState(false);
   const localOnToggleDarkMode = () => {
     setLocalIsDarkMode((prev) => !prev);
@@ -54,6 +51,7 @@ function MessengerPage() {
   const localOnShowCreatePost = () => {
     console.log("Create Post button clicked from MessengerPage Sidebar.");
   };
+
   const handleOpenUserSelectionModal = () => setShowUserSelectionModal(true);
   const handleCloseUserSelectionModal = () => setShowUserSelectionModal(false);
 
@@ -75,31 +73,17 @@ function MessengerPage() {
         });
 
         const contentType = response.headers.get("content-type");
-        let data;
-        if (contentType && contentType.includes("application/json")) {
-          data = await response.json();
-        } else {
+        if (!contentType || !contentType.includes("application/json")) {
           throw new Error("Phản hồi không phải JSON");
-    fetch(`${process.env.REACT_APP_API_URL}/chats`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-    })
-      .then(async (response) => {
-        if (!response.ok) {
-          throw new Error("Lỗi khi tải danh sách chat.");
         }
+
         const data = await response.json();
-        setChats(data);
-      })
-      .catch((err) => {
-        toast.error("Lỗi khi tải danh sách chat: " + err.message);
-      })
-      .finally(() => setLoading(false));
         if (response.ok) {
           setChats(data);
+          const unread = new Set(
+              data.filter((chat) => chat.unreadMessagesCount > 0).map((chat) => chat.id)
+          );
+          setUnreadChats(unread);
         } else {
           throw new Error(data.message || "Lỗi khi tải danh sách chat.");
         }
@@ -114,7 +98,6 @@ function MessengerPage() {
   }, [token, user]);
 
   const filteredChats = chats.filter((chat) => {
-    // Assuming chat.name is the display name for the chat, and chat.lastMessage exists
     const chatName = chat.name ? chat.name.toLowerCase() : "";
     const lastMessage = chat.lastMessage ? chat.lastMessage.toLowerCase() : "";
     const search = searchQuery.toLowerCase();
@@ -185,7 +168,7 @@ function MessengerPage() {
                                 setSelectedChatId(chat.id);
                                 setUnreadChats((prev) => {
                                   const newSet = new Set(prev);
-                                  newSet.delete(chat.id); // Xóa chat khỏi danh sách chưa đọc khi click
+                                  newSet.delete(chat.id);
                                   return newSet;
                                 });
                               }}
@@ -195,9 +178,7 @@ function MessengerPage() {
                           >
                             <div className="flex-grow-1">
                               <p className="fw-bold mb-0">{chat.name}</p>
-                              <p className="text-muted small mb-0">
-                                {chat.lastMessage}
-                              </p>
+                              <p className="text-muted small mb-0">{chat.lastMessage}</p>
                             </div>
                           </ListGroup.Item>
                       ))}
@@ -230,8 +211,7 @@ function MessengerPage() {
                       />
                       <h4 className="fw-bold mb-2">Tin nhắn của bạn</h4>
                       <p className="text-muted text-center mb-4">
-                        Chọn một người để hiển thị cuộc trò chuyện của họ hoặc bắt
-                        đầu một cuộc trò chuyện mới.
+                        Chọn một người để hiển thị cuộc trò chuyện của họ hoặc bắt đầu một cuộc trò chuyện mới.
                       </p>
                       <Button
                           variant="primary"
@@ -247,12 +227,17 @@ function MessengerPage() {
           </div>
 
           <div className="d-none d-lg-block" style={{ width: "350px" }} />
-        </div>
 
-        <UserSelectionModal
-            show={showUserSelectionModal}
-            handleClose={handleCloseUserSelectionModal}
-        />
+          <UserSelectionModal
+              show={showUserSelectionModal}
+              handleClose={handleCloseUserSelectionModal}
+              searchKeyword={searchKeyword}
+              setSearchKeyword={setSearchKeyword}
+              searchResults={searchResults}
+              isSearching={isSearching}
+              handleSelectUser={handleSelectUser} // Thêm prop
+          />
+        </div>
       </>
   );
 }
