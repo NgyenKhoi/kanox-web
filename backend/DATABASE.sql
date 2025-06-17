@@ -2016,6 +2016,16 @@ GO
         CONSTRAINT CK_tblMessage_media_type CHECK (media_type IN ('image', 'video', NULL))
     );
 
+	CREATE TABLE tblMessageStatus (
+    message_id INT NOT NULL,
+    user_id INT NOT NULL,
+    status VARCHAR(20) DEFAULT 'unread',
+    created_at DATETIME DEFAULT GETDATE(),
+    PRIMARY KEY (message_id, user_id),
+    FOREIGN KEY (message_id) REFERENCES tblMessage(id),
+    FOREIGN KEY (user_id) REFERENCES tblUser(id)
+);
+
     CREATE TABLE tblCallSession (
         id INT PRIMARY KEY IDENTITY(1, 1),
         chat_id INT NOT NULL FOREIGN KEY REFERENCES tblChat(id),
@@ -2032,7 +2042,7 @@ GO
         name VARCHAR(50),
         description NVARCHAR(255)
     );
-
+	select * from tblNotificationType
     CREATE TABLE tblActivityLog (
         id INT PRIMARY KEY IDENTITY(1, 1),
         user_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),

@@ -69,21 +69,20 @@ function UserSelectionModal({ show, handleClose }) {
   };
 
   const handleSendFriendRequest = async (targetUserId) => {
-    if (sendingRequest || sentRequests[targetUserId]) return; // Prevent multiple clicks
+    if (sendingRequest || sentRequests[targetUserId]) return;
 
     setSendingRequest(true);
     try {
-      // Assuming an endpoint for sending friend requests, e.g., /friends/request
       const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/friends/request`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ targetUserId }),
-        }
+          `${process.env.REACT_APP_API_URL}/friends/request`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ targetUserId }),
+          }
       );
 
       if (!response.ok) {
@@ -91,11 +90,29 @@ function UserSelectionModal({ show, handleClose }) {
         throw new Error(errorData.message || "Failed to send friend request");
       }
 
-      toast.success("Đã gửi yêu cầu kết bạn!");
-      setSentRequests((prev) => ({ ...prev, [targetUserId]: true })); // Mark as sent
-      // No need to close the modal immediately, user might want to send more requests
+      // Tạo chat mới sau khi gửi yêu cầu kết bạn
+      const chatResponse = await fetch(
+          `${process.env.REACT_APP_API_URL}/chat/create`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ targetUserId }),
+          }
+      );
+
+      if (!chatResponse.ok) {
+        const errorData = await chatResponse.json();
+        throw new Error(errorData.message || "Failed to create chat");
+      }
+
+      toast.success("Đã gửi yêu cầu kết bạn và tạo chat mới!");
+      setSentRequests((prev) => ({ ...prev, [targetUserId]: true }));
+      handleClose(); // Đóng modal sau khi thành công
     } catch (error) {
-      toast.error("Lỗi khi gửi yêu cầu kết bạn: " + error.message);
+      toast.error("Lỗi: " + error.message);
     } finally {
       setSendingRequest(false);
     }

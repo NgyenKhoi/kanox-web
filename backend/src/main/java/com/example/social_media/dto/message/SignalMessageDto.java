@@ -9,6 +9,14 @@ public class SignalMessageDto {
 
     public SignalMessageDto() {}
 
+    public SignalMessageDto(Integer chatId, String type, String sdp, String candidate, Integer userId) {
+        this.chatId = chatId;
+        this.type = type;
+        this.sdp = sdp;
+        this.candidate = candidate;
+        this.userId = userId;
+    }
+
     public Integer getChatId() { return chatId; }
     public void setChatId(Integer chatId) { this.chatId = chatId; }
     public String getType() { return type; }

@@ -5,7 +5,7 @@ import { AuthContext } from "../context/AuthContext";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-export const useWebSocket = (onNotification, setUnreadCount) => {
+export const useWebSocket = (onMessage, setUnreadCount, topicPrefix = "/topic/notifications/") => {
     const { user, token } = useContext(AuthContext);
     const clientRef = useRef(null);
     const isConnecting = useRef(false);
@@ -39,14 +39,26 @@ export const useWebSocket = (onNotification, setUnreadCount) => {
                 console.log("WebSocket connected successfully for user:", user.id);
                 isConnecting.current = false;
                 reconnectAttempts.current = 0;
-                client.subscribe(`/topic/notifications/${user.id}`, (message) => {
+
+                // Đăng ký topic cho thông báo
+                client.subscribe(`${topicPrefix}${user.id}`, (message) => {
                     try {
-                        const notification = JSON.parse(message.body);
-                        console.log("Received notification:", notification);
-                        onNotification(notification);
-                        if (notification.status === "unread") {
-                            setUnreadCount((prev) => prev + 1);
-                        }
+                        const data = JSON.parse(message.body);
+                        console.log("Received message:", data);
+                        onMessage(data);
+                        setUnreadCount((prev) => prev + 1);
+                    } catch (error) {
+                        console.error("Error parsing WebSocket message:", error);
+                    }
+                });
+
+                // Đăng ký topic cho tin nhắn
+                client.subscribe(`/topic/messages/${user.id}`, (message) => {
+                    try {
+                        const msg = JSON.parse(message.body);
+                        console.log("Received new message:", msg);
+                        onMessage(msg);
+                        setUnreadCount((prev) => prev + 1);
                     } catch (error) {
                         console.error("Error parsing WebSocket message:", error);
                     }
@@ -78,7 +90,7 @@ export const useWebSocket = (onNotification, setUnreadCount) => {
         clientRef.current = client;
         console.log("Activating WebSocket client");
         client.activate();
-    }, [token, user, onNotification, setUnreadCount]);
+    }, [token, user, onMessage, setUnreadCount, topicPrefix]);
 
     useEffect(() => {
         if (!user || !token) {

@@ -7,6 +7,6 @@ import java.util.List;
 import java.util.Optional;
 
 public interface MessageRepository extends JpaRepository<Message, Integer> {
-    List<Message> findByChatId(Integer chatId); // Thay Long bằng Integer
+    List<Message> findByChatId(Integer chatId);
     Optional<Message> findTopByChatIdOrderByCreatedAtDesc(Integer chatId); // Thêm phương thức này
 }
