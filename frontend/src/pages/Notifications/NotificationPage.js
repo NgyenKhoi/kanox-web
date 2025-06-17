@@ -8,6 +8,8 @@ import { useWebSocket } from "../../hooks/useWebSocket";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useNavigate } from "react-router-dom";
+import useUserMedia from "../../hooks/useUserMedia";
+import NotificationItem from "../../components/notification/NotificationItem"; // hoặc đúng path
 
 function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
   const { user } = useContext(AuthContext);
@@ -45,15 +47,15 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
         }
 
         const data = await response.json();
-        console.log("Fetched notifications:", data);
+        console.log("Danh sách thông báo:", data);
         const formattedNotifications = Array.isArray(data.data?.content)
           ? data.data.content.map((notif) => ({
               id: notif.id,
               type: notif.type,
+              userId: notif.userId || null, // Lấy userId từ API
               user: notif.displayName || notif.user || "Người dùng",
-              username: notif.username || "unknown", // Đảm bảo backend trả về username
+              username: notif.username || "unknown",
               content: notif.message,
-              avatar: notif.avatar || "https://placehold.co/40x40",
               tags: notif.tags || [],
               timestamp: notif.createdAt,
               isRead: notif.status === "read",
@@ -63,7 +65,7 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
 
         setNotifications(formattedNotifications);
       } catch (error) {
-        console.error("Error fetching notifications:", error);
+        console.error("Lỗi khi lấy thông báo:", error);
         toast.error(error.message || "Không thể lấy thông báo!");
       } finally {
         setLoading(false);
@@ -75,14 +77,14 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
 
   useWebSocket(
     (notification) => {
-      console.log("NotificationPage received notification:", notification);
+      console.log("Thông báo mới:", notification);
       const formattedNotification = {
         id: notification.id,
         type: notification.type,
+        userId: notification.userId || null, // Lấy userId từ WebSocket
         user: notification.displayName || notification.user || "Người dùng",
         username: notification.username || "unknown",
         content: notification.message,
-        avatar: notification.avatar || "https://placehold.co/40x40",
         tags: notification.tags || [],
         timestamp: notification.createdAt || new Date().toISOString(),
         isRead: notification.status === "read",
@@ -137,7 +139,7 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
         navigate(`/profile/${username}`);
       }
     } catch (error) {
-      console.error("Error marking read:", error);
+      console.error("Lỗi khi đánh dấu đã đọc:", error);
       toast.error(error.message || "Không thể đánh dấu đã đọc!");
     }
   };
@@ -181,7 +183,7 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
 
       toast.success("Đã đánh dấu chưa đọc!");
     } catch (error) {
-      console.error("Error marking unread:", error);
+      console.error("Lỗi khi đánh dấu chưa đọc:", error);
       toast.error(error.message || "Không thể đánh dấu chưa đọc!");
     }
   };
@@ -201,137 +203,12 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
           <p className="text-muted text-center p-4">Không có thông báo nào.</p>
         ) : (
           notifications.map((notification) => (
-            <div
+            <NotificationItem
               key={notification.id}
-              className={`p-3 border-bottom ${
-                !notification.isRead ? "bg-light-primary" : "opacity-75"
-              }`}
-            >
-              {notification.type === "mention" && (
-                <div className="d-flex align-items-start">
-                  <Image
-                    src={notification.avatar}
-                    roundedCircle
-                    className="me-2"
-                    style={{ width: "40px", height: "40px" }}
-                  />
-                  <div className="flex-grow-1">
-                    <div className="d-flex justify-content-between align-items-center">
-                      <p
-                        className="fw-bold mb-0 cursor-pointer text-primary"
-                        onClick={() =>
-                          handleMarkRead(notification.id, notification.username)
-                        }
-                      >
-                        {notification.user}
-                      </p>
-                      <div>
-                        {!notification.isRead ? (
-                          <Button
-                            variant="link"
-                            className="text-dark p-0 me-2"
-                            onClick={() => handleMarkRead(notification.id)}
-                          >
-                            <FaCheckCircle />
-                          </Button>
-                        ) : (
-                          <Button
-                            variant="link"
-                            className="text-dark p-0 me-2"
-                            onClick={() => handleMarkUnread(notification.id)}
-                          >
-                            <FaCircle />
-                          </Button>
-                        )}
-                        <Button variant="link" className="text-dark p-0">
-                          <FaEllipsisH />
-                        </Button>
-                      </div>
-                    </div>
-                    <p className="mb-1">{notification.content}</p>
-                    {notification.tags && (
-                      <p className="text-primary small mb-1">
-                        {notification.tags.map((tag, index) => (
-                          <span key={index} className="me-1">
-                            {tag}
-                          </span>
-                        ))}
-                      </p>
-                    )}
-                    {notification.image &&
-                      notification.image.startsWith("http") && (
-                        <Image
-                          src={notification.image}
-                          fluid
-                          className="mt-2"
-                          style={{ maxWidth: "100%", height: "auto" }}
-                        />
-                      )}
-                    {notification.image &&
-                      notification.image.startsWith(
-                        "This image is generated by AI"
-                      ) && (
-                        <p className="text-muted small mt-2">
-                          {notification.image}
-                        </p>
-                      )}
-                    <p className="text-muted small">{notification.timestamp}</p>
-                  </div>
-                </div>
-              )}
-              {(notification.type === "community" ||
-                notification.type === "FRIEND_REQUEST" ||
-                notification.type === "FRIEND_ACCEPTED" ||
-                notification.type === "FOLLOW") && (
-                <div className="d-flex align-items-start">
-                  <i
-                    className="bi bi-people-fill text-muted me-2"
-                    style={{ fontSize: "24px" }}
-                  ></i>
-                  <div className="flex-grow-1">
-                    <div className="d-flex justify-content-between align-items-center">
-                      <p
-                        className="fw-bold mb-1 cursor-pointer text-primary"
-                        onClick={() =>
-                          handleMarkRead(notification.id, notification.username)
-                        }
-                      >
-                        {notification.user}
-                      </p>
-                      <div>
-                        {!notification.isRead ? (
-                          <Button
-                            variant="link"
-                            className="text-dark p-0 me-2"
-                            onClick={() => handleMarkRead(notification.id)}
-                          >
-                            <FaCheckCircle />
-                          </Button>
-                        ) : (
-                          <Button
-                            variant="link"
-                            className="text-dark p-0 me-2"
-                            onClick={() => handleMarkUnread(notification.id)}
-                          >
-                            <FaCircle />
-                          </Button>
-                        )}
-                        <Button variant="link" className="text-dark p-0">
-                          <FaEllipsisH />
-                        </Button>
-                      </div>
-                    </div>
-                    <p className="mb-0">{notification.content}</p>
-                    {notification.image && (
-                      <p className="text-muted small mt-2">
-                        {notification.image}
-                      </p>
-                    )}
-                    <p className="text-muted small">{notification.timestamp}</p>
-                  </div>
-                </div>
-              )}
-            </div>
+              notification={notification}
+              handleMarkRead={handleMarkRead}
+              handleMarkUnread={handleMarkUnread}
+            />
           ))
         )}
       </div>
