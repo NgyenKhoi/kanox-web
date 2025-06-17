@@ -16,7 +16,7 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Lấy danh sách thông báo từ API khi user thay đổi
+  // Fetch notifications from REST API
   useEffect(() => {
     if (!user) return;
 
@@ -52,13 +52,14 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
               id: notif.id,
               type: notif.type,
               userId: notif.userId || null,
-              user: notif.displayName || notif.user || "Người dùng",
+              displayName: notif.displayName || "Người dùng",
               username: notif.username || "unknown",
-              content: notif.message,
+              message: notif.message,
               tags: notif.tags || [],
               timestamp: notif.createdAt,
               isRead: notif.status === "read",
               image: notif.image || null,
+              targetId: notif.targetId || notif.userId, // fallback
             }))
           : [];
 
@@ -74,29 +75,27 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
     fetchNotifications();
   }, [user]);
 
-  // Xử lý WebSocket thông báo mới
+  // Handle real-time notification via WebSocket
   useWebSocket(
-    (notification) => {
-      const formattedNotification = Array.isArray(data.data?.content)
-        ? data.data.content.map((notif) => ({
-            id: notif.id,
-            type: notif.type,
-            userId: notif.userId || null,
-            displayName: notif.displayName || "Người dùng", // thêm dòng này
-            user: notif.displayName || notif.user || "Người dùng", // giữ nếu bạn dùng 'user' ở nơi khác
-            username: notif.username || "unknown",
-            content: notif.message,
-            tags: notif.tags || [],
-            timestamp: notif.createdAt,
-            isRead: notif.status === "read",
-            image: notif.image || null,
-          }))
-        : [];
+    (notif) => {
+      const formatted = {
+        id: notif.id,
+        type: notif.type,
+        userId: notif.userId || null,
+        displayName: notif.displayName || "Người dùng",
+        username: notif.username || "unknown",
+        message: notif.message,
+        tags: notif.tags || [],
+        timestamp: notif.createdAt,
+        isRead: notif.status === "read",
+        image: notif.image || null,
+        targetId: notif.targetId || notif.userId, // fallback
+      };
 
-      setNotifications((prev) => [formattedNotification, ...prev]);
-      toast.info(notification.message);
+      setNotifications((prev) => [formatted, ...prev]);
+      toast.info(notif.message);
     },
-    () => {} // bạn có thể xử lý số lượng chưa đọc ở đây nếu muốn
+    () => {}
   );
 
   const handleMarkRead = async (id, username = null) => {
@@ -134,8 +133,6 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
       if (username && username !== "unknown") {
         navigate(`/profile/${username}`);
       }
-
-      // Cập nhật số lượng chưa đọc nếu bạn muốn
     } catch (error) {
       console.error("Lỗi khi đánh dấu đã đọc:", error);
       toast.error(error.message || "Không thể đánh dấu đã đọc!");

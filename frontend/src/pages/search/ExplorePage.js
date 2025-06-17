@@ -52,7 +52,7 @@ function ExplorePage() {
         setIsSearching(true);
         try {
             const response = await fetch(
-                `https://kanox.duckdns.org/api/search/users?keyword=${encodeURIComponent(keyword)}`,
+                `${process.env.REACT_APP_API_URL}/search/users?keyword=${encodeURIComponent(keyword)}`,
                 {
                     method: "GET",
                     headers: {
