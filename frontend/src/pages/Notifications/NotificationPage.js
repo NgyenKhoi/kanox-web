@@ -31,7 +31,7 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
         }
 
         const response = await fetch(
-          `${process.env.REACT_APP_API_URL}/notifications?page=0&size=10`,
+          `${process.env.REACT_APP_API_URL}/notifications?page=0&size=100`,
           {
             headers: {
               "Content-Type": "application/json",
@@ -59,7 +59,7 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
               timestamp: notif.createdAt,
               isRead: notif.status === "read",
               image: notif.image || null,
-              targetId: notif.targetId || notif.userId, // fallback
+              targetId: notif.targetId || notif.userId,
             }))
           : [];
 
