@@ -12,36 +12,45 @@ import {
 import { FaSearch, FaEnvelope, FaPenSquare, FaCog } from "react-icons/fa";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { useNavigate } from "react-router-dom";
 import SidebarLeft from "../../components/layout/SidebarLeft/SidebarLeft";
 import Chat from "../../components/messages/Chat";
 import { AuthContext } from "../../context/AuthContext";
 import UserSelectionModal from "../../components/messages/UserSelectionModal";
 import useUserSearch from "../../hooks/useUserSearch";
+import useUserMedia from "../../hooks/useUserMedia";
 
 function MessengerPage() {
   const { token, user } = useContext(AuthContext);
+  const navigate = useNavigate();
+
   const [chats, setChats] = useState([]);
   const [selectedChatId, setSelectedChatId] = useState(null);
   const [loading, setLoading] = useState(true);
-
-  // Use user search hook
-  const { searchKeyword, setSearchKeyword } = useUserSearch();
-
   const [showUserSelectionModal, setShowUserSelectionModal] = useState(false);
-
-  const handleOpenUserSelectionModal = () => {
-    setShowUserSelectionModal(true);
-  };
-
-  const handleCloseUserSelectionModal = () => {
-    setShowUserSelectionModal(false);
-  };
-
   const [localIsDarkMode, setLocalIsDarkMode] = useState(false);
+
+  // Custom search hook
+  const {
+    searchKeyword,
+    setSearchKeyword,
+    searchResults,
+    isSearching,
+    debouncedSearch,
+  } = useUserSearch(token, navigate);
+
+  useEffect(() => {
+    debouncedSearch(searchKeyword);
+  }, [searchKeyword, debouncedSearch]);
+
+  const handleOpenUserSelectionModal = () => setShowUserSelectionModal(true);
+  const handleCloseUserSelectionModal = () => setShowUserSelectionModal(false);
+
   const localOnToggleDarkMode = () => {
     setLocalIsDarkMode((prev) => !prev);
     console.log("Dark mode toggled locally within MessengerPage's sidebar.");
   };
+
   const localOnShowCreatePost = () => {
     console.log("Create Post button clicked from MessengerPage Sidebar.");
   };
@@ -87,6 +96,37 @@ function MessengerPage() {
     return chatName.includes(search) || lastMessage.includes(search);
   });
 
+  const UserSearchItem = ({ item }) => {
+    const { mediaUrl } = useUserMedia(item.id, "PROFILE", "image");
+
+    return (
+      <ListGroup.Item
+        key={`user-${item.id}`}
+        action
+        className="d-flex align-items-start"
+        onClick={() => {
+          setShowUserSelectionModal(false);
+          navigate(`/profile/${item.username}`);
+        }}
+      >
+        <img
+          src={mediaUrl || "https://via.placeholder.com/30?text=Avatar"}
+          alt="avatar"
+          width={30}
+          height={30}
+          className="rounded-circle me-2 mt-1"
+        />
+        <div>
+          <strong>{item.displayName || item.username}</strong>
+          <p className="text-muted small mb-0">@{item.username}</p>
+          {item.bio && (
+            <p className="text-muted small mb-0">{item.bio.slice(0, 100)}...</p>
+          )}
+        </div>
+      </ListGroup.Item>
+    );
+  };
+
   return (
     <>
       <ToastContainer />
@@ -100,10 +140,7 @@ function MessengerPage() {
         </div>
 
         <div className="d-flex flex-column flex-grow-1 border-start border-end bg-white">
-          <div
-            className="sticky-top bg-white border-bottom py-2"
-            style={{ zIndex: 1020 }}
-          >
+          <div className="sticky-top bg-white border-bottom py-2" style={{ zIndex: 1020 }}>
             <Container fluid>
               <Row className="align-items-center">
                 <Col xs={6} className="text-start">
@@ -115,19 +152,51 @@ function MessengerPage() {
                   </Button>
                 </Col>
               </Row>
-              <InputGroup className="mt-3">
-                <InputGroup.Text className="bg-light border-0 rounded-pill ps-3">
-                  <FaSearch className="text-muted" />
-                </InputGroup.Text>
-                <Form.Control
-                  type="text"
-                  placeholder="Tìm kiếm"
-                  value={searchKeyword}
-                  onChange={(e) => setSearchKeyword(e.target.value)}
-                  className="bg-light border-0 rounded-pill py-2"
-                  style={{ height: "auto" }}
-                />
-              </InputGroup>
+              <Row className="mt-3">
+                <Col xs={12} className="position-relative">
+                  <InputGroup>
+                    <InputGroup.Text className="bg-light border-0 rounded-pill ps-3">
+                      <FaSearch className="text-muted" />
+                    </InputGroup.Text>
+                    <Form.Control
+                      type="text"
+                      placeholder="Tìm kiếm"
+                      value={searchKeyword}
+                      onChange={(e) => setSearchKeyword(e.target.value)}
+                      className="bg-light border-0 rounded-pill py-2"
+                      style={{ height: "auto" }}
+                    />
+                  </InputGroup>
+
+                  {searchKeyword.trim() && (
+                    <ListGroup
+                      className="position-absolute w-100 mt-1 shadow-sm"
+                      style={{ zIndex: 1000, maxHeight: "400px", overflowY: "auto" }}
+                    >
+                      {isSearching ? (
+                        <ListGroup.Item className="text-center">
+                          <Spinner animation="border" size="sm" /> Đang tìm kiếm...
+                        </ListGroup.Item>
+                      ) : (
+                        <>
+                          {searchResults.length > 0 ? (
+                            <>
+                              <ListGroup.Item className="bg-light fw-bold">
+                                Người dùng
+                              </ListGroup.Item>
+                              {searchResults.map((item) => (
+                                <UserSearchItem key={item.id} item={item} />
+                              ))}
+                            </>
+                          ) : (
+                            <ListGroup.Item>Không tìm thấy kết quả.</ListGroup.Item>
+                          )}
+                        </>
+                      )}
+                    </ListGroup>
+                  )}
+                </Col>
+              </Row>
             </Container>
           </div>
 
@@ -136,44 +205,48 @@ function MessengerPage() {
               className="border-end overflow-auto"
               style={{ flexBasis: "350px", flexShrink: 0 }}
             >
-              {loading ? (
-                <div className="d-flex justify-content-center py-4">
-                  <Spinner animation="border" role="status" />
-                </div>
-              ) : (
-                <ListGroup variant="flush">
-                  {filteredChats.map((chat) => (
-                    <ListGroup.Item
-                      key={chat.id}
-                      action
-                      active={selectedChatId === chat.id}
-                      onClick={() => setSelectedChatId(chat.id)}
-                      className="d-flex align-items-center p-3 border-bottom hover-bg-light"
-                    >
-                      <div className="flex-grow-1">
-                        <p className="fw-bold mb-0">{chat.name}</p>
-                        <p className="text-muted small mb-0">
-                          {chat.lastMessage}
+              {!searchKeyword && (
+                <>
+                  {loading ? (
+                    <div className="d-flex justify-content-center py-4">
+                      <Spinner animation="border" role="status" />
+                    </div>
+                  ) : (
+                    <ListGroup variant="flush">
+                      {filteredChats.map((chat) => (
+                        <ListGroup.Item
+                          key={chat.id}
+                          action
+                          active={selectedChatId === chat.id}
+                          onClick={() => setSelectedChatId(chat.id)}
+                          className="d-flex align-items-center p-3 border-bottom hover-bg-light"
+                        >
+                          <div className="flex-grow-1">
+                            <p className="fw-bold mb-0">{chat.name}</p>
+                            <p className="text-muted small mb-0">
+                              {chat.lastMessage}
+                            </p>
+                          </div>
+                        </ListGroup.Item>
+                      ))}
+                      {filteredChats.length === 0 && (
+                        <p className="text-muted text-center p-4">
+                          Không có cuộc trò chuyện nào.
                         </p>
-                      </div>
-                    </ListGroup.Item>
-                  ))}
-                  {filteredChats.length === 0 && (
-                    <p className="text-muted text-center p-4">
-                      Không có cuộc trò chuyện nào.
-                    </p>
+                      )}
+                    </ListGroup>
                   )}
-                </ListGroup>
+                  <div className="p-3 border-top text-center">
+                    <Button
+                      variant="link"
+                      className="text-primary fw-bold"
+                      onClick={handleOpenUserSelectionModal}
+                    >
+                      <FaPenSquare className="me-2" /> Tin nhắn mới
+                    </Button>
+                  </div>
+                </>
               )}
-              <div className="p-3 border-top text-center">
-                <Button
-                  variant="link"
-                  className="text-primary fw-bold"
-                  onClick={handleOpenUserSelectionModal}
-                >
-                  <FaPenSquare className="me-2" /> Tin nhắn mới
-                </Button>
-              </div>
             </div>
 
             <div className="flex-grow-1 d-flex flex-column">
