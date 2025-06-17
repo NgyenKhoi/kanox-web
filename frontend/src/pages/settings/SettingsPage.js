@@ -19,7 +19,6 @@ function SettingsPage() {
     const [saving, setSaving] = useState(false);
     const [isDarkMode, setIsDarkMode] = useState(false);
 
-    // Tách fetchPrivacySettings thành hàm riêng
     const fetchPrivacySettings = async () => {
         setLoading(true);
         const token = sessionStorage.getItem("token") || localStorage.getItem("token");
@@ -39,20 +38,17 @@ function SettingsPage() {
             });
 
             const data = await response.json();
+            console.log("Fetch privacy settings response:", data); // Debug
             if (!response.ok) {
                 throw new Error(data.message || "Không thể lấy cài đặt quyền riêng tư.");
             }
 
-            if (data) { // Bỏ kiểm tra data.data, ánh xạ trực tiếp
-                setSettings({
-                    postVisibility: data.postVisibility || "public",
-                    commentPermission: data.commentPermission || "public",
-                    profileViewer: data.profilePrivacySetting || "public",
-                });
-                // toast.success(data.message || "Lấy cài đặt thành công"); // Comment để tránh spam toast
-            } else {
-                throw new Error("Dữ liệu không đúng định dạng.");
-            }
+            // Ánh xạ trực tiếp từ data
+            setSettings({
+                postVisibility: data.postVisibility || "public",
+                commentPermission: data.commentPermission || "public",
+                profileViewer: data.profilePrivacySetting || "public",
+            });
         } catch (error) {
             console.error("Lỗi khi lấy cài đặt quyền riêng tư:", error);
             toast.error(error.message || "Không thể tải cài đặt!");
@@ -63,7 +59,7 @@ function SettingsPage() {
 
     useEffect(() => {
         if (!user) {
-            navigate("/");
+            navigate("/signup");
             return;
         }
 
@@ -94,16 +90,17 @@ function SettingsPage() {
                 body: JSON.stringify({
                     privacySetting: settings.profileViewer,
                     customListId: settings.profileViewer === "custom" ? settings.customListId : null,
+                    postVisibility: settings.postVisibility,
+                    commentPermission: settings.commentPermission,
                 }),
             });
 
             const data = await response.json();
-            if (!response.ok) {
                 throw new Error(data.message || "Không thể lưu cài đặt!");
             }
 
             toast.success(data.message || "Cài đặt quyền riêng tư đã được lưu thành công!");
-            await fetchPrivacySettings(); // Gọi lại để đồng bộ state
+            await fetchPrivacySettings(); // Đồng bộ state
         } catch (error) {
             console.error("Lỗi khi lưu cài đặt quyền riêng tư:", error);
             toast.error(error.message || "Không thể lưu cài đặt!");
