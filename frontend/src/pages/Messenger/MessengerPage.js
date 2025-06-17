@@ -18,7 +18,7 @@ import Chat from "../../components/messages/Chat";
 import { AuthContext } from "../../context/AuthContext";
 import UserSelectionModal from "../../components/messages/UserSelectionModal";
 import useUserSearch from "../../hooks/useUserSearch";
-import useUserMedia from "../../hooks/useUserMedia";
+import useMedia from "../../hooks/useMedia";
 
 function MessengerPage() {
   const { token, user } = useContext(AuthContext);
@@ -78,7 +78,7 @@ function MessengerPage() {
   });
 
   const UserSearchItem = ({ item }) => {
-    const { mediaUrl } = useUserMedia(item.id, "PROFILE", "image");
+    const { mediaUrl } = useMedia(item.id, "PROFILE", "image");
 
     return (
       <ListGroup.Item

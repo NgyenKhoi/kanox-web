@@ -56,4 +56,24 @@ public class MediaController {
             return ResponseEntity.badRequest().body("Invalid request: " + e.getMessage());
         }
     }
+
+    @PostMapping(URLConfig.MEDIA_FOR_POST)
+    public ResponseEntity<List<MediaDto>> uploadPostMedia(
+            @RequestParam Integer userId,
+            @PathVariable Integer postId,
+            @RequestParam("files") List<MultipartFile> files,
+            @RequestParam(required = false) String caption) throws IOException {
+        List<MediaDto> mediaList = mediaService.uploadPostMediaFiles(userId, postId, files, caption);
+        return ResponseEntity.ok(mediaList);
+    }
+
+    @DeleteMapping(URLConfig.DELETE_MEDIA)
+    public ResponseEntity<?> deleteMedia(@PathVariable Integer mediaId) {
+        try {
+            mediaService.deleteMediaById(mediaId);
+            return ResponseEntity.ok("Media deleted successfully.");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }
+    }
 }
