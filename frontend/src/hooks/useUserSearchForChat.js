@@ -1,6 +1,15 @@
 import { useState, useCallback } from "react";
 import { toast } from "react-toastify";
 
+// Sửa lỗi: Di chuyển hàm debounce lên đầu để đảm bảo nó được định nghĩa trước khi sử dụng
+const debounce = (func, delay) => {
+    let timeoutId;
+    return (...args) => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => func(...args), delay);
+    };
+};
+
 function useUserSearchForChat(token, navigate) {
     const [searchKeyword, setSearchKeyword] = useState("");
     const [searchResults, setSearchResults] = useState([]);
@@ -92,9 +101,10 @@ function useUserSearchForChat(token, navigate) {
         }
     };
 
+    // Sử dụng debounce đã được định nghĩa ở trên
     const debouncedSearch = useCallback(
         debounce(searchUsers, 300),
-        [token, navigate]
+        [token, navigate, searchUsers] // Thêm searchUsers vào dependency để đảm bảo hàm được cập nhật
     );
 
     // Hàm để xử lý khi chọn một người dùng từ kết quả tìm kiếm
@@ -107,21 +117,13 @@ function useUserSearchForChat(token, navigate) {
         }
     };
 
-    const debounce = (func, delay) => {
-        let timeoutId;
-        return (...args) => {
-            clearTimeout(timeoutId);
-            timeoutId = setTimeout(() => func(...args), delay);
-        };
-    };
-
     return {
         searchKeyword,
         setSearchKeyword,
         searchResults,
         isSearching,
         debouncedSearch,
-        handleSelectUser, // Xuất hàm để chọn người dùng
+        handleSelectUser,
     };
 }
 

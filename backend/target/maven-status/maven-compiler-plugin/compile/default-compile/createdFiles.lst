@@ -1,13 +1,11 @@
 com\example\social_media\dto\search\SearchResponseDto.class
 com\example\social_media\repository\NotificationTypeRepository.class
 com\example\social_media\entity\BannedKeyword.class
-com\example\social_media\dto\message\ChatCreateDto.class
 com\example\social_media\exception\UserNotFoundException.class
 com\example\social_media\dto\user\UserTagDto.class
 com\example\social_media\entity\ContentPolicy.class
 com\example\social_media\repository\MediaRepository.class
 com\example\social_media\dto\user\GroupDto.class
-com\example\social_media\entity\MessageStatus.class
 com\example\social_media\entity\ReactionId.class
 com\example\social_media\repository\CustomPrivacyListRepository.class
 com\example\social_media\service\FriendshipService.class
@@ -49,7 +47,6 @@ com\example\social_media\repository\document_repository\PageDocumentRepository.c
 com\example\social_media\repository\BlockRepository.class
 com\example\social_media\repository\FollowRepository.class
 com\example\social_media\repository\PasswordResetRepository.class
-com\example\social_media\repository\CallSessionRepository.class
 com\example\social_media\entity\PrivacySetting.class
 com\example\social_media\entity\FriendSuggestion.class
 com\example\social_media\jwt\JwtAuthenticationFilter.class
@@ -77,7 +74,6 @@ com\example\social_media\exception\EmailAlreadyExistsException.class
 com\example\social_media\entity\Block.class
 com\example\social_media\entity\User.class
 com\example\social_media\dto\authentication\GoogleLoginRequestDto.class
-com\example\social_media\dto\message\CallSessionDto.class
 com\example\social_media\repository\document_repository\GroupDocumentRepository.class
 com\example\social_media\entity\PostTag.class
 com\example\social_media\entity\Notification.class
@@ -91,10 +87,8 @@ com\example\social_media\service\NotificationService.class
 com\example\social_media\config\WebSocketConfig$1.class
 com\example\social_media\service\ElasticsearchSearchService.class
 com\example\social_media\controller\SearchController.class
-com\example\social_media\service\CallSessionService.class
 com\example\social_media\controller\FollowController.class
 com\example\social_media\entity\CustomPrivacyListMember.class
-com\example\social_media\repository\MessageStatusRepository.class
 com\example\social_media\controller\NotificationController.class
 com\example\social_media\entity\StoryViewerId.class
 com\example\social_media\entity\Report.class
@@ -111,7 +105,6 @@ com\example\social_media\entity\UpgradeType.class
 com\example\social_media\dto\user\UserUpdatePrivacyDto.class
 com\example\social_media\entity\Follow.class
 com\example\social_media\entity\AccountUpgrade.class
-com\example\social_media\repository\ChatRepository.class
 com\example\social_media\repository\MessageRepository.class
 com\example\social_media\dto\friend\PageResponseDto.class
 com\example\social_media\entity\Media.class
@@ -119,7 +112,6 @@ com\example\social_media\repository\NotificationRepository.class
 com\example\social_media\entity\GroupMember.class
 com\example\social_media\entity\ActivityLog.class
 com\example\social_media\exception\TokenExpiredException.class
-com\example\social_media\entity\MessageStatusId.class
 com\example\social_media\entity\NotificationType.class
 com\example\social_media\dto\privacy\CreateCustomListDto.class
 com\example\social_media\entity\CallSession.class
@@ -127,7 +119,6 @@ com\example\social_media\service\GcsService.class
 com\example\social_media\config\GcsConfig.class
 com\example\social_media\dto\notification\NotificationDto.class
 com\example\social_media\entity\Story.class
-com\example\social_media\service\MessageService.class
 com\example\social_media\repository\UserRepository.class
 com\example\social_media\service\ActivityLogService.class
 com\example\social_media\exception\UnauthorizedException.class
@@ -163,7 +154,6 @@ com\example\social_media\entity\ChatMember.class
 com\example\social_media\entity\ErrorLog.class
 com\example\social_media\repository\MessageTypeRepository.class
 com\example\social_media\dto\post\PostRequestDto.class
-com\example\social_media\service\ChatService.class
 com\example\social_media\document\UserDocument.class
 com\example\social_media\dto\message\MessageDto.class
 com\example\social_media\jwt\JwtService.class
