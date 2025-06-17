@@ -18,7 +18,7 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { AuthContext } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import useUserMedia from "../../hooks/useUserMedia";
+import useMedia from "../../hooks/useMedia";
 import useUserSearch from "../../hooks/useUserSearch";
 
 function ExplorePage() {
@@ -99,7 +99,7 @@ function ExplorePage() {
   const [activeTab, setActiveTab] = useState("for-you");
 
   const UserSearchItem = ({ item }) => {
-    const { mediaUrl } = useUserMedia(item.id, "PROFILE", "image");
+    const { mediaUrl } = useMedia(item.id, "PROFILE", "image");
 
     return (
       <ListGroup.Item

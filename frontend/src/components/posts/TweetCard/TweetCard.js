@@ -6,6 +6,8 @@ import {
   OverlayTrigger,
   Tooltip,
   Image as BootstrapImage,
+  Row,
+  Col,
 } from "react-bootstrap";
 import {
   FaRegComment,
@@ -26,7 +28,7 @@ import {
 import moment from "moment";
 import { AuthContext } from "../../../context/AuthContext";
 import EditPostModal from "../TweetInput/EditPostModal";
-import useUserMedia from "../../../hooks/useUserMedia";
+import useMedia from "../../../hooks/useMedia";
 import { toast } from "react-toastify";
 
 function TweetCard({ tweet, onPostUpdate }) {
@@ -47,7 +49,9 @@ function TweetCard({ tweet, onPostUpdate }) {
   const [reaction, setReaction] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
 
-  const { mediaUrl } = useUserMedia(owner.id, "PROFILE", "image");
+  const { mediaUrl: avatarUrl } = useMedia(owner.id, "PROFILE", "image");
+  const { mediaUrls: imageUrls } = useMedia(id, "POST", "image");
+  const { mediaUrls: videoUrls } = useMedia(id, "POST", "video");
 
   const handleEditTweet = () => setShowEditModal(true);
 
@@ -64,9 +68,7 @@ function TweetCard({ tweet, onPostUpdate }) {
             },
           }
         );
-        if (!response.ok) {
-          throw new Error("Không thể xóa bài đăng!");
-        }
+        if (!response.ok) throw new Error("Không thể xóa bài đăng!");
         toast.success("Đã xóa bài đăng!");
         if (onPostUpdate) onPostUpdate();
       } catch (err) {
@@ -75,14 +77,8 @@ function TweetCard({ tweet, onPostUpdate }) {
     }
   };
 
-  const handleSaveTweet = () => {
-    alert(`Đã lưu bài đăng: ${content}`);
-  };
-
-  const handleReportTweet = () => {
-    alert(`Đã báo cáo bài đăng: ${content}`);
-  };
-
+  const handleSaveTweet = () => alert(`Đã lưu bài đăng: ${content}`);
+  const handleReportTweet = () => alert(`Đã báo cáo bài đăng: ${content}`);
   const handleEmojiReaction = (emoji) => {
     setReaction(emoji);
     alert(`Phản ứng với ${emoji}`);
@@ -107,9 +103,7 @@ function TweetCard({ tweet, onPostUpdate }) {
           }),
         }
       );
-      if (!response.ok) {
-        throw new Error("Không thể cập nhật trạng thái!");
-      }
+      if (!response.ok) throw new Error("Không thể cập nhật trạng thái!");
       toast.success("Cập nhật trạng thái thành công!");
       if (onPostUpdate) onPostUpdate();
     } catch (err) {
@@ -150,9 +144,9 @@ function TweetCard({ tweet, onPostUpdate }) {
   return (
     <Card className="mb-3 rounded-4 shadow-sm border-0">
       <Card.Body className="d-flex p-3">
-        {mediaUrl ? (
+        {avatarUrl ? (
           <BootstrapImage
-            src={mediaUrl}
+            src={avatarUrl}
             alt="Avatar"
             width={50}
             height={50}
@@ -163,7 +157,6 @@ function TweetCard({ tweet, onPostUpdate }) {
           <FaUserCircle
             size={50}
             className="me-3 d-none d-md-block text-secondary"
-            style={{ borderRadius: "50%" }}
           />
         )}
         <div className="flex-grow-1">
@@ -176,11 +169,7 @@ function TweetCard({ tweet, onPostUpdate }) {
               </span>
               <OverlayTrigger
                 placement="top"
-                overlay={
-                  <Tooltip id="status-tooltip">
-                    {renderStatusText(privacySetting)}
-                  </Tooltip>
-                }
+                overlay={<Tooltip>{renderStatusText(privacySetting)}</Tooltip>}
               >
                 <span>{renderStatusIcon(privacySetting)}</span>
               </OverlayTrigger>
@@ -243,7 +232,10 @@ function TweetCard({ tweet, onPostUpdate }) {
               </Dropdown.Menu>
             </Dropdown>
           </div>
+
           <p className="mb-2">{content}</p>
+
+          {/* Tagged users */}
           {taggedUsers.length > 0 && (
             <div className="mb-2">
               <small className="text-muted">
@@ -256,6 +248,34 @@ function TweetCard({ tweet, onPostUpdate }) {
               </small>
             </div>
           )}
+
+          {/* Images */}
+          {imageUrls?.length > 0 && (
+            <Row className="mb-2">
+              {imageUrls.map((url, idx) => (
+                <Col key={idx} xs={6} md={4} className="mb-2">
+                  <BootstrapImage
+                    src={url}
+                    fluid
+                    rounded
+                    style={{ objectFit: "cover", maxHeight: "300px" }}
+                  />
+                </Col>
+              ))}
+            </Row>
+          )}
+
+          {/* Videos */}
+          {videoUrls?.length > 0 &&
+            videoUrls.map((url, idx) => (
+              <div key={idx} className="mb-2">
+                <video controls width="100%" style={{ borderRadius: "12px" }}>
+                  <source src={url} type="video/mp4" />
+                  Trình duyệt không hỗ trợ phát video.
+                </video>
+              </div>
+            ))}
+
           <div className="d-flex justify-content-between text-muted mt-2">
             <Button
               variant="link"
@@ -273,7 +293,7 @@ function TweetCard({ tweet, onPostUpdate }) {
             </Button>
             <OverlayTrigger
               placement="top"
-              overlay={<Tooltip id="emoji-tooltip">Chọn biểu cảm</Tooltip>}
+              overlay={<Tooltip>Chọn biểu cảm</Tooltip>}
             >
               <Dropdown>
                 <Dropdown.Toggle
@@ -308,6 +328,7 @@ function TweetCard({ tweet, onPostUpdate }) {
           </div>
         </div>
       </Card.Body>
+
       {isOwnTweet && (
         <EditPostModal
           post={tweet}

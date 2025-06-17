@@ -28,7 +28,7 @@ import FollowActionButton from "../../components/utils/FollowActionButton";
 import { AuthContext } from "../../context/AuthContext";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import useUserMedia from "../../hooks/useUserMedia";
+import useMedia from "../../hooks/useMedia";
 
 function ProfilePage() {
   const { user, setUser } = useContext(AuthContext);
@@ -44,7 +44,7 @@ function ProfilePage() {
   const [showPremiumAlert, setShowPremiumAlert] = useState(true);
   const [isBlocked, setIsBlocked] = useState(false);
   const [isUserBlocked, setIsUserBlocked] = useState(false);
-  const { mediaUrl, loading: mediaLoading } = useUserMedia(userProfile?.id);
+  const { mediaUrl, loading: mediaLoading } = useMedia(userProfile?.id);
   const defaultUserProfile = {
     id: null,
     username: "testuser",

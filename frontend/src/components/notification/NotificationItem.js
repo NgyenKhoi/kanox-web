@@ -2,7 +2,7 @@ import React from "react";
 import { Button, Spinner, Image } from "react-bootstrap";
 import { FaCheckCircle, FaCircle, FaEllipsisH } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
-import useUserMedia from "../../hooks/useUserMedia";
+import useMedia from "../../hooks/useMedia";
 
 function NotificationItem({ notification, handleMarkRead, handleMarkUnread }) {
   const navigate = useNavigate();
@@ -11,7 +11,7 @@ function NotificationItem({ notification, handleMarkRead, handleMarkUnread }) {
     mediaUrl: avatarUrl,
     loading: mediaLoading,
     error: mediaError,
-  } = useUserMedia(notification.targetId, "PROFILE", "image");
+  } = useMedia(notification.targetId, "PROFILE", "image");
 
   const renderAvatar = () => {
     if (mediaLoading) {
