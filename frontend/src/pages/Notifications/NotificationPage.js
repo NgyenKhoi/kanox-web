@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from "react";
-import { Container, Row, Col, Button, Image, Spinner } from "react-bootstrap";
-import { FaCog, FaEllipsisH, FaCheckCircle, FaCircle } from "react-icons/fa";
+import { Container, Row, Col, Button, Spinner } from "react-bootstrap";
+import { FaCog } from "react-icons/fa";
 import SidebarLeft from "../../components/layout/SidebarLeft/SidebarLeft";
 import SidebarRight from "../../components/layout/SidebarRight/SidebarRight";
 import { AuthContext } from "../../context/AuthContext";
@@ -8,8 +8,7 @@ import { useWebSocket } from "../../hooks/useWebSocket";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useNavigate } from "react-router-dom";
-import useUserMedia from "../../hooks/useUserMedia";
-import NotificationItem from "../../components/notification/NotificationItem"; // hoặc đúng path
+import NotificationItem from "../../components/notification/NotificationItem";
 
 function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
   const { user } = useContext(AuthContext);
@@ -17,6 +16,7 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Lấy danh sách thông báo từ API khi user thay đổi
   useEffect(() => {
     if (!user) return;
 
@@ -47,12 +47,11 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
         }
 
         const data = await response.json();
-        console.log("Danh sách thông báo:", data);
         const formattedNotifications = Array.isArray(data.data?.content)
           ? data.data.content.map((notif) => ({
               id: notif.id,
               type: notif.type,
-              userId: notif.userId || null, // Lấy userId từ API
+              userId: notif.userId || null,
               user: notif.displayName || notif.user || "Người dùng",
               username: notif.username || "unknown",
               content: notif.message,
@@ -75,27 +74,27 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
     fetchNotifications();
   }, [user]);
 
+  // Xử lý WebSocket thông báo mới
   useWebSocket(
     (notification) => {
-      console.log("Thông báo mới:", notification);
       const formattedNotification = {
         id: notification.id,
         type: notification.type,
-        userId: notification.userId || null, // Lấy userId từ WebSocket
+        userId: notification.userId || null,
         user: notification.displayName || notification.user || "Người dùng",
         username: notification.username || "unknown",
         content: notification.message,
         tags: notification.tags || [],
         timestamp: notification.createdAt || new Date().toISOString(),
         isRead: notification.status === "read",
-        isNew: true,
         image: notification.image || null,
+        isNew: true,
       };
 
       setNotifications((prev) => [formattedNotification, ...prev]);
       toast.info(notification.message);
     },
-    (count) => setNotifications((prev) => prev.map((n) => ({ ...n })))
+    () => {} // bạn có thể xử lý số lượng chưa đọc ở đây nếu muốn
   );
 
   const handleMarkRead = async (id, username = null) => {
@@ -124,20 +123,17 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
         throw new Error(errorText || "Không thể đánh dấu đã đọc!");
       }
 
-      setNotifications((prev) => {
-        const updated = prev.map((notif) =>
+      setNotifications((prev) =>
+        prev.map((notif) =>
           notif.id === id ? { ...notif, isRead: true } : notif
-        );
-        const unreadCount = updated.filter((notif) => !notif.isRead).length;
-        window.dispatchEvent(
-          new CustomEvent("updateUnreadCount", { detail: unreadCount })
-        );
-        return updated;
-      });
+        )
+      );
 
       if (username && username !== "unknown") {
         navigate(`/profile/${username}`);
       }
+
+      // Cập nhật số lượng chưa đọc nếu bạn muốn
     } catch (error) {
       console.error("Lỗi khi đánh dấu đã đọc:", error);
       toast.error(error.message || "Không thể đánh dấu đã đọc!");
@@ -170,16 +166,11 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
         throw new Error(errorText || "Không thể đánh dấu chưa đọc!");
       }
 
-      setNotifications((prev) => {
-        const updated = prev.map((notif) =>
+      setNotifications((prev) =>
+        prev.map((notif) =>
           notif.id === id ? { ...notif, isRead: false } : notif
-        );
-        const unreadCount = updated.filter((notif) => !notif.isRead).length;
-        window.dispatchEvent(
-          new CustomEvent("updateUnreadCount", { detail: unreadCount })
-        );
-        return updated;
-      });
+        )
+      );
 
       toast.success("Đã đánh dấu chưa đọc!");
     } catch (error) {
@@ -188,30 +179,26 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="d-flex justify-content-center align-items-center min-vh-100">
-        <Spinner animation="border" role="status" />
-      </div>
-    );
-  }
-
   const renderNotificationContent = () => {
-    return (
-      <div>
-        {notifications.length === 0 ? (
-          <p className="text-muted text-center p-4">Không có thông báo nào.</p>
-        ) : (
-          notifications.map((notification) => (
-            <NotificationItem
-              key={notification.id}
-              notification={notification}
-              handleMarkRead={handleMarkRead}
-              handleMarkUnread={handleMarkUnread}
-            />
-          ))
-        )}
-      </div>
+    if (loading) {
+      return (
+        <div className="d-flex justify-content-center align-items-center py-5">
+          <Spinner animation="border" role="status" />
+        </div>
+      );
+    }
+
+    return notifications.length === 0 ? (
+      <p className="text-muted text-center p-4">Không có thông báo nào.</p>
+    ) : (
+      notifications.map((notification) => (
+        <NotificationItem
+          key={notification.id}
+          notification={notification}
+          handleMarkRead={handleMarkRead}
+          handleMarkUnread={handleMarkUnread}
+        />
+      ))
     );
   };
 
