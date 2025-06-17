@@ -121,13 +121,7 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
     { icon: <FaEnvelope size={24} />, label: "Tin nhắn", path: "/messages" },
     { icon: <FaUserAlt size={24} />, label: "Cộng đồng", path: "/communities" },
     { icon: <BsStars size={24} />, label: "Premium", path: "/premium" },
-    { icon: <FaUserFriends size={24} />, label: "Bạn bè", path: "/friends" },
-    {
-      icon: <FaUserSlash size={24} />,
-      label: "Người bị chặn",
-      path: "/blocks",
-      protected: true,
-    },
+
     {
       icon: <FaUserAlt size={24} />,
       label: "Hồ sơ",
@@ -137,6 +131,13 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
   ];
 
   const additionalTabs = [
+    { icon: <FaUserFriends size={24} />, label: "Bạn bè", path: "/friends" },
+    {
+      icon: <FaUserSlash size={24} />,
+      label: "Người bị chặn",
+      path: "/blocks",
+      protected: true,
+    },
     {
       icon: <FaRegPlusSquare size={24} />,
       label: "Tạo Story",
