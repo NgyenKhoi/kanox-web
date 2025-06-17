@@ -93,7 +93,7 @@ function ProfilePage() {
 
       try {
         const profileResponse = await fetch(
-            `${process.env.REACT_APP_API_URL}/api/user/profile/${username}`,
+            `${process.env.REACT_APP_API_URL}/user/profile/${username}`,
             {
               headers: {
                 "Content-Type": "application/json",
@@ -110,7 +110,7 @@ function ProfilePage() {
 
         if (user.username !== username) {
           const blockResponse = await fetch(
-              `${process.env.REACT_APP_API_URL}/api/blocks/${profileData.id}/status`,
+              `${process.env.REACT_APP_API_URL}/blocks/${profileData.id}/status`,
               {
                 headers: {
                   "Content-Type": "application/json",
@@ -209,7 +209,7 @@ function ProfilePage() {
 
     try {
       const response = await fetch(
-          `${process.env.REACT_APP_API_URL}/api/blocks/${userProfile.id}`,
+          `${process.env.REACT_APP_API_URL}/blocks/${userProfile.id}`,
           {
             method: isBlocked ? "DELETE" : "POST",
             headers: {
@@ -255,7 +255,7 @@ function ProfilePage() {
 
     try {
       const profileResponse = await fetch(
-          `${process.env.REACT_APP_API_URL}/api/user/profile/${username}`,
+          `${process.env.REACT_APP_API_URL}/user/profile/${username}`,
           {
             headers: {
               "Content-Type": "application/json",
