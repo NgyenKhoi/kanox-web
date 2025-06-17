@@ -13,4 +13,5 @@ public interface CustomPrivacyListRepository extends JpaRepository<CustomPrivacy
     Optional<CustomPrivacyList> findByIdAndStatus(Integer id, Boolean status);
     List<CustomPrivacyList> findAllByUserIdAndStatus(Integer userId, Boolean status);
     boolean existsByUserIdAndListNameAndStatus(Integer userId, String listName, Boolean status);
+    Optional<CustomPrivacyList> findByIdAndStatusTrue(Integer id);
 }

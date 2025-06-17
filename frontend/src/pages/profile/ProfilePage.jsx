@@ -436,8 +436,8 @@ function ProfilePage() {
                   <div>
                     <h5 className="mb-0 fw-bold text-dark">{userProfile.displayName}</h5>
                     <span className="text-dark small">
-                    {userProfile.postCount || 0} bài đăng
-                  </span>
+                   {userProfile.postCount || 0} bài đăng
+                 </span>
                   </div>
                 </Col>
               </Row>

@@ -13,7 +13,7 @@ function SettingsPage() {
     const [settings, setSettings] = useState({
         postVisibility: "public",
         commentPermission: "public",
-        friendRequestPermission: "friends",
+        profileViewer: "public",
     });
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -35,7 +35,7 @@ function SettingsPage() {
             }
 
             try {
-                const response = await fetch(`${process.env.REACT_APP_API_URL}/privacy`, {
+                const response = await fetch(`${process.env.REACT_APP_API_URL}/user/profile/${user.username}`, {
                     headers: {
                         "Content-Type": "application/json",
                         Accept: "application/json",
@@ -49,7 +49,11 @@ function SettingsPage() {
                 }
 
                 if (data.data) {
-                    setSettings(data.data);
+                    setSettings({
+                        postVisibility: data.data.postVisibility || "public",
+                        commentPermission: data.data.commentPermission || "public",
+                        profileViewer: data.data.profilePrivacySetting || "public",
+                    });
                     toast.success(data.message || "Lấy cài đặt thành công");
                 } else {
                     throw new Error("Dữ liệu không đúng định dạng.");
@@ -80,13 +84,16 @@ function SettingsPage() {
         }
 
         try {
-            const response = await fetch(`${process.env.REACT_APP_API_URL}/privacy`, {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/user/profile/${user.username}/privacy`, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
                 },
-                body: JSON.stringify({ data: settings }),
+                body: JSON.stringify({
+                    privacySetting: settings.profileViewer,
+                    customListId: settings.profileViewer === "custom" ? settings.customListId : null,
+                }),
             });
 
             const data = await response.json();
@@ -181,15 +188,16 @@ function SettingsPage() {
                                         </Form.Select>
                                     </Form.Group>
                                     <Form.Group className="mb-4">
-                                        <Form.Label className="fw-bold text-dark">Ai có thể gửi yêu cầu kết bạn?</Form.Label>
+                                        <Form.Label className="fw-bold text-dark">Ai có thể xem trang cá nhân của bạn?</Form.Label>
                                         <Form.Select
-                                            name="friendRequestPermission"
-                                            value={settings.friendRequestPermission}
+                                            name="profileViewer"
+                                            value={settings.profileViewer}
                                             onChange={handleChange}
                                         >
                                             <option value="public">Mọi người</option>
                                             <option value="friends">Bạn bè</option>
                                             <option value="only_me">Chỉ mình tôi</option>
+                                            <option value="custom">Tùy chỉnh</option>
                                         </Form.Select>
                                     </Form.Group>
                                     <div className="mb-4">

@@ -34,6 +34,13 @@ public class TargetType {
     @OneToMany(mappedBy = "targetType")
     private Set<Reaction> tblReactions = new LinkedHashSet<>();
 
+    public TargetType() {
+    }
+
+    public TargetType(Integer id) {
+        this.id = id;
+    }
+
     public Integer getId() {
         return id;
     }

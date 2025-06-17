@@ -26,5 +26,7 @@ public interface ContentPrivacyRepository extends JpaRepository<ContentPrivacy, 
             "WHERE cp.customList.id = :customListId AND cp.status = true")
     int updatePrivacySettingByCustomListId(Integer customListId);
     @Query("SELECT p.owner.id FROM Post p WHERE p.id = :contentId AND p.status = true")
+
     Optional<Integer> findOwnerIdByContentId(@Param("contentId") Integer contentId);
+
 }

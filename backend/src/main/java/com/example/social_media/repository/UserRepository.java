@@ -18,6 +18,7 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     Optional<User> findById(Integer id);
     boolean existsByEmail(String email);
     boolean existsByUsername(String username);
+    Optional<User> findByIdAndStatusTrue(Integer id);
 
     @Procedure(name = "sp_UpdateProfilePrivacy")
     void updateProfilePrivacy(Integer userId, String privacySetting, Integer customListId);

@@ -6,4 +6,5 @@ import java.util.Optional;
 
 public interface TargetTypeRepository extends JpaRepository<TargetType, Integer> {
     Optional<TargetType> findByCode(String code);
+    Optional<TargetType> findById(Integer id);
 }
