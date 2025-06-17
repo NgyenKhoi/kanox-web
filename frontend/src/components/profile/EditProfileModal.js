@@ -164,28 +164,6 @@ function EditProfileModal({
             </Button>
             <Modal.Title className="fw-bold fs-5">Chỉnh sửa hồ sơ</Modal.Title>
           </div>
-          <Button
-            variant="dark"
-            className="rounded-pill px-4 py-1 fw-bold"
-            onClick={handleSave}
-            disabled={loading}
-          >
-            {loading ? (
-              <>
-                <Spinner
-                  as="span"
-                  animation="border"
-                  size="sm"
-                  role="status"
-                  aria-hidden="true"
-                  className="me-2"
-                />
-                Đang lưu...
-              </>
-            ) : (
-              "Lưu"
-            )}
-          </Button>
         </Modal.Header>
 
         <Modal.Body className="p-3">
@@ -200,11 +178,14 @@ function EditProfileModal({
                 className="border border-white border-4"
                 style={{ width: "150px", height: "150px", objectFit: "cover" }}
               />
+
+              {/* Nút chọn ảnh: chuyển xuống dưới bên phải avatar */}
               <label
                 htmlFor="avatar-upload"
-                className="position-absolute top-50 start-50 translate-middle btn btn-dark rounded-circle d-flex align-items-center justify-content-center"
+                className="position-absolute bottom-0 end-0 mb-2 me-2 btn btn-dark rounded-circle d-flex align-items-center justify-content-center"
+                style={{ width: "40px", height: "40px" }}
               >
-                <FaCamera size={20} />
+                <FaCamera size={16} />
                 <input
                   type="file"
                   id="avatar-upload"
@@ -213,6 +194,8 @@ function EditProfileModal({
                   onChange={handleImageChange}
                 />
               </label>
+
+              {/* Nút xoá ảnh */}
               {formData.avatar && (
                 <Button
                   variant="dark"
@@ -315,6 +298,32 @@ function EditProfileModal({
               <FaTrash className="me-2" /> Xóa tài khoản
             </Nav.Link>
           </Nav>
+
+          {/* Nút lưu */}
+          <div className="text-end mt-4">
+            <Button
+              variant="dark"
+              className="rounded-pill px-4 py-1 fw-bold"
+              onClick={handleSave}
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <Spinner
+                    as="span"
+                    animation="border"
+                    size="sm"
+                    role="status"
+                    aria-hidden="true"
+                    className="me-2"
+                  />
+                  Đang lưu...
+                </>
+              ) : (
+                "Lưu"
+              )}
+            </Button>
+          </div>
         </Modal.Body>
       </Modal>
     </>
