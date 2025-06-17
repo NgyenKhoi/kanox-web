@@ -72,4 +72,5 @@ public class URLConfig {
     public static final String MEDIA_BASE = "/api/media";
     public static final String MEDIA_UPLOAD = "/upload";
     public static final String GET_MEDIA_BY_TARGET = "/target";
+    public static final String MEDIA_FOR_POST = "/posts/{postId}/media";
 }

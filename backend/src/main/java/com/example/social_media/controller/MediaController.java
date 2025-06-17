@@ -30,7 +30,8 @@ public class MediaController {
             @RequestParam("file") MultipartFile file,
             @RequestParam(value = "caption", required = false) String caption) {
         try {
-            MediaDto mediaDto = mediaService.uploadMedia(userId, targetId, targetTypeCode, mediaTypeName, file, caption);
+            MediaDto mediaDto = mediaService.uploadMedia(userId, targetId, targetTypeCode, mediaTypeName, file,
+                    caption);
             return new ResponseEntity<>(mediaDto, HttpStatus.CREATED);
         } catch (IOException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -48,7 +49,8 @@ public class MediaController {
             @RequestParam("mediaTypeName") String mediaTypeName,
             @RequestParam(value = "status", defaultValue = "true") Boolean status) {
         try {
-            List<MediaDto> mediaList = mediaService.getMediaByTargetDto(targetId, targetTypeCode, mediaTypeName, status);
+            List<MediaDto> mediaList = mediaService.getMediaByTargetDto(targetId, targetTypeCode, mediaTypeName,
+                    status);
             return ResponseEntity.ok(mediaList);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body("Invalid request: " + e.getMessage());

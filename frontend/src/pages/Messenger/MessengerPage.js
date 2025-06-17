@@ -17,6 +17,8 @@ import Chat from "../../components/messages/Chat";
 import { AuthContext } from "../../context/AuthContext";
 import UserSelectionModal from "../../components/messages/UserSelectionModal";
 import { useWebSocket } from "../../hooks/useWebSocket";
+import useUserSearch from "../../hooks/useUserSearch";
+import useUserMedia from "../../hooks/useUserMedia";
 
 function MessengerPage() {
   const { token, user } = useContext(AuthContext);
@@ -24,16 +26,24 @@ function MessengerPage() {
   const [selectedChatId, setSelectedChatId] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
-  const [showUserSelectionModal, setShowUserSelectionModal] = useState(false);
-  const [unreadChats, setUnreadChats] = useState(new Set()); // Theo dõi các chat có tin nhắn chưa đọc
 
+  // New state for controlling the UserSelectionModal visibility
+  const [showUserSelectionModal, setShowUserSelectionModal] = useState(false);
+
+  const {
+    searchKeyword,
+    setSearchKeyword,
+    searchResults,
+    isSearching,
+    debouncedSearch,
+  } = useUserSearch(token, navigate);
   const handleOpenUserSelectionModal = () => {
     setShowUserSelectionModal(true);
   };
 
-  const handleCloseUserSelectionModal = () => {
-    setShowUserSelectionModal(false);
-  };
+  useEffect(() => {
+    debouncedSearch(searchKeyword);
+  }, [searchKeyword, debouncedSearch]);
 
   // Local states/functions for SidebarLeft
   const [localIsDarkMode, setLocalIsDarkMode] = useState(false);
@@ -44,6 +54,8 @@ function MessengerPage() {
   const localOnShowCreatePost = () => {
     console.log("Create Post button clicked from MessengerPage Sidebar.");
   };
+  const handleOpenUserSelectionModal = () => setShowUserSelectionModal(true);
+  const handleCloseUserSelectionModal = () => setShowUserSelectionModal(false);
 
   useEffect(() => {
     if (!token || !user) {
@@ -68,7 +80,24 @@ function MessengerPage() {
           data = await response.json();
         } else {
           throw new Error("Phản hồi không phải JSON");
+    fetch(`${process.env.REACT_APP_API_URL}/chats`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error("Lỗi khi tải danh sách chat.");
         }
+        const data = await response.json();
+        setChats(data);
+      })
+      .catch((err) => {
+        toast.error("Lỗi khi tải danh sách chat: " + err.message);
+      })
+      .finally(() => setLoading(false));
         if (response.ok) {
           setChats(data);
         } else {
@@ -84,27 +113,8 @@ function MessengerPage() {
     fetchChats();
   }, [token, user]);
 
-  useWebSocket(
-      (message) => {
-        // Cập nhật danh sách chat khi có tin nhắn mới
-        setChats((prevChats) => {
-          const updatedChats = prevChats.map((chat) =>
-              chat.id === message.chatId
-                  ? { ...chat, lastMessage: message.content }
-                  : chat
-          );
-          return updatedChats;
-        });
-        // Thêm chatId vào danh sách chưa đọc nếu không phải chat đang mở
-        if (message.chatId !== selectedChatId) {
-          setUnreadChats((prev) => new Set(prev).add(message.chatId));
-        }
-      },
-      () => {}, // Không cần setUnreadCount ở đây vì đã xử lý ở SidebarLeft
-      "/topic/messages/"
-  );
-
   const filteredChats = chats.filter((chat) => {
+    // Assuming chat.name is the display name for the chat, and chat.lastMessage exists
     const chatName = chat.name ? chat.name.toLowerCase() : "";
     const lastMessage = chat.lastMessage ? chat.lastMessage.toLowerCase() : "";
     const search = searchQuery.toLowerCase();
