@@ -31,7 +31,7 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
         }
 
         const response = await fetch(
-          `${process.env.REACT_APP_API_URL}/notifications?page=0&size=100`,
+          `${process.env.REACT_APP_API_URL}/notifications?page=0&size=10`,
           {
             headers: {
               "Content-Type": "application/json",
