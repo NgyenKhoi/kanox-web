@@ -24,7 +24,17 @@ public class URLConfig {
     // Upload Management URLs
     public static final String UPLOAD_BASE = "/api/upload";
     // Chat URLs
-    public static final String CHAT_MESSAGES = "/chat/{chatId}/messages";
+    public static final String CHAT_BASE = "/api/chat";
+    public static final String SEND_MESSAGES = "/sendMessage";
+    public static final String GET_CHAT_MESSAGES = "/{chatId}/messages";
+    public static final String CHATS = "/chats";
+    public static final String CHAT_CREATE = "/create";
+    public static final String CALL_START = "/call/start/{chatId}";
+    public static final String MESSAGE_DELETE = "/message/delete";
+    public static final String CALL_END = "/call/end/{callSessionId}";
+    public static final String UNREAD_MESSAGE_COUNT = "/messages/unread-count";
+    public static final String WEBSOCKET_CALL_OFFER = "/call/offer";
+    public static final String WEBSOCKET_CALL_ANSWER = "/call/answer";
     // Frontend URLs
     public static final String FRONTEND_RESET_PASSWORD_URL = "https://kanox-web.netlify.app/reset-password?token=";
 

@@ -66,7 +66,7 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
 
                 // Lấy số tin nhắn chưa đọc
                 const messageResponse = await fetch(
-                    `${process.env.REACT_APP_API_URL}/messages/unread-count`,
+                    `${process.env.REACT_APP_API_URL}/chat/messages/unread-count`,
                     {
                         headers: {
                             Authorization: `Bearer ${token}`,
