@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Modal, Button, Form, Image, Spinner, Nav } from "react-bootstrap";
-import { FaCamera, FaTimes, FaLock, FaTrash, FaPalette } from "react-icons/fa";
+import { FaCamera, FaTimes, FaLock, FaTrash } from "react-icons/fa";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -14,36 +14,26 @@ function EditProfileModal({
   const [formData, setFormData] = useState({
     displayName: "",
     bio: "",
-    location: "",
-    website: "",
     dateOfBirth: "",
     avatar: "",
-    banner: "",
     gender: "",
-    theme: "light", // Thêm theme mặc định
   });
   const [avatarFile, setAvatarFile] = useState(null);
-  const [bannerFile, setBannerFile] = useState(null);
-  const [loading, setLoading] = useState(false); // Thêm trạng thái loading
-  const [errors, setErrors] = useState({}); // Thêm trạng thái lỗi để validate
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     if (show && userProfile) {
       setFormData({
         displayName: userProfile.displayName || "",
         bio: userProfile.bio || "",
-        location: userProfile.location || "",
-        website: userProfile.website || "",
         dateOfBirth: userProfile.dateOfBirth
           ? new Date(userProfile.dateOfBirth).toISOString().split("T")[0]
           : "",
         gender: userProfile.gender != null ? String(userProfile.gender) : "",
         avatar: userProfile.avatar || "",
-        banner: userProfile.banner || "",
-        theme: userProfile.theme || "light", // Giả lập theme từ userProfile
       });
       setAvatarFile(null);
-      setBannerFile(null);
       setErrors({});
     }
   }, [show, userProfile]);
@@ -56,13 +46,6 @@ function EditProfileModal({
     if (formData.bio.length > 160) {
       newErrors.bio = "Tiểu sử không được vượt quá 160 ký tự.";
     }
-    if (
-      formData.website &&
-      !/^https?:\/\/[^\s/$.?#].[^\s]*$/.test(formData.website)
-    ) {
-      newErrors.website =
-        "Định dạng trang web không hợp lệ (phải bắt đầu bằng http:// hoặc https://).";
-    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -71,36 +54,18 @@ function EditProfileModal({
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleImageChange = (field, e) => {
+  const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
       const imageUrl = URL.createObjectURL(file);
-      setFormData((prev) => ({ ...prev, [field]: imageUrl }));
-      if (field === "avatar") {
-        setAvatarFile(file);
-      } else if (field === "banner") {
-        setBannerFile(file);
-      }
+      setFormData((prev) => ({ ...prev, avatar: imageUrl }));
+      setAvatarFile(file);
     }
   };
 
-  const handleClearImage = (field) => {
-    setFormData((prev) => ({ ...prev, [field]: "" }));
-    if (field === "avatar") {
-      setAvatarFile(null);
-    } else if (field === "banner") {
-      setBannerFile(null);
-    }
-  };
-
-  const uploadFile = async (file) => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve(
-          `https://via.placeholder.com/150x150/0000FF/FFFFFF?text=${file.name}`
-        );
-      }, 500);
-    });
+  const handleClearImage = () => {
+    setFormData((prev) => ({ ...prev, avatar: "" }));
+    setAvatarFile(null);
   };
 
   const handleSave = async () => {
@@ -116,38 +81,28 @@ function EditProfileModal({
       const payload = {
         displayName: formData.displayName,
         bio: formData.bio,
-        location: formData.location,
-        website: formData.website,
         dateOfBirth: formData.dateOfBirth,
         gender: formData.gender ? Number(formData.gender) : null,
-        theme: formData.theme,
       };
 
       const form = new FormData();
       form.append(
-          "data",
-          new Blob([JSON.stringify(payload)], { type: "application/json" })
+        "data",
+        new Blob([JSON.stringify(payload)], { type: "application/json" })
       );
-
-      // Chỉ gửi avatar nếu có
       if (avatarFile) {
         form.append("avatar", avatarFile);
       }
 
-      // Chỉ gửi banner nếu có
-      if (bannerFile) {
-        form.append("banner", bannerFile);
-      }
-
       const response = await fetch(
-          `${process.env.REACT_APP_API_URL}/user/profile/${username}`,
-          {
-            method: "PUT",
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-            body: form,
-          }
+        `${process.env.REACT_APP_API_URL}/user/profile/${username}`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: form,
+        }
       );
 
       if (!response.ok) {
@@ -155,10 +110,7 @@ function EditProfileModal({
         throw new Error(errorData.message || "Lỗi khi cập nhật hồ sơ.");
       }
 
-      // ✅ Dùng luôn kết quả trả về từ PUT
       const updatedProfile = await response.json();
-
-      // ✅ Cập nhật giao diện qua callback
       onSave(updatedProfile);
       handleClose();
       toast.success("Hồ sơ đã được cập nhật thành công!");
@@ -176,17 +128,12 @@ function EditProfileModal({
         "Bạn có chắc chắn muốn xóa tài khoản? Hành động này không thể hoàn tác!"
       )
     ) {
-      alert("Chuyển hướng đến trang xóa tài khoản..."); // Giả lập, có thể thay bằng navigate
+      alert("Chuyển hướng đến trang xóa tài khoản...");
     }
   };
 
   const handleSecuritySettings = () => {
-    alert("Chuyển hướng đến trang cài đặt bảo mật..."); // Giả lập, có thể thay bằng navigate
-  };
-
-  const handleThemeChange = (theme) => {
-    handleInputChange("theme", theme);
-    alert(`Đã chọn theme: ${theme}`); // Giả lập, có thể tích hợp theme thực tế
+    alert("Chuyển hướng đến trang cài đặt bảo mật...");
   };
 
   const genderOptions = [
@@ -198,17 +145,7 @@ function EditProfileModal({
 
   return (
     <>
-      <ToastContainer
-        position="top-center"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-      />
+      <ToastContainer position="top-center" autoClose={3000} />
       <Modal
         show={show}
         onHide={handleClose}
@@ -216,7 +153,7 @@ function EditProfileModal({
         centered
         size="lg"
       >
-        <Modal.Header className="d-flex justify-content-between align-items-center border-bottom-0 pb-0">
+        <Modal.Header className="border-bottom-0 pb-0">
           <div className="d-flex align-items-center">
             <Button
               variant="link"
@@ -252,51 +189,8 @@ function EditProfileModal({
         </Modal.Header>
 
         <Modal.Body className="p-3">
-          <div className="mb-4">
-            <h6 className="fw-bold mb-3">Ảnh bìa và đại diện</h6>
-            <div className="position-relative mb-4">
-              <Image
-                src={
-                  formData.banner ||
-                  "https://source.unsplash.com/1200x400/?nature,water"
-                }
-                fluid
-                className="w-100 rounded-3"
-                style={{ height: "200px", objectFit: "cover" }}
-              />
-              <div
-                className="position-absolute top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center"
-                style={{ backgroundColor: "rgba(0,0,0,0.3)" }}
-              >
-                <label
-                  htmlFor="banner-upload"
-                  className="btn btn-dark rounded-circle me-2 d-flex align-items-center justify-content-center"
-                >
-                  <FaCamera size={18} />
-                  <input
-                    type="file"
-                    id="banner-upload"
-                    className="d-none"
-                    accept="image/*"
-                    onChange={(e) => handleImageChange("banner", e)}
-                  />
-                </label>
-                {formData.banner && (
-                  <Button
-                    variant="dark"
-                    className="rounded-circle d-flex align-items-center justify-content-center"
-                    onClick={() => handleClearImage("banner")}
-                  >
-                    <FaTimes size={18} />
-                  </Button>
-                )}
-              </div>
-            </div>
-
-            <div
-              className="position-relative"
-              style={{ marginTop: "-75px", marginLeft: "20px" }}
-            >
+          <div className="mb-5 text-center">
+            <div className="position-relative d-inline-block">
               <Image
                 src={
                   formData.avatar ||
@@ -304,7 +198,7 @@ function EditProfileModal({
                 }
                 roundedCircle
                 className="border border-white border-4"
-                style={{ width: "130px", height: "130px", objectFit: "cover" }}
+                style={{ width: "150px", height: "150px", objectFit: "cover" }}
               />
               <label
                 htmlFor="avatar-upload"
@@ -316,7 +210,7 @@ function EditProfileModal({
                   id="avatar-upload"
                   className="d-none"
                   accept="image/*"
-                  onChange={(e) => handleImageChange("avatar", e)}
+                  onChange={handleImageChange}
                 />
               </label>
               {formData.avatar && (
@@ -331,7 +225,7 @@ function EditProfileModal({
                     right: "0",
                     transform: "translate(50%, -50%)",
                   }}
-                  onClick={() => handleClearImage("avatar")}
+                  onClick={handleClearImage}
                 >
                   <FaTimes size={18} />
                 </Button>
@@ -341,51 +235,58 @@ function EditProfileModal({
 
           <h6 className="fw-bold mb-3">Thông tin cá nhân</h6>
           <Form className="mb-4">
-            {[
-              { label: "Tên hiển thị", field: "displayName", type: "text" },
-              { label: "Tiểu sử", field: "bio", type: "textarea", rows: 3 },
-              { label: "Vị trí", field: "location", type: "text" },
-              { label: "Trang web", field: "website", type: "text" },
-              { label: "Ngày sinh", field: "dateOfBirth", type: "date" },
-            ].map(({ label, field, type, rows }) => (
-              <Form.Group
-                className="mb-3"
-                controlId={`form${field}`}
-                key={field}
-              >
-                <Form.Label className="text-muted small mb-1">
-                  {label}
-                </Form.Label>
-                {type === "textarea" ? (
-                  <Form.Control
-                    as="textarea"
-                    rows={rows}
-                    value={formData[field]}
-                    onChange={(e) => handleInputChange(field, e.target.value)}
-                    className="border-0 border-bottom rounded-0 px-0 py-1"
-                    isInvalid={!!errors[field]}
-                  />
-                ) : (
-                  <Form.Control
-                    type={type}
-                    value={formData[field]}
-                    onChange={(e) => handleInputChange(field, e.target.value)}
-                    className="border-0 border-bottom rounded-0 px-0 py-1"
-                    isInvalid={!!errors[field]}
-                  />
-                )}
-                <Form.Control.Feedback type="invalid">
-                  {errors[field]}
-                </Form.Control.Feedback>
-              </Form.Group>
-            ))}
+            <Form.Group className="mb-3" controlId="formDisplayName">
+              <Form.Label className="text-muted small mb-1">
+                Tên hiển thị
+              </Form.Label>
+              <Form.Control
+                type="text"
+                value={formData.displayName}
+                onChange={(e) =>
+                  handleInputChange("displayName", e.target.value)
+                }
+                className="border-0 border-bottom rounded-0 px-0 py-1"
+                isInvalid={!!errors.displayName}
+              />
+              <Form.Control.Feedback type="invalid">
+                {errors.displayName}
+              </Form.Control.Feedback>
+            </Form.Group>
+
+            <Form.Group className="mb-3" controlId="formBio">
+              <Form.Label className="text-muted small mb-1">Tiểu sử</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={3}
+                value={formData.bio}
+                onChange={(e) => handleInputChange("bio", e.target.value)}
+                className="border-0 border-bottom rounded-0 px-0 py-1"
+                isInvalid={!!errors.bio}
+              />
+              <Form.Control.Feedback type="invalid">
+                {errors.bio}
+              </Form.Control.Feedback>
+            </Form.Group>
+
+            <Form.Group className="mb-3" controlId="formDateOfBirth">
+              <Form.Label className="text-muted small mb-1">
+                Ngày sinh
+              </Form.Label>
+              <Form.Control
+                type="date"
+                value={formData.dateOfBirth}
+                onChange={(e) =>
+                  handleInputChange("dateOfBirth", e.target.value)
+                }
+                className="border-0 border-bottom rounded-0 px-0 py-1"
+              />
+            </Form.Group>
 
             <Form.Group className="mb-3" controlId="formGender">
               <Form.Label className="text-muted small mb-1">
                 Giới tính
               </Form.Label>
               <Form.Select
-                name="gender"
                 value={formData.gender}
                 onChange={(e) => handleInputChange("gender", e.target.value)}
                 className="border-0 border-bottom rounded-0 px-0 py-1"
@@ -396,32 +297,6 @@ function EditProfileModal({
                   </option>
                 ))}
               </Form.Select>
-            </Form.Group>
-
-            <Form.Group className="mb-3" controlId="formTheme">
-              <Form.Label className="text-muted small mb-1">
-                Giao diện
-              </Form.Label>
-              <div className="d-flex">
-                <Button
-                  variant={
-                    formData.theme === "light" ? "primary" : "outline-primary"
-                  }
-                  className="rounded-pill me-2"
-                  onClick={() => handleThemeChange("light")}
-                >
-                  Sáng
-                </Button>
-                <Button
-                  variant={
-                    formData.theme === "dark" ? "primary" : "outline-primary"
-                  }
-                  className="rounded-pill"
-                  onClick={() => handleThemeChange("dark")}
-                >
-                  Tối
-                </Button>
-              </div>
             </Form.Group>
           </Form>
 
