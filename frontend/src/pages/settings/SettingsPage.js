@@ -45,9 +45,9 @@ function SettingsPage() {
 
             // Ánh xạ trực tiếp từ data
             setSettings({
-                postVisibility: data.postVisibility || "public",
-                commentPermission: data.commentPermission || "public",
-                profileViewer: data.profilePrivacySetting || "public",
+                postVisibility: data.data.postVisibility || "public",
+                commentPermission: data.data.commentPermission || "public",
+                profileViewer: data.data.profilePrivacySetting || "public",
             });
         } catch (error) {
             console.error("Lỗi khi lấy cài đặt quyền riêng tư:", error);
@@ -59,7 +59,7 @@ function SettingsPage() {
 
     useEffect(() => {
         if (!user) {
-            navigate("/signup");
+            navigate("/");
             return;
         }
 
