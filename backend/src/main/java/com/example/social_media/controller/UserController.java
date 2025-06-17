@@ -46,8 +46,12 @@ public class UserController {
         try {
             UserProfileDto userProfileDto = userProfileService.getUserProfile(username);
             return ResponseEntity.ok(userProfileDto);
+        } catch (UserNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("status", "error", "message", e.getMessage()));
         } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("status", "error", "message", e.getMessage()));
         }
     }
 

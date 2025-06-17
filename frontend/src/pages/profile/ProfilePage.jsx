@@ -141,27 +141,32 @@ function ProfilePage() {
           profileImageUrl: profileData.profileImageUrl || "https://via.placeholder.com/150?text=Avatar",
         });
 
-        const postsResponse = await fetch(
-            `${process.env.REACT_APP_API_URL}/posts/user/${username}`,
-            {
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-            }
-        );
+        // Chỉ lấy bài đăng nếu có quyền truy cập (bio không null)
+        if (profileData.bio !== null || user.username === username) {
+          const postsResponse = await fetch(
+              `${process.env.REACT_APP_API_URL}/posts/user/${username}`,
+              {
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`,
+                },
+              }
+          );
 
-        const postsData = await postsResponse.json();
-        console.log("Posts API response:", postsData); // Debug
-        if (!postsResponse.ok) {
-          throw new Error(postsData.message || "Lỗi khi lấy bài đăng.");
+          const postsData = await postsResponse.json();
+          console.log("Posts API response:", postsData); // Debug
+          if (!postsResponse.ok) {
+            throw new Error(postsData.message || "Lỗi khi lấy bài đăng.");
+          }
+
+          setPosts(Array.isArray(postsData.data) ? postsData.data : []);
+        } else {
+          setPosts([]);
         }
-
-        setPosts(Array.isArray(postsData.data) ? postsData.data : []);
 
         if (user.username === username) {
           const sentRequestsResponse = await fetch(
-              `${process.env.REACT_APP_API_URL}/friends/sent-pending?page=0&size=10`,
+              `${process.env.REACT_APP_API_URL}/friends/users/sent-pending?page=0&size=10`,
               {
                 headers: {
                   "Content-Type": "application/json",
@@ -243,7 +248,7 @@ function ProfilePage() {
   const fetchProfileAndPosts = async () => {
     const token = sessionStorage.getItem("token") || localStorage.getItem("token");
     if (!token) {
-      toast.error("Không tìm thấy token. Vui lòng đăng nhập lại.");
+      toast.error("Không tìm thấy token. Vui lòng đăng nhập lại!");
       navigate("/");
       return;
     }
@@ -267,6 +272,7 @@ function ProfilePage() {
 
       setUserProfile({
         ...profileData,
+        id: profileData.id,
         postCount: profileData.postCount || 0,
         website: profileData.website || "",
         isPremium: profileData.isPremium || false,
@@ -293,7 +299,7 @@ function ProfilePage() {
 
       if (user.username === username) {
         const sentRequestsResponse = await fetch(
-            `${process.env.REACT_APP_API_URL}/friends/sent-pending?page=0&size=10`,
+            `${process.env.REACT_APP_API_URL}/friends/users/sent-pending?page=0&size=10`,
             {
               headers: {
                 "Content-Type": "application/json",
@@ -309,11 +315,17 @@ function ProfilePage() {
       }
     } catch (error) {
       console.error("Lỗi khi làm mới dữ liệu:", error);
-      toast.error(error.message || "Lỗi khi làm mới dữ liệu.");
+      toast.error(error.message || "Lỗi khi làm mới dữ liệu!");
     }
   };
 
   const renderTabContent = () => {
+    // Thêm kiểm tra quyền truy cập
+    const hasAccess = userProfile?.bio !== null || user?.username === username;
+    if (!hasAccess) {
+      return <p className="text-dark text-center p-4">Bạn không có quyền xem nội dung này.</p>;
+    }
+
     if (activeTab === "posts") {
       return posts.length > 0 ? (
           posts.map((item) => (
@@ -414,6 +426,7 @@ function ProfilePage() {
   }
 
   const isOwnProfile = user?.username === username;
+  const hasAccess = userProfile?.bio !== null || isOwnProfile; // Thêm kiểm tra quyền
 
   return (
       <>
@@ -436,8 +449,8 @@ function ProfilePage() {
                   <div>
                     <h5 className="mb-0 fw-bold text-dark">{userProfile.displayName}</h5>
                     <span className="text-dark small">
-                   {userProfile.postCount || 0} bài đăng
-                 </span>
+                    {hasAccess ? `${userProfile.postCount || 0} bài đăng` : "Hồ sơ bị hạn chế"}
+                  </span>
                   </div>
                 </Col>
               </Row>
@@ -466,12 +479,13 @@ function ProfilePage() {
                           objectFit: "cover",
                           zIndex: 2,
                         }}
+                        alt="Profile"
                     />
                     <div className="d-flex align-items-center">
                       {isOwnProfile ? (
                           <Button
                               variant="primary"
-                              className="rounded-pill fw-bold px-3 py-2"
+                              className="rounded-pill px-3 py-2"
                               onClick={() => setShowEditModal(true)}
                           >
                             Chỉnh sửa
@@ -504,89 +518,98 @@ function ProfilePage() {
 
                   <h4 className="mb-0 fw-bold text-dark">{userProfile.displayName}</h4>
                   <p className="text-dark small mb-2">@{userProfile.username}</p>
-                  {userProfile.bio && <p className="mb-2 text-dark">{userProfile.bio}</p>}
-                  {userProfile.location && (
-                      <p className="text-secondary small d-flex align-items-center mb-2">
-                        <FaMapMarkerAlt size={16} className="me-2" /> {userProfile.location}
-                      </p>
-                  )}
-                  {userProfile.website && (
-                      <p className="text-secondary small d-flex align-items-center mb-2">
-                        <FaLink size={16} className="me-2" />
-                        <a
-                            href={userProfile.website}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-primary"
-                        >
-                          {userProfile.website}
-                        </a>
-                      </p>
-                  )}
-                  <p className="text-secondary small d-flex align-items-center mb-2">
-                    <FaCalendarAlt size={16} className="me-2" /> Ngày sinh:{" "}
-                    {userProfile.dateOfBirth
-                        ? new Date(userProfile.dateOfBirth).toLocaleDateString("vi-VN")
-                        : "Chưa cập nhật"}
-                  </p>
-                  {userProfile.gender !== undefined && (
-                      <p className="text-secondary small d-flex align-items-center mb-2">
-                        <FaEllipsisH size={16} className="me-2" />
-                        Giới tính: {userProfile.gender === 0 ? "Nam" : userProfile.gender === 1 ? "Nữ" : "Khác"}
-                      </p>
-                  )}
-                  <div className="d-flex mb-3">
-                    <Link to="#" className="me-3 text-dark text-decoration-none">
-                      <span className="fw-bold">{userProfile.followeeCount || 0}</span>{" "}
-                      <span className="text-secondary small">Đang theo dõi</span>
-                    </Link>
-                    <Link to="#" className="text-dark text-decoration-none">
-                      <span className="fw-bold">{userProfile.followerCount || 0}</span>{" "}
-                      <span className="text-secondary small">Người theo dõi</span>
-                    </Link>
-                  </div>
-
-                  {showPremiumAlert && !userProfile.isPremium && (
-                      <div className="alert alert-light d-flex align-items-start border border-light rounded-3 p-3">
-                        <div>
-                          <h6 className="fw-bold text-dark mb-1">
-                            Bạn chưa đăng ký tài khoản Premium <FaCheckCircle className="text-dark" />
-                          </h6>
-                          <p className="text-secondary small mb-2">
-                            Hãy đăng ký tài khoản Premium để sử dụng các tính năng ưu tiên trả lời, phân tích, duyệt xem không quảng cáo, v.v.
-                          </p>
-                          <Button
-                              variant="dark"
-                              className="rounded-pill px-4 py-2 fw-bold"
-                              onClick={() => navigate("/premium")}
-                          >
-                            Premium
-                          </Button>
+                  {hasAccess ? (
+                      <>
+                        {userProfile.bio && <p className="mb-2 text-dark">{userProfile.bio}</p>}
+                        {userProfile.location && (
+                            <p className="text-secondary small d-flex align-items-center mb-2">
+                              <FaMapMarkerAlt size={16} className="me-2" /> {userProfile.location}
+                            </p>
+                        )}
+                        {userProfile.website && (
+                            <p className="text-secondary small d-flex align-items-center mb-2">
+                              <FaLink size={16} className="me-2" />
+                              <a
+                                  href={userProfile.website}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-primary"
+                              >
+                                {userProfile.website}
+                              </a>
+                            </p>
+                        )}
+                        <p className="text-secondary small d-flex align-items-center mb-2">
+                          <FaCalendarAlt size={16} className="me-2" /> Ngày sinh:{" "}
+                          {userProfile.dateOfBirth
+                              ? new Date(userProfile.dateOfBirth).toLocaleDateString("vi-VN")
+                              : "Chưa cập nhật"}
+                        </p>
+                        {userProfile.gender !== undefined && (
+                            <p className="text-secondary small d-flex align-items-center mb-2">
+                              <FaEllipsisH size={16} className="me-2" />
+                              Giới tính: {userProfile.gender === 0 ? "Nam" : userProfile.gender === 1 ? "Nữ" : "Khác"}
+                            </p>
+                        )}
+                        <div className="d-flex mb-3">
+                          <Link to="#" className="me-3 text-dark text-decoration-none">
+                            <span className="fw-bold">{userProfile.followeeCount || 0}</span>{" "}
+                            <span className="text-secondary small">Đang theo dõi</span>
+                          </Link>
+                          <Link to="#" className="text-dark text-decoration-none">
+                            <span className="fw-bold">{userProfile.followerCount || 0}</span>{" "}
+                            <span className="text-secondary small">Người theo dõi</span>
+                          </Link>
                         </div>
-                        <Button
-                            variant="link"
-                            className="ms-auto text-dark p-0"
-                            onClick={() => setShowPremiumAlert(false)}
-                        >
-                        </Button>
-                      </div>
+
+                        {showPremiumAlert && !userProfile.isPremium && (
+                            <div className="alert alert-light d-flex align-items-start border border-light rounded-3 p-3">
+                              <div>
+                                <h6 className="fw-bold text-dark mb-1">
+                                  Bạn chưa đăng ký tài khoản Premium <FaCheckCircle className="text-dark" />
+                                </h6>
+                                <p className="text-secondary small mb-2">
+                                  Hãy đăng ký tài khoản Premium để sử dụng các tính năng ưu tiên trả lời, phân tích, duyệt xem không quảng cáo, v.v.
+                                </p>
+                                <Button
+                                    variant="dark"
+                                    className="rounded-pill px-4 py-2 fw-bold"
+                                    onClick={() => navigate("/premium")}
+                                >
+                                  Premium
+                                </Button>
+                              </div>
+                              <Button
+                                  variant="link"
+                                  className="ms-auto text-dark p-0"
+                                  onClick={() => setShowPremiumAlert(false)}
+                              >
+                                ✕
+                              </Button>
+                            </div>
+                        )}
+                      </>
+                  ) : (
+                      <p className="text-dark mb-2">Bạn không có quyền xem thông tin chi tiết của hồ sơ này.</p>
                   )}
 
-                  <Nav variant="tabs" className="mt-4 profile-tabs nav-justified">
-                    {["posts", "shares", "savedArticles", ...(isOwnProfile ? ["sentRequests"] : [])].map((tab) => (
-                        <Nav.Item key={tab}>
-                          <Nav.Link
-                              onClick={() => setActiveTab(tab)}
-                              className={`text-dark fw-bold ${activeTab === tab ? "active" : ""}`}
-                          >
-                            {tab === "posts" && "Bài đăng"}
-                            {tab === "shares" && "Chia sẻ"}
-                            {tab === "savedArticles" && "Bài viết đã lưu"}
-                            {tab === "sentRequests" && "Yêu cầu đã gửi"}
-                          </Nav.Link>
-                        </Nav.Item>
-                    ))}
-                  </Nav>
+                  {hasAccess && (
+                      <Nav variant="tabs" className="mt-4 profile-tabs nav-justified">
+                        {["posts", "shares", "savedArticles", ...(isOwnProfile ? ["sentRequests"] : [])].map((tab) => (
+                            <Nav.Item key={tab}>
+                              <Nav.Link
+                                  onClick={() => setActiveTab(tab)}
+                                  className={`text-dark fw-bold ${activeTab === tab ? "active" : ""}`}
+                              >
+                                {tab === "posts" && "Bài đăng"}
+                                {tab === "shares" && "Chia sẻ"}
+                                {tab === "savedArticles" && "Bài viết đã lưu"}
+                                {tab === "sentRequests" && "Yêu cầu đã gửi"}
+                              </Nav.Link>
+                            </Nav.Item>
+                        ))}
+                      </Nav>
+                  )}
 
                   <div className="mt-0 border-top">{renderTabContent()}</div>
                 </div>

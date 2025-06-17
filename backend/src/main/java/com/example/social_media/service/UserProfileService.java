@@ -8,6 +8,7 @@ import com.example.social_media.entity.User;
 import com.example.social_media.exception.UserNotFoundException;
 import com.example.social_media.repository.FollowRepository;
 import com.example.social_media.repository.UserRepository;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -22,32 +23,75 @@ public class UserProfileService {
     private final FollowRepository followRepository;
     private final MediaService mediaService;
     private final GcsService gcsService;
+    private final PrivacyService privacyService;
 
-    public UserProfileService(UserRepository userRepository, FollowRepository followRepository,
-                              MediaService mediaService, GcsService gcsService) {
+    public UserProfileService(
+            UserRepository userRepository,
+            FollowRepository followRepository,
+            MediaService mediaService,
+            GcsService gcsService,
+            PrivacyService privacyService
+    ) {
         this.userRepository = userRepository;
         this.followRepository = followRepository;
         this.mediaService = mediaService;
         this.gcsService = gcsService;
+        this.privacyService = privacyService;
     }
 
     public UserProfileDto getUserProfile(String username) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Người dùng không tìm thấy"));
+        User targetUser = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UserNotFoundException("Người dùng không tìm thấy"));
 
-        int followerCount = followRepository.countByFolloweeAndStatusTrue(user);
-        int followeeCount = followRepository.countByFollowerAndStatusTrue(user);
+        // Lấy thông tin người dùng hiện tại (người xem hồ sơ)
+        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        User currentUser = userRepository.findByUsername(currentUsername)
+                .orElseThrow(() -> new UserNotFoundException("Người dùng hiện tại không tìm thấy"));
+
+        // Kiểm tra quyền truy cập vào hồ sơ
+        boolean hasAccess = privacyService.checkContentAccess(
+                currentUser.getId(),
+                targetUser.getId(),
+                "PROFILE"
+        );
 
         String profileImageUrl = null;
-        List<MediaDto> profileMedia = mediaService.getMediaByTargetDto(user.getId(), "PROFILE", "image", true);
+        List<MediaDto> profileMedia = mediaService.getMediaByTargetDto(targetUser.getId(), "PROFILE", "image", true);
         if (!profileMedia.isEmpty()) {
             profileImageUrl = profileMedia.getFirst().getUrl();
         }
 
+        // Nếu không có quyền truy cập, trả về thông tin hạn chế
+        if (!hasAccess) {
+            return new UserProfileDto(
+                    targetUser.getId(),
+                    targetUser.getUsername(),
+                    targetUser.getDisplayName(),
+                    null, // email
+                    null, // bio
+                    null, // gender
+                    null, // dateOfBirth
+                    0,    // followerCount
+                    0,    // followeeCount
+                    profileImageUrl
+            );
+        }
+
+        // Nếu có quyền, trả về đầy đủ thông tin
+        int followerCount = followRepository.countByFolloweeAndStatusTrue(targetUser);
+        int followeeCount = followRepository.countByFollowerAndStatusTrue(targetUser);
+
         return new UserProfileDto(
-                user.getId(), user.getUsername(), user.getDisplayName(), user.getEmail(),
-                user.getBio(), user.getGender(), user.getDateOfBirth(),
-                followerCount, followeeCount, profileImageUrl
+                targetUser.getId(),
+                targetUser.getUsername(),
+                targetUser.getDisplayName(),
+                targetUser.getEmail(),
+                targetUser.getBio(),
+                targetUser.getGender(),
+                targetUser.getDateOfBirth(),
+                followerCount,
+                followeeCount,
+                profileImageUrl
         );
     }
 
@@ -65,9 +109,7 @@ public class UserProfileService {
 
         if (avatarFile != null && !avatarFile.isEmpty()) {
             profileImageUrl = gcsService.uploadFile(avatarFile);
-
             mediaService.disableOldProfileMedia(user.getId());
-
             mediaService.saveMediaWithUrl(user.getId(), user.getId(), "PROFILE", "image", profileImageUrl, null);
         }
 
@@ -77,9 +119,16 @@ public class UserProfileService {
         int followeeCount = followRepository.countByFollowerAndStatusTrue(user);
 
         return new UserProfileDto(
-                user.getId(), user.getUsername(), user.getDisplayName(), user.getEmail(),
-                user.getBio(), user.getGender(), user.getDateOfBirth(),
-                followerCount, followeeCount, profileImageUrl
+                user.getId(),
+                user.getUsername(),
+                user.getDisplayName(),
+                user.getEmail(),
+                user.getBio(),
+                user.getGender(),
+                user.getDateOfBirth(),
+                followerCount,
+                followeeCount,
+                profileImageUrl
         );
     }
 
@@ -95,5 +144,4 @@ public class UserProfileService {
                 .orElseThrow(() -> new UserNotFoundException("Không tìm thấy người dùng với id: " + userId));
         userRepository.updateProfilePrivacy(userId, privacySetting, customListId);
     }
-
 }
