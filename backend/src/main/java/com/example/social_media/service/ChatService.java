@@ -7,6 +7,9 @@ import com.example.social_media.repository.ChatMemberRepository;
 import com.example.social_media.repository.ChatRepository;
 import com.example.social_media.repository.MessageRepository;
 import com.example.social_media.repository.UserRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,19 +20,23 @@ import java.util.stream.Collectors;
 @Service
 public class ChatService {
 
-    private final ChatRepository chatRepository;
-    private final ChatMemberRepository chatMemberRepository;
-    private final UserRepository userRepository;
-    private final CustomUserDetailsService userDetailsService;
-    private final MessageRepository messageRepository;
+    @PersistenceContext
+    private EntityManager entityManager;
 
-    public ChatService(ChatRepository chatRepository, ChatMemberRepository chatMemberRepository, UserRepository userRepository, CustomUserDetailsService userDetailsService, MessageRepository messageRepository) {
-        this.chatRepository = chatRepository;
-        this.chatMemberRepository = chatMemberRepository;
-        this.userRepository = userRepository;
-        this.userDetailsService = userDetailsService;
-        this.messageRepository = messageRepository;
-    }
+    @Autowired
+    private ChatRepository chatRepository;
+
+    @Autowired
+    private ChatMemberRepository chatMemberRepository;
+
+    @Autowired
+    private CustomUserDetailsService userDetailsService;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private MessageRepository messageRepository;
 
     @Transactional
     public ChatDto createChat(String username, Integer targetUserId) {
@@ -49,10 +56,12 @@ public class ChatService {
 
         Chat savedChat;
         try {
-            savedChat = chatRepository.saveAndFlush(chat);
-            System.out.println("Executed saveAndFlush for Chat: " + savedChat + ", id: " + savedChat.getId());
+            savedChat = chatRepository.save(chat); // Lưu mà không flush ngay
+            entityManager.flush(); // Flush thủ công để đảm bảo lệnh INSERT được thực thi
+            savedChat = entityManager.find(Chat.class, savedChat.getId()); // Tải lại để lấy id
+            System.out.println("Executed save and flush for Chat: " + savedChat + ", id: " + savedChat.getId());
             if (savedChat.getId() == null) {
-                throw new IllegalStateException("Chat ID is null after saveAndFlush. Possible database issue.");
+                throw new IllegalStateException("Chat ID is null after flush. Possible database issue.");
             }
         } catch (Exception e) {
             System.err.println("Error during saveAndFlush Chat: " + e.getMessage());
