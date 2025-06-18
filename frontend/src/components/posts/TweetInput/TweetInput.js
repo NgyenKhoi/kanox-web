@@ -7,6 +7,7 @@ import {
   FormControl,
   OverlayTrigger,
   Tooltip,
+  Modal,
 } from "react-bootstrap";
 import {
   FaPollH,
@@ -33,6 +34,8 @@ function TweetInput({ onPostSuccess }) {
   const [loading, setLoading] = useState(false);
   const [mediaFiles, setMediaFiles] = useState([]);
   const [mediaPreviews, setMediaPreviews] = useState([]);
+  const [showModal, setShowModal] = useState(false);
+  const [currentModalIndex, setCurrentModalIndex] = useState(0);
 
   useEffect(() => {
     const fetchPrivacySettings = async () => {
@@ -115,8 +118,11 @@ function TweetInput({ onPostSuccess }) {
 
   const handleMediaChange = (e) => {
     const files = Array.from(e.target.files);
-    setMediaFiles(files);
-    setMediaPreviews(files.map((f) => URL.createObjectURL(f)));
+    setMediaFiles([...mediaFiles, ...files]);
+    setMediaPreviews([
+      ...mediaPreviews,
+      ...files.map((f) => URL.createObjectURL(f)),
+    ]);
   };
 
   const handleSubmitTweet = async () => {
@@ -182,205 +188,110 @@ function TweetInput({ onPostSuccess }) {
     }
   };
 
-  const renderStatusIcon = (status) => {
-    switch (status) {
-      case "public":
-        return <FaGlobeAmericas className="me-1" />;
-      case "friends":
-        return <FaUserFriends className="me-1" />;
-      case "only_me":
-        return <FaLock className="me-1" />;
-      case "custom":
-        return <FaList className="me-1" />;
-      default:
-        return null;
+  const renderMediaLayout = () => {
+    const count = mediaPreviews.length;
+    if (count === 1) {
+      return (
+        <div className="mb-2 w-100">
+          <img
+            src={mediaPreviews[0]}
+            className="img-fluid rounded w-100"
+            alt="preview"
+            onClick={() => openModal(0)}
+            style={{ cursor: "pointer" }}
+          />
+        </div>
+      );
     }
+    return (
+      <div className="d-flex flex-wrap gap-1 mb-2">
+        {mediaPreviews.slice(0, 4).map((url, index) => (
+          <div
+            key={index}
+            className="position-relative"
+            style={{
+              width:
+                count === 2
+                  ? "49%"
+                  : count === 3 && index === 0
+                  ? "100%"
+                  : "49%",
+              cursor: "pointer",
+            }}
+            onClick={() => openModal(index)}
+          >
+            <img
+              src={url}
+              alt={`media-${index}`}
+              className="img-fluid rounded"
+              style={{ objectFit: "cover", width: "100%", height: "auto" }}
+            />
+            <Button
+              variant="danger"
+              size="sm"
+              className="position-absolute top-0 end-0 m-1 p-1 rounded-circle"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleRemoveMedia(index);
+              }}
+            >
+              ×
+            </Button>
+            {count > 4 && index === 3 && (
+              <div className="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-dark bg-opacity-50 rounded text-white fs-4">
+                +{count - 4}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    );
   };
 
-  const renderStatusText = (status) => {
-    switch (status) {
-      case "public":
-        return "Công khai";
-      case "friends":
-        return "Bạn bè";
-      case "only_me":
-        return "Chỉ mình tôi";
-      case "custom":
-        return "Tùy chỉnh";
-      default:
-        return "Công khai";
-    }
+  const openModal = (index) => {
+    setCurrentModalIndex(index);
+    setShowModal(true);
+  };
+
+  const nextImage = () => {
+    setCurrentModalIndex((prev) => (prev + 1) % mediaPreviews.length);
+  };
+
+  const prevImage = () => {
+    setCurrentModalIndex(
+      (prev) => (prev - 1 + mediaPreviews.length) % mediaPreviews.length
+    );
+  };
+
+  const handleRemoveMedia = (index) => {
+    setMediaFiles(mediaFiles.filter((_, i) => i !== index));
+    setMediaPreviews(mediaPreviews.filter((_, i) => i !== index));
   };
 
   return (
-    <Card className="mb-3 rounded-4 shadow-sm border-0">
-      <Card.Body>
-        <Form.Control
-          as="textarea"
-          rows={3}
-          placeholder="What's happening?"
-          className="border-0 shadow-none mb-2"
-          style={{ resize: "none" }}
-          value={tweetContent}
-          onChange={(e) => setTweetContent(e.target.value)}
-        />
+    <>
+      <Card className="mb-3 rounded-4 shadow-sm border-0">
+        <Card.Body>
+          <Form.Control
+            as="textarea"
+            rows={3}
+            placeholder="What's happening?"
+            className="border-0 shadow-none mb-2"
+            style={{ resize: "none" }}
+            value={tweetContent}
+            onChange={(e) => setTweetContent(e.target.value)}
+          />
 
-        {mediaPreviews.length > 0 && (
-          <div className="d-flex flex-wrap mb-2 gap-2">
-            {mediaPreviews.map((url, i) => (
-              <div key={i} style={{ maxWidth: "150px" }}>
-                {url.includes("video") ? (
-                  <video src={url} controls width="100%" />
-                ) : (
-                  <img src={url} alt="preview" className="img-fluid rounded" />
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+          {renderMediaLayout()}
 
-        {taggedUserIds.length > 0 && (
-          <div className="d-flex flex-wrap mb-2">
-            {taggedUserIds.map((tagId, index) => (
-              <span
-                key={index}
-                className="badge bg-primary text-white me-2 mb-1"
-              >
-                @User_{tagId}
-                <Button
-                  variant="link"
-                  className="text-white p-0 ms-1"
-                  onClick={() => handleRemoveTag(tagId)}
-                >
-                  x
-                </Button>
-              </span>
-            ))}
-          </div>
-        )}
-
-        {status === "custom" && (
-          <Dropdown className="mb-2">
-            <Dropdown.Toggle
-              variant="outline-primary"
-              className="w-100 text-start rounded-pill"
-            >
-              {customListId
-                ? customLists.find((l) => l.id === customListId)?.listName
-                : "Chọn danh sách tùy chỉnh"}
-            </Dropdown.Toggle>
-            <Dropdown.Menu>
-              {customLists.map((list) => (
-                <Dropdown.Item
-                  key={list.id}
-                  onClick={() => handleCustomListSelect(list.id)}
-                >
-                  {list.listName}
-                </Dropdown.Item>
-              ))}
-            </Dropdown.Menu>
-          </Dropdown>
-        )}
-
-        {error && <p className="text-danger">{error}</p>}
-
-        <div className="d-flex justify-content-between align-items-center mt-3 pt-3 border-top flex-wrap">
-          <div className="d-flex align-items-center mb-2 mb-md-0">
-            {/* Upload Media Icon */}
-            <div className="position-relative me-2">
-              <Button
-                variant="link"
-                className="text-primary p-2 rounded-circle hover-bg-light"
-                onClick={() => document.getElementById("hiddenMediaInput").click()}
-              >
-                <FaPollH size={20} />
-              </Button>
-              <input
-                type="file"
-                id="hiddenMediaInput"
-                accept="image/*,video/*"
-                multiple
-                style={{ display: "none" }}
-                onChange={handleMediaChange}
-              />
-            </div>
-
-            <Button
-              variant="link"
-              className="text-primary p-2 rounded-circle hover-bg-light me-2"
-            >
-              <FaSmile size={20} />
-            </Button>
-            <Button
-              variant="link"
-              className="text-primary p-2 rounded-circle hover-bg-light me-2"
-            >
-              <FaCalendarAlt size={20} />
-            </Button>
-
-            {/* Tag user */}
-            <Dropdown className="me-2">
-              <Dropdown.Toggle
-                variant="link"
-                className="text-primary p-2 rounded-circle hover-bg-light"
-              >
-                <FaUserFriends size={20} />
-              </Dropdown.Toggle>
-              <Dropdown.Menu>
-                <div className="p-2 d-flex align-items-center">
-                  <FormControl
-                    type="text"
-                    placeholder="Nhập username"
-                    value={tagInput}
-                    onChange={handleTagInputChange}
-                    className="me-2"
-                  />
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={handleAddTag}
-                    disabled={!tagInput.trim()}
-                  >
-                    Thêm
-                  </Button>
-                </div>
-              </Dropdown.Menu>
-            </Dropdown>
-
-            {/* Privacy settings */}
-            <OverlayTrigger
-              placement="top"
-              overlay={
-                <Tooltip id="status-tooltip">
-                  Chọn đối tượng xem bài đăng
-                </Tooltip>
-              }
-            >
-              <Dropdown>
-                <Dropdown.Toggle
-                  variant="outline-primary"
-                  className="rounded-pill px-3 py-1 d-flex align-items-center"
-                >
-                  {renderStatusIcon(status)}
-                  {renderStatusText(status)}
-                </Dropdown.Toggle>
-                <Dropdown.Menu>
-                  <Dropdown.Item onClick={() => handleStatusChange("public")}>
-                    <FaGlobeAmericas className="me-2" /> Công khai
-                  </Dropdown.Item>
-                  <Dropdown.Item onClick={() => handleStatusChange("friends")}>
-                    <FaUserFriends className="me-2" /> Bạn bè
-                  </Dropdown.Item>
-                  <Dropdown.Item onClick={() => handleStatusChange("only_me")}>
-                    <FaLock className="me-2" /> Chỉ mình tôi
-                  </Dropdown.Item>
-                  <Dropdown.Item onClick={() => handleStatusChange("custom")}>
-                    <FaList className="me-2" /> Tùy chỉnh
-                  </Dropdown.Item>
-                </Dropdown.Menu>
-              </Dropdown>
-            </OverlayTrigger>
-          </div>
+          <input
+            type="file"
+            id="hiddenMediaInput"
+            accept="image/*,video/*"
+            multiple
+            style={{ display: "none" }}
+            onChange={handleMediaChange}
+          />
 
           <Button
             variant="primary"
@@ -394,9 +305,32 @@ function TweetInput({ onPostSuccess }) {
           >
             {loading ? "Đang đăng..." : "Tweet"}
           </Button>
-        </div>
-      </Card.Body>
-    </Card>
+        </Card.Body>
+      </Card>
+
+      <Modal
+        show={showModal}
+        onHide={() => setShowModal(false)}
+        centered
+        size="lg"
+      >
+        <Modal.Body className="text-center bg-dark">
+          <img
+            src={mediaPreviews[currentModalIndex]}
+            alt="modal-img"
+            className="img-fluid"
+          />
+          <div className="mt-2 d-flex justify-content-between">
+            <Button variant="light" onClick={prevImage}>
+              Prev
+            </Button>
+            <Button variant="light" onClick={nextImage}>
+              Next
+            </Button>
+          </div>
+        </Modal.Body>
+      </Modal>
+    </>
   );
 }
 
