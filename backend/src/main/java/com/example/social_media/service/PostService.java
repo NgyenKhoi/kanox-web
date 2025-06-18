@@ -3,23 +3,16 @@ package com.example.social_media.service;
 import com.example.social_media.dto.post.PostRequestDto;
 import com.example.social_media.dto.post.PostResponseDto;
 import com.example.social_media.dto.user.UserTagDto;
-import com.example.social_media.entity.ContentPrivacy;
-import com.example.social_media.entity.ContentPrivacyId;
-import com.example.social_media.entity.CustomPrivacyList;
-import com.example.social_media.entity.Post;
-import com.example.social_media.entity.PostTag;
+import com.example.social_media.entity.*;
 import com.example.social_media.exception.RegistrationException;
 import com.example.social_media.exception.UserNotFoundException;
 import com.example.social_media.exception.UnauthorizedException;
-import com.example.social_media.repository.ContentPrivacyRepository;
-import com.example.social_media.repository.CustomPrivacyListRepository;
-import com.example.social_media.repository.PostRepository;
-import com.example.social_media.repository.PostTagRepository;
-import com.example.social_media.repository.UserRepository;
+import com.example.social_media.repository.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -34,20 +27,23 @@ public class PostService {
     private final ContentPrivacyRepository contentPrivacyRepository;
     private final CustomPrivacyListRepository customPrivacyListRepository;
     private final PrivacyService privacyService;
+    private final MediaService mediaService; // Thêm MediaService
 
     public PostService(PostRepository postRepository, PostTagRepository postTagRepository,
-            UserRepository userRepository, ContentPrivacyRepository contentPrivacyRepository,
-            CustomPrivacyListRepository customPrivacyListRepository, PrivacyService privacyService) {
+                       UserRepository userRepository, ContentPrivacyRepository contentPrivacyRepository,
+                       CustomPrivacyListRepository customPrivacyListRepository, PrivacyService privacyService,
+                       MediaService mediaService) {
         this.postRepository = postRepository;
         this.postTagRepository = postTagRepository;
         this.userRepository = userRepository;
         this.contentPrivacyRepository = contentPrivacyRepository;
         this.customPrivacyListRepository = customPrivacyListRepository;
         this.privacyService = privacyService;
+        this.mediaService = mediaService; // Khởi tạo MediaService
     }
 
     @Transactional
-    public PostResponseDto createPost(PostRequestDto dto, String username) {
+    public PostResponseDto createPost(PostRequestDto dto, String username, List<MultipartFile> mediaFiles) {
         logger.info("Creating post for user: {}", username);
         logger.debug("PostRequestDto: {}", dto);
 
@@ -107,6 +103,29 @@ public class PostService {
         contentPrivacy.setCustomList(customList);
         contentPrivacyRepository.save(contentPrivacy);
 
+        // Upload media files if provided
+        if (mediaFiles != null && !mediaFiles.isEmpty()) {
+            try {
+                mediaService.uploadPostMediaFiles(user.getId(), newPostId, mediaFiles, dto.getContent());
+            } catch (Exception e) {
+                logger.error("Failed to upload media: {}", e.getMessage());
+                throw new IllegalArgumentException("Failed to upload media: " + e.getMessage(), e);
+            }
+        }
+
+        if (dto.getTaggedUserIds() != null) {
+            postTagRepository.deleteByPostId(newPostId);
+            for (Integer taggedUserId : dto.getTaggedUserIds()) {
+                var taggedUser = userRepository.findById(taggedUserId)
+                        .orElseThrow(() -> new UserNotFoundException("Tagged user not found: " + taggedUserId));
+                PostTag postTag = new PostTag();
+                postTag.setPost(latestPost);
+                postTag.setTaggedUser(taggedUser);
+                postTag.setStatus(true);
+                postTagRepository.save(postTag);
+            }
+        }
+
         return convertToDto(latestPost);
     }
 
@@ -125,7 +144,6 @@ public class PostService {
             throw new UnauthorizedException("You are not authorized to update this post");
         }
 
-        // Lấy post_viewer từ tblPrivacySettings nếu privacySetting không được chỉ định
         String privacySetting = dto.getPrivacySetting() != null ? dto.getPrivacySetting()
                 : privacyService.getPrivacySettingByUserId(user.getId()).getPostViewer();
 
@@ -195,23 +213,24 @@ public class PostService {
                 .orElseThrow(() -> new UserNotFoundException("User not found or inactive"));
 
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new UserNotFoundException("Post not found"));
+                .orElseThrow(() -> new IllegalArgumentException("Post not found with id: " + postId));
 
-        if (!post.getOwner().getId().equals(user.getId())) {
+        if (post.getOwner() == null || !post.getOwner().getId().equals(user.getId())) {
             throw new UnauthorizedException("You are not authorized to delete this post");
         }
 
         // Delete related post tags
         postTagRepository.deleteByPostId(postId);
 
-        // Delete related content privacy
+        // Soft delete related content privacy
         contentPrivacyRepository.findByContentIdAndContentTypeId(postId, 1)
+                .filter(ContentPrivacy::getStatus)
                 .ifPresent(contentPrivacy -> {
                     contentPrivacy.setStatus(false);
                     contentPrivacyRepository.save(contentPrivacy);
                 });
 
-        // Soft delete post by setting status to false
+        // Soft delete post
         post.setStatus(false);
         postRepository.save(post);
     }
@@ -237,7 +256,6 @@ public class PostService {
 
         List<Post> posts = postRepository.findActivePostsByUsername(targetUsername);
         if (currentUsername.equals(targetUsername)) {
-            // Chủ bài đăng thấy tất cả bài của mình
             return posts.stream()
                     .map(this::convertToDto)
                     .collect(Collectors.toList());

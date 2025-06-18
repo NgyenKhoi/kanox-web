@@ -136,9 +136,15 @@ public class MediaService {
                 TargetType postTargetType = targetTypeRepository.findByCode("POST")
                                 .orElseThrow(() -> new IllegalArgumentException("Loại target không hợp lệ"));
 
-                List<Media> savedMediaList = files.stream().map(file -> {
-                        validateFileType(file);
+                for (MultipartFile file : files) {
+                        String contentType = file.getContentType();
+                        if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType)) {
+                                throw new IllegalArgumentException("File \"" + file.getOriginalFilename()
+                                                + "\" không hợp lệ. Vui lòng chọn lại file.");
+                        }
+                }
 
+                List<Media> savedMediaList = files.stream().map(file -> {
                         String contentType = file.getContentType();
                         String mediaTypeName;
 
@@ -149,7 +155,7 @@ public class MediaService {
                         } else if (contentType.startsWith("audio/")) {
                                 mediaTypeName = "audio";
                         } else {
-                                throw new IllegalArgumentException("Không thể xác định loại media.");
+                                throw new IllegalArgumentException("Không thể xác định loại media."); // fallback
                         }
 
                         MediaType mediaType = mediaTypeRepository.findByName(mediaTypeName)

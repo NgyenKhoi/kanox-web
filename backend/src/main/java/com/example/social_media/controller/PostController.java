@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.HashMap;
 import java.util.List;
@@ -30,14 +31,16 @@ public class PostController {
         this.jwtService = jwtService;
     }
 
-    @PostMapping
-    public ResponseEntity<Map<String, Object>> createPost(@RequestBody @Valid PostRequestDto dto,
-                                                          @RequestHeader("Authorization") String authHeader) {
+    @PostMapping(consumes = { "multipart/form-data" })
+    public ResponseEntity<Map<String, Object>> createPost(
+            @RequestPart("post") @Valid PostRequestDto dto,
+            @RequestPart(value = "media", required = false) List<MultipartFile> mediaFiles,
+            @RequestHeader("Authorization") String authHeader) {
         try {
             String token = authHeader.substring(7);
             String username = jwtService.extractUsername(token);
             logger.debug("Creating post for user: {}", username);
-            PostResponseDto responseDto = postService.createPost(dto, username);
+            PostResponseDto responseDto = postService.createPost(dto, username, mediaFiles);
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Tạo bài post thành công");
             response.put("data", responseDto);
@@ -61,8 +64,8 @@ public class PostController {
 
     @PutMapping("/{postId}")
     public ResponseEntity<Map<String, Object>> updatePost(@PathVariable Integer postId,
-                                                          @RequestBody @Valid PostRequestDto dto,
-                                                          @RequestHeader("Authorization") String authHeader) {
+            @RequestBody @Valid PostRequestDto dto,
+            @RequestHeader("Authorization") String authHeader) {
         try {
             String token = authHeader.substring(7);
             String username = jwtService.extractUsername(token);
@@ -105,7 +108,7 @@ public class PostController {
 
     @DeleteMapping("/{postId}")
     public ResponseEntity<Map<String, Object>> deletePost(@PathVariable Integer postId,
-                                                          @RequestHeader("Authorization") String authHeader) {
+            @RequestHeader("Authorization") String authHeader) {
         try {
             String token = authHeader.substring(7);
             String username = jwtService.extractUsername(token);
@@ -175,7 +178,7 @@ public class PostController {
 
     @GetMapping(URLConfig.USER_POST)
     public ResponseEntity<Map<String, Object>> getPostsByUsername(@PathVariable String username,
-                                                                  @RequestHeader("Authorization") String authHeader) {
+            @RequestHeader("Authorization") String authHeader) {
         try {
             String token = authHeader.substring(7);
             String currentUsername = jwtService.extractUsername(token);
