@@ -16,7 +16,7 @@ import SidebarLeft from "../../components/layout/SidebarLeft/SidebarLeft";
 import Chat from "../../components/messages/Chat";
 import { AuthContext } from "../../context/AuthContext";
 import UserSelectionModal from "../../components/messages/UserSelectionModal";
-import useUserSearch from "../../hooks/useUserSearch"; 
+import useUserSearch from "../../hooks/useUserSearch";
 import { useNavigate } from "react-router-dom";
 
 function MessengerPage() {
@@ -52,7 +52,7 @@ function MessengerPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ participantId: userId }),
+        body: JSON.stringify({ participantId: parseInt(userId) }),
       });
 
       if (response.status === 401) {
