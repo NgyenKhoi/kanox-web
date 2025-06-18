@@ -39,21 +39,27 @@ public class ChatService {
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + targetUserId));
         System.out.println("Found currentUser: " + currentUser + ", targetUser: " + targetUser);
 
-        // Create new chat
         Chat chat = new Chat();
         chat.setIsGroup(false);
-        chat.setName(currentUser.getUsername() + " - " + targetUser.getUsername());
+        String chatName = currentUser.getUsername() + " - " + targetUser.getUsername();
+        if (chatName.length() > 100) chatName = chatName.substring(0, 100);
+        chat.setName(chatName);
         chat.setCreatedAt(Instant.now());
         chat.setStatus(true);
 
-        // Lưu chat và flush để đảm bảo id được gán
-        Chat savedChat = chatRepository.saveAndFlush(chat);
-        System.out.println("Saved Chat with id: " + savedChat.getId());
-        if (savedChat.getId() == null) {
-            throw new IllegalStateException("Chat ID is null after saveAndFlush");
+        Chat savedChat;
+        try {
+            savedChat = chatRepository.saveAndFlush(chat);
+            System.out.println("Executed saveAndFlush for Chat: " + savedChat + ", id: " + savedChat.getId());
+            if (savedChat.getId() == null) {
+                throw new IllegalStateException("Chat ID is null after saveAndFlush. Possible database issue.");
+            }
+        } catch (Exception e) {
+            System.err.println("Error during saveAndFlush Chat: " + e.getMessage());
+            throw new RuntimeException("Failed to save Chat due to: " + e.getMessage(), e);
         }
 
-        // Add members
+        // Tạo và lưu ChatMember
         ChatMember member1 = new ChatMember();
         ChatMemberId member1Id = new ChatMemberId();
         member1Id.setChatId(savedChat.getId());
@@ -74,9 +80,14 @@ public class ChatService {
         member2.setJoinedAt(Instant.now());
         member2.setStatus(true);
 
-        chatMemberRepository.saveAndFlush(member1);
-        chatMemberRepository.saveAndFlush(member2);
-        System.out.println("Saved ChatMembers for Chat id: " + savedChat.getId());
+        try {
+            chatMemberRepository.saveAndFlush(member1);
+            chatMemberRepository.saveAndFlush(member2);
+            System.out.println("Saved ChatMembers for Chat id: " + savedChat.getId());
+        } catch (Exception e) {
+            System.err.println("Error during saveAndFlush ChatMember: " + e.getMessage());
+            throw new RuntimeException("Failed to save ChatMember due to: " + e.getMessage(), e);
+        }
 
         return convertToDto(savedChat);
     }
