@@ -235,7 +235,6 @@ function TweetCard({ tweet, onPostUpdate }) {
 
           <p className="mb-2">{content}</p>
 
-          {/* Tagged users */}
           {taggedUsers.length > 0 && (
             <div className="mb-2">
               <small className="text-muted">
