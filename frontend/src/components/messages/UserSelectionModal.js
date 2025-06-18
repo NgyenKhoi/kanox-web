@@ -1,6 +1,7 @@
 import React from "react";
 import { Modal, Form, ListGroup, Spinner, InputGroup, Image, Button } from "react-bootstrap";
 import { FaSearch } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 
 function UserSelectionModal({
                                 show,
@@ -11,7 +12,10 @@ function UserSelectionModal({
                                 isSearching,
                                 handleSelectUser,
                             }) {
+    const navigate = useNavigate();
+
     console.log("UserSelectionModal rendered, searchKeyword:", searchKeyword); // Debug log
+
     return (
         <Modal show={show} onHide={handleClose} centered size="md">
             <Modal.Header closeButton>
@@ -46,11 +50,6 @@ function UserSelectionModal({
                             searchResults.map((user) => (
                                 <ListGroup.Item
                                     key={user.id}
-                                    action
-                                    onClick={() => {
-                                        handleSelectUser(user.id);
-                                        handleClose();
-                                    }}
                                     className="d-flex align-items-center p-2"
                                 >
                                     <Image
@@ -59,11 +58,30 @@ function UserSelectionModal({
                                         width="40"
                                         height="40"
                                         className="me-2"
+                                        onClick={() => navigate(`/profile/${user.username}`)} // Chuyển hướng đến ProfilePage
+                                        style={{ cursor: "pointer" }}
                                     />
-                                    <div>
-                                        <p className="fw-bold mb-0">{user.display_name || user.username}</p>
+                                    <div className="flex-grow-1">
+                                        <p
+                                            className="fw-bold mb-0"
+                                            onClick={() => navigate(`/profile/${user.username}`)} // Chuyển hướng đến ProfilePage
+                                            style={{ cursor: "pointer" }}
+                                        >
+                                            {user.displayName || user.username}
+                                        </p>
                                         <p className="text-muted small mb-0">@{user.username}</p>
                                     </div>
+                                    <Button
+                                        variant="primary"
+                                        size="sm"
+                                        className="rounded-pill"
+                                        onClick={() => {
+                                            handleSelectUser(user.id); // Tạo chat
+                                            handleClose();
+                                        }}
+                                    >
+                                        Nhắn tin
+                                    </Button>
                                 </ListGroup.Item>
                             ))
                         ) : searchKeyword.length > 0 ? (

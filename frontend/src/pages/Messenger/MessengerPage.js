@@ -16,8 +16,7 @@ import SidebarLeft from "../../components/layout/SidebarLeft/SidebarLeft";
 import Chat from "../../components/messages/Chat";
 import { AuthContext } from "../../context/AuthContext";
 import UserSelectionModal from "../../components/messages/UserSelectionModal";
-import { useWebSocket } from "../../hooks/useWebSocket";
-import useUserSearchForChat from "../../hooks/useUserSearchForChat";
+import useUserSearch from "../../hooks/useUserSearch"; 
 import { useNavigate } from "react-router-dom";
 
 function MessengerPage() {
@@ -36,12 +35,58 @@ function MessengerPage() {
     searchResults,
     isSearching,
     debouncedSearch,
-    handleSelectUser, // Thêm handleSelectUser
-  } = useUserSearchForChat(token, navigate);
+  } = useUserSearch(token, navigate); // Sử dụng useUserSearch
+
+  // Hàm tạo chat mới
+  const createChat = async (userId) => {
+    if (!token) {
+      toast.error("Vui lòng đăng nhập lại.");
+      navigate("/");
+      return null;
+    }
+
+    try {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/create`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ participantId: userId }),
+      });
+
+      if (response.status === 401) {
+        toast.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
+        sessionStorage.removeItem("token");
+        localStorage.removeItem("token");
+        navigate("/");
+        return null;
+      }
+
+      if (!response.ok) {
+        throw new Error("Lỗi khi tạo chat.");
+      }
+
+      const data = await response.json();
+      return data.chatId;
+    } catch (error) {
+      toast.error("Không thể tạo chat: " + error.message);
+      return null;
+    }
+  };
+
+  // Hàm xử lý chọn người dùng
+  const handleSelectUser = async (userId) => {
+    const chatId = await createChat(userId);
+    if (chatId) {
+      navigate(`/messages?chatId=${chatId}`);
+      setSearchKeyword("");
+      setShowUserSelectionModal(false);
+    }
+  };
 
   useEffect(() => {
     if (showUserSelectionModal) {
-      console.log("Calling debouncedSearch with keyword:", searchKeyword); // Debug log
       debouncedSearch(searchKeyword);
     }
   }, [searchKeyword, debouncedSearch, showUserSelectionModal]);
@@ -238,7 +283,7 @@ function MessengerPage() {
               setSearchKeyword={setSearchKeyword}
               searchResults={searchResults}
               isSearching={isSearching}
-              handleSelectUser={handleSelectUser} // Thêm prop
+              handleSelectUser={handleSelectUser} // Truyền hàm tạo chat
           />
         </div>
       </>
