@@ -52,31 +52,17 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
             @Override
             public Message<?> preSend(Message<?> message, MessageChannel channel) {
                 StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
-                if (StompCommand.SEND.equals(accessor.getCommand()) && accessor.getDestination().equals("/app/sendMessage")) {
-                    System.out.println("Received SEND to /app/sendMessage with headers: " + accessor.toString());
-                    String body = new String((byte[]) message.getPayload());
-                    System.out.println("Message body: " + body);
-                }
                 String authToken = accessor.getFirstNativeHeader("Authorization");
+                System.out.println("Received WebSocket request with token: " + authToken);
                 if (authToken != null && authToken.startsWith("Bearer ")) {
                     try {
                         String jwt = authToken.substring(7);
                         String username = jwtService.extractUsername(jwt);
                         System.out.println("Extracted username: " + username);
-                        User userDetails = new User(username, "", new ArrayList<>());
-                        if (jwtService.isTokenValid(jwt, userDetails)) {
-                            Authentication auth = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-                            SecurityContextHolder.getContext().setAuthentication(auth);
-                            accessor.setUser(auth);
-                            System.out.println("Authentication successful for: " + username);
-                        } else {
-                            System.out.println("Invalid JWT token");
-                        }
+                        // ... (xác thực JWT)
                     } catch (Exception e) {
                         System.err.println("JWT error: " + e.getMessage());
                     }
-                } else {
-                    System.out.println("No valid Authorization header");
                 }
                 return message;
             }

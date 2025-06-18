@@ -8,6 +8,7 @@ import com.example.social_media.exception.UnauthorizedException;
 import com.example.social_media.repository.CallSessionRepository;
 import com.example.social_media.repository.ChatRepository;
 import com.example.social_media.repository.UserRepository;
+import org.springframework.data.elasticsearch.ResourceNotFoundException;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,19 +37,22 @@ public class CallSessionService {
     @Transactional
     public CallSession startCall(Integer chatId, String username) {
         System.out.println("Starting call for chatId: " + chatId + ", username: " + username);
-        chatService.checkChatAccess(chatId, username);
-        Chat chat = chatRepository.findById(chatId)
-                .orElseThrow(() -> new IllegalArgumentException("Chat not found"));
-        User host = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
-        CallSession callSession = new CallSession();
-        callSession.setChat(chat);
-        callSession.setHost(host);
-        callSession.setStartTime(Instant.now());
-        callSession.setStatus(true);
-        CallSession savedSession = callSessionRepository.save(callSession);
-        System.out.println("Call session created with id: " + savedSession.getId());
-        return savedSession;
+        try {
+            chatService.checkChatAccess(chatId, username);
+            Chat chat = chatRepository.findById(chatId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Chat not found"));
+            User host = userRepository.findByUsername(username)
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+            CallSession callSession = new CallSession();
+            callSession.setChat(chat);
+            callSession.setHost(host);
+            callSession.setStartTime(Instant.now());
+            callSession.setStatus(true);
+            return callSessionRepository.save(callSession);
+        } catch (Exception e) {
+            System.err.println("Error in startCall: " + e.getMessage());
+            throw new RuntimeException("Lỗi hệ thống: " + e.getMessage(), e);
+        }
     }
 
     @Transactional

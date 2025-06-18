@@ -177,7 +177,7 @@ const Chat = ({ chatId }) => {
       return;
     }
     console.log("Starting call for chatId:", chatId);
-    fetch(`${process.env.REACT_APP_API_URL}/call/start/${chatId}`, {
+    fetch(`${process.env.REACT_APP_API_URL}/chat/call/start/${chatId}`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     })
@@ -218,7 +218,7 @@ const Chat = ({ chatId }) => {
 
   const confirmDeleteMessage = () => {
     if (stompClient && messageToDelete) {
-      fetch(`${process.env.REACT_APP_API_URL}/message/delete`, {
+      fetch(`${process.env.REACT_APP_API_URL}chat/message/delete`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
