@@ -36,8 +36,8 @@ public class PostService {
     private final PrivacyService privacyService;
 
     public PostService(PostRepository postRepository, PostTagRepository postTagRepository,
-                       UserRepository userRepository, ContentPrivacyRepository contentPrivacyRepository,
-                       CustomPrivacyListRepository customPrivacyListRepository, PrivacyService privacyService) {
+            UserRepository userRepository, ContentPrivacyRepository contentPrivacyRepository,
+            CustomPrivacyListRepository customPrivacyListRepository, PrivacyService privacyService) {
         this.postRepository = postRepository;
         this.postTagRepository = postTagRepository;
         this.userRepository = userRepository;
@@ -54,8 +54,8 @@ public class PostService {
         var user = userRepository.findByUsernameAndStatusTrue(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found or inactive"));
 
-        String privacySetting = dto.getPrivacySetting() != null ? dto.getPrivacySetting() :
-                privacyService.getPrivacySettingByUserId(user.getId()).getPostViewer();
+        String privacySetting = dto.getPrivacySetting() != null ? dto.getPrivacySetting()
+                : privacyService.getPrivacySettingByUserId(user.getId()).getPostViewer();
 
         // Normalize privacySetting: map 'private' to 'only_me'
         if ("private".equals(privacySetting)) {
@@ -78,8 +78,9 @@ public class PostService {
                     .orElseThrow(() -> new IllegalArgumentException("Custom list not found with id: " + customListId));
         }
 
-        String taggedUserIds = dto.getTaggedUserIds() != null ?
-                String.join(",", dto.getTaggedUserIds().stream().map(String::valueOf).toList()) : null;
+        String taggedUserIds = dto.getTaggedUserIds() != null
+                ? String.join(",", dto.getTaggedUserIds().stream().map(String::valueOf).toList())
+                : null;
 
         Integer newPostId = postRepository.createPost(
                 user.getId(), dto.getContent(), privacySetting, null, taggedUserIds, customListId);
@@ -125,8 +126,8 @@ public class PostService {
         }
 
         // Lấy post_viewer từ tblPrivacySettings nếu privacySetting không được chỉ định
-        String privacySetting = dto.getPrivacySetting() != null ? dto.getPrivacySetting() :
-                privacyService.getPrivacySettingByUserId(user.getId()).getPostViewer();
+        String privacySetting = dto.getPrivacySetting() != null ? dto.getPrivacySetting()
+                : privacyService.getPrivacySettingByUserId(user.getId()).getPostViewer();
 
         // Normalize privacySetting: map 'private' to 'only_me'
         if ("private".equals(privacySetting)) {
@@ -186,6 +187,35 @@ public class PostService {
         return convertToDto(post);
     }
 
+    @Transactional
+    public void deletePost(Integer postId, String username) {
+        logger.info("Deleting post {} for user: {}", postId, username);
+
+        var user = userRepository.findByUsernameAndStatusTrue(username)
+                .orElseThrow(() -> new UserNotFoundException("User not found or inactive"));
+
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new UserNotFoundException("Post not found"));
+
+        if (!post.getOwner().getId().equals(user.getId())) {
+            throw new UnauthorizedException("You are not authorized to delete this post");
+        }
+
+        // Delete related post tags
+        postTagRepository.deleteByPostId(postId);
+
+        // Delete related content privacy
+        contentPrivacyRepository.findByContentIdAndContentTypeId(postId, 1)
+                .ifPresent(contentPrivacy -> {
+                    contentPrivacy.setStatus(false);
+                    contentPrivacyRepository.save(contentPrivacy);
+                });
+
+        // Soft delete post by setting status to false
+        post.setStatus(false);
+        postRepository.save(post);
+    }
+
     public List<PostResponseDto> getAllPosts(String username) {
         logger.info("Fetching all posts for user: {}", username);
 
@@ -219,7 +249,8 @@ public class PostService {
     }
 
     private boolean hasAccess(Integer userId, Integer contentId, Integer contentTypeId) {
-        logger.debug("Checking access for userId: {}, contentId: {}, contentTypeId: {}", userId, contentId, contentTypeId);
+        logger.debug("Checking access for userId: {}, contentId: {}, contentTypeId: {}", userId, contentId,
+                contentTypeId);
         Post post = postRepository.findById(contentId)
                 .orElseThrow(() -> new UserNotFoundException("Post not found with id: " + contentId));
         boolean hasAccess = privacyService.checkContentAccess(userId, contentId, "post");

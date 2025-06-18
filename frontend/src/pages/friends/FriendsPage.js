@@ -91,7 +91,7 @@ function FriendsPage() {
                 setTotalElements((prev) => ({ ...prev, friends: data.data?.totalElements || 0 }));
                 setTotalPages((prev) => ({ ...prev, friends: data.data?.totalPages || 1 }));
                 // Fetch friendship status for friends
-                const friendIds = data.data?.content.map(f => f.id) || [];
+                const friendIds = (data.data?.content || []).map(f => f.id);
                 const statuses = await fetchFriendshipStatus(friendIds);
                 setFriendshipStatus(statuses);
             } else if (type === "sent") {

@@ -1,17 +1,15 @@
-import React, {useContext, useState} from "react";
-import { ListGroup, Image, Button, Alert } from "react-bootstrap";
-import { Link } from "react-router-dom";
-import FriendshipButton from "../friendship/FriendshipButton"; // Đổi tên từ FriendButton
-import FollowActionButton from "../utils/FollowActionButton"; // Đổi tên từ FollowButton
+import React, { useContext, useState } from "react";
+import { ListGroup, Alert } from "react-bootstrap";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { AuthContext } from "../../context/AuthContext";
+import FriendItem from "./FriendItem"; // Import FriendItem
 
 function FriendList({ users, showActions = false, onAction }) {
     const { user } = useContext(AuthContext);
     const [error, setError] = useState(null);
 
-    const handleAccept = async (userId) => { // Đổi từ friendshipId thành userId
+    const handleAccept = async (userId) => {
         setError(null);
         try {
             const token = localStorage.getItem("token");
@@ -20,7 +18,7 @@ function FriendList({ users, showActions = false, onAction }) {
             }
 
             const response = await fetch(
-                `${process.env.REACT_APP_API_URL}/friends/accept/${userId}`, // Sửa URL và dùng userId
+                `${process.env.REACT_APP_API_URL}/friends/accept/${userId}`,
                 {
                     method: "PUT",
                     headers: {
@@ -45,7 +43,7 @@ function FriendList({ users, showActions = false, onAction }) {
         }
     };
 
-    const handleReject = async (userId) => { // Đổi từ friendshipId thành userId
+    const handleReject = async (userId) => {
         setError(null);
         try {
             const token = localStorage.getItem("token");
@@ -54,7 +52,7 @@ function FriendList({ users, showActions = false, onAction }) {
             }
 
             const response = await fetch(
-                `${process.env.REACT_APP_API_URL}/api/friends/reject/${userId}`, // Sửa URL và dùng userId
+                `${process.env.REACT_APP_API_URL}/api/friends/reject/${userId}`,
                 {
                     method: "PUT",
                     headers: {
@@ -85,6 +83,7 @@ function FriendList({ users, showActions = false, onAction }) {
 
     return (
         <>
+            <ToastContainer />
             {error && (
                 <Alert variant="danger" onClose={() => setError(null)} dismissible>
                     {error}
@@ -92,49 +91,14 @@ function FriendList({ users, showActions = false, onAction }) {
             )}
             <ListGroup variant="flush">
                 {users.map((user) => (
-                    <ListGroup.Item key={user.id} className="d-flex align-items-center py-3">
-                        <Link to={`/profile/${user.username}`}>
-                            <Image
-                                src={user.photo || "https://via.placeholder.com/50?text=Avatar"}
-                                roundedCircle
-                                style={{ width: "50px", height: "50px", objectFit: "cover" }}
-                                className="me-3"
-                            />
-                        </Link>
-                        <div className="flex-grow-1">
-                            <Link
-                                to={`/profile/${user.username}`}
-                                className="text-dark text-decoration-none"
-                            >
-                                {user.displayName || user.username}
-                            </Link>
-                            <p className="text-secondary small mb-0">@{user.username}</p>
-                        </div>
-                        {showActions ? (
-                            <div className="d-flex">
-                                <Button
-                                    variant="primary"
-                                    size="sm"
-                                    className="me-2"
-                                    onClick={() => handleAccept(user.id)} // Giả định user có friendshipId
-                                >
-                                    Chấp nhận
-                                </Button>
-                                <Button
-                                    variant="outline-secondary"
-                                    size="sm"
-                                    onClick={() => handleReject(user.id)} // Giả định user có friendshipId
-                                >
-                                    Từ chối
-                                </Button>
-                            </div>
-                        ) : (
-                            <div className="d-flex">
-                                <FriendshipButton targetId={user.id} />
-                                <FollowActionButton targetId={user.id} />
-                            </div>
-                        )}
-                    </ListGroup.Item>
+                    <FriendItem
+                        key={user.id}
+                        user={user}
+                        showActions={showActions}
+                        handleAccept={handleAccept}
+                        handleReject={handleReject}
+                        onAction={onAction}
+                    />
                 ))}
             </ListGroup>
         </>

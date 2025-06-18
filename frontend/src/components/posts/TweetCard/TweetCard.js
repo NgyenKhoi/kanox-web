@@ -30,6 +30,7 @@ import { AuthContext } from "../../../context/AuthContext";
 import EditPostModal from "../TweetInput/EditPostModal";
 import useMedia from "../../../hooks/useMedia";
 import { toast } from "react-toastify";
+import { useNavigate } from "react-router-dom"; // Add import for useNavigate
 
 // Thêm CSS inline hoặc có thể đưa vào file CSS riêng
 const imageContainerStyles = {
@@ -47,6 +48,7 @@ const imageStyles = {
 
 function TweetCard({ tweet, onPostUpdate }) {
   const { user } = useContext(AuthContext);
+  const navigate = useNavigate(); // Initialize useNavigate
   const {
     id,
     owner,
@@ -122,6 +124,13 @@ function TweetCard({ tweet, onPostUpdate }) {
       if (onPostUpdate) onPostUpdate();
     } catch (err) {
       toast.error(err.message);
+    }
+  };
+
+  // Handle navigation to user profile
+  const handleNavigateToProfile = () => {
+    if (owner.username && owner.username !== "unknown") {
+      navigate(`/profile/${owner.username}`);
     }
   };
 
@@ -300,7 +309,13 @@ function TweetCard({ tweet, onPostUpdate }) {
         <div className="flex-grow-1">
           <div className="d-flex align-items-center justify-content-between mb-1">
             <div className="d-flex align-items-center">
-              <h6 className="mb-0 fw-bold me-1">{owner.displayName}</h6>
+              <h6
+                className="mb-0 fw-bold me-1 cursor-pointer"
+                onClick={handleNavigateToProfile}
+                style={{ cursor: "pointer" }} 
+              >
+                {owner.displayName}
+              </h6>
               <span className="text-muted small me-1">@{owner.username}</span>
               <span className="text-muted small me-1">
                 · {moment(createdAt).fromNow()}

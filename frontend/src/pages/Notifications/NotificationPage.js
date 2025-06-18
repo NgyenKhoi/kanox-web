@@ -8,7 +8,7 @@ import { useWebSocket } from "../../hooks/useWebSocket";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useNavigate } from "react-router-dom";
-import NotificationItem from "../../components/notification/NotificationItem";
+import NotificationItem from "./NotificationItem";
 
 function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
   const { user } = useContext(AuthContext);
@@ -16,7 +16,6 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch notifications from REST API
   useEffect(() => {
     if (!user) return;
 
@@ -89,7 +88,7 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
         timestamp: notif.createdAt,
         isRead: notif.status === "read",
         image: notif.image || null,
-        targetId: notif.targetId || notif.userId, // fallback
+        targetId: notif.targetId || notif.userId,
       };
 
       setNotifications((prev) => [formatted, ...prev]);
