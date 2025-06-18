@@ -31,7 +31,6 @@ function TweetInput({ onPostSuccess }) {
   const [customListId, setCustomListId] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
-
   const [mediaFiles, setMediaFiles] = useState([]);
   const [mediaPreviews, setMediaPreviews] = useState([]);
 
@@ -114,6 +113,12 @@ function TweetInput({ onPostSuccess }) {
 
   const handleCustomListSelect = (listId) => setCustomListId(listId);
 
+  const handleMediaChange = (e) => {
+    const files = Array.from(e.target.files);
+    setMediaFiles(files);
+    setMediaPreviews(files.map((f) => URL.createObjectURL(f)));
+  };
+
   const handleSubmitTweet = async () => {
     if (!tweetContent.trim()) return setError("Tweet không được để trống!");
     if (status === "custom" && !customListId)
@@ -140,7 +145,6 @@ function TweetInput({ onPostSuccess }) {
       const newPost = await postRes.json();
       const postId = newPost.data.id;
 
-      // upload media nếu có
       if (mediaFiles.length > 0) {
         const formData = new FormData();
         formData.append("userId", user.id);
@@ -148,7 +152,7 @@ function TweetInput({ onPostSuccess }) {
         mediaFiles.forEach((file) => formData.append("files", file));
 
         const mediaRes = await fetch(
-          `${process.env.REACT_APP_API_URL}/api/media/posts/${postId}/media`,
+          `${process.env.REACT_APP_API_URL}/media/posts/${postId}/media`,
           {
             method: "POST",
             headers: { Authorization: `Bearer ${token}` },
@@ -176,12 +180,6 @@ function TweetInput({ onPostSuccess }) {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleMediaChange = (e) => {
-    const files = Array.from(e.target.files);
-    setMediaFiles(files);
-    setMediaPreviews(files.map((f) => URL.createObjectURL(f)));
   };
 
   const renderStatusIcon = (status) => {
@@ -226,15 +224,6 @@ function TweetInput({ onPostSuccess }) {
           value={tweetContent}
           onChange={(e) => setTweetContent(e.target.value)}
         />
-
-        <Form.Group controlId="mediaUpload" className="mb-2">
-          <Form.Control
-            type="file"
-            accept="image/*,video/*"
-            multiple
-            onChange={handleMediaChange}
-          />
-        </Form.Group>
 
         {mediaPreviews.length > 0 && (
           <div className="d-flex flex-wrap mb-2 gap-2">
@@ -297,12 +286,25 @@ function TweetInput({ onPostSuccess }) {
 
         <div className="d-flex justify-content-between align-items-center mt-3 pt-3 border-top flex-wrap">
           <div className="d-flex align-items-center mb-2 mb-md-0">
-            <Button
-              variant="link"
-              className="text-primary p-2 rounded-circle hover-bg-light me-2"
-            >
-              <FaPollH size={20} />
-            </Button>
+            {/* Upload Media Icon */}
+            <div className="position-relative me-2">
+              <Button
+                variant="link"
+                className="text-primary p-2 rounded-circle hover-bg-light"
+                onClick={() => document.getElementById("hiddenMediaInput").click()}
+              >
+                <FaPollH size={20} />
+              </Button>
+              <input
+                type="file"
+                id="hiddenMediaInput"
+                accept="image/*,video/*"
+                multiple
+                style={{ display: "none" }}
+                onChange={handleMediaChange}
+              />
+            </div>
+
             <Button
               variant="link"
               className="text-primary p-2 rounded-circle hover-bg-light me-2"
@@ -316,6 +318,7 @@ function TweetInput({ onPostSuccess }) {
               <FaCalendarAlt size={20} />
             </Button>
 
+            {/* Tag user */}
             <Dropdown className="me-2">
               <Dropdown.Toggle
                 variant="link"
@@ -344,6 +347,7 @@ function TweetInput({ onPostSuccess }) {
               </Dropdown.Menu>
             </Dropdown>
 
+            {/* Privacy settings */}
             <OverlayTrigger
               placement="top"
               overlay={
