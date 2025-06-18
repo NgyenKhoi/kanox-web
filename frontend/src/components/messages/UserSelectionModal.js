@@ -1,7 +1,9 @@
-import React from "react";
+import React, { useContext } from "react";
 import { Modal, Form, ListGroup, Spinner, InputGroup, Image, Button } from "react-bootstrap";
 import { FaSearch } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
+import { AuthContext } from "../../context/AuthContext"; // Import AuthContext
+import { toast } from "react-toastify";
 
 function UserSelectionModal({
                                 show,
@@ -13,8 +15,20 @@ function UserSelectionModal({
                                 handleSelectUser,
                             }) {
     const navigate = useNavigate();
+    const { token } = useContext(AuthContext); // Lấy token từ AuthContext
 
-    console.log("UserSelectionModal rendered, searchKeyword:", searchKeyword); // Debug log
+    console.log("UserSelectionModal rendered, searchKeyword:", searchKeyword, "token:", token); // Debug log
+
+    // Kiểm tra token trước khi xử lý
+    const handleSelectUserWithAuth = async (userId) => {
+        if (!token) {
+            toast.error("Vui lòng đăng nhập lại để tạo tin nhắn.");
+            navigate("/login");
+            return;
+        }
+        await handleSelectUser(userId); // Gọi hàm từ props
+        handleClose();
+    };
 
     return (
         <Modal show={show} onHide={handleClose} centered size="md">
@@ -31,7 +45,7 @@ function UserSelectionModal({
                         placeholder="Tìm kiếm theo tên hoặc email"
                         value={searchKeyword}
                         onChange={(e) => {
-                            console.log("Search keyword changed:", e.target.value); // Debug log
+                            console.log("Search keyword changed:", e.target.value);
                             setSearchKeyword(e.target.value);
                         }}
                         className="bg-light border-0 rounded-pill py-2"
@@ -58,13 +72,13 @@ function UserSelectionModal({
                                         width="40"
                                         height="40"
                                         className="me-2"
-                                        onClick={() => navigate(`/profile/${user.username}`)} // Chuyển hướng đến ProfilePage
+                                        onClick={() => navigate(`/profile/${user.username}`)}
                                         style={{ cursor: "pointer" }}
                                     />
                                     <div className="flex-grow-1">
                                         <p
                                             className="fw-bold mb-0"
-                                            onClick={() => navigate(`/profile/${user.username}`)} // Chuyển hướng đến ProfilePage
+                                            onClick={() => navigate(`/profile/${user.username}`)}
                                             style={{ cursor: "pointer" }}
                                         >
                                             {user.displayName || user.username}
@@ -75,10 +89,7 @@ function UserSelectionModal({
                                         variant="primary"
                                         size="sm"
                                         className="rounded-pill"
-                                        onClick={() => {
-                                            handleSelectUser(user.id); // Tạo chat
-                                            handleClose();
-                                        }}
+                                        onClick={() => handleSelectUserWithAuth(user.id)}
                                     >
                                         Nhắn tin
                                     </Button>

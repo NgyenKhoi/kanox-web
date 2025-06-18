@@ -57,20 +57,22 @@ function MessengerPage() {
 
       if (response.status === 401) {
         toast.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
-        sessionStorage.removeItem("token");
         localStorage.removeItem("token");
-        navigate("/");
+        sessionStorage.removeItem("token");
+        navigate("/login");
         return null;
       }
 
       if (!response.ok) {
-        throw new Error("Lỗi khi tạo chat.");
+        const errorText = await response.text();
+        throw new Error(`Lỗi khi tạo chat: ${errorText}`);
       }
 
       const data = await response.json();
-      return data.chatId;
+      return data.id; // Giả sử backend trả về { id: chatId }
     } catch (error) {
       toast.error("Không thể tạo chat: " + error.message);
+      console.error("Create chat error:", error);
       return null;
     }
   };
