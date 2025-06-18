@@ -1,10 +1,7 @@
 package com.example.social_media.service;
 
 import com.example.social_media.dto.message.ChatDto;
-import com.example.social_media.entity.Chat;
-import com.example.social_media.entity.ChatMember;
-import com.example.social_media.entity.Message;
-import com.example.social_media.entity.User;
+import com.example.social_media.entity.*;
 import com.example.social_media.exception.UnauthorizedException;
 import com.example.social_media.repository.ChatMemberRepository;
 import com.example.social_media.repository.ChatRepository;
@@ -36,17 +33,11 @@ public class ChatService {
 
     @Transactional
     public ChatDto createChat(String username, Integer targetUserId) {
+        System.out.println("Starting createChat for username: " + username + ", targetUserId: " + targetUserId);
         User currentUser = userDetailsService.getUserByUsername(username);
         User targetUser = userRepository.findById(targetUserId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + targetUserId));
-
-        // Check if chat already exists between these users
-        List<ChatMember> existingChats = chatMemberRepository.findByUserId(currentUser.getId());
-        for (ChatMember cm : existingChats) {
-            if (!cm.getChat().getIsGroup() && chatMemberRepository.existsByChatIdAndUserUsername(cm.getChat().getId(), targetUser.getUsername())) {
-                return convertToDto(cm.getChat());
-            }
-        }
+        System.out.println("Found currentUser: " + currentUser + ", targetUser: " + targetUser);
 
         // Create new chat
         Chat chat = new Chat();
@@ -54,25 +45,40 @@ public class ChatService {
         chat.setName(currentUser.getUsername() + " - " + targetUser.getUsername());
         chat.setCreatedAt(Instant.now());
         chat.setStatus(true);
-        chatRepository.save(chat);
+
+        // Lưu chat và flush để đảm bảo id được gán
+        Chat savedChat = chatRepository.saveAndFlush(chat);
+        System.out.println("Saved Chat with id: " + savedChat.getId());
+        if (savedChat.getId() == null) {
+            throw new IllegalStateException("Chat ID is null after saveAndFlush");
+        }
 
         // Add members
         ChatMember member1 = new ChatMember();
-        member1.setChat(chat);
+        ChatMemberId member1Id = new ChatMemberId();
+        member1Id.setChatId(savedChat.getId());
+        member1Id.setUserId(currentUser.getId());
+        member1.setId(member1Id);
+        member1.setChat(savedChat);
         member1.setUser(currentUser);
         member1.setJoinedAt(Instant.now());
         member1.setStatus(true);
 
         ChatMember member2 = new ChatMember();
-        member2.setChat(chat);
+        ChatMemberId member2Id = new ChatMemberId();
+        member2Id.setChatId(savedChat.getId());
+        member2Id.setUserId(targetUser.getId());
+        member2.setId(member2Id);
+        member2.setChat(savedChat);
         member2.setUser(targetUser);
         member2.setJoinedAt(Instant.now());
         member2.setStatus(true);
 
-        chatMemberRepository.save(member1);
-        chatMemberRepository.save(member2);
+        chatMemberRepository.saveAndFlush(member1);
+        chatMemberRepository.saveAndFlush(member2);
+        System.out.println("Saved ChatMembers for Chat id: " + savedChat.getId());
 
-        return convertToDto(chat);
+        return convertToDto(savedChat);
     }
 
     @Transactional(readOnly = true)
