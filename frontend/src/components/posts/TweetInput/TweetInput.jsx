@@ -21,6 +21,7 @@ import {
   FaChevronLeft,
   FaChevronRight,
 } from "react-icons/fa";
+import { AiOutlineClose } from "react-icons/ai";
 import { AuthContext } from "../../../context/AuthContext";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -267,22 +268,46 @@ function TweetInput({ onPostSuccess }) {
       borderRadius: "8px",
     };
 
+    const renderRemoveButton = (index) => (
+      <button
+        type="button"
+        className="btn btn-dark btn-sm position-absolute top-0 end-0 m-2 p-1 rounded-circle shadow-sm"
+        style={{
+          zIndex: 2,
+          width: "24px",
+          height: "24px",
+          lineHeight: "12px",
+          textAlign: "center",
+          fontWeight: "bold",
+          fontSize: "16px",
+          opacity: 0.85,
+        }}
+        onClick={() => handleRemoveMedia(index)}
+        title="Xoá"
+      >
+        &times;
+      </button>
+    );
+
     if (mediaPreviews.length === 1) {
       return (
         <div style={containerStyle}>
-          <div className="position-relative">
-            <Button
-              variant="danger"
-              size="sm"
-              className="position-absolute top-0 end-0 m-1 p-1 rounded-circle"
-              onClick={() => handleRemoveMedia(0)}
-            >
-              ×
-            </Button>
+          <div className="position-relative d-inline-block">
+            {renderRemoveButton(0)}
             {mediaPreviews[0].includes("video") ? (
-              <video src={mediaPreviews[0]} controls style={mediaStyle} />
+              <video
+                src={mediaPreviews[0]}
+                controls
+                style={mediaStyle}
+                className="rounded"
+              />
             ) : (
-              <img src={mediaPreviews[0]} alt="preview" style={mediaStyle} />
+              <img
+                src={mediaPreviews[0]}
+                alt="preview"
+                style={mediaStyle}
+                className="rounded"
+              />
             )}
           </div>
         </div>
@@ -291,26 +316,24 @@ function TweetInput({ onPostSuccess }) {
 
     if (mediaPreviews.length === 2) {
       return (
-        <div
-          style={{
-            ...containerStyle,
-            gridTemplateColumns: "1fr 1fr",
-          }}
-        >
+        <div style={{ ...containerStyle, gridTemplateColumns: "1fr 1fr" }}>
           {mediaPreviews.map((url, i) => (
             <div key={i} className="position-relative">
-              <Button
-                variant="danger"
-                size="sm"
-                className="position-absolute top-0 end-0 m-1 p-1 rounded-circle"
-                onClick={() => handleRemoveMedia(i)}
-              >
-                ×
-              </Button>
+              {renderRemoveButton(i)}
               {url.includes("video") ? (
-                <video src={url} controls style={mediaStyle} />
+                <video
+                  src={url}
+                  controls
+                  style={mediaStyle}
+                  className="rounded"
+                />
               ) : (
-                <img src={url} alt="preview" style={mediaStyle} />
+                <img
+                  src={url}
+                  alt="preview"
+                  style={mediaStyle}
+                  className="rounded"
+                />
               )}
             </div>
           ))}
@@ -331,34 +354,40 @@ function TweetInput({ onPostSuccess }) {
             className="position-relative"
             style={{ gridColumn: "1 / 3", marginBottom: "4px" }}
           >
-            <Button
-              variant="danger"
-              size="sm"
-              className="position-absolute top-0 end-0 m-1 p-1 rounded-circle"
-              onClick={() => handleRemoveMedia(0)}
-            >
-              ×
-            </Button>
+            {renderRemoveButton(0)}
             {mediaPreviews[0].includes("video") ? (
-              <video src={mediaPreviews[0]} controls style={mediaStyle} />
+              <video
+                src={mediaPreviews[0]}
+                controls
+                style={mediaStyle}
+                className="rounded"
+              />
             ) : (
-              <img src={mediaPreviews[0]} alt="preview" style={mediaStyle} />
+              <img
+                src={mediaPreviews[0]}
+                alt="preview"
+                style={mediaStyle}
+                className="rounded"
+              />
             )}
           </div>
           {mediaPreviews.slice(1).map((url, i) => (
             <div key={i + 1} className="position-relative">
-              <Button
-                variant="danger"
-                size="sm"
-                className="position-absolute top-0 end-0 m-1 p-1 rounded-circle"
-                onClick={() => handleRemoveMedia(i + 1)}
-              >
-                ×
-              </Button>
+              {renderRemoveButton(i + 1)}
               {url.includes("video") ? (
-                <video src={url} controls style={mediaStyle} />
+                <video
+                  src={url}
+                  controls
+                  style={mediaStyle}
+                  className="rounded"
+                />
               ) : (
-                <img src={url} alt="preview" style={mediaStyle} />
+                <img
+                  src={url}
+                  alt="preview"
+                  style={mediaStyle}
+                  className="rounded"
+                />
               )}
             </div>
           ))}
@@ -366,7 +395,7 @@ function TweetInput({ onPostSuccess }) {
       );
     }
 
-    if (mediaPreviews.length === 4) {
+    if (mediaPreviews.length >= 5) {
       return (
         <div
           style={{
@@ -375,23 +404,57 @@ function TweetInput({ onPostSuccess }) {
             gridTemplateRows: "auto auto",
           }}
         >
-          {mediaPreviews.map((url, i) => (
+          {mediaPreviews.slice(0, 4).map((url, i) => (
             <div key={i} className="position-relative">
-              <Button
-                variant="danger"
-                size="sm"
-                className="position-absolute top-0 end-0 m-1 p-1 rounded-circle"
-                onClick={() => handleRemoveMedia(i)}
-              >
-                ×
-              </Button>
+              {renderRemoveButton(i)}
               {url.includes("video") ? (
-                <video src={url} controls style={mediaStyle} />
+                <video
+                  src={url}
+                  controls
+                  style={mediaStyle}
+                  className="rounded"
+                />
               ) : (
-                <img src={url} alt="preview" style={mediaStyle} />
+                <img
+                  src={url}
+                  alt="preview"
+                  style={mediaStyle}
+                  className="rounded"
+                />
               )}
             </div>
           ))}
+          {mediaPreviews.length > 4 && (
+            <div
+              className="position-relative"
+              style={{
+                gridColumn: "2 / 3",
+                gridRow: "2 / 3",
+                cursor: "pointer",
+              }}
+              onClick={() => handleOpenMediaModal(4)}
+            >
+              <img
+                src={mediaPreviews[4]}
+                alt="preview"
+                style={{ ...mediaStyle, opacity: 0.7 }}
+                className="rounded"
+              />
+              <div
+                style={{
+                  position: "absolute",
+                  top: "50%",
+                  left: "50%",
+                  transform: "translate(-50%, -50%)",
+                  color: "white",
+                  fontSize: "24px",
+                  fontWeight: "bold",
+                }}
+              >
+                <FaPlus /> +{mediaPreviews.length - 4}
+              </div>
+            </div>
+          )}
         </div>
       );
     }
@@ -601,10 +664,14 @@ function TweetInput({ onPostSuccess }) {
                     <Dropdown.Item onClick={() => handleStatusChange("public")}>
                       <FaGlobeAmericas className="me-2" /> Công khai
                     </Dropdown.Item>
-                    <Dropdown.Item onClick={() => handleStatusChange("friends")}>
+                    <Dropdown.Item
+                      onClick={() => handleStatusChange("friends")}
+                    >
                       <FaUserFriends className="me-2" /> Bạn bè
                     </Dropdown.Item>
-                    <Dropdown.Item onClick={() => handleStatusChange("only_me")}>
+                    <Dropdown.Item
+                      onClick={() => handleStatusChange("only_me")}
+                    >
                       <FaLock className="me-2" /> Chỉ mình tôi
                     </Dropdown.Item>
                     <Dropdown.Item onClick={() => handleStatusChange("custom")}>
