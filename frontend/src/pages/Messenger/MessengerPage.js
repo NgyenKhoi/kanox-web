@@ -52,7 +52,7 @@ function MessengerPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ participantId: parseInt(userId) }),
+        body: JSON.stringify({ participantId: userId }),
       });
 
       if (response.status === 401) {

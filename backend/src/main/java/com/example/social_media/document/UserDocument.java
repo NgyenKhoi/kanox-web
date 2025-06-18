@@ -9,7 +9,7 @@ import org.springframework.data.elasticsearch.annotations.FieldType;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class UserDocument {
     @Id
-    private String id;
+    private Integer id;
     private String username;
     @Field(type = FieldType.Text)
     private String displayName;
@@ -18,7 +18,7 @@ public class UserDocument {
 
     public UserDocument() {}
 
-    public UserDocument(String id, String username, String displayName, String bio, Short gender) {
+    public UserDocument(Integer id, String username, String displayName, String bio, Short gender) {
         this.id = id;
         this.username = username;
         this.displayName = displayName;
@@ -26,11 +26,11 @@ public class UserDocument {
         this.gender = gender;
     }
 
-    public String getId() {
+    public Integer getId() {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(Integer id) {
         this.id = id;
     }
 

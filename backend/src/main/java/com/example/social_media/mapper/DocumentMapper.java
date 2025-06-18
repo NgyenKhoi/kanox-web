@@ -14,7 +14,7 @@ public class DocumentMapper {
 
     public UserDocument toUserDocument(com.example.social_media.entity.User user) {
         return new UserDocument(
-                String.valueOf(user.getId()),
+                user.getId(),
                 user.getUsername(),
                 user.getDisplayName(),
                 user.getBio(),

@@ -3,7 +3,7 @@ package com.example.social_media.dto.user;
 import com.example.social_media.entity.User;
 
 public class UserDto {
-    private String id;
+    private Integer id;
     private String username;
     private String displayName;
     private Short gender;
@@ -11,7 +11,7 @@ public class UserDto {
 
     public UserDto() {}
 
-    public UserDto(String id, String username, String displayName, Short gender, String bio) {
+    public UserDto(Integer id, String username, String displayName, Short gender, String bio) {
         this.id = id;
         this.username = username;
         this.displayName = displayName;
@@ -20,14 +20,14 @@ public class UserDto {
     }
 
     public UserDto(com.example.social_media.entity.User user) {
-        this.id = String.valueOf(user.getId());
+        this.id = user.getId();
         this.username = user.getUsername();
         this.displayName = user.getDisplayName();
         this.gender = user.getGender();
         this.bio = user.getBio();
     }
 
-    public UserDto(String id, String username, String displayName) {
+    public UserDto(Integer id, String username, String displayName) {
         this.id = id;
         this.username = username;
         this.displayName = displayName;
@@ -35,11 +35,11 @@ public class UserDto {
 
     // Getters and setters
 
-    public String getId() {
+    public Integer getId() {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(Integer id) {
         this.id = id;
     }
 
