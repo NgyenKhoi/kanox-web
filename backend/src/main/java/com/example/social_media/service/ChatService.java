@@ -40,6 +40,9 @@ public class ChatService {
 
     @Transactional
     public ChatDto createChat(String username, Integer targetUserId) {
+        if (username == null || username.trim().isEmpty()) {
+            throw new SecurityException("Authentication required: No valid username provided");
+        }
         System.out.println("Starting createChat for username: " + username + ", targetUserId: " + targetUserId);
         User currentUser = userDetailsService.getUserByUsername(username);
         User targetUser = userRepository.findById(targetUserId)
@@ -49,22 +52,26 @@ public class ChatService {
         Chat chat = new Chat();
         chat.setIsGroup(false);
         String chatName = currentUser.getUsername() + " - " + targetUser.getUsername();
+        if (chatName == null || chatName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Chat name cannot be null or empty");
+        }
         if (chatName.length() > 100) chatName = chatName.substring(0, 100);
         chat.setName(chatName);
         chat.setCreatedAt(Instant.now());
         chat.setStatus(true);
+        System.out.println("Chat object before save: " + chat);
 
         Chat savedChat;
         try {
-            savedChat = chatRepository.save(chat); // Lưu mà không flush ngay
-            entityManager.flush(); // Flush thủ công để đảm bảo lệnh INSERT được thực thi
-            savedChat = entityManager.find(Chat.class, savedChat.getId()); // Tải lại để lấy id
-            System.out.println("Executed save and flush for Chat: " + savedChat + ", id: " + savedChat.getId());
+            savedChat = chatRepository.save(chat);
+            entityManager.flush(); // Đảm bảo flush
+            savedChat = entityManager.find(Chat.class, savedChat.getId()); // Tải lại để xác nhận id
+            System.out.println("Saved Chat: " + savedChat + ", id: " + savedChat.getId());
             if (savedChat.getId() == null) {
                 throw new IllegalStateException("Chat ID is null after flush. Possible database issue.");
             }
         } catch (Exception e) {
-            System.err.println("Error during saveAndFlush Chat: " + e.getMessage());
+            System.err.println("Error during save and flush Chat: " + e.getMessage());
             throw new RuntimeException("Failed to save Chat due to: " + e.getMessage(), e);
         }
 
