@@ -78,6 +78,8 @@ public class URLConfig {
     public static final String BLOCK_USER = "/{blockedUserId}";
     public static final String UNBLOCK_USER = "/{blockedUserId}";
     public static final String CHECK_BLOCK_STATUS = "{blockedUserId}/status";
+    // Comment URLs
+    public static final String COMMENT_BASE = "/api/comments";
     // Media URLs
     public static final String MEDIA_BASE = "/api/media";
     public static final String MEDIA_UPLOAD = "/upload";

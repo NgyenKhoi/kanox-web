@@ -31,6 +31,20 @@ import EditPostModal from "../TweetInput/EditPostModal";
 import useMedia from "../../../hooks/useMedia";
 import { toast } from "react-toastify";
 
+// Thêm CSS inline hoặc có thể đưa vào file CSS riêng
+const imageContainerStyles = {
+  overflow: "hidden",
+  borderRadius: "12px",
+  marginBottom: "8px",
+};
+
+const imageStyles = {
+  width: "100%",
+  height: "100%",
+  objectFit: "cover",
+  display: "block",
+};
+
 function TweetCard({ tweet, onPostUpdate }) {
   const { user } = useContext(AuthContext);
   const {
@@ -141,6 +155,130 @@ function TweetCard({ tweet, onPostUpdate }) {
     }
   };
 
+  // Hàm render ảnh với bố cục giống Facebook
+  const renderImages = (images) => {
+    if (!images || images.length === 0) return null;
+
+    const imageCount = images.length;
+
+    if (imageCount === 1) {
+      return (
+        <div style={imageContainerStyles}>
+          <BootstrapImage
+            src={images[0]}
+            style={{ ...imageStyles, maxHeight: "500px" }}
+            fluid
+            rounded
+          />
+        </div>
+      );
+    }
+
+    if (imageCount === 2) {
+      return (
+        <Row style={imageContainerStyles} className="g-2">
+          {images.map((url, idx) => (
+            <Col key={idx} xs={6}>
+              <BootstrapImage
+                src={url}
+                style={{ ...imageStyles, height: "300px" }}
+                fluid
+                rounded
+              />
+            </Col>
+          ))}
+        </Row>
+      );
+    }
+
+    if (imageCount === 3) {
+      return (
+        <Row style={imageContainerStyles} className="g-2">
+          <Col xs={6}>
+            <BootstrapImage
+              src={images[0]}
+              style={{ ...imageStyles, height: "400px" }}
+              fluid
+              rounded
+            />
+          </Col>
+          <Col xs={6}>
+            <div className="d-flex flex-column h-100 g-2">
+              <BootstrapImage
+                src={images[1]}
+                style={{ ...imageStyles, height: "198px", marginBottom: "4px" }}
+                fluid
+                rounded
+              />
+              <BootstrapImage
+                src={images[2]}
+                style={{ ...imageStyles, height: "198px" }}
+                fluid
+                rounded
+              />
+            </div>
+          </Col>
+        </Row>
+      );
+    }
+
+    if (imageCount === 4) {
+      return (
+        <Row style={imageContainerStyles} className="g-2">
+          {images.map((url, idx) => (
+            <Col key={idx} xs={6}>
+              <BootstrapImage
+                src={url}
+                style={{ ...imageStyles, height: "200px" }}
+                fluid
+                rounded
+              />
+            </Col>
+          ))}
+        </Row>
+      );
+    }
+
+    // Trường hợp 5 ảnh trở lên
+    return (
+      <Row style={imageContainerStyles} className="g-2">
+        {images.slice(0, 4).map((url, idx) => (
+          <Col key={idx} xs={6}>
+            <div style={{ position: "relative" }}>
+              <BootstrapImage
+                src={url}
+                style={{ ...imageStyles, height: "200px" }}
+                fluid
+                rounded
+              />
+              {idx === 3 && images.length > 4 && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    height: "100%",
+                    background: "rgba(0, 0, 0, 0.5)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "white",
+                    fontSize: "24px",
+                    fontWeight: "bold",
+                    borderRadius: "12px",
+                  }}
+                >
+                  +{images.length - 4}
+                </div>
+              )}
+            </div>
+          </Col>
+        ))}
+      </Row>
+    );
+  };
+
   return (
     <Card className="mb-3 rounded-4 shadow-sm border-0">
       <Card.Body className="d-flex p-3">
@@ -248,21 +386,8 @@ function TweetCard({ tweet, onPostUpdate }) {
             </div>
           )}
 
-          {/* Images */}
-          {imageUrls?.length > 0 && (
-            <Row className="mb-2">
-              {imageUrls.map((url, idx) => (
-                <Col key={idx} xs={6} md={4} className="mb-2">
-                  <BootstrapImage
-                    src={url}
-                    fluid
-                    rounded
-                    style={{ objectFit: "cover", maxHeight: "300px" }}
-                  />
-                </Col>
-              ))}
-            </Row>
-          )}
+          {/* Hiển thị ảnh với bố cục mới */}
+          {renderImages(imageUrls)}
 
           {/* Videos */}
           {videoUrls?.length > 0 &&
