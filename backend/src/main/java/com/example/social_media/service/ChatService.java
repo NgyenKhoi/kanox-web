@@ -47,7 +47,7 @@ public class ChatService {
         User currentUser = userDetailsService.getUserByUsername(username);
         User targetUser = userRepository.findById(targetUserId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + targetUserId));
-        System.out.println("Found currentUser: " + currentUser + ", targetUser: " + targetUser);
+        System.out.println("Found currentUser: " + currentUser.getDisplayName() + ", targetUser: " + targetUser.getDisplayName());
 
         Chat chat = new Chat();
         chat.setIsGroup(false);
@@ -60,6 +60,7 @@ public class ChatService {
         chat.setCreatedAt(Instant.now());
         chat.setStatus(true);
         System.out.println("Chat object before save: " + chat);
+        System.out.println("Chat name: " + chatName);
 
         Chat savedChat;
         try {
