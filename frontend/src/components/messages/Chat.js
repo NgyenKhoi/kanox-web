@@ -7,7 +7,8 @@ import {
   Col,
   Dropdown,
   Modal,
-} from "react-bootstrap";
+  InputGroup,
+} from "react-bootstrap"; // Thêm InputGroup
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import SockJS from "sockjs-client";
@@ -21,6 +22,7 @@ import {
   FaBell,
   FaTrash,
   FaEllipsisH,
+  FaPaperPlane, // Thêm FaPaperPlane
 } from "react-icons/fa";
 
 const Chat = ({ chatId }) => {
@@ -34,12 +36,14 @@ const Chat = ({ chatId }) => {
   const [isVideoOff, setIsVideoOff] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [showCallModal, setShowCallModal] = useState(false); // Thêm state cho modal cuộc gọi
+  const [showCallModal, setShowCallModal] = useState(false);
   const [messageToDelete, setMessageToDelete] = useState(null);
   const videoRef = useRef(null);
   const remoteVideoRef = useRef(null);
+  const chatContainerRef = useRef(null); // Thêm chatContainerRef
 
   useEffect(() => {
+    console.log("Token:", token, "User:", user);
     if (!token || !user) {
       toast.error("Vui lòng đăng nhập để sử dụng chat.");
       return;
@@ -49,29 +53,26 @@ const Chat = ({ chatId }) => {
     const client = new Client({
       webSocketFactory: () => socket,
       connectHeaders: { Authorization: `Bearer ${token}` },
-      debug: (str) => console.log(str),
+      debug: (str) => console.log("STOMP Debug:", str),
       reconnectDelay: 5000,
       heartbeatIncoming: 4000,
       heartbeatOutgoing: 4000,
     });
 
     client.onConnect = () => {
-      // Đăng ký nhận tin nhắn
+      console.log("WebSocket connected for chatId:", chatId);
       client.subscribe(`/topic/chat/${chatId}`, (msg) => {
         const message = JSON.parse(msg.body);
         setMessages((prev) => [...prev, message]);
         setIsTyping(false);
       });
-
-      // Đăng ký nhận trạng thái đang nhập
       client.subscribe(`/topic/typing/${chatId}`, (typingMsg) => {
         const data = JSON.parse(typingMsg.body);
         if (data.userId !== user?.id) setIsTyping(data.isTyping);
       });
-
-      // Đăng ký nhận tín hiệu cuộc gọi
       client.subscribe(`/topic/call/${chatId}`, (signal) => {
         const data = JSON.parse(signal.body);
+        console.log("Received call signal:", data);
         if (data.type === "offer" && data.userId !== user?.id) {
           setShowCallModal(true);
           handleOffer(data);
@@ -83,9 +84,11 @@ const Chat = ({ chatId }) => {
           leaveCall();
         }
       });
-
       setStompClient(client);
     };
+    client.onWebSocketError = (error) => console.error("WebSocket error:", error);
+    client.onStompError = (frame) => console.error("STOMP error:", frame.body);
+    client.onDisconnect = () => console.log("WebSocket disconnected, retrying...");
 
     client.activate();
 
@@ -133,24 +136,29 @@ const Chat = ({ chatId }) => {
       if (stream) stream.getTracks().forEach((track) => track.stop());
       if (peer) peer.destroy();
     };
-  }, [chatId, user, token, peer]); // Thêm peer vào dependency để tránh warning
+  }, [chatId, user, token, peer]);
 
   const sendMessage = () => {
-    if (!message.trim() || !stompClient || !user) return;
-    const msg = {
-      chatId,
-      senderId: user.id,
-      content: message,
-      typeId: 1,
-    };
+    if (!message.trim() || !stompClient || !stompClient.connected || !user) {
+      console.log("Cannot send: message empty, stompClient not connected, or user null");
+      toast.error("Không thể gửi tin nhắn. Vui lòng kiểm tra kết nối.");
+      return;
+    }
+    const msg = { chatId, senderId: user.id, content: message, typeId: 1 };
+    console.log("Sending message:", msg);
     stompClient.publish({
       destination: "/app/sendMessage",
       body: JSON.stringify(msg),
-    });
-    setMessage("");
-    stompClient.publish({
-      destination: "/app/typing",
-      body: JSON.stringify({ chatId, userId: user.id, isTyping: false }),
+    }).then(() => {
+      console.log("Message sent successfully");
+      setMessage("");
+      stompClient.publish({
+        destination: "/app/typing",
+        body: JSON.stringify({ chatId, userId: user.id, isTyping: false }),
+      });
+    }).catch((err) => {
+      console.error("Error sending message:", err);
+      toast.error("Lỗi khi gửi tin nhắn: " + err.message);
     });
   };
 
@@ -168,24 +176,25 @@ const Chat = ({ chatId }) => {
       toast.error("Không thể bắt đầu cuộc gọi: Không có luồng video.");
       return;
     }
+    console.log("Starting call for chatId:", chatId);
     fetch(`${process.env.REACT_APP_API_URL}/call/start/${chatId}`, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     })
-        .then((response) => response.json())
+        .then((response) => {
+          if (!response.ok) throw new Error("Server error: " + response.statusText);
+          return response.json();
+        })
         .then((data) => {
+          console.log("Call session started:", data);
           const newPeer = new Peer({
             initiator: true,
             trickle: false,
             stream,
-            config: {
-              iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
-            },
+            config: { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] },
           });
           newPeer.on("signal", (signalData) => {
+            console.log("Sending offer signal:", signalData);
             stompClient.publish({
               destination: "/app/call/offer",
               body: JSON.stringify({
@@ -194,13 +203,14 @@ const Chat = ({ chatId }) => {
                 sdp: signalData,
                 userId: user.id,
               }),
-            });
+            }).then(() => console.log("Offer sent"))
+                .catch((err) => console.error("Error sending offer:", err));
           });
           newPeer.on("stream", (remoteStream) => {
-            if (remoteVideoRef.current) {
-              remoteVideoRef.current.srcObject = remoteStream;
-            }
+            if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStream;
           });
+          newPeer.on("error", (err) => console.error("Peer error:", err));
+          newPeer.on("connect", () => console.log("Peer connected"));
           setPeer(newPeer);
         })
         .catch((err) => toast.error("Lỗi khi bắt đầu cuộc gọi: " + err.message));
@@ -234,15 +244,15 @@ const Chat = ({ chatId }) => {
       toast.error("Không thể nhận cuộc gọi: Không có luồng video.");
       return;
     }
+    console.log("Handling offer from userId:", data.userId);
     const newPeer = new Peer({
       initiator: false,
       trickle: false,
       stream,
-      config: {
-        iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
-      },
+      config: { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] },
     });
     newPeer.on("signal", (signalData) => {
+      console.log("Sending answer signal:", signalData);
       stompClient.publish({
         destination: "/app/call/answer",
         body: JSON.stringify({
@@ -254,10 +264,9 @@ const Chat = ({ chatId }) => {
       });
     });
     newPeer.on("stream", (remoteStream) => {
-      if (remoteVideoRef.current) {
-        remoteVideoRef.current.srcObject = remoteStream;
-      }
+      if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStream;
     });
+    newPeer.on("error", (err) => console.error("Peer error:", err));
     newPeer.signal(data.sdp);
     setPeer(newPeer);
   };
@@ -304,194 +313,122 @@ const Chat = ({ chatId }) => {
   };
 
   return (
-      <>
-        <ToastContainer />
-        <Container
-            fluid
-            className="p-3 p-md-4"
-            style={{ height: "100vh", backgroundColor: "#f8f9fa" }}
-        >
-          <h3 className="fw-bold mb-3 mb-md-4">Phòng Chat</h3>
-          <div
-              className="flex-1 overflow-y-auto mb-3 mb-md-4"
-              style={{
-                height: "calc(100vh - 300px)",
-                border: "1px solid #ddd",
-                padding: "10px",
-                backgroundColor: "#fff",
-                borderRadius: "10px",
-              }}
-          >
-            {messages.map((msg, index) => (
-                <div
-                    key={index}
-                    className={`mb-2 ${
-                        msg.senderId === user?.id ? "text-end" : "text-start"
-                    }`}
-                >
-                  <div className="d-flex align-items-start flex-column flex-md-row">
-                    {msg.senderId !== user?.id && (
-                        <span className="text-muted small me-0 me-md-2 mb-1 mb-md-0">
-                    {msg.sender?.username || "Người dùng"}
-                  </span>
-                    )}
-                    <div className="d-flex align-items-center">
-                  <span
-                      className="p-2 rounded-3 d-inline-block"
-                      style={{
-                        backgroundColor:
-                            msg.senderId === user?.id ? "#007bff" : "#e9ecef",
-                        color: msg.senderId === user?.id ? "#fff" : "#000",
-                        maxWidth: "100%",
-                        wordBreak: "break-word",
-                      }}
+      <div className="d-flex flex-column h-100 bg-light">
+        <div className="bg-white border-bottom p-3 d-flex align-items-center">
+          {/* Sửa lỗi 'chats' bằng cách sử dụng một prop hoặc state giả định */}
+          <img
+              src={user?.avatar || "https://via.placeholder.com/40"}
+              alt="Avatar"
+              className="rounded-circle me-2"
+              style={{ width: "40px", height: "40px" }}
+          />
+          <h5 className="mb-0 fw-bold">Chat {chatId}</h5> {/* Giải pháp tạm thời */}
+        </div>
+        <div className="flex-grow-1 overflow-y-auto p-3 bg-white" ref={chatContainerRef}>
+          {messages.map((msg, index) => (
+              <div
+                  key={index}
+                  className={`d-flex mb-2 ${
+                      msg.senderId === user?.id ? "justify-content-end" : "justify-content-start"
+                  }`}
+              >
+                {msg.senderId !== user?.id && (
+                    <img
+                        src={msg.sender?.avatar || "https://via.placeholder.com/40"}
+                        alt="Avatar"
+                        className="rounded-circle me-2"
+                        style={{ width: "40px", height: "40px" }}
+                    />
+                )}
+                <div>
+                  {msg.senderId !== user?.id && (
+                      <small className="text-muted d-block">{msg.sender?.username}</small>
+                  )}
+                  <div
+                      className={`p-2 rounded-lg ${
+                          msg.senderId === user?.id ? "bg-primary text-white" : "bg-light"
+                      }`}
+                      style={{ maxWidth: "70%", borderRadius: "10px" }}
                   >
-                    {msg.content}
-                  </span>
-                      {msg.senderId === user?.id && (
-                          <Dropdown className="d-inline ms-2">
-                            <Dropdown.Toggle variant="link" className="p-0 text-muted">
-                              <FaEllipsisH />
-                            </Dropdown.Toggle>
-                            <Dropdown.Menu>
-                              <Dropdown.Item onClick={() => handleDeleteMessage(msg.id)}>
-                                <FaTrash className="me-2" /> Xóa
-                              </Dropdown.Item>
-                            </Dropdown.Menu>
-                          </Dropdown>
-                      )}
-                    </div>
+                    {msg.content === "Message deleted" ? (
+                        <i className="text-muted">Tin nhắn đã bị xóa</i>
+                    ) : (
+                        msg.content
+                    )}
                   </div>
-                  {isTyping &&
-                      msg.senderId !== user?.id &&
-                      index === messages.length - 1 && (
-                          <small className="text-muted">Đang nhập...</small>
-                      )}
+                  <small className="text-muted">
+                    {new Date(msg.createdAt).toLocaleTimeString()}
+                  </small>
                 </div>
-            ))}
-          </div>
-          <Form
-              onSubmit={(e) => {
-                e.preventDefault();
-                sendMessage();
-              }}
-          >
-            <Form.Group className="mb-3 d-flex align-items-center flex-column flex-md-row">
-              <Form.Control
-                  type="text"
-                  placeholder="Nhập tin nhắn..."
-                  value={message}
-                  onChange={(e) => {
-                    setMessage(e.target.value);
-                    sendTyping();
-                  }}
-                  className="py-2 px-3 rounded-3 mb-2 mb-md-0 me-md-2 flex-grow-1"
-                  style={{ fontSize: "1.1rem" }}
+              </div>
+          ))}
+          {isTyping && <small className="text-muted">Đang nhập...</small>}
+        </div>
+        <div className="bg-white p-3 border-top">
+          <InputGroup>
+            <Button variant="outline-secondary" className="rounded-circle p-2">
+              <FaPaperclip />
+            </Button>
+            <Form.Control
+                type="text"
+                placeholder="Nhập tin nhắn..."
+                value={message}
+                onChange={(e) => {
+                  setMessage(e.target.value);
+                  sendTyping();
+                }}
+                className="border-0"
+            />
+            <Button variant="primary" onClick={sendMessage} className="rounded-circle p-2">
+              <FaPaperPlane />
+            </Button>
+          </InputGroup>
+        </div>
+        <div className="p-3 bg-light">
+          <Row>
+            <Col xs={12} md={6} className="mb-3">
+              <video
+                  ref={videoRef}
+                  autoPlay
+                  muted
+                  style={{ width: "100%", borderRadius: "10px", border: "1px solid #ddd" }}
               />
-              <div className="d-flex">
+              <div className="d-flex justify-content-center mt-2">
                 <Button
-                    type="button"
-                    variant="outline-secondary"
+                    variant={isMuted ? "danger" : "outline-danger"}
                     className="rounded-circle p-2 me-2"
-                    onClick={sendFile}
+                    onClick={toggleMute}
                 >
-                  <FaPaperclip size={18} />
+                  <FaMicrophoneSlash />
                 </Button>
                 <Button
-                    type="submit"
-                    variant="dark"
-                    className="py-2 rounded-pill fw-bold px-4"
-                    style={{ fontSize: "1.2rem" }}
+                    variant={isVideoOff ? "danger" : "outline-danger"}
+                    className="rounded-circle p-2"
+                    onClick={toggleVideo}
                 >
-                  Gửi
+                  <FaVideoSlash />
                 </Button>
               </div>
-            </Form.Group>
-          </Form>
-          <div className="mt-3 mt-md-4">
-            <div className="d-flex justify-content-between mb-3 flex-column flex-md-row">
-              <Button
-                  onClick={startCall}
-                  variant="success"
-                  className="py-2 rounded-pill fw-bold mb-2 mb-md-0 me-md-2"
-                  style={{ fontSize: "1.1rem" }}
-              >
-                Bắt đầu gọi video
-              </Button>
-              <Dropdown>
-                <Dropdown.Toggle
-                    variant="outline-secondary"
-                    className="rounded-pill py-2 px-3"
-                >
-                  <FaBell /> Thông báo
-                </Dropdown.Toggle>
-                <Dropdown.Menu>
-                  <Dropdown.Item onClick={toggleNotifications}>
-                    {localStorage.getItem("chatNotifications") === "on"
-                        ? "Tắt thông báo"
-                        : "Bật thông báo"}
-                  </Dropdown.Item>
-                </Dropdown.Menu>
-              </Dropdown>
-            </div>
-            <Row>
-              <Col xs={12} md={6} className="mb-3">
-                <video
-                    ref={videoRef}
-                    autoPlay
-                    muted
-                    style={{
-                      width: "100%",
-                      borderRadius: "10px",
-                      border: "1px solid #ddd",
-                    }}
-                />
-                <div className="d-flex justify-content-center mt-2">
-                  <Button
-                      variant={isMuted ? "danger" : "outline-danger"}
-                      className="rounded-circle p-2 me-2"
-                      onClick={toggleMute}
-                  >
-                    <FaMicrophoneSlash size={18} />
-                  </Button>
-                  <Button
-                      variant={isVideoOff ? "danger" : "outline-danger"}
-                      className="rounded-circle p-2"
-                      onClick={toggleVideo}
-                  >
-                    <FaVideoSlash size={18} />
-                  </Button>
-                </div>
-              </Col>
-              <Col xs={12} md={6}>
-                <video
-                    ref={remoteVideoRef}
-                    autoPlay
-                    style={{
-                      width: "100%",
-                      borderRadius: "10px",
-                      border: "1px solid #ddd",
-                    }}
-                />
-                <div className="d-flex justify-content-center mt-2">
-                  <Button
-                      variant="danger"
-                      className="py-2 rounded-pill fw-bold"
-                      onClick={leaveCall}
-                  >
-                    Thoát cuộc gọi
-                  </Button>
-                </div>
-              </Col>
-            </Row>
-          </div>
-        </Container>
+            </Col>
+            <Col xs={12} md={6}>
+              <video
+                  ref={remoteVideoRef}
+                  autoPlay
+                  style={{ width: "100%", borderRadius: "10px", border: "1px solid #ddd" }}
+              />
+              <div className="d-flex justify-content-center mt-2">
+                <Button variant="danger" className="py-2 rounded-pill" onClick={leaveCall}>
+                  Thoát cuộc gọi
+                </Button>
+              </div>
+            </Col>
+          </Row>
+          <Button variant="success" onClick={startCall} className="w-100 mt-2 rounded-pill">
+            Bắt đầu gọi video
+          </Button>
+        </div>
 
-        <Modal
-            show={showDeleteModal}
-            onHide={() => setShowDeleteModal(false)}
-            centered
-        >
+        <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered>
           <Modal.Header closeButton>
             <Modal.Title>Xác nhận xóa tin nhắn</Modal.Title>
           </Modal.Header>
@@ -505,11 +442,7 @@ const Chat = ({ chatId }) => {
             </Button>
           </Modal.Footer>
         </Modal>
-        <Modal
-            show={showCallModal}
-            onHide={() => setShowCallModal(false)}
-            centered
-        >
+        <Modal show={showCallModal} onHide={() => setShowCallModal(false)} centered>
           <Modal.Header closeButton>
             <Modal.Title>Cuộc gọi đến</Modal.Title>
           </Modal.Header>
@@ -523,7 +456,7 @@ const Chat = ({ chatId }) => {
             </Button>
           </Modal.Footer>
         </Modal>
-      </>
+      </div>
   );
 };
 

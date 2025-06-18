@@ -101,13 +101,11 @@ public class PrivacyService {
                 logger.debug("Public setting, granting access");
                 return true;
             case "friends":
-                boolean isFriend = friendshipRepository.findByUserAndFriendAndStatus(viewer, owner, true)
-                        .filter(f -> "accepted".equals(f.getFriendshipStatus()))
-                        .isPresent() ||
-                        friendshipRepository.findByUserAndFriendAndStatus(owner, viewer, true)
-                                .filter(f -> "accepted".equals(f.getFriendshipStatus()))
-                                .isPresent();
-                logger.debug("Friends setting, isFriend: {}", isFriend);
+                boolean isFriend = friendshipRepository.findByUserIdAndFriendIdAndFriendshipStatusAndStatus(
+                        viewer.getId(), owner.getId(), "accepted", true).isPresent() ||
+                        friendshipRepository.findByUserIdAndFriendIdAndFriendshipStatusAndStatus(
+                                owner.getId(), viewer.getId(), "accepted", true).isPresent();
+                logger.debug("Friends setting, viewerId: {}, ownerId: {}, isFriend: {}", viewerId, ownerId, isFriend);
                 return isFriend;
             case "custom":
                 if (contentPrivacy != null && contentPrivacy.getCustomList() != null) {

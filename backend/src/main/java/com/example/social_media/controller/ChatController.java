@@ -34,6 +34,7 @@ public class ChatController {
 
     @MessageMapping(URLConfig.SEND_MESSAGES)
     public void sendMessage(@Payload MessageDto messageDto) {
+        System.out.println("Processing message: " + messageDto.getContent() + " for chatId: " + messageDto.getChatId());
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         messageService.sendMessage(messageDto, username);
     }

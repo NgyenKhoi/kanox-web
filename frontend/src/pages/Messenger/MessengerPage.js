@@ -155,140 +155,69 @@ function MessengerPage() {
   });
 
   return (
-      <>
-        <ToastContainer />
-        <div className="d-flex min-vh-100 bg-light">
-          <div className="d-none d-lg-block">
-            <SidebarLeft
-                onShowCreatePost={localOnShowCreatePost}
-                isDarkMode={localIsDarkMode}
-                onToggleDarkMode={localOnToggleDarkMode}
-            />
+      <div className="d-flex h-100 bg-light">
+        <SidebarLeft onShowCreatePost={localOnShowCreatePost} isDarkMode={localIsDarkMode} onToggleDarkMode={localOnToggleDarkMode} />
+        <div className="flex-grow-1 d-flex flex-column">
+          <div className="bg-white border-bottom p-3">
+            <h5 className="fw-bold mb-0">Tin nhắn</h5>
+            <InputGroup className="mt-3">
+              <InputGroup.Text><FaSearch /></InputGroup.Text>
+              <Form.Control value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Tìm kiếm" />
+            </InputGroup>
           </div>
-
-          <div className="d-flex flex-column flex-grow-1 border-start border-end bg-white">
-            <div
-                className="sticky-top bg-white border-bottom py-2"
-                style={{ zIndex: 1020 }}
-            >
-              <Container fluid>
-                <Row className="align-items-center">
-                  <Col xs={6} className="text-start">
-                    <h5 className="fw-bold mb-0">Tin nhắn</h5>
-                  </Col>
-                  <Col xs={6} className="text-end">
-                    <Button variant="link" className="text-dark p-0">
-                      <FaCog />
-                    </Button>
-                  </Col>
-                </Row>
-                <InputGroup className="mt-3">
-                  <InputGroup.Text className="bg-light border-0 rounded-pill ps-3">
-                    <FaSearch className="text-muted" />
-                  </InputGroup.Text>
-                  <Form.Control
-                      type="text"
-                      placeholder="Tìm kiếm"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="bg-light border-0 rounded-pill py-2"
-                      style={{ height: "auto" }}
-                  />
-                </InputGroup>
-              </Container>
-            </div>
-
-            <div className="d-flex flex-grow-1">
-              <div
-                  className="border-end overflow-auto"
-                  style={{ flexBasis: "350px", flexShrink: 0 }}
-              >
-                {loading ? (
-                    <div className="d-flex justify-content-center py-4">
-                      <Spinner animation="border" role="status" />
-                    </div>
-                ) : (
-                    <ListGroup variant="flush">
-                      {filteredChats.map((chat) => (
-                          <ListGroup.Item
-                              key={chat.id}
-                              action
-                              active={selectedChatId === chat.id}
-                              onClick={() => {
-                                setSelectedChatId(chat.id);
-                                setUnreadChats((prev) => {
-                                  const newSet = new Set(prev);
-                                  newSet.delete(chat.id);
-                                  return newSet;
-                                });
-                              }}
-                              className={`d-flex align-items-center p-3 border-bottom hover-bg-light ${
-                                  unreadChats.has(chat.id) ? "fw-bold" : ""
-                              }`}
-                          >
-                            <div className="flex-grow-1">
-                              <p className="fw-bold mb-0">{chat.name}</p>
-                              <p className="text-muted small mb-0">{chat.lastMessage}</p>
-                            </div>
-                          </ListGroup.Item>
-                      ))}
-                      {filteredChats.length === 0 && (
-                          <p className="text-muted text-center p-4">
-                            Không có cuộc trò chuyện nào.
-                          </p>
-                      )}
-                    </ListGroup>
-                )}
-                <div className="p-3 border-top text-center">
-                  <Button
-                      variant="link"
-                      className="text-primary fw-bold"
-                      onClick={handleOpenUserSelectionModal}
-                  >
-                    <FaPenSquare className="me-2" /> Tin nhắn mới
-                  </Button>
-                </div>
-              </div>
-
-              <div className="flex-grow-1 d-flex flex-column">
-                {selectedChatId ? (
-                    <Chat chatId={selectedChatId} />
-                ) : (
-                    <div className="d-flex flex-column justify-content-center align-items-center p-3 flex-grow-1">
-                      <FaEnvelope
-                          className="text-muted mb-3"
-                          style={{ fontSize: "5rem" }}
-                      />
-                      <h4 className="fw-bold mb-2">Tin nhắn của bạn</h4>
-                      <p className="text-muted text-center mb-4">
-                        Chọn một người để hiển thị cuộc trò chuyện của họ hoặc bắt đầu một cuộc trò chuyện mới.
-                      </p>
-                      <Button
-                          variant="primary"
-                          className="rounded-pill px-4 py-2"
-                          onClick={handleOpenUserSelectionModal}
-                      >
-                        Tin nhắn mới
-                      </Button>
-                    </div>
-                )}
+          <div className="d-flex flex-grow-1">
+            <div className="border-end" style={{ width: "350px" }}>
+              {loading ? (
+                  <div className="d-flex justify-content-center py-4"><Spinner animation="border" /></div>
+              ) : (
+                  <ListGroup variant="flush">
+                    {filteredChats.map((chat) => (
+                        <ListGroup.Item
+                            key={chat.id}
+                            action
+                            active={selectedChatId === chat.id}
+                            onClick={() => setSelectedChatId(chat.id)}
+                            className={`d-flex align-items-center p-3 hover-bg-light ${
+                                unreadChats.has(chat.id) ? "fw-bold" : ""
+                            }`}
+                        >
+                          <img
+                              src="https://via.placeholder.com/40"
+                              alt="Avatar"
+                              className="rounded-circle me-2"
+                              style={{ width: "40px", height: "40px" }}
+                          />
+                          <div>
+                            <p className="fw-bold mb-0">{chat.name}</p>
+                            <p className="text-muted small mb-0">{chat.lastMessage}</p>
+                          </div>
+                        </ListGroup.Item>
+                    ))}
+                  </ListGroup>
+              )}
+              <div className="p-3 border-top text-center">
+                <Button
+                    variant="link"
+                    className="text-primary fw-bold"
+                    onClick={handleOpenUserSelectionModal}
+                >
+                  <FaPenSquare /> Tin nhắn mới
+                </Button>
               </div>
             </div>
+            <div className="flex-grow-1">{selectedChatId ? <Chat chatId={selectedChatId} /> : <div className="d-flex justify-content-center align-items-center h-100"><p>Chọn cuộc trò chuyện</p></div>}</div>
           </div>
-
-          <div className="d-none d-lg-block" style={{ width: "350px" }} />
-
-          <UserSelectionModal
-              show={showUserSelectionModal}
-              handleClose={handleCloseUserSelectionModal}
-              searchKeyword={searchKeyword}
-              setSearchKeyword={setSearchKeyword}
-              searchResults={searchResults}
-              isSearching={isSearching}
-              handleSelectUser={handleSelectUser} // Truyền hàm tạo chat
-          />
         </div>
-      </>
+        <UserSelectionModal
+            show={showUserSelectionModal}
+            handleClose={handleCloseUserSelectionModal}
+            searchKeyword={searchKeyword}
+            setSearchKeyword={setSearchKeyword}
+            searchResults={searchResults}
+            isSearching={isSearching}
+            handleSelectUser={handleSelectUser}
+        />
+      </div>
   );
 }
 

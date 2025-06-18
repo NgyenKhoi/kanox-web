@@ -35,18 +35,20 @@ public class CallSessionService {
 
     @Transactional
     public CallSession startCall(Integer chatId, String username) {
+        System.out.println("Starting call for chatId: " + chatId + ", username: " + username);
         chatService.checkChatAccess(chatId, username);
         Chat chat = chatRepository.findById(chatId)
                 .orElseThrow(() -> new IllegalArgumentException("Chat not found"));
         User host = userRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
-
         CallSession callSession = new CallSession();
         callSession.setChat(chat);
         callSession.setHost(host);
         callSession.setStartTime(Instant.now());
         callSession.setStatus(true);
-        return callSessionRepository.save(callSession);
+        CallSession savedSession = callSessionRepository.save(callSession);
+        System.out.println("Call session created with id: " + savedSession.getId());
+        return savedSession;
     }
 
     @Transactional
@@ -64,7 +66,9 @@ public class CallSessionService {
 
     @Transactional
     public void handleSignal(SignalMessageDto signalMessage, String username) {
+        System.out.println("Handling signal: " + signalMessage.getType() + " for chatId: " + signalMessage.getChatId());
         chatService.checkChatAccess(signalMessage.getChatId(), username);
         messagingTemplate.convertAndSend("/topic/call/" + signalMessage.getChatId(), signalMessage);
+        System.out.println("Signal sent to /topic/call/" + signalMessage.getChatId());
     }
 }

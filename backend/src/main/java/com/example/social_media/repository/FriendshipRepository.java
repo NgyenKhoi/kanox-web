@@ -15,8 +15,6 @@ import java.util.Optional;
 public interface FriendshipRepository extends JpaRepository<Friendship, FriendshipId> {
     Optional<Friendship> findByUserAndFriendAndStatus(User user, User friend, Boolean status);
     Optional<Friendship> findByUserAndFriend(User user, User friend);
-    List<Friendship> findByUserAndFriendshipStatusAndStatus(User user, String friendshipStatus, Boolean status);
-    List<Friendship> findByFriendAndFriendshipStatusAndStatus(User friend, String friendshipStatus, Boolean status);
     boolean existsByUserAndFriendAndStatus(User user, User friend, Boolean status);
 
     @Query("SELECT f FROM Friendship f WHERE (f.user = :user OR f.friend = :user) " +
@@ -33,4 +31,7 @@ public interface FriendshipRepository extends JpaRepository<Friendship, Friendsh
             @Param("friendshipStatus") String friendshipStatus,
             @Param("status") Boolean status,
             Pageable pageable);
+
+    Optional<Friendship> findByUserIdAndFriendIdAndFriendshipStatusAndStatus(
+            Integer userId, Integer friendId, String friendshipStatus, boolean status);
 }
