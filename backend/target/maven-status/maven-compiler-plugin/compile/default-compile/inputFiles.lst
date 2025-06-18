@@ -176,3 +176,4 @@ D:\kanox-web\backend\src\main\java\com\example\social_media\service\UserService.
 D:\kanox-web\backend\src\main\java\com\example\social_media\jwt\JwtService.java
 D:\kanox-web\backend\src\main\java\com\example\social_media\dto\authentication\ForgotPasswordRequestDto.java
 D:\kanox-web\backend\src\main\java\com\example\social_media\entity\Reaction.java
+D:\kanox-web\backend\src\main\java\com\example\social_media\repository\CommentRepository.java

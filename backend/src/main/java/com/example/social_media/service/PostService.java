@@ -27,12 +27,13 @@ public class PostService {
     private final ContentPrivacyRepository contentPrivacyRepository;
     private final CustomPrivacyListRepository customPrivacyListRepository;
     private final PrivacyService privacyService;
-    private final MediaService mediaService; // Thêm MediaService
+    private final MediaService mediaService;
+    private final CommentRepository commentRepository;
 
     public PostService(PostRepository postRepository, PostTagRepository postTagRepository,
-                       UserRepository userRepository, ContentPrivacyRepository contentPrivacyRepository,
-                       CustomPrivacyListRepository customPrivacyListRepository, PrivacyService privacyService,
-                       MediaService mediaService) {
+            UserRepository userRepository, ContentPrivacyRepository contentPrivacyRepository,
+            CustomPrivacyListRepository customPrivacyListRepository, PrivacyService privacyService,
+            MediaService mediaService, CommentRepository commentRepository) {
         this.postRepository = postRepository;
         this.postTagRepository = postTagRepository;
         this.userRepository = userRepository;
@@ -40,6 +41,7 @@ public class PostService {
         this.customPrivacyListRepository = customPrivacyListRepository;
         this.privacyService = privacyService;
         this.mediaService = mediaService; // Khởi tạo MediaService
+        this.commentRepository = commentRepository;
     }
 
     @Transactional
@@ -207,30 +209,30 @@ public class PostService {
 
     @Transactional
     public void deletePost(Integer postId, String username) {
-        logger.info("Deleting post {} for user: {}", postId, username);
+        logger.info("Xóa bài viết {} cho người dùng: {}", postId, username);
 
         var user = userRepository.findByUsernameAndStatusTrue(username)
-                .orElseThrow(() -> new UserNotFoundException("User not found or inactive"));
+                .orElseThrow(
+                        () -> new UserNotFoundException("Không tìm thấy người dùng hoặc người dùng không hoạt động"));
 
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new IllegalArgumentException("Post not found with id: " + postId));
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy bài viết với id: " + postId));
 
         if (post.getOwner() == null || !post.getOwner().getId().equals(user.getId())) {
-            throw new UnauthorizedException("You are not authorized to delete this post");
+            throw new UnauthorizedException("Bạn không có quyền xóa bài viết này");
         }
 
-        // Delete related post tags
+        logger.debug("Xóa các thẻ bài viết cho postId: {}", postId);
         postTagRepository.deleteByPostId(postId);
 
-        // Soft delete related content privacy
-        contentPrivacyRepository.findByContentIdAndContentTypeId(postId, 1)
-                .filter(ContentPrivacy::getStatus)
-                .ifPresent(contentPrivacy -> {
-                    contentPrivacy.setStatus(false);
-                    contentPrivacyRepository.save(contentPrivacy);
-                });
+        commentRepository.findByPostIdAndStatusTrue(postId).forEach(comment -> {
+            logger.debug("Xóa mềm bình luận với id: {}", comment.getId());
+            comment.setStatus(false);
+            commentRepository.save(comment);
+        });
 
-        // Soft delete post
+        // Xóa mềm bài viết
+        logger.debug("Xóa mềm bài viết với id: {}", postId);
         post.setStatus(false);
         postRepository.save(post);
     }
