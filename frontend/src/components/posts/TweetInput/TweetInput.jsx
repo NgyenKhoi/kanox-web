@@ -121,11 +121,13 @@ function TweetInput({ onPostSuccess }) {
 
   const handleMediaChange = (e) => {
     const files = Array.from(e.target.files);
-    setMediaFiles((prev) => [...prev, ...files]);
-    setMediaPreviews((prev) => [
-      ...prev,
-      ...files.map((f) => URL.createObjectURL(f)),
-    ]);
+    if (files.length > 0) {
+      setMediaFiles((prev) => [...prev, ...files]);
+      setMediaPreviews((prev) => [
+        ...prev,
+        ...files.map((f) => URL.createObjectURL(f)),
+      ]);
+    }
   };
 
   const handleRemoveMedia = (index) => {
@@ -258,6 +260,13 @@ function TweetInput({ onPostSuccess }) {
       maxWidth: "100%",
     };
 
+    const mediaStyle = {
+      maxWidth: "100%",
+      maxHeight: "200px",
+      objectFit: "cover",
+      borderRadius: "8px",
+    };
+
     if (mediaPreviews.length === 1) {
       return (
         <div style={containerStyle}>
@@ -271,17 +280,9 @@ function TweetInput({ onPostSuccess }) {
               ×
             </Button>
             {mediaPreviews[0].includes("video") ? (
-              <video
-                src={mediaPreviews[0]}
-                controls
-                style={{ width: "100%", borderRadius: "8px" }}
-              />
+              <video src={mediaPreviews[0]} controls style={mediaStyle} />
             ) : (
-              <img
-                src={mediaPreviews[0]}
-                alt="preview"
-                style={{ width: "100%", borderRadius: "8px" }}
-              />
+              <img src={mediaPreviews[0]} alt="preview" style={mediaStyle} />
             )}
           </div>
         </div>
@@ -307,17 +308,9 @@ function TweetInput({ onPostSuccess }) {
                 ×
               </Button>
               {url.includes("video") ? (
-                <video
-                  src={url}
-                  controls
-                  style={{ width: "100%", borderRadius: "8px" }}
-                />
+                <video src={url} controls style={mediaStyle} />
               ) : (
-                <img
-                  src={url}
-                  alt="preview"
-                  style={{ width: "100%", borderRadius: "8px" }}
-                />
+                <img src={url} alt="preview" style={mediaStyle} />
               )}
             </div>
           ))}
@@ -347,17 +340,9 @@ function TweetInput({ onPostSuccess }) {
               ×
             </Button>
             {mediaPreviews[0].includes("video") ? (
-              <video
-                src={mediaPreviews[0]}
-                controls
-                style={{ width: "100%", borderRadius: "8px" }}
-              />
+              <video src={mediaPreviews[0]} controls style={mediaStyle} />
             ) : (
-              <img
-                src={mediaPreviews[0]}
-                alt="preview"
-                style={{ width: "100%", borderRadius: "8px" }}
-              />
+              <img src={mediaPreviews[0]} alt="preview" style={mediaStyle} />
             )}
           </div>
           {mediaPreviews.slice(1).map((url, i) => (
@@ -371,17 +356,9 @@ function TweetInput({ onPostSuccess }) {
                 ×
               </Button>
               {url.includes("video") ? (
-                <video
-                  src={url}
-                  controls
-                  style={{ width: "100%", borderRadius: "8px" }}
-                />
+                <video src={url} controls style={mediaStyle} />
               ) : (
-                <img
-                  src={url}
-                  alt="preview"
-                  style={{ width: "100%", borderRadius: "8px" }}
-                />
+                <img src={url} alt="preview" style={mediaStyle} />
               )}
             </div>
           ))}
@@ -409,17 +386,9 @@ function TweetInput({ onPostSuccess }) {
                 ×
               </Button>
               {url.includes("video") ? (
-                <video
-                  src={url}
-                  controls
-                  style={{ width: "100%", borderRadius: "8px" }}
-                />
+                <video src={url} controls style={mediaStyle} />
               ) : (
-                <img
-                  src={url}
-                  alt="preview"
-                  style={{ width: "100%", borderRadius: "8px" }}
-                />
+                <img src={url} alt="preview" style={mediaStyle} />
               )}
             </div>
           ))}
@@ -447,17 +416,9 @@ function TweetInput({ onPostSuccess }) {
                 ×
               </Button>
               {url.includes("video") ? (
-                <video
-                  src={url}
-                  controls
-                  style={{ width: "100%", borderRadius: "8px" }}
-                />
+                <video src={url} controls style={mediaStyle} />
               ) : (
-                <img
-                  src={url}
-                  alt="preview"
-                  style={{ width: "100%", borderRadius: "8px" }}
-                />
+                <img src={url} alt="preview" style={mediaStyle} />
               )}
             </div>
           ))}
@@ -474,11 +435,7 @@ function TweetInput({ onPostSuccess }) {
               <img
                 src={mediaPreviews[4]}
                 alt="preview"
-                style={{
-                  width: "100%",
-                  borderRadius: "8px",
-                  opacity: 0.7,
-                }}
+                style={{ ...mediaStyle, opacity: 0.7 }}
               />
               <div
                 style={{
@@ -507,7 +464,7 @@ function TweetInput({ onPostSuccess }) {
           <Form.Control
             as="textarea"
             rows={3}
-            placeholder="What's happening?"
+            placeholder="Bạn đang nghĩ gì?"
             className="border-0 shadow-none mb-2"
             style={{ resize: "none" }}
             value={tweetContent}
@@ -668,7 +625,7 @@ function TweetInput({ onPostSuccess }) {
                 loading
               }
             >
-              {loading ? "Đang đăng..." : "Tweet"}
+              {loading ? "Đang đăng..." : "Đăng"}
             </Button>
           </div>
         </Card.Body>
@@ -708,7 +665,7 @@ function TweetInput({ onPostSuccess }) {
             <video
               src={mediaPreviews[currentMediaIndex]}
               controls
-              style={{ width: "100%", maxHeight: "80vh" }}
+              style={{ width: "100%", maxHeight: "60vh", objectFit: "contain" }}
             />
           ) : (
             <img
@@ -716,7 +673,7 @@ function TweetInput({ onPostSuccess }) {
               alt="media"
               style={{
                 width: "100%",
-                maxHeight: "80vh",
+                maxHeight: "60vh",
                 objectFit: "contain",
               }}
             />
