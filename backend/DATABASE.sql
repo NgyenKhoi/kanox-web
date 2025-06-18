@@ -1,20 +1,21 @@
-﻿    --USE master
-    --IF EXISTS(select * from sys.databases where name='SOCIAL-MEDIA-PROJECT')
-    --BEGIN
-    --	ALTER DATABASE [SOCIAL-MEDIA-PROJECT] SET SINGLE_USER WITH ROLLBACK IMMEDIATE
-    --	DROP DATABASE [SOCIAL-MEDIA-PROJECT]
-    --END
-    --CREATE DATABASE [SOCIAL-MEDIA-PROJECT]
-    --GO
-    --USE [SOCIAL-MEDIA-PROJECT]
-    --GO
-    --CREATE LOGIN guestuser WITH PASSWORD = 'De190699';
-    --GO
-    --CREATE USER guestuser FOR LOGIN guestuser;
-    --GO
-    --EXEC sp_addrolemember N'db_owner', N'guestuser';
-    --GO
-
+﻿/*
+	USE master
+    IF EXISTS(select * from sys.databases where name='SOCIAL-MEDIA-PROJECT')
+    BEGIN
+    	ALTER DATABASE [SOCIAL-MEDIA-PROJECT] SET SINGLE_USER WITH ROLLBACK IMMEDIATE
+    	DROP DATABASE [SOCIAL-MEDIA-PROJECT]
+    END
+    CREATE DATABASE [SOCIAL-MEDIA-PROJECT]
+    GO
+    USE [SOCIAL-MEDIA-PROJECT]
+    GO
+    CREATE LOGIN guestuser WITH PASSWORD = 'De190699';
+    GO
+    CREATE USER guestuser FOR LOGIN guestuser;
+    GO
+    EXEC sp_addrolemember N'db_owner', N'guestuser';
+    GO
+*/
     --AUTHENTICATION
     CREATE TABLE tblUser (
         id INT PRIMARY KEY IDENTITY(1, 1),
