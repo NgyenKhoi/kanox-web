@@ -2,12 +2,13 @@ import { useState, useEffect, useContext } from "react";
 import { toast } from "react-toastify";
 import { AuthContext } from "../context/AuthContext";
 
-const useUserMedia = (
-  userId,
+const useMedia = (
+  targetId,
   targetTypeCode = "PROFILE",
   mediaTypeName = "image"
 ) => {
   const [mediaUrl, setMediaUrl] = useState(null);
+  const [mediaUrls, setMediaUrls] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -18,13 +19,19 @@ const useUserMedia = (
     localStorage.getItem("token");
 
   useEffect(() => {
-    if (!userId) return;
+    if (!targetId) return;
+
+    let isMounted = true;
+    let retryCount = 0;
+    const maxRetries = 5;
+    const retryDelay = 1000;
 
     const fetchMedia = async () => {
+      if (!isMounted) return;
       setLoading(true);
       try {
-        const url = `${process.env.REACT_APP_API_URL}/media/target?targetId=${userId}&targetTypeCode=${targetTypeCode}&mediaTypeName=${mediaTypeName}&status=true`;
-        console.log("🔎 Fetching user media:", url);
+        const url = `${process.env.REACT_APP_API_URL}/media/target?targetId=${targetId}&targetTypeCode=${targetTypeCode}&mediaTypeName=${mediaTypeName}&status=true`;
+        console.log("🔄 Fetching media:", url);
 
         const response = await fetch(url, {
           headers: {
@@ -39,38 +46,49 @@ const useUserMedia = (
           throw new Error(data.message || "Lỗi khi lấy ảnh.");
         }
 
-        // Dự đoán kết cấu trả về
-        if (Array.isArray(data)) {
-          if (data.length > 0 && data[0].url) {
-            setMediaUrl(data[0].url);
-          } else {
-            setMediaUrl(null);
+        const mediaArray = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.data)
+          ? data.data
+          : [];
+
+        if (mediaArray.length > 0) {
+          const urls = mediaArray.map((m) => m.url).filter(Boolean);
+          if (isMounted) {
+            setMediaUrls(urls);
+            setMediaUrl(urls[0] || null);
+            setLoading(false);
           }
-        } else if (data?.data && Array.isArray(data.data)) {
-          if (data.data.length > 0 && data.data[0].url) {
-            setMediaUrl(data.data[0].url);
-          } else {
-            setMediaUrl(null);
-          }
-        } else if (data?.url) {
-          setMediaUrl(data.url);
+        } else if (retryCount < maxRetries) {
+          retryCount++;
+          setTimeout(fetchMedia, retryDelay);
         } else {
-          setMediaUrl(null);
+          if (isMounted) {
+            setMediaUrls([]);
+            setMediaUrl(null);
+            setLoading(false);
+          }
         }
       } catch (err) {
         const msg = err.message || "Lỗi khi lấy ảnh.";
-        setError(msg);
-        toast.error(msg);
-        setMediaUrl(null);
-      } finally {
-        setLoading(false);
+        if (isMounted) {
+          setError(msg);
+          toast.error(msg);
+          setMediaUrls([]);
+          setMediaUrl(null);
+          setLoading(false);
+        }
       }
     };
 
     fetchMedia();
-  }, [userId, targetTypeCode, mediaTypeName, token]);
 
-  return { mediaUrl, loading, error };
+    return () => {
+      isMounted = false;
+    };
+  }, [targetId, targetTypeCode, mediaTypeName, token]);
+
+  return { mediaUrl, mediaUrls, loading, error };
 };
 
-export default useUserMedia;
+export default useMedia;
