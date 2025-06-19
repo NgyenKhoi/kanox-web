@@ -141,6 +141,7 @@ const Chat = ({ chatId }) => {
       return;
     }
     const msg = { chatId, senderId: user.id, content: message, typeId: 1 };
+    console.log("Sending message:", msg);
     stompClient.publish({
       destination: "/app/sendMessage",
       body: JSON.stringify(msg),

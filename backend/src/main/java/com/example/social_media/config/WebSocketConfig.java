@@ -79,10 +79,11 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                             System.out.println("Extracted username: " + username);
                             Authentication auth = new UsernamePasswordAuthenticationToken(username, null, new ArrayList<>());
                             SecurityContextHolder.getContext().setAuthentication(auth);
-                            sessionTokenMap.put(accessor.getSessionId(), authToken);
+                            sessionTokenMap.put(accessor.getSessionId(), authToken); // Lưu token
+                            System.out.println("Token saved for session " + accessor.getSessionId() + ": " + authToken);
                         } catch (Exception e) {
                             System.err.println("JWT validation failed: " + e.getMessage());
-                            return null; // Từ chối kết nối nếu token không hợp lệ
+                            return null;
                         }
                     }
                 }

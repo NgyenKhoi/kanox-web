@@ -52,8 +52,8 @@ public class ChatController {
             username = authentication.getName();
         }
         if (username == null) {
-            StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.MESSAGE);
             String authToken = jwtService.extractTokenFromSession(sessionId);
+            System.out.println("Extracted token from session " + sessionId + ": " + authToken);
             if (authToken != null && authToken.startsWith("Bearer ")) {
                 username = jwtService.extractUsername(authToken.substring(7));
             }
@@ -61,7 +61,7 @@ public class ChatController {
         if (username == null) {
             throw new UnauthorizedException("Không thể xác thực người dùng.");
         }
-        messageService.sendMessage(messageDto, username);
+        messageService.sendMessage(messageDto, username); // Gọi service để lưu và broadcast
     }
     @MessageMapping(URLConfig.TYPING)
     public void handleTyping(@Payload Map<String, Object> typingData) {
