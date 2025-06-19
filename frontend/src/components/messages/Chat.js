@@ -49,7 +49,7 @@ const Chat = ({ chatId }) => {
       return;
     }
 
-    const socket = new SockJS(`${process.env.REACT_APP_API_URL}/ws`);
+    const socket = new SockJS(`${process.env.REACT_APP_WS_URL}/ws`);
     const client = new Client({
       webSocketFactory: () => socket,
       connectHeaders: { Authorization: `Bearer ${token}` },
