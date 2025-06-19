@@ -4,12 +4,19 @@ import com.example.social_media.config.URLConfig;
 import com.example.social_media.dto.message.*;
 import com.example.social_media.entity.CallSession;
 import com.example.social_media.entity.User;
+import com.example.social_media.exception.UnauthorizedException;
+import com.example.social_media.jwt.JwtService;
 import com.example.social_media.repository.UserRepository;
 import com.example.social_media.service.CallSessionService;
 import com.example.social_media.service.ChatService;
 import com.example.social_media.service.MessageService;
+import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.messaging.simp.stomp.StompCommand;
+import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,21 +31,45 @@ public class ChatController {
     private final MessageService messageService;
     private final CallSessionService callSessionService;
     private final UserRepository userRepository;
+    private final JwtService jwtService;
+    private final SimpMessagingTemplate messagingTemplate;
 
-    public ChatController(ChatService chatService, MessageService messageService, CallSessionService callSessionService, UserRepository userRepository) {
+    public ChatController(ChatService chatService, MessageService messageService, CallSessionService callSessionService, UserRepository userRepository, JwtService jwtService, SimpMessagingTemplate messagingTemplate) {
         this.chatService = chatService;
         this.messageService = messageService;
         this.callSessionService = callSessionService;
         this.userRepository = userRepository;
+        this.jwtService = jwtService;
+        this.messagingTemplate = messagingTemplate;
     }
 
     @MessageMapping(URLConfig.SEND_MESSAGES)
-    public void sendMessage(@Payload MessageDto messageDto) {
+    public void sendMessage(@Payload MessageDto messageDto, @Header("simpSessionId") String sessionId) {
         System.out.println("Processing message: " + messageDto.getContent() + " for chatId: " + messageDto.getChatId());
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        String username = null;
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null) {
+            username = authentication.getName();
+        }
+        if (username == null) {
+            StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.MESSAGE);
+            String authToken = jwtService.extractTokenFromSession(sessionId);
+            if (authToken != null && authToken.startsWith("Bearer ")) {
+                username = jwtService.extractUsername(authToken.substring(7));
+            }
+        }
+        if (username == null) {
+            throw new UnauthorizedException("Không thể xác thực người dùng.");
+        }
         messageService.sendMessage(messageDto, username);
     }
-
+    @MessageMapping(URLConfig.TYPING)
+    public void handleTyping(@Payload Map<String, Object> typingData) {
+        Integer chatId = (Integer) typingData.get("chatId");
+        Boolean isTyping = (Boolean) typingData.get("isTyping");
+        Integer userId = (Integer) typingData.get("userId");
+        messagingTemplate.convertAndSend("/topic/typing/" + chatId, typingData);
+    }
     @MessageMapping({URLConfig.WEBSOCKET_CALL_OFFER, URLConfig.WEBSOCKET_CALL_ANSWER})
     public void handleCallSignal(@Payload SignalMessageDto signalMessage) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -92,4 +123,5 @@ public class ChatController {
         int unreadCount = messageService.getUnreadMessageCount(user.getId());
         return Map.of("unreadCount", unreadCount);
     }
+
 }

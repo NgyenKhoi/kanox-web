@@ -43,6 +43,13 @@ public class Chat {
     @OneToMany(mappedBy = "chat")
     private Set<Message> tblMessages = new LinkedHashSet<>();
 
+    public Chat() {
+    }
+
+    public Chat(Integer id) {
+        this.id = id;
+    }
+
     public Integer getId() {
         return id;
     }

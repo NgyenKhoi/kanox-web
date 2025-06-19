@@ -26,6 +26,7 @@ import org.springframework.web.socket.server.support.HttpSessionHandshakeInterce
 
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Configuration
 @EnableWebSocketMessageBroker
@@ -33,6 +34,7 @@ import java.util.Map;
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final JwtService jwtService;
+    private final Map<String, String> sessionTokenMap = new ConcurrentHashMap<>();
 
     public WebSocketConfig(JwtService jwtService) {
         this.jwtService = jwtService;
@@ -77,6 +79,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                             System.out.println("Extracted username: " + username);
                             Authentication auth = new UsernamePasswordAuthenticationToken(username, null, new ArrayList<>());
                             SecurityContextHolder.getContext().setAuthentication(auth);
+                            sessionTokenMap.put(accessor.getSessionId(), authToken);
                         } catch (Exception e) {
                             System.err.println("JWT validation failed: " + e.getMessage());
                             return null; // Từ chối kết nối nếu token không hợp lệ

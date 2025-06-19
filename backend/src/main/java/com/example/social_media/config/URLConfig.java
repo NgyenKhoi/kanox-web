@@ -35,6 +35,7 @@ public class URLConfig {
     public static final String UNREAD_MESSAGE_COUNT = "/messages/unread-count";
     public static final String WEBSOCKET_CALL_OFFER = "/call/offer";
     public static final String WEBSOCKET_CALL_ANSWER = "/call/answer";
+    public static final String TYPING = "/typing";
     // Frontend URLs
     public static final String FRONTEND_RESET_PASSWORD_URL = "https://kanox-web.netlify.app/reset-password?token=";
 

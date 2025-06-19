@@ -85,6 +85,7 @@ public class MessageService {
         // Gửi thông báo tin nhắn mới tới các thành viên
         for (ChatMember member : members) {
             if (!member.getUser().getId().equals(sender.getId())) {
+                System.out.println("Broadcasting to /topic/chat/" + messageDto.getChatId() + ": " + messageDto.getContent());
                 messagingTemplate.convertAndSend(
                         "/topic/messages/" + member.getUser().getId(),
                         messageDto

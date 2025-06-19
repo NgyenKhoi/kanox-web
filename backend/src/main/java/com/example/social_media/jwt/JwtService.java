@@ -8,6 +8,8 @@ import org.springframework.stereotype.Service;
 import io.jsonwebtoken.Claims;
 import java.security.Key;
 import java.util.Date;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 @Service
@@ -15,7 +17,7 @@ public class JwtService {
 
     private static final String SECRET = "my-super-secret-key-which-is-at-least-256-bit-long";
     private static final long EXPIRATION_MS = 86400000; // 1 day
-
+    private final Map<String, String> sessionTokenMap = new ConcurrentHashMap<>();
     private final Key key = Keys.hmacShaKeyFor(SECRET.getBytes());
 
     public String generateToken(String username) {
@@ -121,5 +123,8 @@ public class JwtService {
             System.err.println("Error refreshing token: " + e.getMessage());
             return null;
         }
+    }
+    public String extractTokenFromSession(String sessionId) {
+        return sessionTokenMap.get(sessionId); // Trả về token dựa trên sessionId
     }
 }
