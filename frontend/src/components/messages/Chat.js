@@ -42,7 +42,7 @@ const Chat = ({ chatId }) => {
   const chatContainerRef = useRef(null);
 
   useEffect(() => {
-    if (!token || !user) {
+    if (!token || !user || !chatId) {
       toast.error("Vui lòng đăng nhập để sử dụng chat.");
       return;
     }
@@ -58,7 +58,9 @@ const Chat = ({ chatId }) => {
     });
 
     client.onConnect = () => {
+      console.log("Connected to WebSocket");  
       const chatSub = client.subscribe(`/topic/chat/${chatId}`, (msg) => {
+        console.log("Received:", msg.body);
         const message = JSON.parse(msg.body);
         setMessages((prev) => {
           if (!prev.some((m) => m.id === message.id)) return [...prev, message];
@@ -115,6 +117,7 @@ const Chat = ({ chatId }) => {
         .catch((err) => toast.error("Không thể truy cập camera/microphone."));
 
     return () => {
+      console.log("Cleaning up WebSocket...");
       subscriptionsRef.current.forEach((s) => s.unsubscribe());
       stompRef.current?.deactivate();
       peerRef.current?.destroy();
@@ -129,7 +132,6 @@ const Chat = ({ chatId }) => {
       destination: "/app/sendMessage",
       body: JSON.stringify(msg),
     });
-    const tempMsg = { ...msg, id: Date.now(), createdAt: new Date().toISOString() };
     setMessages((prev) => [...prev, tempMsg]);
     setMessage("");
     stompRef.current.publish({
