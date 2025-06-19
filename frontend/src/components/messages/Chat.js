@@ -43,9 +43,6 @@ const Chat = ({ chatId }) => {
   const chatContainerRef = useRef(null);
 
   useEffect(() => {
-    if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
-    }
     console.log("Token:", token, "User:", user);
     if (!token || !user) {
       toast.error("Vui lòng đăng nhập để sử dụng chat.");
@@ -67,7 +64,13 @@ const Chat = ({ chatId }) => {
       client.subscribe(`/topic/chat/${chatId}`, (msg) => {
         const message = JSON.parse(msg.body);
         console.log("Received message from /topic/chat/" + chatId + ": ", message);
-        setMessages((prev) => [...prev, message]);
+        setMessages((prev) => {
+          // Tránh trùng lặp nếu đã có tạm thời
+          if (!prev.some((m) => m.id === message.id)) {
+            return [...prev, message];
+          }
+          return prev;
+        });
         setIsTyping(false);
       });
       client.subscribe(`/topic/typing/${chatId}`, (typingMsg) => {
@@ -133,7 +136,10 @@ const Chat = ({ chatId }) => {
     getMediaStream();
 
     return () => {
-      if (stompClient) stompClient.deactivate();
+      if (stompClient) {
+        stompClient.unsubscribe(`/topic/chat/${chatId}`); // Hủy subscribe khi cleanup
+        stompClient.deactivate();
+      }
       if (stream) stream.getTracks().forEach((track) => track.stop());
       if (peer) peer.destroy();
     };
