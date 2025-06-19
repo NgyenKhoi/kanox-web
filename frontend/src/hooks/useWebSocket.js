@@ -3,8 +3,9 @@ import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import { AuthContext } from "../context/AuthContext";
 import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
-export const useWebSocket = (chatId, onMessage, setIsTyping, onCallSignal) => {
+export const useWebSocket = (onMessage, setUnreadCount, topicPrefix = "/topic/notifications/") => {
     const { user, token } = useContext(AuthContext);
     const clientRef = useRef(null);
     const isConnecting = useRef(false);
@@ -12,8 +13,8 @@ export const useWebSocket = (chatId, onMessage, setIsTyping, onCallSignal) => {
     const maxReconnectAttempts = 10;
 
     const initializeWebSocket = useCallback(() => {
-        if (!token || !user || !chatId) {
-            console.log("No token, user, or chatId, skipping WebSocket connection");
+        if (!token || !user) {
+            console.log("No token or user, skipping WebSocket connection");
             return;
         }
 
@@ -23,33 +24,40 @@ export const useWebSocket = (chatId, onMessage, setIsTyping, onCallSignal) => {
         }
 
         isConnecting.current = true;
-        console.log("Initializing WebSocket for chatId:", chatId);
+        console.log("Initializing WebSocket for user:", user.id);
 
         const client = new Client({
-            webSocketFactory: () => new SockJS(`${process.env.REACT_APP_WS_URL}/ws`),
+            webSocketFactory: () => new SockJS(`${process.env.REACT_APP_WS_URL}/ws` || "https://kanox.duckdns.org/ws"),
             connectHeaders: { Authorization: `Bearer ${token}` },
             reconnectDelay: 5000,
             reconnectAttempts: maxReconnectAttempts,
             heartbeatIncoming: 4000,
             heartbeatOutgoing: 4000,
-            onConnect: () => {
-                console.log("WebSocket connected for chatId:", chatId);
+            onConnect: (frame) => {
+                console.log("WebSocket connected successfully for user:", user.id, frame);
                 isConnecting.current = false;
                 reconnectAttempts.current = 0;
 
-                client.subscribe(`/topic/chat/${chatId}`, (msg) => {
-                    const message = JSON.parse(msg.body);
-                    onMessage(message);
+                client.subscribe(`${topicPrefix}${user.id}`, (message) => {
+                    try {
+                        const data = JSON.parse(message.body);
+                        console.log("Received notification:", data);
+                        onMessage(data);
+                        setUnreadCount((prev) => prev + 1);
+                    } catch (error) {
+                        console.error("Error parsing WebSocket message:", error);
+                    }
                 });
 
-                client.subscribe(`/topic/typing/${chatId}`, (typingMsg) => {
-                    const data = JSON.parse(typingMsg.body);
-                    if (data.userId !== user?.id) setIsTyping(data.isTyping);
-                });
-
-                client.subscribe(`/topic/call/${chatId}`, (signal) => {
-                    const data = JSON.parse(signal.body);
-                    onCallSignal(data);
+                client.subscribe(`/topic/messages/${user.id}`, (message) => {
+                    try {
+                        const msg = JSON.parse(message.body);
+                        console.log("Received new message:", msg);
+                        onMessage(msg);
+                        setUnreadCount((prev) => prev + 1);
+                    } catch (error) {
+                        console.error("Error parsing WebSocket message:", error);
+                    }
                 });
             },
             onWebSocketError: (error) => {
@@ -74,6 +82,7 @@ export const useWebSocket = (chatId, onMessage, setIsTyping, onCallSignal) => {
         });
 
         clientRef.current = client;
+        console.log("Activating WebSocket client");
         client.activate();
 
         return () => {
@@ -81,11 +90,26 @@ export const useWebSocket = (chatId, onMessage, setIsTyping, onCallSignal) => {
                 clientRef.current.deactivate();
             }
         };
-    }, [token, user, chatId, onMessage, setIsTyping, onCallSignal]);
+    }, [token, user, onMessage, setUnreadCount, topicPrefix]);
 
     useEffect(() => {
+        if (!user || !token) {
+            if (clientRef.current?.active) {
+                console.log("Deactivating WebSocket due to missing user or token");
+                clientRef.current.deactivate();
+            }
+            return;
+        }
+
         const cleanup = initializeWebSocket();
-        return cleanup;
+
+        return () => {
+            if (typeof cleanup === "function") cleanup();
+            if (clientRef.current?.active) {
+                console.log("Deactivating WebSocket client on cleanup");
+                clientRef.current.deactivate();
+            }
+        };
     }, [initializeWebSocket]);
 
     return clientRef.current;

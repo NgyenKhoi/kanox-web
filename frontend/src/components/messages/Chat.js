@@ -24,45 +24,74 @@ import {
   FaEllipsisH,
   FaPaperPlane,
 } from "react-icons/fa";
-import { useWebSocket } from "../../hooks/useWebSocket";
 
 const Chat = ({ chatId }) => {
   const { user, token } = useContext(AuthContext);
   const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState("");
+  const [stompClient, setStompClient] = useState(null);
+  const [peer, setPeer] = useState(null);
+  const [stream, setStream] = useState(null);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isVideoOff, setIsVideoOff] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showCallModal, setShowCallModal] = useState(false);
   const [messageToDelete, setMessageToDelete] = useState(null);
-  const [isMuted, setIsMuted] = useState(false); // Thêm state cho microphone
-  const [isVideoOff, setIsVideoOff] = useState(false); // Thêm state cho video
   const videoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const chatContainerRef = useRef(null);
-  const [peer, setPeer] = useState(null);
-  const [stream, setStream] = useState(null);
-
-  const stompClient = useWebSocket(chatId, (message) => {
-    setMessages((prev) => [...prev, message]);
-  }, setIsTyping, (signal) => {
-    console.log("Received call signal:", signal);
-    if (signal.type === "offer" && signal.userId !== user?.id) {
-      setShowCallModal(true);
-      handleOffer(signal);
-    } else if (signal.type === "answer" && peer) {
-      peer.signal(signal.sdp);
-    } else if (signal.type === "ice-candidate" && peer) {
-      peer.addIceCandidate(new RTCIceCandidate(signal.candidate));
-    } else if (signal.type === "end") {
-      leaveCall();
-    }
-  });
 
   useEffect(() => {
+    console.log("Token:", token, "User:", user);
     if (!token || !user) {
       toast.error("Vui lòng đăng nhập để sử dụng chat.");
       return;
     }
+
+    const socket = new SockJS(`${process.env.REACT_APP_WS_URL}/ws`);
+    const client = new Client({
+      webSocketFactory: () => socket,
+      connectHeaders: { Authorization: `Bearer ${token}` },
+      debug: (str) => console.log("STOMP Debug:", str),
+      reconnectDelay: 5000,
+      heartbeatIncoming: 4000,
+      heartbeatOutgoing: 4000,
+    });
+
+    client.onConnect = () => {
+      console.log("WebSocket connected for chatId:", chatId);
+      client.subscribe(`/topic/chat/${chatId}`, (msg) => {
+        const message = JSON.parse(msg.body);
+        setMessages((prev) => [...prev, message]);
+        setIsTyping(false);
+      });
+      client.subscribe(`/topic/typing/${chatId}`, (typingMsg) => {
+        const data = JSON.parse(typingMsg.body);
+        if (data.userId !== user?.id) setIsTyping(data.isTyping);
+      });
+      client.subscribe(`/topic/call/${chatId}`, (signal) => {
+        const data = JSON.parse(signal.body);
+        console.log("Received call signal:", data);
+        if (data.type === "offer" && data.userId !== user?.id) {
+          setShowCallModal(true);
+          handleOffer(data);
+        } else if (data.type === "answer" && peer) {
+          peer.signal(data.sdp);
+        } else if (data.type === "ice-candidate" && peer) {
+          peer.addIceCandidate(new RTCIceCandidate(data.candidate));
+        } else if (data.type === "end") {
+          leaveCall();
+        }
+      });
+      setStompClient(client);
+    };
+
+    client.onWebSocketError = (error) => console.error("WebSocket error:", error);
+    client.onStompError = (frame) => console.error("STOMP error:", frame.body);
+    client.onDisconnect = () => console.log("WebSocket disconnected, retrying...");
+
+    client.activate();
 
     fetch(`${process.env.REACT_APP_API_URL}/chat/${chatId}/messages`, {
       headers: {
@@ -100,10 +129,11 @@ const Chat = ({ chatId }) => {
     getMediaStream();
 
     return () => {
+      if (stompClient) stompClient.deactivate();
       if (stream) stream.getTracks().forEach((track) => track.stop());
       if (peer) peer.destroy();
     };
-  }, [chatId, user, token]);
+  }, [chatId, user, token, peer]);
 
   const sendMessage = () => {
     if (!message.trim() || !stompClient?.connected || !user) {
@@ -224,14 +254,14 @@ const Chat = ({ chatId }) => {
   const toggleMute = () => {
     if (stream) {
       stream.getAudioTracks()[0].enabled = !isMuted;
-      setIsMuted(!isMuted); // Cập nhật state
+      setIsMuted(!isMuted);
     }
   };
 
   const toggleVideo = () => {
     if (stream) {
       stream.getVideoTracks()[0].enabled = !isVideoOff;
-      setIsVideoOff(!isVideoOff); // Cập nhật state
+      setIsVideoOff(!isVideoOff);
     }
   };
 
@@ -266,7 +296,7 @@ const Chat = ({ chatId }) => {
       <div className="d-flex flex-column h-100 bg-light">
         <div className="bg-white border-bottom p-3 d-flex align-items-center">
           <img
-              src={user?.avatar || "https://picsum.photos/40"} // Thay placeholder
+              src={user?.avatar || "https://via.placeholder.com/40"}
               alt="Avatar"
               className="rounded-circle me-2"
               style={{ width: "40px", height: "40px" }}
@@ -283,7 +313,7 @@ const Chat = ({ chatId }) => {
               >
                 {msg.senderId !== user?.id && (
                     <img
-                        src={msg.sender?.avatar || "https://picsum.photos/40"} // Thay placeholder
+                        src={msg.sender?.avatar || "https://via.placeholder.com/40"}
                         alt="Avatar"
                         className="rounded-circle me-2"
                         style={{ width: "40px", height: "40px" }}
@@ -344,14 +374,14 @@ const Chat = ({ chatId }) => {
               />
               <div className="d-flex justify-content-center mt-2">
                 <Button
-                    variant={isMuted ? "danger" : "outline-danger"} // Sử dụng isMuted
+                    variant={isMuted ? "danger" : "outline-danger"}
                     className="rounded-circle p-2 me-2"
                     onClick={toggleMute}
                 >
                   <FaMicrophoneSlash />
                 </Button>
                 <Button
-                    variant={isVideoOff ? "danger" : "outline-danger"} // Sử dụng isVideoOff
+                    variant={isVideoOff ? "danger" : "outline-danger"}
                     className="rounded-circle p-2"
                     onClick={toggleVideo}
                 >
