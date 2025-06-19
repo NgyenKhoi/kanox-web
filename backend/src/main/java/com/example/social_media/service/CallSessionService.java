@@ -73,6 +73,6 @@ public class CallSessionService {
         System.out.println("Handling signal: " + signalMessage.getType() + " for chatId: " + signalMessage.getChatId());
         chatService.checkChatAccess(signalMessage.getChatId(), username);
         messagingTemplate.convertAndSend("/topic/call/" + signalMessage.getChatId(), signalMessage);
-        System.out.println("Signal sent to /topic/call/" + signalMessage.getChatId());
+        System.out.println("Signal successfully sent to /topic/call/" + signalMessage.getChatId());
     }
 }

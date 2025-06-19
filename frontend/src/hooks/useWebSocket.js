@@ -27,24 +27,21 @@ export const useWebSocket = (onMessage, setUnreadCount, topicPrefix = "/topic/no
         console.log("Initializing WebSocket for user:", user.id);
 
         const client = new Client({
-            webSocketFactory: () => new SockJS(`${process.env.REACT_APP_API_URL}/ws` || "https://kanox.duckdns.org/ws"),
-            connectHeaders: {
-                Authorization: `Bearer ${token}`,
-            },
+            webSocketFactory: () => new SockJS(`${process.env.REACT_APP_API_URL}/ws` || "https://kanox.duckdns.org/api/ws"),
+            connectHeaders: { Authorization: `Bearer ${token}` },
             reconnectDelay: 5000,
             reconnectAttempts: maxReconnectAttempts,
             heartbeatIncoming: 4000,
             heartbeatOutgoing: 4000,
             onConnect: (frame) => {
-                console.log("WebSocket connected successfully for user:", user.id);
+                console.log("WebSocket connected successfully for user:", user.id, frame);
                 isConnecting.current = false;
                 reconnectAttempts.current = 0;
 
-                // Đăng ký topic cho thông báo
                 client.subscribe(`${topicPrefix}${user.id}`, (message) => {
                     try {
                         const data = JSON.parse(message.body);
-                        console.log("Received message:", data);
+                        console.log("Received notification:", data);
                         onMessage(data);
                         setUnreadCount((prev) => prev + 1);
                     } catch (error) {
@@ -52,7 +49,6 @@ export const useWebSocket = (onMessage, setUnreadCount, topicPrefix = "/topic/no
                     }
                 });
 
-                // Đăng ký topic cho tin nhắn
                 client.subscribe(`/topic/messages/${user.id}`, (message) => {
                     try {
                         const msg = JSON.parse(message.body);
@@ -71,7 +67,7 @@ export const useWebSocket = (onMessage, setUnreadCount, topicPrefix = "/topic/no
             },
             onStompError: (frame) => {
                 console.error("STOMP error:", frame);
-                toast.error(`Lỗi giao thức STOMP: ${frame.body}`);
+                toast.error(`Lỗi giao thức STOMP: ${frame.body || "Không xác định"}`);
                 isConnecting.current = false;
             },
             onDisconnect: () => {
@@ -82,14 +78,18 @@ export const useWebSocket = (onMessage, setUnreadCount, topicPrefix = "/topic/no
                     console.log(`Reconnect attempt ${reconnectAttempts.current}/${maxReconnectAttempts}`);
                 }
             },
-            debug: (str) => {
-                console.log("STOMP Debug:", str);
-            },
+            debug: (str) => console.log("STOMP Debug:", str),
         });
 
         clientRef.current = client;
         console.log("Activating WebSocket client");
         client.activate();
+
+        return () => {
+            if (clientRef.current?.active) {
+                clientRef.current.deactivate();
+            }
+        };
     }, [token, user, onMessage, setUnreadCount, topicPrefix]);
 
     useEffect(() => {
@@ -101,9 +101,10 @@ export const useWebSocket = (onMessage, setUnreadCount, topicPrefix = "/topic/no
             return;
         }
 
-        initializeWebSocket();
+        const cleanup = initializeWebSocket();
 
         return () => {
+            if (typeof cleanup === "function") cleanup();
             if (clientRef.current?.active) {
                 console.log("Deactivating WebSocket client on cleanup");
                 clientRef.current.deactivate();

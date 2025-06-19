@@ -47,7 +47,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws")
-                .setAllowedOrigins("https://kanox-web.netlify.app", "http://localhost:3000") // Thêm domain frontend và localhost cho dev
+                .setAllowedOrigins("https://kanox-web.netlify.app", "http://localhost:3000")
                 .withSockJS()
                 .setInterceptors(new HttpSessionHandshakeInterceptor() {
                     @Override
@@ -67,16 +67,20 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
             @Override
             public Message<?> preSend(Message<?> message, MessageChannel channel) {
                 StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
-                String authToken = accessor.getFirstNativeHeader("Authorization");
-                System.out.println("Received WebSocket request with token: " + authToken);
-                if (authToken != null && authToken.startsWith("Bearer ")) {
-                    try {
-                        String jwt = authToken.substring(7);
-                        String username = jwtService.extractUsername(jwt);
-                        System.out.println("Extracted username: " + username);
-                        // ... (xác thực JWT)
-                    } catch (Exception e) {
-                        System.err.println("JWT error: " + e.getMessage());
+                if (StompCommand.CONNECT.equals(accessor.getCommand())) {
+                    String authToken = accessor.getFirstNativeHeader("Authorization");
+                    System.out.println("Received WebSocket CONNECT with token: " + authToken);
+                    if (authToken != null && authToken.startsWith("Bearer ")) {
+                        try {
+                            String jwt = authToken.substring(7);
+                            String username = jwtService.extractUsername(jwt);
+                            System.out.println("Extracted username: " + username);
+                            Authentication auth = new UsernamePasswordAuthenticationToken(username, null, new ArrayList<>());
+                            SecurityContextHolder.getContext().setAuthentication(auth);
+                        } catch (Exception e) {
+                            System.err.println("JWT validation failed: " + e.getMessage());
+                            return null; // Từ chối kết nối nếu token không hợp lệ
+                        }
                     }
                 }
                 return message;

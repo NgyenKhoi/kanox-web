@@ -8,7 +8,7 @@ import {
   Dropdown,
   Modal,
   InputGroup,
-} from "react-bootstrap"; // Thêm InputGroup
+} from "react-bootstrap";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import SockJS from "sockjs-client";
@@ -22,7 +22,7 @@ import {
   FaBell,
   FaTrash,
   FaEllipsisH,
-  FaPaperPlane, // Thêm FaPaperPlane
+  FaPaperPlane,
 } from "react-icons/fa";
 
 const Chat = ({ chatId }) => {
@@ -40,7 +40,7 @@ const Chat = ({ chatId }) => {
   const [messageToDelete, setMessageToDelete] = useState(null);
   const videoRef = useRef(null);
   const remoteVideoRef = useRef(null);
-  const chatContainerRef = useRef(null); // Thêm chatContainerRef
+  const chatContainerRef = useRef(null);
 
   useEffect(() => {
     console.log("Token:", token, "User:", user);
@@ -86,13 +86,13 @@ const Chat = ({ chatId }) => {
       });
       setStompClient(client);
     };
+
     client.onWebSocketError = (error) => console.error("WebSocket error:", error);
     client.onStompError = (frame) => console.error("STOMP error:", frame.body);
     client.onDisconnect = () => console.log("WebSocket disconnected, retrying...");
 
     client.activate();
 
-    // Lấy danh sách tin nhắn
     fetch(`${process.env.REACT_APP_API_URL}/chat/${chatId}/messages`, {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -114,22 +114,19 @@ const Chat = ({ chatId }) => {
             throw new Error(data.message || "Lỗi khi tải tin nhắn.");
           }
         })
-        .catch((err) => {
-          toast.error(err.message || "Lỗi khi tải tin nhắn.");
-        });
+        .catch((err) => toast.error(err.message || "Lỗi khi tải tin nhắn."));
 
-    // Khởi tạo stream video/audio
-    navigator.mediaDevices
-        .getUserMedia({ video: true, audio: true })
-        .then((stream) => {
-          setStream(stream);
-          if (videoRef.current) {
-            videoRef.current.srcObject = stream;
-          }
-        })
-        .catch((err) => {
-          toast.error("Lỗi khi truy cập camera/mic.");
-        });
+    const getMediaStream = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        setStream(stream);
+        if (videoRef.current) videoRef.current.srcObject = stream;
+      } catch (err) {
+        toast.error("Vui lòng cấp quyền camera/microphone: " + err.message);
+        console.error("Media error:", err);
+      }
+    };
+    getMediaStream();
 
     return () => {
       if (stompClient) stompClient.deactivate();
@@ -139,31 +136,25 @@ const Chat = ({ chatId }) => {
   }, [chatId, user, token, peer]);
 
   const sendMessage = () => {
-    if (!message.trim() || !stompClient || !stompClient.connected || !user) {
-      console.log("Cannot send: message empty, stompClient not connected, or user null");
+    if (!message.trim() || !stompClient?.connected || !user) {
       toast.error("Không thể gửi tin nhắn. Vui lòng kiểm tra kết nối.");
       return;
     }
     const msg = { chatId, senderId: user.id, content: message, typeId: 1 };
-    console.log("Sending message:", msg);
     stompClient.publish({
       destination: "/app/sendMessage",
       body: JSON.stringify(msg),
     }).then(() => {
-      console.log("Message sent successfully");
       setMessage("");
       stompClient.publish({
         destination: "/app/typing",
         body: JSON.stringify({ chatId, userId: user.id, isTyping: false }),
       });
-    }).catch((err) => {
-      console.error("Error sending message:", err);
-      toast.error("Lỗi khi gửi tin nhắn: " + err.message);
-    });
+    }).catch((err) => toast.error("Lỗi khi gửi tin nhắn: " + err.message));
   };
 
   const sendTyping = () => {
-    if (stompClient && user && message.length > 0) {
+    if (stompClient?.connected && user && message.length > 0) {
       stompClient.publish({
         destination: "/app/typing",
         body: JSON.stringify({ chatId, userId: user.id, isTyping: true }),
@@ -172,11 +163,10 @@ const Chat = ({ chatId }) => {
   };
 
   const startCall = () => {
-    if (!stream || !stompClient || !stompClient.connected) {
-      toast.error("Không thể bắt đầu cuộc gọi: Không có luồng video.");
+    if (!stream || !stompClient?.connected) {
+      toast.error("Không thể bắt đầu cuộc gọi: Không có luồng video hoặc WebSocket chưa kết nối.");
       return;
     }
-    console.log("Starting call for chatId:", chatId);
     fetch(`${process.env.REACT_APP_API_URL}/chat/call/start/${chatId}`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
@@ -186,7 +176,6 @@ const Chat = ({ chatId }) => {
           return response.json();
         })
         .then((data) => {
-          console.log("Call session started:", data);
           const newPeer = new Peer({
             initiator: true,
             trickle: false,
@@ -194,7 +183,6 @@ const Chat = ({ chatId }) => {
             config: { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] },
           });
           newPeer.on("signal", (signalData) => {
-            console.log("Sending offer signal:", signalData);
             stompClient.publish({
               destination: "/app/call/offer",
               body: JSON.stringify({
@@ -203,31 +191,23 @@ const Chat = ({ chatId }) => {
                 sdp: signalData,
                 userId: user.id,
               }),
-            }).then(() => console.log("Offer sent"))
-                .catch((err) => console.error("Error sending offer:", err));
+            }).catch((err) => console.error("Error sending offer:", err));
           });
           newPeer.on("stream", (remoteStream) => {
             if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStream;
           });
           newPeer.on("error", (err) => console.error("Peer error:", err));
-          newPeer.on("connect", () => console.log("Peer connected"));
           setPeer(newPeer);
         })
         .catch((err) => toast.error("Lỗi khi bắt đầu cuộc gọi: " + err.message));
   };
 
   const confirmDeleteMessage = () => {
-    if (stompClient && messageToDelete) {
-      fetch(`${process.env.REACT_APP_API_URL}chat/message/delete`, {
+    if (stompClient?.connected && messageToDelete) {
+      fetch(`${process.env.REACT_APP_API_URL}/chat/message/delete`, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          chatId,
-          messageId: messageToDelete,
-        }),
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ chatId, messageId: messageToDelete }),
       })
           .then(() => {
             setMessages(messages.filter((msg) => msg.id !== messageToDelete));
@@ -244,7 +224,6 @@ const Chat = ({ chatId }) => {
       toast.error("Không thể nhận cuộc gọi: Không có luồng video.");
       return;
     }
-    console.log("Handling offer from userId:", data.userId);
     const newPeer = new Peer({
       initiator: false,
       trickle: false,
@@ -252,7 +231,6 @@ const Chat = ({ chatId }) => {
       config: { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] },
     });
     newPeer.on("signal", (signalData) => {
-      console.log("Sending answer signal:", signalData);
       stompClient.publish({
         destination: "/app/call/answer",
         body: JSON.stringify({
@@ -269,6 +247,7 @@ const Chat = ({ chatId }) => {
     newPeer.on("error", (err) => console.error("Peer error:", err));
     newPeer.signal(data.sdp);
     setPeer(newPeer);
+    setShowCallModal(false);
   };
 
   const toggleMute = () => {
@@ -293,19 +272,19 @@ const Chat = ({ chatId }) => {
       setStream(null);
       if (videoRef.current) videoRef.current.srcObject = null;
       if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+      stompClient.publish({
+        destination: "/app/call/end",
+        body: JSON.stringify({ chatId, userId: user.id, type: "end" }),
+      });
       toast.success("Đã thoát cuộc gọi.");
     }
   };
 
-  const sendFile = () => {
-    toast.info("Tính năng gửi file đang phát triển!");
-  };
-
+  const sendFile = () => toast.info("Tính năng gửi file đang phát triển!");
   const handleDeleteMessage = (msgId) => {
     setMessageToDelete(msgId);
     setShowDeleteModal(true);
   };
-
   const toggleNotifications = () => {
     const currentState = localStorage.getItem("chatNotifications") === "on";
     localStorage.setItem("chatNotifications", currentState ? "off" : "on");
@@ -315,14 +294,13 @@ const Chat = ({ chatId }) => {
   return (
       <div className="d-flex flex-column h-100 bg-light">
         <div className="bg-white border-bottom p-3 d-flex align-items-center">
-          {/* Sửa lỗi 'chats' bằng cách sử dụng một prop hoặc state giả định */}
           <img
               src={user?.avatar || "https://via.placeholder.com/40"}
               alt="Avatar"
               className="rounded-circle me-2"
               style={{ width: "40px", height: "40px" }}
           />
-          <h5 className="mb-0 fw-bold">Chat {chatId}</h5> {/* Giải pháp tạm thời */}
+          <h5 className="mb-0 fw-bold">Chat {chatId}</h5>
         </div>
         <div className="flex-grow-1 overflow-y-auto p-3 bg-white" ref={chatContainerRef}>
           {messages.map((msg, index) => (
@@ -451,11 +429,12 @@ const Chat = ({ chatId }) => {
             <Button variant="secondary" onClick={() => setShowCallModal(false)}>
               Từ chối
             </Button>
-            <Button variant="primary" onClick={() => setShowCallModal(false)}>
+            <Button variant="primary" onClick={() => handleOffer({ sdp: null, userId: null })}>
               Chấp nhận
             </Button>
           </Modal.Footer>
         </Modal>
+        <ToastContainer />
       </div>
   );
 };
