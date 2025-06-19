@@ -58,7 +58,7 @@ const Chat = ({ chatId }) => {
     });
 
     client.onConnect = () => {
-      console.log("Connected to WebSocket");  
+      console.log("Connected to WebSocket");
       const chatSub = client.subscribe(`/topic/chat/${chatId}`, (msg) => {
         console.log("Received:", msg.body);
         const message = JSON.parse(msg.body);
@@ -132,7 +132,6 @@ const Chat = ({ chatId }) => {
       destination: "/app/sendMessage",
       body: JSON.stringify(msg),
     });
-    setMessages((prev) => [...prev, tempMsg]);
     setMessage("");
     stompRef.current.publish({
       destination: "/app/typing",
