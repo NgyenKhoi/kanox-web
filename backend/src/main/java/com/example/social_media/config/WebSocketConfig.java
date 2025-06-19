@@ -40,14 +40,14 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
-        config.enableSimpleBroker("/topic");
+        config.enableSimpleBroker("topic");
         config.setApplicationDestinationPrefixes("/app");
     }
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws")
-                .setAllowedOrigins("https://kanox-web.netlify.app", "http://localhost:3000")
+                .setAllowedOrigins("https://kanox-web.netlify.app")
                 .withSockJS()
                 .setInterceptors(new HttpSessionHandshakeInterceptor() {
                     @Override
