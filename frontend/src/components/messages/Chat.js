@@ -66,6 +66,7 @@ const Chat = ({ chatId }) => {
       console.log("WebSocket connected for chatId:", chatId);
       client.subscribe(`/topic/chat/${chatId}`, (msg) => {
         const message = JSON.parse(msg.body);
+        console.log("Received message from /topic/chat/" + chatId + ": ", message);
         setMessages((prev) => [...prev, message]);
         setIsTyping(false);
       });

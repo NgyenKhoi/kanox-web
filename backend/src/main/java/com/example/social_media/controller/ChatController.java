@@ -66,8 +66,13 @@ public class ChatController {
         if (username == null) {
             throw new UnauthorizedException("Không thể xác thực người dùng.");
         }
-        MessageDto savedMessage = messageService.sendMessage(messageDto, username); // Lấy message đã lưu
-        messagingTemplate.convertAndSend("/topic/chat/" + messageDto.getChatId(), savedMessage); // Broadcast
+        MessageDto savedMessage = messageService.sendMessage(messageDto, username);
+        try {
+            messagingTemplate.convertAndSend("/topic/chat/" + messageDto.getChatId(), savedMessage);
+            System.out.println("Broadcast successfully sent to /topic/chat/" + messageDto.getChatId() + " with message: " + savedMessage.getContent());
+        } catch (Exception e) {
+            System.err.println("Failed to broadcast message: " + e.getMessage());
+        }
     }
     @MessageMapping(URLConfig.TYPING)
     public void handleTyping(@Payload Map<String, Object> typingData) {
