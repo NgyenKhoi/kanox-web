@@ -17,7 +17,7 @@ import CustomPrivacyListPage from "./pages/privacy/CustomPrivacyListPage";
 import BlockedUsersPage from "./pages/block/BlockedUsersPage";
 import SettingsPage from "./pages/settings/SettingsPage";
 import FriendsPage from "./pages/friends/FriendsPage";
-
+import AdminPage from "./pages/admin/adminpage";
 // Router & Context
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
@@ -56,6 +56,7 @@ function App() {
                 <Route path="/blocks" element={<BlockedUsersPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route path="/friends" element={<FriendsPage />} />
+                <Route path="/admin" element={<AdminPage />} />
               </Routes>
             </div>
           </div>

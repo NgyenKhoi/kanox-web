@@ -15,6 +15,10 @@ export const AuthProvider = ({ children }) => {
   );
   const [loading, setLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [hasSynced, setHasSynced] = useState(
+    localStorage.getItem("hasSynced") === "true"
+  );
+
   const navigate = useNavigate();
 
   const setUser = (userObj, newToken = null, newRefreshToken = null) => {
@@ -22,8 +26,8 @@ export const AuthProvider = ({ children }) => {
     if (userObj) {
       if (newToken) {
         setToken(newToken);
-        sessionStorage.removeItem("token");
         localStorage.setItem("token", newToken);
+        sessionStorage.removeItem("token");
       }
       if (newRefreshToken) {
         setRefreshToken(newRefreshToken);
@@ -39,31 +43,43 @@ export const AuthProvider = ({ children }) => {
   };
 
   const syncAllData = async (authToken) => {
+    if (hasSynced) return;
+
     setIsSyncing(true);
-    try {
-      console.log("Starting data sync with Elasticsearch...");
-      const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/search/sync`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(authToken && { Authorization: `Bearer ${authToken}` }),
-          },
+    let retries = 3;
+    const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    while (retries > 0) {
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_API_URL}/search/sync`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${authToken}`,
+            },
+          }
+        );
+
+        if (!response.ok) {
+          const errText = await response.text();
+          throw new Error(errText);
         }
-      );
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Lỗi khi đồng bộ dữ liệu: ${errorText}`);
+
+        console.log("✅ Sync Elasticsearch thành công.");
+        localStorage.setItem("hasSynced", "true");
+        setHasSynced(true);
+        toast.success("Đã đồng bộ dữ liệu tìm kiếm.");
+        break;
+      } catch (error) {
+        console.error("❌ Lỗi sync:", error);
+        retries--;
+        if (retries === 0) toast.error("Lỗi đồng bộ dữ liệu tìm kiếm.");
+        else await delay(2000);
       }
-      console.log("Data synced successfully with Elasticsearch.");
-      toast.success("Đã đồng bộ toàn bộ dữ liệu sang Elasticsearch");
-    } catch (error) {
-      console.error("Lỗi đồng bộ dữ liệu:", error);
-      toast.error("Đồng bộ thất bại: " + error.message);
-    } finally {
-      setIsSyncing(false);
     }
+    setIsSyncing(false);
   };
 
   const checkTokenValidity = async (accessToken) => {
@@ -75,27 +91,22 @@ export const AuthProvider = ({ children }) => {
           headers: { Authorization: `Bearer ${accessToken}` },
         }
       );
+
       const data = await response.json();
       if (response.ok) {
         setToken(data.token);
         localStorage.setItem("token", data.token);
         setUser(data.user, data.token, refreshToken);
-        if (data.user) {
-          setUserState(data.user);
-          localStorage.setItem("user", JSON.stringify(data.user));
-        }
         return data.token;
       } else if (response.status === 401) {
-        const refreshed = await refreshAccessToken();
-        return refreshed ? refreshed : null;
+        return await refreshAccessToken();
       } else {
         logout();
         return null;
       }
     } catch (error) {
-      console.error("Lỗi kiểm tra token:", error);
-      const refreshed = await refreshAccessToken();
-      return refreshed ? refreshed : null;
+      console.error("❌ Token validation failed:", error);
+      return await refreshAccessToken();
     }
   };
 
@@ -108,22 +119,19 @@ export const AuthProvider = ({ children }) => {
           headers: { Authorization: `Bearer ${refreshToken}` },
         }
       );
+
       if (response.ok) {
         const data = await response.json();
         setToken(data.token);
         localStorage.setItem("token", data.token);
         setUser(data.user, data.token, refreshToken);
-        if (data.user) {
-          setUserState(data.user);
-          localStorage.setItem("user", JSON.stringify(data.user));
-        }
         return data.token;
       } else {
         logout();
         return null;
       }
-    } catch (error) {
-      console.error("Lỗi refresh token:", error);
+    } catch (err) {
+      console.error("❌ Refresh token lỗi:", err);
       logout();
       return null;
     }
@@ -141,6 +149,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const initializeAuth = async () => {
       setLoading(true);
+
       const savedUser = localStorage.getItem("user");
       const savedToken =
         sessionStorage.getItem("token") || localStorage.getItem("token");
@@ -152,33 +161,32 @@ export const AuthProvider = ({ children }) => {
           setToken(savedToken);
           if (savedRefreshToken) setRefreshToken(savedRefreshToken);
         } catch (e) {
-          console.error("Lỗi parse user hoặc token:", e);
+          console.error("Lỗi parse dữ liệu lưu trữ:", e);
           logout();
         }
       }
 
-      let validToken = savedToken;
-      if (savedToken) {
-        validToken = await checkTokenValidity(savedToken);
-      }
+      const validToken = savedToken
+        ? await checkTokenValidity(savedToken)
+        : null;
 
-      if (validToken) {
-        await syncAllData(validToken);
-      }
+      if (validToken) await syncAllData(validToken);
 
       setLoading(false);
     };
 
     initializeAuth();
+
     const interval = setInterval(() => {
-      checkTokenValidity(token);
+      if (token) checkTokenValidity(token);
     }, 5 * 60 * 1000); // 5 phút
+
     return () => clearInterval(interval);
   }, []);
 
   return (
     <AuthContext.Provider
-      value={{ user, setUser, token, logout, loading, isSyncing }}
+      value={{ user, setUser, token, logout, loading, isSyncing, hasSynced }}
     >
       {loading || isSyncing ? (
         <div className="d-flex justify-content-center align-items-center min-vh-100">

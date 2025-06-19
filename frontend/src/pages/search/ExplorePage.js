@@ -12,18 +12,19 @@ import {
   ListGroup,
 } from "react-bootstrap";
 import { FaSearch, FaEllipsisH } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
+
 import SidebarLeft from "../../components/layout/SidebarLeft/SidebarLeft";
 import SidebarRight from "../../components/layout/SidebarRight/SidebarRight";
-import { toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 import { AuthContext } from "../../context/AuthContext";
-import { useNavigate } from "react-router-dom";
 import useMedia from "../../hooks/useMedia";
 import useUserSearch from "../../hooks/useUserSearch";
 
 function ExplorePage() {
-  const { token } = useContext(AuthContext);
+  const { token, hasSynced, loading } = useContext(AuthContext);
   const navigate = useNavigate();
+
   const {
     searchKeyword,
     setSearchKeyword,
@@ -32,71 +33,37 @@ function ExplorePage() {
     debouncedSearch,
   } = useUserSearch(token, navigate);
 
+  const [activeTab, setActiveTab] = useState("for-you");
+
+  // Check login & redirect
   useEffect(() => {
-    debouncedSearch(searchKeyword);
+    if (!loading && !token) {
+      toast.warning("Bạn cần đăng nhập để truy cập trang khám phá.");
+      navigate("/");
+    }
+  }, [loading, token, navigate]);
+
+  // Handle debounced search
+  useEffect(() => {
+    if (searchKeyword.trim()) {
+      debouncedSearch(searchKeyword);
+    }
   }, [searchKeyword, debouncedSearch]);
 
   const trendingTopics = [
-    {
-      id: 1,
-      category: "Chủ đề nổi trội ở Việt Nam",
-      title: "cuội",
-      posts: 587,
-    },
-    {
-      id: 2,
-      category: "Chủ đề nổi trội ở Việt Nam",
-      title: "#khảo_oam",
-      posts: 390,
-    },
-    {
-      id: 3,
-      category: "Chủ đề nổi trội ở Việt Nam",
-      title: "Trung Quốc",
-      posts: 197,
-    },
-    {
-      id: 4,
-      category: "Chủ đề nổi trội ở Việt Nam",
-      title: "Incredible",
-      posts: 197,
-    },
-    {
-      id: 5,
-      category: "Chủ đề nổi trội ở Việt Nam",
-      title: "#QuangHungMasterDxForestival",
-      posts: 2119,
-    },
-    {
-      id: 6,
-      category: "Chủ đề nổi trội ở Việt Nam",
-      title: "#linglingkwong",
-      posts: 84,
-    },
-    {
-      id: 7,
-      category: "Chủ đề nổi trội ở Việt Nam",
-      title: "Movies",
-      posts: 150,
-    },
+    { id: 1, category: "Chủ đề nổi trội ở Việt Nam", title: "cuội", posts: 587 },
+    { id: 2, category: "Chủ đề nổi trội ở Việt Nam", title: "#khảo_oam", posts: 390 },
+    { id: 3, category: "Chủ đề nổi trội ở Việt Nam", title: "Trung Quốc", posts: 197 },
+    { id: 4, category: "Chủ đề nổi trội ở Việt Nam", title: "Incredible", posts: 197 },
+    { id: 5, category: "Chủ đề nổi trội ở Việt Nam", title: "#QuangHungMasterDxForestival", posts: 2119 },
+    { id: 6, category: "Chủ đề nổi trội ở Việt Nam", title: "#linglingkwong", posts: 84 },
+    { id: 7, category: "Chủ đề nổi trội ở Việt Nam", title: "Movies", posts: 150 },
   ];
 
   const suggestedFollows = [
-    {
-      id: 1,
-      name: "Người dùng 1",
-      username: "@user1",
-      avatar: "https://via.placeholder.com/40",
-    },
-    {
-      id: 2,
-      name: "Người dùng 2",
-      username: "@user2",
-      avatar: "https://via.placeholder.com/40",
-    },
+    { id: 1, name: "Người dùng 1", username: "@user1", avatar: "https://via.placeholder.com/40" },
+    { id: 2, name: "Người dùng 2", username: "@user2", avatar: "https://via.placeholder.com/40" },
   ];
-
-  const [activeTab, setActiveTab] = useState("for-you");
 
   const UserSearchItem = ({ item }) => {
     const { mediaUrl } = useMedia(item.id, "PROFILE", "image");
@@ -118,18 +85,14 @@ function ExplorePage() {
         />
         <div>
           <strong>{item.displayName || item.username}</strong>
-          {item.username && (
-            <p className="text-muted small mb-0">@{item.username}</p>
-          )}
-          {item.bio && (
-            <p className="text-muted small mb-0">{item.bio.slice(0, 100)}...</p>
-          )}
+          {item.username && <p className="text-muted small mb-0">@{item.username}</p>}
+          {item.bio && <p className="text-muted small mb-0">{item.bio.slice(0, 100)}...</p>}
         </div>
       </ListGroup.Item>
     );
   };
 
-  const renderSearchResults = () =>
+  const renderSearchResults = () => (
     searchKeyword.trim() && (
       <ListGroup
         className="position-absolute w-100 mt-1 shadow-sm"
@@ -143,9 +106,7 @@ function ExplorePage() {
           <>
             {searchResults?.length > 0 ? (
               <>
-                <ListGroup.Item className="bg-light fw-bold">
-                  Người dùng
-                </ListGroup.Item>
+                <ListGroup.Item className="bg-light fw-bold">Người dùng</ListGroup.Item>
                 {searchResults.map((item) => (
                   <UserSearchItem key={item.id} item={item} />
                 ))}
@@ -156,14 +117,13 @@ function ExplorePage() {
           </>
         )}
       </ListGroup>
-    );
+    )
+  );
 
   const renderTabContent = () => (
     <div className="mt-0">
       {trendingTopics.length === 0 ? (
-        <p className="text-muted text-center p-4">
-          Không có chủ đề nào đang phổ biến.
-        </p>
+        <p className="text-muted text-center p-4">Không có chủ đề nào đang phổ biến.</p>
       ) : (
         trendingTopics.map((topic) => (
           <div
@@ -184,16 +144,23 @@ function ExplorePage() {
     </div>
   );
 
+  // ✅ Đảm bảo hooks được gọi trước và chỉ dùng return 1 lần
+  if (loading || !hasSynced) {
+    return (
+      <div className="d-flex justify-content-center align-items-center min-vh-100">
+        <Spinner animation="border" role="status" />
+        <span className="ms-2">Đang đồng bộ dữ liệu khám phá...</span>
+      </div>
+    );
+  }
+
   return (
     <div className="d-flex min-vh-100 bg-white">
       <div className="d-none d-lg-block">
         <SidebarLeft />
       </div>
       <div className="d-flex flex-column flex-grow-1">
-        <div
-          className="sticky-top bg-white border-bottom py-2"
-          style={{ zIndex: 1020 }}
-        >
+        <div className="sticky-top bg-white border-bottom py-2" style={{ zIndex: 1020 }}>
           <Container fluid>
             <Row>
               <Col xs={12} lg={6} className="mx-auto px-md-0 position-relative">
@@ -215,23 +182,12 @@ function ExplorePage() {
             </Row>
             <Row>
               <Col xs={12} lg={6} className="mx-auto px-md-0">
-                <Nav
-                  variant="underline"
-                  className="mt-2 profile-tabs nav-justified"
-                >
-                  {[
-                    "for-you",
-                    "trending",
-                    "news",
-                    "sports",
-                    "entertainment",
-                  ].map((tab) => (
+                <Nav variant="underline" className="mt-2 profile-tabs nav-justified">
+                  {["for-you", "trending", "news", "sports", "entertainment"].map((tab) => (
                     <Nav.Item key={tab}>
                       <Nav.Link
                         onClick={() => setActiveTab(tab)}
-                        className={`text-dark fw-bold ${
-                          activeTab === tab ? "active" : ""
-                        }`}
+                        className={`text-dark fw-bold ${activeTab === tab ? "active" : ""}`}
                       >
                         {
                           {
