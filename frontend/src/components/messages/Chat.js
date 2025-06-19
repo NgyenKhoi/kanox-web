@@ -144,13 +144,12 @@ const Chat = ({ chatId }) => {
     stompClient.publish({
       destination: "/app/sendMessage",
       body: JSON.stringify(msg),
-    }).then(() => {
-      setMessage("");
-      stompClient.publish({
-        destination: "/app/typing",
-        body: JSON.stringify({ chatId, userId: user.id, isTyping: false }),
-      });
-    }).catch((err) => toast.error("Lỗi khi gửi tin nhắn: " + err.message));
+    });
+    setMessage("");
+    stompClient.publish({
+      destination: "/app/typing",
+      body: JSON.stringify({ chatId, userId: user.id, isTyping: false }),
+    });
   };
 
   const sendTyping = () => {
@@ -191,7 +190,9 @@ const Chat = ({ chatId }) => {
                 sdp: signalData,
                 userId: user.id,
               }),
-            }).catch((err) => console.error("Error sending offer:", err));
+            }, (error) => {
+              if (error) console.error("Error sending offer:", error);
+            });
           });
           newPeer.on("stream", (remoteStream) => {
             if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStream;
