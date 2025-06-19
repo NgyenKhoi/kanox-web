@@ -79,12 +79,13 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                             System.out.println("Extracted username: " + username);
                             Authentication auth = new UsernamePasswordAuthenticationToken(username, null, new ArrayList<>());
                             SecurityContextHolder.getContext().setAuthentication(auth);
-                            sessionTokenMap.put(accessor.getSessionId(), authToken); // Lưu token
+                            sessionTokenMap.put(accessor.getSessionId(), authToken); // Lưu token vào sessionTokenMap
                             System.out.println("Token saved for session " + accessor.getSessionId() + ": " + authToken);
                         } catch (Exception e) {
                             System.err.println("JWT validation failed: " + e.getMessage());
-                            return null;
                         }
+                    } else {
+                        System.err.println("No valid Authorization header found");
                     }
                 }
                 return message;
