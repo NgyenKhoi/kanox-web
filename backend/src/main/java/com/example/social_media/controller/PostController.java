@@ -31,29 +31,37 @@ public class PostController {
         this.jwtService = jwtService;
     }
 
-    @PostMapping(consumes = { "multipart/form-data" })
+    @PostMapping(consumes = { "multipart/form-data", "application/json" })
     public ResponseEntity<Map<String, Object>> createPost(
-            @RequestPart("post") @Valid PostRequestDto dto,
+            @RequestPart(value = "post", required = false) @Valid PostRequestDto dto,
+            @RequestBody(required = false) @Valid PostRequestDto jsonDto,
             @RequestPart(value = "media", required = false) List<MultipartFile> mediaFiles,
             @RequestHeader("Authorization") String authHeader) {
         try {
             String token = authHeader.substring(7);
             String username = jwtService.extractUsername(token);
-            logger.debug("Creating post for user: {}", username);
-            PostResponseDto responseDto = postService.createPost(dto, username, mediaFiles);
+            logger.debug("Tạo bài post cho người dùng: {}", username);
+
+            // Chọn DTO từ multipart hoặc JSON
+            PostRequestDto finalDto = dto != null ? dto : jsonDto;
+            if (finalDto == null) {
+                throw new IllegalArgumentException("Dữ liệu bài post không được cung cấp");
+            }
+
+            PostResponseDto responseDto = postService.createPost(finalDto, username, mediaFiles);
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Tạo bài post thành công");
             response.put("data", responseDto);
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
-            logger.error("Error creating post: {}", e.getMessage());
+            logger.error("Lỗi khi tạo bài post: {}", e.getMessage());
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("status", "error");
             errorResponse.put("message", e.getMessage());
             errorResponse.put("errors", new HashMap<>());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
         } catch (Exception e) {
-            logger.error("Unexpected error: {}", e.getMessage(), e);
+            logger.error("Lỗi hệ thống: {}", e.getMessage(), e);
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("status", "error");
             errorResponse.put("message", "Lỗi hệ thống: " + e.getMessage());
