@@ -86,7 +86,13 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
         storeUserSession(data.user, data.token, rememberMe);
         toast.success("Đăng nhập thành công! Đang chuyển hướng...");
         handleClose();
-        setTimeout(() => navigate("/home"), 2000);
+        setTimeout(() => {
+          if (data.user?.isAdmin) {
+            navigate("/admin");
+          } else {
+            navigate("/home");
+          }
+        }, 2000);
       } else {
         toast.error(data.message || "Đăng nhập thất bại. Vui lòng thử lại!");
       }

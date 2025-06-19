@@ -1,7 +1,9 @@
 package com.example.social_media.controller;
 
 import com.example.social_media.config.URLConfig;
-import com.example.social_media.document.*;
+import com.example.social_media.document.GroupDocument;
+import com.example.social_media.document.PageDocument;
+import com.example.social_media.document.UserDocument;
 import com.example.social_media.dto.search.SearchResponseDto;
 import com.example.social_media.dto.user.GroupDto;
 import com.example.social_media.dto.user.PageDto;
@@ -11,7 +13,6 @@ import com.example.social_media.service.DataSyncService;
 import com.example.social_media.service.ElasticsearchSearchService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -29,7 +30,6 @@ public class SearchController {
     private final DataSyncService dataSyncService;
     private final DocumentMapper documentMapper;
 
-    @Autowired
     public SearchController(ElasticsearchSearchService searchService, DataSyncService dataSyncService, DocumentMapper documentMapper) {
         this.searchService = searchService;
         this.dataSyncService = dataSyncService;

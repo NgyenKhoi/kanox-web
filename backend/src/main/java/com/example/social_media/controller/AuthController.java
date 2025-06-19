@@ -37,14 +37,14 @@ public class AuthController {
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
     public AuthController(AuthService authService,
-                          MailService mailService,
-                          JwtService jwtService
-                          ) {
+            MailService mailService,
+            JwtService jwtService) {
         this.authService = authService;
         this.mailService = mailService;
         this.jwtService = jwtService;
     }
-    //GET CURRENT USER
+
+    // GET CURRENT USER
     @GetMapping(URLConfig.ME)
     public ResponseEntity<?> getCurrentUser(@RequestHeader("Authorization") String authHeader) {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
@@ -67,24 +67,29 @@ public class AuthController {
             return ResponseEntity.status(404).body(Map.of("message", "User not found"));
         }
     }
-    //LOGIN
+
+    // LOGIN
     @PostMapping(URLConfig.LOGIN)
     public ResponseEntity<?> login(@RequestBody @Valid LoginRequestDto loginRequest) {
         Optional<User> userOpt = authService.loginFlexible(loginRequest.getIdentifier(), loginRequest.getPassword());
         if (userOpt.isPresent()) {
             User user = userOpt.get();
             String token = jwtService.generateToken(user.getUsername());
-            logger.info("Generated JWT token for user {}: {}", user.getUsername(), token);
 
             Map<String, Object> result = new HashMap<>();
             result.put("token", token);
-            result.put("user", user);
+            result.put("user", Map.of(
+                    "id", user.getId(),
+                    "username", user.getUsername(),
+                    "email", user.getEmail(),
+                    "isAdmin", user.getIsAdmin()
+            ));
             return ResponseEntity.ok(result);
         }
         throw new IllegalArgumentException("Invalid credentials");
     }
 
-    //LOGOUT
+    // LOGOUT
     @PostMapping(URLConfig.LOGOUT)
     public ResponseEntity<?> logout(@RequestParam Integer userId) {
         Optional<User> userOpt = authService.getUser(userId);
@@ -94,38 +99,41 @@ public class AuthController {
         }
         throw new IllegalArgumentException("User not found");
     }
-    //FORGOT PASSWORD
-    @PostMapping(URLConfig.FORGOT_PASSWORD)
-        public ResponseEntity<?> forgotPassword (@RequestBody ForgotPasswordRequestDto request){
-            if (request.getEmail() == null) {
-                throw new IllegalArgumentException("Email is required");
-            }
-            boolean result = authService.forgotPassword(request.getEmail());
-            if (result) {
-                return ResponseEntity.ok("Password reset instructions sent to email");
-            } else {
-                throw new IllegalArgumentException("Email not found");
-            }
-        }
-        @PostMapping(URLConfig.RESET_PASSWORD)
-        public ResponseEntity<Map<String, Object>> resetPassword(@RequestBody @Valid ResetPasswordRequestDto request) {
-            if (request.getToken() == null || request.getNewPassword() == null) {
-                throw new IllegalArgumentException("Token and newPassword are required");
-            }
 
-            try {
-                mailService.resetPassword(request.getToken(), request.getNewPassword());
-                Map<String, Object> response = new HashMap<>();
-                response.put("status", "success");
-                response.put("message", "Đặt lại mật khẩu thành công.");
-                return ResponseEntity.ok(response);
-            } catch (InvalidTokenException | TokenExpiredException e) {
-                throw e;
-            } catch (Exception e) {
-                logger.error("Unexpected error during password reset: ", e);
-                throw new IllegalStateException("Không thể đặt lại mật khẩu: " + e.getMessage(), e);
-            }
+    // FORGOT PASSWORD
+    @PostMapping(URLConfig.FORGOT_PASSWORD)
+    public ResponseEntity<?> forgotPassword(@RequestBody ForgotPasswordRequestDto request) {
+        if (request.getEmail() == null) {
+            throw new IllegalArgumentException("Email is required");
         }
+        boolean result = authService.forgotPassword(request.getEmail());
+        if (result) {
+            return ResponseEntity.ok("Password reset instructions sent to email");
+        } else {
+            throw new IllegalArgumentException("Email not found");
+        }
+    }
+
+    @PostMapping(URLConfig.RESET_PASSWORD)
+    public ResponseEntity<Map<String, Object>> resetPassword(@RequestBody @Valid ResetPasswordRequestDto request) {
+        if (request.getToken() == null || request.getNewPassword() == null) {
+            throw new IllegalArgumentException("Token and newPassword are required");
+        }
+
+        try {
+            mailService.resetPassword(request.getToken(), request.getNewPassword());
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "success");
+            response.put("message", "Đặt lại mật khẩu thành công.");
+            return ResponseEntity.ok(response);
+        } catch (InvalidTokenException | TokenExpiredException e) {
+            throw e;
+        } catch (Exception e) {
+            logger.error("Unexpected error during password reset: ", e);
+            throw new IllegalStateException("Không thể đặt lại mật khẩu: " + e.getMessage(), e);
+        }
+    }
+
     @PostMapping(URLConfig.REGISTER)
     public ResponseEntity<?> register(@RequestBody @Valid RegisterRequestDto dto) {
         logger.info("Received registration request for username: {}", dto.getUsername());
@@ -135,38 +143,32 @@ public class AuthController {
             } catch (DateTimeException e) {
                 return ResponseEntity.badRequest().body(Map.of(
                         "message", "Ngày sinh không hợp lệ",
-                        "errors", Map.of("dob", "Ngày sinh không hợp lệ")
-                ));
+                        "errors", Map.of("dob", "Ngày sinh không hợp lệ")));
             }
 
             User createdUser = authService.register(dto);
             if (createdUser == null) {
                 return ResponseEntity.ok(Map.of(
-                        "message", "Đăng ký thành công, vui lòng kiểm tra email để xác thực tài khoản."
-                ));
+                        "message", "Đăng ký thành công, vui lòng kiểm tra email để xác thực tài khoản."));
             }
 
             logger.info("User registered successfully with ID: {}", createdUser.getId());
 
             return ResponseEntity.ok(Map.of(
                     "message", "Đăng ký thành công, vui lòng kiểm tra email để xác thực tài khoản.",
-                    "user", new UserDto(createdUser)
-            ));
+                    "user", new UserDto(createdUser)));
         } catch (EmailAlreadyExistsException e) {
             logger.warn("Email already exists: {}", dto.getEmail());
             return ResponseEntity.status(409).body(Map.of(
-                    "message", e.getMessage()
-            ));
+                    "message", e.getMessage()));
         } catch (IllegalArgumentException e) {
             logger.warn("Registration failed due to illegal argument: {}", e.getMessage());
             return ResponseEntity.badRequest().body(Map.of(
-                    "message", e.getMessage()
-            ));
+                    "message", e.getMessage()));
         } catch (Exception e) {
             logger.error("Unexpected error during registration: ", e);
             return ResponseEntity.status(500).body(Map.of(
-                    "message", "Lỗi server, vui lòng thử lại sau."
-            ));
+                    "message", "Lỗi server, vui lòng thử lại sau."));
         }
     }
 
@@ -179,22 +181,19 @@ public class AuthController {
 
             return ResponseEntity.ok(Map.of(
                     "message", "Tài khoản đã được xác thực thành công.",
-                    "user", new UserDto(verifiedUser)
-            ));
+                    "user", new UserDto(verifiedUser)));
         } catch (IllegalArgumentException e) {
             logger.warn("Token verification failed: {}", e.getMessage());
             return ResponseEntity.badRequest().body(Map.of(
-                    "message", e.getMessage()
-            ));
+                    "message", e.getMessage()));
         } catch (Exception e) {
             logger.error("Unexpected error during token verification: ", e);
             return ResponseEntity.status(500).body(Map.of(
-                    "message", "Lỗi máy chủ khi xác thực token."
-            ));
+                    "message", "Lỗi máy chủ khi xác thực token."));
         }
     }
 
-    //add login google here
+    // add login google here
     @PostMapping(URLConfig.LOGIN_GOOGLE)
     public ResponseEntity<?> loginWithGoogleIdToken(@RequestBody GoogleLoginRequestDto request) {
         try {
@@ -206,7 +205,8 @@ public class AuthController {
 
             // Xác minh idToken
             logger.info("Verifying idToken with clientId: {}", URLConfig.GOOGLE_LOGIN_CLIENT_ID);
-            GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
+            GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(),
+                    new GsonFactory())
                     .setAudience(List.of(URLConfig.GOOGLE_LOGIN_CLIENT_ID))
                     .build();
 
@@ -233,8 +233,7 @@ public class AuthController {
             return ResponseEntity.ok(Map.of(
                     "token", token,
                     "refreshToken", refreshToken, // Thêm refreshToken vào response
-                    "user", new UserDto(user)
-            ));
+                    "user", new UserDto(user)));
 
         } catch (IllegalStateException e) {
             logger.error("Illegal state during Google login: {}", e.getMessage());
@@ -249,6 +248,7 @@ public class AuthController {
             return ResponseEntity.status(500).body(Map.of("error", "Google login failed: " + e.getMessage()));
         }
     }
+
     @PostMapping(URLConfig.REFRESH_TOKEN)
     public ResponseEntity<?> refreshToken(@RequestHeader("Authorization") String refreshToken) {
         if (refreshToken != null && refreshToken.startsWith("Bearer ")) {
@@ -263,7 +263,8 @@ public class AuthController {
                 return ResponseEntity.ok(new ResponseDto("Token refreshed successfully", newToken, user));
             }
         }
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ResponseDto("Invalid refresh token", null, null));
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(new ResponseDto("Invalid refresh token", null, null));
     }
 
     @PostMapping(URLConfig.CHECK_TOKEN)
@@ -271,7 +272,8 @@ public class AuthController {
         logger.info("Received check-token request with header: {}", authHeader);
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             logger.warn("Missing or invalid Authorization header");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Missing or invalid Authorization header"));
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("message", "Missing or invalid Authorization header"));
         }
 
         String token = authHeader.substring(7);
@@ -282,7 +284,8 @@ public class AuthController {
             logger.info("Extracted username from token: {}", username);
         } catch (Exception e) {
             logger.error("Failed to extract username from token: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Invalid token: " + e.getMessage()));
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("message", "Invalid token: " + e.getMessage()));
         }
 
         Optional<User> userOpt;
@@ -291,7 +294,8 @@ public class AuthController {
             logger.info("User lookup result: {}", userOpt.isPresent());
         } catch (Exception e) {
             logger.error("Failed to retrieve user by username {}: {}", username, e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("message", "Error retrieving user: " + e.getMessage()));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Error retrieving user: " + e.getMessage()));
         }
 
         if (userOpt.isPresent()) {
@@ -300,11 +304,11 @@ public class AuthController {
                 logger.info("Token is valid for user: {}", username);
                 return ResponseEntity.ok(Map.of(
                         "token", token,
-                        "user", new UserDto(userOpt.get())
-                ));
+                        "user", new UserDto(userOpt.get())));
             } catch (Exception e) {
                 logger.warn("Token expired or invalid for user {}: {}", username, e.getMessage(), e);
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Token expired or invalid: " + e.getMessage()));
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("message", "Token expired or invalid: " + e.getMessage()));
             }
         } else {
             logger.warn("User not found for username: {}", username);

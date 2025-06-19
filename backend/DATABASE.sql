@@ -2599,7 +2599,7 @@ WHERE definition LIKE '%friendship%';
         target_id INT NOT NULL, -- ID của nội dung (post, story, message, v.v.)
         target_type_id INT NOT NULL FOREIGN KEY REFERENCES tblTargetType(id), -- Loại nội dung
         media_type_id INT NOT NULL FOREIGN KEY REFERENCES tblMediaType(id), -- Loại media
-        media_url VARCHAR(512) NOT NULL, -- Đường dẫn đến media
+        media_url NVARCHAR(512) NOT NULL, -- Đường dẫn đến media
         caption NVARCHAR(255), -- Mô tả media (nếu có)
         created_at DATETIME DEFAULT GETDATE(),
         status BIT DEFAULT 1,
@@ -2690,6 +2690,19 @@ WHERE definition LIKE '%friendship%';
     ('sophia.martinez@example.com', 'sophia_martinez', '555-0103', 'hashed_pass_sophia', NULL, NULL, 0, N'Sophia Martinez', '1995-11-10', N'Đầu bếp đầy triển vọng', 0, 'only_me', 1),
     ('noah.brown@example.com', 'noah_brown', '555-0104', 'hashed_pass_noah', NULL, NULL, 0, N'Noah Brown', '1990-04-05', N'Nghệ sĩ và du khách', 1, 'custom', 1),
     ('olivia.smith@example.com', 'olivia_smith', '555-0105', 'hashed_pass_olivia', NULL, NULL, 1, N'Olivia Smith', '1985-09-30', N'Quản trị viên nền tảng', 2, 'public', 1);
+
+	--insert admin account
+	INSERT INTO tblUser (
+  email, username, phone_number, password, persistent_cookie,
+  google_id, is_admin, display_name, date_of_birth, bio,
+  gender, profile_privacy_setting, status
+) VALUES (
+  'admin@example.com', 'admin', '0123456789',
+  '$2a$10$xe80JexcDBTfGO01pkQFp.qjuZ.AS0xYms8pgaJiNvf9XVGHEE0DC',
+  NULL, NULL, 1, 'Administrator', '1990-01-01',
+  'Admin account', 1, 'PUBLIC', 1
+);
+
 
     -- tblPrivacySettings (Cài đặt quyền riêng tư - tự động thêm bởi trigger trg_InsertPrivacySettings, nhưng có thể cập nhật)
     UPDATE tblPrivacySettings SET
