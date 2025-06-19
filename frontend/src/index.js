@@ -7,16 +7,22 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 
+// Polyfill process
+import process from 'process';
+window.process = process;
+
 const root = ReactDOM.createRoot(document.getElementById("root"));
+if (!root) {
+    console.error("Root element not found");
+    throw new Error("Root element not found");
+}
+
 root.render(
-  <React.StrictMode>
-    <GoogleOAuthProvider clientId="233866118973-t26ue94egg2v1reebqpe684kglf0bjej.apps.googleusercontent.com">
-      <App />
-    </GoogleOAuthProvider>
-  </React.StrictMode>
+    <React.StrictMode>
+        <GoogleOAuthProvider clientId="233866118973-t26ue94egg2v1reebqpe684kglf0bjej.apps.googleusercontent.com">
+            <App />
+        </GoogleOAuthProvider>
+    </React.StrictMode>
 );
 
-// If you want to start measuring performance in your app, pass a function
-// to log results (for example: reportWebVitals(console.log))
-// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
 reportWebVitals();

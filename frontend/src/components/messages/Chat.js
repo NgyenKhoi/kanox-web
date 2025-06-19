@@ -172,7 +172,7 @@ const Chat = ({ chatId }) => {
   };
 
   const startCall = () => {
-    if (!stream) {
+    if (!stream || !stompClient || !stompClient.connected) {
       toast.error("Không thể bắt đầu cuộc gọi: Không có luồng video.");
       return;
     }

@@ -47,7 +47,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws")
-                .setAllowedOrigins("https://kanox.duckdns.org")
+                .setAllowedOrigins("https://kanox-web.netlify.app", "http://localhost:3000") // Thêm domain frontend và localhost cho dev
                 .withSockJS()
                 .setInterceptors(new HttpSessionHandshakeInterceptor() {
                     @Override

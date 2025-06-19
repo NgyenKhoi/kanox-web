@@ -27,7 +27,7 @@ export const useWebSocket = (onMessage, setUnreadCount, topicPrefix = "/topic/no
         console.log("Initializing WebSocket for user:", user.id);
 
         const client = new Client({
-            webSocketFactory: () => new SockJS("https://kanox.duckdns.org/ws"),
+            webSocketFactory: () => new SockJS(`${process.env.REACT_APP_API_URL}/ws` || "https://kanox.duckdns.org/ws"),
             connectHeaders: {
                 Authorization: `Bearer ${token}`,
             },
