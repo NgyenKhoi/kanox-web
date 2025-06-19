@@ -34,7 +34,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final JwtService jwtService;
-    private final Map<String, String> sessionTokenMap = new ConcurrentHashMap<>();
+    public final Map<String, String> sessionTokenMap = new ConcurrentHashMap<>();
 
     public WebSocketConfig(JwtService jwtService) {
         this.jwtService = jwtService;
@@ -78,8 +78,8 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                             String username = jwtService.extractUsername(jwt);
                             System.out.println("Extracted username: " + username);
                             Authentication auth = new UsernamePasswordAuthenticationToken(username, null, new ArrayList<>());
-                            SecurityContextHolder.getContext().setAuthentication(auth);
-                            sessionTokenMap.put(accessor.getSessionId(), authToken); // Lưu token vào sessionTokenMap
+                            SecurityContextHolder.getContext().setAuthentication(auth); // Đặt context
+                            sessionTokenMap.put(accessor.getSessionId(), authToken);
                             System.out.println("Token saved for session " + accessor.getSessionId() + ": " + authToken);
                         } catch (Exception e) {
                             System.err.println("JWT validation failed: " + e.getMessage());

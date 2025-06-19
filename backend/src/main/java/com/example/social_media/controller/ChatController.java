@@ -1,6 +1,7 @@
 package com.example.social_media.controller;
 
 import com.example.social_media.config.URLConfig;
+import com.example.social_media.config.WebSocketConfig;
 import com.example.social_media.dto.message.*;
 import com.example.social_media.entity.CallSession;
 import com.example.social_media.entity.User;
@@ -33,14 +34,16 @@ public class ChatController {
     private final UserRepository userRepository;
     private final JwtService jwtService;
     private final SimpMessagingTemplate messagingTemplate;
+    private final WebSocketConfig webSocketConfig;
 
-    public ChatController(ChatService chatService, MessageService messageService, CallSessionService callSessionService, UserRepository userRepository, JwtService jwtService, SimpMessagingTemplate messagingTemplate) {
+    public ChatController(ChatService chatService, MessageService messageService, CallSessionService callSessionService, UserRepository userRepository, JwtService jwtService, SimpMessagingTemplate messagingTemplate, WebSocketConfig webSocketConfig) {
         this.chatService = chatService;
         this.messageService = messageService;
         this.callSessionService = callSessionService;
         this.userRepository = userRepository;
         this.jwtService = jwtService;
         this.messagingTemplate = messagingTemplate;
+        this.webSocketConfig = webSocketConfig;
     }
 
     @MessageMapping(URLConfig.SEND_MESSAGES)
@@ -48,20 +51,22 @@ public class ChatController {
         System.out.println("Processing message: " + messageDto.getContent() + " for chatId: " + messageDto.getChatId());
         String username = null;
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null) {
+        if (authentication != null && authentication.isAuthenticated()) {
             username = authentication.getName();
         }
         if (username == null) {
-            String authToken = jwtService.extractTokenFromSession(sessionId);
+            String authToken = webSocketConfig.sessionTokenMap.get(sessionId);
             System.out.println("Extracted token from session " + sessionId + ": " + authToken);
             if (authToken != null && authToken.startsWith("Bearer ")) {
                 username = jwtService.extractUsername(authToken.substring(7));
+            } else {
+                System.err.println("No token found in sessionTokenMap for session " + sessionId);
             }
         }
         if (username == null) {
             throw new UnauthorizedException("Không thể xác thực người dùng.");
         }
-        messageService.sendMessage(messageDto, username); // Gọi service để lưu và broadcast
+        messageService.sendMessage(messageDto, username); // Lưu và broadcast
     }
     @MessageMapping(URLConfig.TYPING)
     public void handleTyping(@Payload Map<String, Object> typingData) {
