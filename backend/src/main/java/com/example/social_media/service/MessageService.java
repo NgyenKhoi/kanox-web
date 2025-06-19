@@ -44,7 +44,7 @@ public class MessageService {
     }
 
     @Transactional
-    public void sendMessage(MessageDto messageDto, String username) {
+    public MessageDto sendMessage(MessageDto messageDto, String username) {
         chatService.checkChatAccess(messageDto.getChatId().intValue(), username);
 
         MessageType messageType = messageTypeRepository.findById(messageDto.getTypeId())
@@ -62,7 +62,7 @@ public class MessageService {
         message.setContent(messageDto.getContent());
         message.setType(messageType);
         message.setCreatedAt(Instant.now());
-        messageRepository.save(message);
+        message = messageRepository.save(message); // Lưu và lấy entity đã lưu
 
         // Lưu trạng thái tin nhắn cho tất cả thành viên trong chat (trừ người gửi)
         List<ChatMember> members = chatMemberRepository.findByChatId(messageDto.getChatId().intValue());
@@ -78,6 +78,7 @@ public class MessageService {
             }
         }
 
+        // Cập nhật messageDto với id và createdAt từ message đã lưu
         messageDto.setId(message.getId());
         messageDto.setCreatedAt(message.getCreatedAt());
         messagingTemplate.convertAndSend("/topic/chat/" + messageDto.getChatId(), messageDto);
@@ -92,6 +93,8 @@ public class MessageService {
                 );
             }
         }
+
+        return messageDto; // Trả về messageDto đã cập nhật
     }
 
     @Transactional(readOnly = true)

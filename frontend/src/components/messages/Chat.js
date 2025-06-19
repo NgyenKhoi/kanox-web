@@ -43,6 +43,9 @@ const Chat = ({ chatId }) => {
   const chatContainerRef = useRef(null);
 
   useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
     console.log("Token:", token, "User:", user);
     if (!token || !user) {
       toast.error("Vui lòng đăng nhập để sử dụng chat.");
@@ -146,6 +149,8 @@ const Chat = ({ chatId }) => {
       destination: "/app/sendMessage",
       body: JSON.stringify(msg),
     });
+    const tempMsg = { ...msg, id: Date.now(), createdAt: new Date().toISOString() };
+    setMessages((prev) => [...prev, tempMsg]);
     setMessage("");
     stompClient.publish({
       destination: "/app/typing",

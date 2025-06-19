@@ -66,7 +66,8 @@ public class ChatController {
         if (username == null) {
             throw new UnauthorizedException("Không thể xác thực người dùng.");
         }
-        messageService.sendMessage(messageDto, username); // Lưu và broadcast
+        MessageDto savedMessage = messageService.sendMessage(messageDto, username); // Lấy message đã lưu
+        messagingTemplate.convertAndSend("/topic/chat/" + messageDto.getChatId(), savedMessage); // Broadcast
     }
     @MessageMapping(URLConfig.TYPING)
     public void handleTyping(@Payload Map<String, Object> typingData) {
