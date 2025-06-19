@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useContext } from "react";
-import { Container, Row, Col, ListGroup, Button, Spinner } from "react-bootstrap";
-import { FaArrowLeft, FaUserSlash } from "react-icons/fa";
+import { Container, Row, Col, ListGroup, Spinner } from "react-bootstrap";
+import { FaArrowLeft } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 import SidebarLeft from "../../components/layout/SidebarLeft/SidebarLeft";
 import SidebarRight from "../../components/layout/SidebarRight/SidebarRight";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import BlockedUserItem from "./BlockedUserItem";
 
 function BlockedUsersPage() {
     const { user } = useContext(AuthContext);
@@ -46,11 +47,11 @@ function BlockedUsersPage() {
             let data;
             if (contentType && contentType.includes("application/json")) {
                 data = await response.json();
-                console.log("API Response:", data); // Log để kiểm tra
+                console.log("API Response:", data);
             } else {
                 const text = await response.text();
                 data = { message: text };
-                console.log("API Text Response:", text); // Log để kiểm tra
+                console.log("API Text Response:", text);
             }
 
             if (!response.ok) {
@@ -159,25 +160,11 @@ function BlockedUsersPage() {
                                         <p className="text-muted text-center p-4">Chưa chặn ai cả.</p>
                                     ) : (
                                         blockedUsers.map((blockedUser) => (
-                                            <ListGroup.Item
+                                            <BlockedUserItem
                                                 key={blockedUser.id}
-                                                className="d-flex align-items-center py-3"
-                                            >
-                                                <FaUserSlash className="me-3 text-muted" size={24} />
-                                                <div className="flex-grow-1">
-                                                    <div className="fw-bold text-dark">
-                                                        {blockedUser.displayName || blockedUser.username}
-                                                    </div>
-                                                    <div className="text-muted">@{blockedUser.username}</div>
-                                                </div>
-                                                <Button
-                                                    variant="outline-primary"
-                                                    className="rounded-pill px-3"
-                                                    onClick={() => handleUnblock(blockedUser.id)}
-                                                >
-                                                    Bỏ chặn
-                                                </Button>
-                                            </ListGroup.Item>
+                                                blockedUser={blockedUser}
+                                                handleUnblock={handleUnblock}
+                                            />
                                         ))
                                     )}
                                 </ListGroup>

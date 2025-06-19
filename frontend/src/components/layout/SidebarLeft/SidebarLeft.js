@@ -24,10 +24,10 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import KLogoSvg from "../../svgs/KSvg";
 import { AuthContext } from "../../../context/AuthContext";
 import { useWebSocket } from "../../../hooks/useWebSocket";
+import useMedia from "../../../hooks/useMedia";
 import "./SidebarLeft.css";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-
 
 function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
     const { user, logout } = useContext(AuthContext);
@@ -36,6 +36,9 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
     const [showOffcanvas, setShowOffcanvas] = useState(false);
     const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
     const [unreadMessageCount, setUnreadMessageCount] = useState(0);
+
+    // Sử dụng useMedia để lấy avatar người dùng
+    const { mediaUrl: avatarUrl } = useMedia(user?.id, "PROFILE", "image");
 
     const handleCloseOffcanvas = () => setShowOffcanvas(false);
     const handleShowOffcanvas = () => setShowOffcanvas(true);
@@ -228,9 +231,9 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
                         as={Nav.Link}
                         className="d-flex align-items-center text-dark py-2 px-3 rounded-pill sidebar-nav-link"
                     >
-            <span className="me-3">
-              <FaEllipsisH size={24} />
-            </span>
+                        <span className="me-3">
+                            <FaEllipsisH size={24} />
+                        </span>
                         <span className="fs-5 d-none d-lg-inline">Thêm</span>
                     </Dropdown.Toggle>
                     <Dropdown.Menu className="sidebar-dropdown-menu">
@@ -275,14 +278,14 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
                         style={{ backgroundColor: isDarkMode ? "#222" : "#f8f9fa" }}
                     >
                         <img
-                            src={user?.avatar || "https://placehold.co/40x40"}
+                            src={avatarUrl || "https://placehold.co/40x40"}
                             alt="User Avatar"
                             className="rounded-circle me-2"
                             style={{ width: "40px", height: "40px", objectFit: "cover" }}
                         />
                         <div className="d-none d-lg-block flex-grow-1">
                             <div className="fw-bold text-dark">
-                                {user?.name || "Người dùng"}
+                                {user?.displayName || "Người dùng"}
                             </div>
                             <div className="text-muted small">
                                 @{user?.username || "username"}

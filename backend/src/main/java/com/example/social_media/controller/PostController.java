@@ -3,7 +3,6 @@ package com.example.social_media.controller;
 import com.example.social_media.config.URLConfig;
 import com.example.social_media.dto.post.PostRequestDto;
 import com.example.social_media.dto.post.PostResponseDto;
-import com.example.social_media.exception.RegistrationException;
 import com.example.social_media.exception.UnauthorizedException;
 import com.example.social_media.exception.UserNotFoundException;
 import com.example.social_media.jwt.JwtService;
@@ -14,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.HashMap;
 import java.util.List;
@@ -31,14 +31,16 @@ public class PostController {
         this.jwtService = jwtService;
     }
 
-    @PostMapping
-    public ResponseEntity<Map<String, Object>> createPost(@RequestBody @Valid PostRequestDto dto,
-                                                          @RequestHeader("Authorization") String authHeader) {
+    @PostMapping(consumes = { "multipart/form-data" })
+    public ResponseEntity<Map<String, Object>> createPost(
+            @RequestPart("post") @Valid PostRequestDto dto,
+            @RequestPart(value = "media", required = false) List<MultipartFile> mediaFiles,
+            @RequestHeader("Authorization") String authHeader) {
         try {
             String token = authHeader.substring(7);
             String username = jwtService.extractUsername(token);
             logger.debug("Creating post for user: {}", username);
-            PostResponseDto responseDto = postService.createPost(dto, username);
+            PostResponseDto responseDto = postService.createPost(dto, username, mediaFiles);
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Tạo bài post thành công");
             response.put("data", responseDto);
@@ -62,8 +64,8 @@ public class PostController {
 
     @PutMapping("/{postId}")
     public ResponseEntity<Map<String, Object>> updatePost(@PathVariable Integer postId,
-                                                          @RequestBody @Valid PostRequestDto dto,
-                                                          @RequestHeader("Authorization") String authHeader) {
+            @RequestBody @Valid PostRequestDto dto,
+            @RequestHeader("Authorization") String authHeader) {
         try {
             String token = authHeader.substring(7);
             String username = jwtService.extractUsername(token);
@@ -75,6 +77,48 @@ public class PostController {
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             logger.error("Error updating post: {}", e.getMessage());
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("status", "error");
+            errorResponse.put("message", e.getMessage());
+            errorResponse.put("errors", new HashMap<>());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+        } catch (UserNotFoundException e) {
+            logger.error("Post not found: {}", e.getMessage());
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("status", "error");
+            errorResponse.put("message", e.getMessage());
+            errorResponse.put("errors", new HashMap<>());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+        } catch (UnauthorizedException e) {
+            logger.error("Unauthorized access: {}", e.getMessage());
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("status", "error");
+            errorResponse.put("message", e.getMessage());
+            errorResponse.put("errors", new HashMap<>());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
+        } catch (Exception e) {
+            logger.error("Unexpected error: {}", e.getMessage(), e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("status", "error");
+            errorResponse.put("message", "Lỗi hệ thống: " + e.getMessage());
+            errorResponse.put("errors", new HashMap<>());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+    @DeleteMapping("/{postId}")
+    public ResponseEntity<Map<String, Object>> deletePost(@PathVariable Integer postId,
+            @RequestHeader("Authorization") String authHeader) {
+        try {
+            String token = authHeader.substring(7);
+            String username = jwtService.extractUsername(token);
+            logger.debug("Deleting post {} for user: {}", postId, username);
+            postService.deletePost(postId, username);
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Xóa bài post thành công");
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            logger.error("Error deleting post: {}", e.getMessage());
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("status", "error");
             errorResponse.put("message", e.getMessage());
@@ -134,7 +178,7 @@ public class PostController {
 
     @GetMapping(URLConfig.USER_POST)
     public ResponseEntity<Map<String, Object>> getPostsByUsername(@PathVariable String username,
-                                                                  @RequestHeader("Authorization") String authHeader) {
+            @RequestHeader("Authorization") String authHeader) {
         try {
             String token = authHeader.substring(7);
             String currentUsername = jwtService.extractUsername(token);

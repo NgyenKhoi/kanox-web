@@ -2651,8 +2651,8 @@ WHERE definition LIKE '%friendship%';
     ('POST_COMMENT', 'New comment on your post', 1),
     ('STORY_VIEW', 'Someone viewed your story', 1),
     ('REACTION', 'Someone reacted to your content', 1),
+	('FRIEND_ACCEPTED', 'accepted friend request', 1),
 	('FOLLOW', 'Someone followed you', 1);
-	select * from tblTargetType
 
     -- tblReactionType (Loại phản hồi: Like, Love, Haha, v.v.)
     INSERT INTO tblReactionType (name, description, status) VALUES
