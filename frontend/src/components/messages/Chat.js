@@ -63,7 +63,10 @@ const Chat = ({ chatId }) => {
         console.log("Received:", msg.body);
         const message = JSON.parse(msg.body);
         setMessages((prev) => {
-          if (!prev.some((m) => m.id === message.id)) return [...prev, message];
+          const ids = new Set(prev.map(m => m.id));
+          if (!ids.has(message.id)) {
+            return [...prev, message];
+          }
           return prev;
         });
         setIsTyping(false);
