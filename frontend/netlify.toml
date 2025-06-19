@@ -1,0 +1,13 @@
+[build]
+command = "npm run build"
+publish = "build"
+
+[[redirects]]
+from = "/ws/*"
+to = "https://kanox.duckdns.org/ws/:splat"
+status = 200
+force = true
+conditions = { Method = "GET" }
+[redirects.headers]
+Upgrade = "websocket"
+Connection = "upgrade"
