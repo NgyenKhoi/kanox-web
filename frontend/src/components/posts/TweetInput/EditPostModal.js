@@ -10,8 +10,10 @@ import {
     Badge,
     Row,
     Col,
+    Image as BootstrapImage,
 } from "react-bootstrap";
 import { AuthContext } from "../../../context/AuthContext";
+import { FaTrash } from "react-icons/fa";
 
 function EditPostModal({ show, onHide, post, onSave }) {
     const { user } = useContext(AuthContext);
@@ -21,6 +23,9 @@ function EditPostModal({ show, onHide, post, onSave }) {
         taggedUserIds: [],
         tagInput: "",
         customListId: null,
+        images: [], // New images to upload
+        existingImageUrls: [], // Existing image URLs from the post
+        imagesToDelete: [], // Image IDs to delete
     });
     const [customLists, setCustomLists] = useState([]);
     const [error, setError] = useState(null);
@@ -51,6 +56,9 @@ function EditPostModal({ show, onHide, post, onSave }) {
                 taggedUserIds: post.taggedUsers ? post.taggedUsers.map(tag => parseInt(tag.id)) : [],
                 tagInput: "",
                 customListId: post.customListId || null,
+                images: [],
+                existingImageUrls: post.imageUrls || [], // Assuming post.imageUrls contains existing image URLs
+                imagesToDelete: [],
             });
         }
     }, [post]);
@@ -104,6 +112,43 @@ function EditPostModal({ show, onHide, post, onSave }) {
         setFormData(prev => ({ ...prev, customListId: id }));
     };
 
+    const handleImageUpload = (e) => {
+        const files = Array.from(e.target.files);
+        const validImageTypes = ['image/jpeg', 'image/png', 'image/gif'];
+        const maxSize = 5 * 1024 * 1024; // 5MB
+
+        const validFiles = files.filter(file => 
+            validImageTypes.includes(file.type) && file.size <= maxSize
+        );
+
+        if (validFiles.length < files.length) {
+            setError("Một số file không hợp lệ (chỉ hỗ trợ JPEG, PNG, GIF, tối đa 5MB)");
+        }
+
+        setFormData(prev => ({
+            ...prev,
+            images: [...prev.images, ...validFiles],
+        }));
+    };
+
+    const handleRemoveImage = (index, isExisting = false) => {
+        if (isExisting) {
+            const imageUrl = formData.existingImageUrls[index];
+            // Assuming imageUrl contains an ID or unique identifier at the end
+            const imageId = imageUrl.split('/').pop();
+            setFormData(prev => ({
+                ...prev,
+                existingImageUrls: prev.existingImageUrls.filter((_, i) => i !== index),
+                imagesToDelete: [...prev.imagesToDelete, imageId],
+            }));
+        } else {
+            setFormData(prev => ({
+                ...prev,
+                images: prev.images.filter((_, i) => i !== index),
+            }));
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError(null);
@@ -116,18 +161,28 @@ function EditPostModal({ show, onHide, post, onSave }) {
         try {
             setLoading(true);
             const token = localStorage.getItem("token");
+            const formDataToSend = new FormData();
+            
+            formDataToSend.append('content', formData.content);
+            formDataToSend.append('privacySetting', formData.privacySetting);
+            formDataToSend.append('taggedUserIds', JSON.stringify(formData.taggedUserIds));
+            if (formData.customListId) {
+                formDataToSend.append('customListId', formData.customListId);
+            }
+            if (formData.imagesToDelete.length > 0) {
+                formDataToSend.append('imagesToDelete', JSON.stringify(formData.imagesToDelete));
+            }
+            
+            formData.images.forEach((image, index) => {
+                formDataToSend.append(`images[${index}]`, image);
+            });
+
             const res = await fetch(`${process.env.REACT_APP_API_URL}/posts/${post.id}`, {
                 method: "PUT",
                 headers: {
-                    "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
                 },
-                body: JSON.stringify({
-                    content: formData.content,
-                    privacySetting: formData.privacySetting,
-                    taggedUserIds: formData.taggedUserIds,
-                    customListId: formData.customListId,
-                }),
+                body: formDataToSend,
             });
 
             const text = await res.text();
@@ -236,11 +291,61 @@ function EditPostModal({ show, onHide, post, onSave }) {
                                         className="text-white p-0 ms-1"
                                         onClick={() => handleRemoveTag(tagId)}
                                     >
-                                        &times;
+                                        ×
                                     </Button>
                                 </Badge>
                             ))}
                         </div>
+                    </FormGroup>
+
+                    <FormGroup className="mb-3">
+                        <FormLabel>Ảnh</FormLabel>
+                        <FormControl
+                            type="file"
+                            multiple
+                            accept="image/jpeg,image/png,image/gif"
+                            onChange={handleImageUpload}
+                        />
+                        <Row className="mt-2 g-2">
+                            {formData.existingImageUrls.map((url, index) => (
+                                <Col xs={4} key={`existing-${index}`}>
+                                    <div style={{ position: "relative" }}>
+                                        <BootstrapImage
+                                            src={url}
+                                            style={{ width: "100%", height: "100px", objectFit: "cover", borderRadius: "8px" }}
+                                            fluid
+                                        />
+                                        <Button
+                                            variant="danger"
+                                            size="sm"
+                                            style={{ position: "absolute", top: "5px", right: "5px" }}
+                                            onClick={() => handleRemoveImage(index, true)}
+                                        >
+                                            <FaTrash />
+                                        </Button>
+                                    </div>
+                                </Col>
+                            ))}
+                            {formData.images.map((image, index) => (
+                                <Col xs={4} key={`new-${index}`}>
+                                    <div style={{ position: "relative" }}>
+                                        <BootstrapImage
+                                            src={URL.createObjectURL(image)}
+                                            style={{ width: "100%", height: "100px", objectFit: "cover", borderRadius: "8px" }}
+                                            fluid
+                                        />
+                                        <Button
+                                            variant="danger"
+                                            size="sm"
+                                            style={{ position: "absolute", top: "5px", right: "5px" }}
+                                            onClick={() => handleRemoveImage(index)}
+                                        >
+                                            <FaTrash />
+                                        </Button>
+                                    </div>
+                                </Col>
+                            ))}
+                        </Row>
                     </FormGroup>
 
                     {error && <p className="text-danger text-center">{error}</p>}

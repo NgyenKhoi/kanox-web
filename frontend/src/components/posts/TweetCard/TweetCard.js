@@ -8,6 +8,7 @@ import {
   Image as BootstrapImage,
   Row,
   Col,
+  Modal,
 } from "react-bootstrap";
 import {
   FaRegComment,
@@ -30,7 +31,7 @@ import { AuthContext } from "../../../context/AuthContext";
 import EditPostModal from "../TweetInput/EditPostModal";
 import useMedia from "../../../hooks/useMedia";
 import { toast } from "react-toastify";
-import { useNavigate } from "react-router-dom"; // Add import for useNavigate
+import { useNavigate } from "react-router-dom";
 
 // Thêm CSS inline hoặc có thể đưa vào file CSS riêng
 const imageContainerStyles = {
@@ -44,11 +45,20 @@ const imageStyles = {
   height: "100%",
   objectFit: "cover",
   display: "block",
+  cursor: "pointer", // Add cursor pointer to indicate clickability
+};
+
+const enlargedImageStyles = {
+  maxWidth: "100%",
+  maxHeight: "80vh",
+  objectFit: "contain",
+  margin: "auto",
+  display: "block",
 };
 
 function TweetCard({ tweet, onPostUpdate }) {
   const { user } = useContext(AuthContext);
-  const navigate = useNavigate(); // Initialize useNavigate
+  const navigate = useNavigate();
   const {
     id,
     owner,
@@ -64,6 +74,8 @@ function TweetCard({ tweet, onPostUpdate }) {
   const isOwnTweet = user && user.username === owner.username;
   const [reaction, setReaction] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
 
   const { mediaUrl: avatarUrl } = useMedia(owner.id, "PROFILE", "image");
   const { mediaUrls: imageUrls } = useMedia(id, "POST", "image");
@@ -127,11 +139,15 @@ function TweetCard({ tweet, onPostUpdate }) {
     }
   };
 
-  // Handle navigation to user profile
   const handleNavigateToProfile = () => {
     if (owner.username && owner.username !== "unknown") {
       navigate(`/profile/${owner.username}`);
     }
+  };
+
+  const handleImageClick = (url) => {
+    setSelectedImage(url);
+    setShowImageModal(true);
   };
 
   const renderStatusIcon = (status) => {
@@ -178,6 +194,7 @@ function TweetCard({ tweet, onPostUpdate }) {
             style={{ ...imageStyles, maxHeight: "500px" }}
             fluid
             rounded
+            onClick={() => handleImageClick(images[0])}
           />
         </div>
       );
@@ -193,6 +210,7 @@ function TweetCard({ tweet, onPostUpdate }) {
                 style={{ ...imageStyles, height: "300px" }}
                 fluid
                 rounded
+                onClick={() => handleImageClick(url)}
               />
             </Col>
           ))}
@@ -209,6 +227,7 @@ function TweetCard({ tweet, onPostUpdate }) {
               style={{ ...imageStyles, height: "400px" }}
               fluid
               rounded
+              onClick={() => handleImageClick(images[0])}
             />
           </Col>
           <Col xs={6}>
@@ -218,12 +237,14 @@ function TweetCard({ tweet, onPostUpdate }) {
                 style={{ ...imageStyles, height: "198px", marginBottom: "4px" }}
                 fluid
                 rounded
+                onClick={() => handleImageClick(images[1])}
               />
               <BootstrapImage
                 src={images[2]}
                 style={{ ...imageStyles, height: "198px" }}
                 fluid
                 rounded
+                onClick={() => handleImageClick(images[2])}
               />
             </div>
           </Col>
@@ -241,6 +262,7 @@ function TweetCard({ tweet, onPostUpdate }) {
                 style={{ ...imageStyles, height: "200px" }}
                 fluid
                 rounded
+                onClick={() => handleImageClick(url)}
               />
             </Col>
           ))}
@@ -259,6 +281,7 @@ function TweetCard({ tweet, onPostUpdate }) {
                 style={{ ...imageStyles, height: "200px" }}
                 fluid
                 rounded
+                onClick={() => handleImageClick(url)}
               />
               {idx === 3 && images.length > 4 && (
                 <div
@@ -289,197 +312,227 @@ function TweetCard({ tweet, onPostUpdate }) {
   };
 
   return (
-    <Card className="mb-3 rounded-4 shadow-sm border-0">
-      <Card.Body className="d-flex p-3">
-        {avatarUrl ? (
-          <BootstrapImage
-            src={avatarUrl}
-            alt="Avatar"
-            width={50}
-            height={50}
-            roundedCircle
-            className="me-3 d-none d-md-block"
-          />
-        ) : (
-          <FaUserCircle
-            size={50}
-            className="me-3 d-none d-md-block text-secondary"
-          />
-        )}
-        <div className="flex-grow-1">
-          <div className="d-flex align-items-center justify-content-between mb-1">
-            <div className="d-flex align-items-center">
-              <h6
-                className="mb-0 fw-bold me-1 cursor-pointer"
-                onClick={handleNavigateToProfile}
-                style={{ cursor: "pointer" }} 
-              >
-                {owner.displayName}
-              </h6>
-              <span className="text-muted small me-1">@{owner.username}</span>
-              <span className="text-muted small me-1">
-                · {moment(createdAt).fromNow()}
-              </span>
-              <OverlayTrigger
-                placement="top"
-                overlay={<Tooltip>{renderStatusText(privacySetting)}</Tooltip>}
-              >
-                <span>{renderStatusIcon(privacySetting)}</span>
-              </OverlayTrigger>
-            </div>
-            <Dropdown>
-              <Dropdown.Toggle
-                variant="link"
-                className="text-muted p-1 rounded-circle"
-              >
-                <FaEllipsisH />
-              </Dropdown.Toggle>
-              <Dropdown.Menu>
-                {isOwnTweet && (
-                  <>
-                    <Dropdown.Item onClick={handleEditTweet}>
-                      <FaEdit className="me-2" /> Chỉnh sửa
-                    </Dropdown.Item>
-                    <Dropdown.Item onClick={handleDeleteTweet}>
-                      <FaTrash className="me-2" /> Xóa
-                    </Dropdown.Item>
-                    <Dropdown drop="end">
-                      <Dropdown.Toggle
-                        variant="link"
-                        className="text-dark p-0 w-100 text-start"
-                      >
-                        <FaShareAlt className="me-2" /> Trạng thái:{" "}
-                        {renderStatusText(privacySetting)}
-                      </Dropdown.Toggle>
-                      <Dropdown.Menu>
-                        <Dropdown.Item
-                          onClick={() => handleStatusChange("public")}
-                        >
-                          <FaGlobeAmericas className="me-2" /> Công khai
-                        </Dropdown.Item>
-                        <Dropdown.Item
-                          onClick={() => handleStatusChange("friends")}
-                        >
-                          <FaUserFriends className="me-2" /> Bạn bè
-                        </Dropdown.Item>
-                        <Dropdown.Item
-                          onClick={() => handleStatusChange("only_me")}
-                        >
-                          <FaLock className="me-2" /> Chỉ mình tôi
-                        </Dropdown.Item>
-                        <Dropdown.Item
-                          onClick={() => handleStatusChange("custom")}
-                        >
-                          <FaList className="me-2" /> Tùy chỉnh
-                        </Dropdown.Item>
-                      </Dropdown.Menu>
-                    </Dropdown>
-                  </>
-                )}
-                <Dropdown.Item onClick={handleSaveTweet}>
-                  <FaSave className="me-2" /> Lưu bài đăng
-                </Dropdown.Item>
-                <Dropdown.Item onClick={handleReportTweet}>
-                  <FaFlag className="me-2" /> Báo cáo
-                </Dropdown.Item>
-              </Dropdown.Menu>
-            </Dropdown>
-          </div>
-
-          <p className="mb-2">{content}</p>
-
-          {taggedUsers.length > 0 && (
-            <div className="mb-2">
-              <small className="text-muted">
-                Đã tag:{" "}
-                {taggedUsers.map((tag, index) => (
-                  <span key={index} className="text-primary me-1">
-                    @{tag.username}
-                  </span>
-                ))}
-              </small>
-            </div>
+    <>
+      <Card className="mb-3 rounded-4 shadow-sm border-0">
+        <Card.Body className="d-flex p-3">
+          {avatarUrl ? (
+            <BootstrapImage
+              src={avatarUrl}
+              alt="Avatar"
+              width={50}
+              height={50}
+              roundedCircle
+              className="me-3 d-none d-md-block"
+            />
+          ) : (
+            <FaUserCircle
+              size={50}
+              className="me-3 d-none d-md-block text-secondary"
+            />
           )}
-
-          {/* Hiển thị ảnh với bố cục mới */}
-          {renderImages(imageUrls)}
-
-          {/* Videos */}
-          {videoUrls?.length > 0 &&
-            videoUrls.map((url, idx) => (
-              <div key={idx} className="mb-2">
-                <video controls width="100%" style={{ borderRadius: "12px" }}>
-                  <source src={url} type="video/mp4" />
-                  Trình duyệt không hỗ trợ phát video.
-                </video>
+          <div className="flex-grow-1">
+            <div className="d-flex align-items-center justify-content-between mb-1">
+              <div className="d-flex align-items-center">
+                <h6
+                  className="mb-0 fw-bold me-1 cursor-pointer"
+                  onClick={handleNavigateToProfile}
+                  style={{ cursor: "pointer" }}
+                >
+                  {owner.displayName}
+                </h6>
+                <span className="text-muted small me-1">@{owner.username}</span>
+                <span className="text-muted small me-1">
+                  · {moment(createdAt).fromNow()}
+                </span>
+                <OverlayTrigger
+                  placement="top"
+                  overlay={
+                    <Tooltip>{renderStatusText(privacySetting)}</Tooltip>
+                  }
+                >
+                  <span>{renderStatusIcon(privacySetting)}</span>
+                </OverlayTrigger>
               </div>
-            ))}
-
-          <div className="d-flex justify-content-between text-muted mt-2">
-            <Button
-              variant="link"
-              className="text-muted p-1 rounded-circle hover-bg-light"
-            >
-              <FaRegComment size={18} className="me-1" />
-              {commentCount > 0 && commentCount}
-            </Button>
-            <Button
-              variant="link"
-              className="text-muted p-1 rounded-circle hover-bg-light"
-            >
-              <FaRetweet size={18} className="me-1" />
-              {shareCount > 0 && shareCount}
-            </Button>
-            <OverlayTrigger
-              placement="top"
-              overlay={<Tooltip>Chọn biểu cảm</Tooltip>}
-            >
               <Dropdown>
                 <Dropdown.Toggle
                   variant="link"
-                  className="text-muted p-1 rounded-circle hover-bg-light"
+                  className="text-muted p-1 rounded-circle"
                 >
-                  {reaction ? (
-                    <span>{`${reaction} `}</span>
-                  ) : (
-                    <FaRegHeart size={18} className="me-1" />
-                  )}
-                  {likeCount > 0 && likeCount}
+                  <FaEllipsisH />
                 </Dropdown.Toggle>
                 <Dropdown.Menu>
-                  {["😊", "❤️", "👍", "😂"].map((emoji) => (
-                    <Dropdown.Item
-                      key={emoji}
-                      onClick={() => handleEmojiReaction(emoji)}
-                    >
-                      {emoji}
-                    </Dropdown.Item>
-                  ))}
+                  {isOwnTweet && (
+                    <>
+                      <Dropdown.Item onClick={handleEditTweet}>
+                        <FaEdit className="me-2" /> Chỉnh sửa
+                      </Dropdown.Item>
+                      <Dropdown.Item onClick={handleDeleteTweet}>
+                        <FaTrash className="me-2" /> Xóa
+                      </Dropdown.Item>
+                      <Dropdown drop="end">
+                        <Dropdown.Toggle
+                          variant="link"
+                          className="text-dark p-0 w-100 text-start"
+                        >
+                          <FaShareAlt className="me-2" /> Trạng thái:{" "}
+                          {renderStatusText(privacySetting)}
+                        </Dropdown.Toggle>
+                        <Dropdown.Menu>
+                          <Dropdown.Item
+                            onClick={() => handleStatusChange("public")}
+                          >
+                            <FaGlobeAmericas className="me-2" /> Công khai
+                          </Dropdown.Item>
+                          <Dropdown.Item
+                            onClick={() => handleStatusChange("friends")}
+                          >
+                            <FaUserFriends className="me-2" /> Bạn bè
+                          </Dropdown.Item>
+                          <Dropdown.Item
+                            onClick={() => handleStatusChange("only_me")}
+                          >
+                            <FaLock className="me-2" /> Chỉ mình tôi
+                          </Dropdown.Item>
+                          <Dropdown.Item
+                            onClick={() => handleStatusChange("custom")}
+                          >
+                            <FaList className="me-2" /> Tùy chỉnh
+                          </Dropdown.Item>
+                        </Dropdown.Menu>
+                      </Dropdown>
+                    </>
+                  )}
+                  <Dropdown.Item onClick={handleSaveTweet}>
+                    <FaSave className="me-2" /> Lưu bài đăng
+                  </Dropdown.Item>
+                  <Dropdown.Item onClick={handleReportTweet}>
+                    <FaFlag className="me-2" /> Báo cáo
+                  </Dropdown.Item>
                 </Dropdown.Menu>
               </Dropdown>
-            </OverlayTrigger>
-            <Button
-              variant="link"
-              className="text-muted p-1 rounded-circle hover-bg-light"
-            >
-              <FaShareAlt size={18} />
-            </Button>
-          </div>
-        </div>
-      </Card.Body>
+            </div>
 
-      {isOwnTweet && (
-        <EditPostModal
-          post={tweet}
-          show={showEditModal}
-          onHide={() => setShowEditModal(false)}
-          onSave={() => {
-            setShowEditModal(false);
-            if (onPostUpdate) onPostUpdate();
-          }}
-        />
-      )}
-    </Card>
+            <p className="mb-2">{content}</p>
+
+            {taggedUsers.length > 0 && (
+              <div className="mb-2">
+                <small className="text-muted">
+                  Đã tag:{" "}
+                  {taggedUsers.map((tag, index) => (
+                    <span key={index} className="text-primary me-1">
+                      @{tag.username}
+                    </span>
+                  ))}
+                </small>
+              </div>
+            )}
+
+            {/* Hiển thị ảnh với bố cục mới */}
+            {renderImages(imageUrls)}
+
+            {/* Videos */}
+            {videoUrls?.length > 0 &&
+              videoUrls.map((url, idx) => (
+                <div key={idx} className="mb-2">
+                  <video controls width="100%" style={{ borderRadius: "12px" }}>
+                    <source src={url} type="video/mp4" />
+                    Trình duyệt không hỗ trợ phát video.
+                  </video>
+                </div>
+              ))}
+
+            <div className="d-flex justify-content-between text-muted mt-2">
+              <Button
+                variant="link"
+                className="text-muted p-1 rounded-circle hover-bg-light"
+              >
+                <FaRegComment size={18} className="me-1" />
+                {commentCount > 0 && commentCount}
+              </Button>
+              <Button
+                variant="link"
+                className="text-muted p-1 rounded-circle hover-bg-light"
+              >
+                <FaRetweet size={18} className="me-1" />
+                {shareCount > 0 && shareCount}
+              </Button>
+              <OverlayTrigger
+                placement="top"
+                overlay={<Tooltip>Chọn biểu cảm</Tooltip>}
+              >
+                <Dropdown>
+                  <Dropdown.Toggle
+                    variant="link"
+                    className="text-muted p-1 rounded-circle hover-bg-light"
+                  >
+                    {reaction ? (
+                      <span>{`${reaction} `}</span>
+                    ) : (
+                      <FaRegHeart size={18} className="me-1" />
+                    )}
+                    {likeCount > 0 && likeCount}
+                  </Dropdown.Toggle>
+                  <Dropdown.Menu>
+                    {["😊", "❤️", "👍", "😂"].map((emoji) => (
+                      <Dropdown.Item
+                        key={emoji}
+                        onClick={() => handleEmojiReaction(emoji)}
+                      >
+                        {emoji}
+                      </Dropdown.Item>
+                    ))}
+                  </Dropdown.Menu>
+                </Dropdown>
+              </OverlayTrigger>
+              <Button
+                variant="link"
+                className="text-muted p-1 rounded-circle hover-bg-light"
+              >
+                <FaShareAlt size={18} />
+              </Button>
+            </div>
+          </div>
+        </Card.Body>
+
+        {isOwnTweet && (
+          <EditPostModal
+            post={tweet}
+            show={showEditModal}
+            onHide={() => setShowEditModal(false)}
+            onSave={() => {
+              setShowEditModal(false);
+              if (onPostUpdate) onPostUpdate();
+            }}
+          />
+        )}
+      </Card>
+
+      {/* Image Zoom Modal */}
+      <Modal
+        show={showImageModal}
+        onHide={() => setShowImageModal(false)}
+        centered
+        size="xl"
+        contentClassName="bg-dark"
+      >
+        <Modal.Body className="p-0">
+          <Button
+            variant="link"
+            className="text-white position-absolute top-0 end-0 m-2"
+            onClick={() => setShowImageModal(false)}
+          >
+            ✕
+          </Button>
+          {selectedImage && (
+            <BootstrapImage
+              src={selectedImage}
+              style={enlargedImageStyles}
+              fluid
+            />
+          )}
+        </Modal.Body>
+      </Modal>
+    </>
   );
 }
 
