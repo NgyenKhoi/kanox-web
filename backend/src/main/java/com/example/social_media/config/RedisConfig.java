@@ -2,6 +2,7 @@ package com.example.social_media.config;
 
 import com.example.social_media.dto.message.MessageDto;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -18,7 +19,10 @@ public class RedisConfig {
     public RedisTemplate<String, MessageDto> redisTemplate(RedisConnectionFactory connectionFactory) {
         RedisTemplate<String, MessageDto> template = new RedisTemplate<>();
         template.setConnectionFactory(connectionFactory);
-        template.setValueSerializer(new GenericJackson2JsonRedisSerializer());
+        // Sử dụng ObjectMapper với JavaTimeModule
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+        template.setValueSerializer(new GenericJackson2JsonRedisSerializer(objectMapper));
         template.setKeySerializer(new StringRedisSerializer());
         template.afterPropertiesSet();
         return template;
@@ -34,6 +38,8 @@ public class RedisConfig {
 
     @Bean
     public ObjectMapper objectMapper() {
-        return new ObjectMapper();
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+        return mapper;
     }
 }
