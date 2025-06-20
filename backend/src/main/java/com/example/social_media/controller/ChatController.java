@@ -12,6 +12,7 @@ import com.example.social_media.service.CallSessionService;
 import com.example.social_media.service.ChatService;
 import com.example.social_media.service.MessageQueueService;
 import com.example.social_media.service.MessageService;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
@@ -37,8 +38,9 @@ public class ChatController {
     private final SimpMessagingTemplate messagingTemplate;
     private final WebSocketConfig webSocketConfig;
     private final MessageQueueService messageQueueService;
+    private final RedisTemplate<String, MessageDto> redisTemplate;
 
-    public ChatController(ChatService chatService, MessageService messageService, CallSessionService callSessionService, UserRepository userRepository, JwtService jwtService, SimpMessagingTemplate messagingTemplate, WebSocketConfig webSocketConfig, MessageQueueService messageQueueService) {
+    public ChatController(ChatService chatService, MessageService messageService, CallSessionService callSessionService, UserRepository userRepository, JwtService jwtService, SimpMessagingTemplate messagingTemplate, WebSocketConfig webSocketConfig, MessageQueueService messageQueueService, RedisTemplate<String, MessageDto> redisTemplate) {
         this.chatService = chatService;
         this.messageService = messageService;
         this.callSessionService = callSessionService;
@@ -47,6 +49,7 @@ public class ChatController {
         this.messagingTemplate = messagingTemplate;
         this.webSocketConfig = webSocketConfig;
         this.messageQueueService = messageQueueService;
+        this.redisTemplate = redisTemplate;
     }
 
     @MessageMapping(URLConfig.SEND_MESSAGES)
@@ -70,8 +73,10 @@ public class ChatController {
             throw new UnauthorizedException("Không thể xác thực người dùng.");
         }
         MessageDto savedMessage = messageService.sendMessage(messageDto, username);
-        messageQueueService.queueAndSendMessage(savedMessage); // Sử dụng queue
-        System.out.println("Message queued and broadcast to /topic/chat/" + messageDto.getChatId() + " with message: " + savedMessage.getContent());
+        redisTemplate.opsForList().rightPush("chat:" + messageDto.getChatId() + ":messages", savedMessage);
+        // Publish tin nhắn qua Redis channel
+        redisTemplate.convertAndSend("chat-messages", savedMessage);
+        System.out.println("Message published to Redis channel chat-messages for chatId: " + messageDto.getChatId());
     }
     @MessageMapping(URLConfig.TYPING)
     public void handleTyping(@Payload Map<String, Object> typingData) {
@@ -89,7 +94,12 @@ public class ChatController {
     @GetMapping(URLConfig.GET_CHAT_MESSAGES)
     public List<MessageDto> getChatMessages(@PathVariable Integer chatId) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        return messageService.getChatMessages(chatId, username);
+        // Lấy tin nhắn từ Redis nếu có
+        List<MessageDto> messages = redisTemplate.opsForList().range("chat:" + chatId + ":messages", 0, -1);
+        if (messages == null || messages.isEmpty()) {
+            messages = messageService.getChatMessages(chatId, username);
+        }
+        return messages;
     }
 
     @GetMapping(URLConfig.CHATS)
@@ -117,7 +127,10 @@ public class ChatController {
         Integer chatId = request.get("chatId");
         Integer messageId = request.get("messageId");
         messageService.deleteMessage(chatId, messageId, username);
+        // Xóa tin nhắn khỏi Redis nếu cần
+        redisTemplate.opsForList().remove("chat:" + chatId + ":messages", 1, messageId);
     }
+
 
     @PostMapping(URLConfig.CALL_END)
     public void endCall(@PathVariable Integer callSessionId) {

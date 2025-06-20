@@ -42,15 +42,8 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
-        config.enableStompBrokerRelay("/topic", "/queue")
-                .setRelayHost("34.143.174.239") // Thay bằng địa chỉ Redis sau
-                .setRelayPort(6379)       // Cổng Redis
-                .setSystemLogin("default")
-                .setSystemPasscode("eqfleqrd1")
-                .setClientLogin("default")
-                .setClientPasscode("eqfleqrd1");
+        config.enableSimpleBroker("/topic", "/queue");
         config.setApplicationDestinationPrefixes("/app");
-        config.setUserDestinationPrefix("/user");
     }
 
     @Override
