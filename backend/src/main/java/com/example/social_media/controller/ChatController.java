@@ -149,6 +149,10 @@ public class ChatController {
     @MessageMapping(URLConfig.RESEND)
     public void resendMessages(@Payload Map<String, Object> payload, @Header("simpSessionId") String sessionId) {
         String chatId = payload.get("chatId").toString();
-        messageQueueService.resendQueuedMessages(chatId, sessionId);
+        List<MessageDto> messages = redisTemplate.opsForList().range("chat:" + chatId + ":messages", 0, -1);
+        if (messages != null) {
+            messages.forEach(message -> redisTemplate.convertAndSend("chat-messages", message));
+            System.out.println("Resent messages for chatId: " + chatId);
+        }
     }
 }

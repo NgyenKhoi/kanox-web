@@ -179,4 +179,5 @@ D:\SWP391\kanox-web\backend\src\main\java\com\example\social_media\entity\Messag
 D:\SWP391\kanox-web\backend\src\main\java\com\example\social_media\service\DataSyncService.java
 D:\SWP391\kanox-web\backend\src\main\java\com\example\social_media\dto\user\UserDto.java
 D:\SWP391\kanox-web\backend\src\main\java\com\example\social_media\entity\FriendshipId.java
+D:\SWP391\kanox-web\backend\src\main\java\com\example\social_media\config\RedisMessageSubscriber.java
 D:\SWP391\kanox-web\backend\src\main\java\com\example\social_media\repository\CustomPrivacyListMemberRepository.java
