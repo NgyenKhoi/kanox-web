@@ -94,11 +94,12 @@ public class ChatController {
     @GetMapping(URLConfig.GET_CHAT_MESSAGES)
     public List<MessageDto> getChatMessages(@PathVariable Integer chatId) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        // Lấy tin nhắn từ Redis nếu có
-        List<MessageDto> messages = redisTemplate.opsForList().range("chat:" + chatId + ":messages", 0, -1);
-        if (messages == null || messages.isEmpty()) {
-            messages = messageService.getChatMessages(chatId, username);
-        }
+        // Lấy tin nhắn từ database
+        List<MessageDto> messages = messageService.getChatMessages(chatId, username);
+        // Đồng bộ với Redis
+        redisTemplate.delete("chat:" + chatId + ":messages");
+        messages.forEach(message ->
+                redisTemplate.opsForList().rightPush("chat:" + chatId + ":messages", message));
         return messages;
     }
 
@@ -149,10 +150,7 @@ public class ChatController {
     @MessageMapping(URLConfig.RESEND)
     public void resendMessages(@Payload Map<String, Object> payload, @Header("simpSessionId") String sessionId) {
         String chatId = payload.get("chatId").toString();
-        List<MessageDto> messages = redisTemplate.opsForList().range("chat:" + chatId + ":messages", 0, -1);
-        if (messages != null) {
-            messages.forEach(message -> redisTemplate.convertAndSend("chat-messages", message));
-            System.out.println("Resent messages for chatId: " + chatId);
-        }
+        // Không publish lại tin nhắn cũ để tránh duplicate
+        System.out.println("Resend requested for chatId: " + chatId);
     }
 }

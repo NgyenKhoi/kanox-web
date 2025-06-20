@@ -31,6 +31,7 @@ const Chat = ({ chatId }) => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showCallModal, setShowCallModal] = useState(false);
   const [messageToDelete, setMessageToDelete] = useState(null);
+  const [recipientName, setRecipientName] = useState("");
 
   const stompRef = useRef(null);
   const peerRef = useRef(null);
@@ -47,6 +48,19 @@ const Chat = ({ chatId }) => {
       toast.error("Vui lòng đăng nhập để sử dụng chat.");
       return;
     }
+    fetch(`${process.env.REACT_APP_API_URL}/chat/${chatId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+        .then(async (response) => {
+          const data = await response.json();
+          if (response.ok) {
+            const recipient = data.participants.find((p) => p.id !== user.id);
+            setRecipientName(recipient?.displayName || "Unknown User");
+          } else {
+            throw new Error(data.message || "Lỗi khi lấy thông tin chat.");
+          }
+        })
+        .catch((err) => toast.error(err.message || "Lỗi khi lấy thông tin chat."));
 
     // Khởi tạo WebSocket
     const socket = new SockJS(`${process.env.REACT_APP_WS_URL}/ws`);
@@ -66,10 +80,10 @@ const Chat = ({ chatId }) => {
         console.log("Received message from WebSocket:", msg.body);
         const message = JSON.parse(msg.body);
         setMessages((prev) => {
-          const ids = new Set(prev.map((m) => m.id));
-          if (!ids.has(message.id)) {
+          // Kiểm tra trùng ID để tránh duplicate
+          if (!prev.some((m) => m.id === message.id)) {
             return [...prev, message].sort(
-                (a, b) => new Date(a.createdAt) - new Date(b.createdAt)
+                (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
             );
           }
           return prev;
@@ -100,6 +114,12 @@ const Chat = ({ chatId }) => {
       subscriptionsRef.current = [chatSub, typingSub, callSub];
       stompRef.current = client;
 
+      client.publish({
+        destination: "/app/resend",
+        body: JSON.stringify({ chatId }),
+      });
+
+
       // Gửi ping định kỳ để giữ kết nối
       setInterval(() => {
         if (stompRef.current && stompRef.current.connected) {
@@ -114,16 +134,20 @@ const Chat = ({ chatId }) => {
 
     client.activate();
 
-    // Load tin nhắn cũ
+    // Load tin nhắn cũ từ API
     fetch(`${process.env.REACT_APP_API_URL}/chat/${chatId}/messages`, {
       headers: { Authorization: `Bearer ${token}` },
     })
         .then(async (response) => {
           const data = await response.json();
-          if (response.ok) setMessages(data);
-          else throw new Error(data.message || "Lỗi khi tải tin nhắn.");
+          if (response.ok) {
+            setMessages(data.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)));
+          } else {
+            throw new Error(data.message || "Lỗi khi tải tin nhắn.");
+          }
         })
         .catch((err) => toast.error(err.message || "Lỗi khi tải tin nhắn."));
+
 
     // Khởi tạo media cho video call
     navigator.mediaDevices
@@ -133,6 +157,14 @@ const Chat = ({ chatId }) => {
           if (videoRef.current) videoRef.current.srcObject = stream;
         })
         .catch((err) => toast.error("Không thể truy cập camera/microphone."));
+
+    // Scroll xuống cuối khi có tin nhắn mới
+    const scrollToBottom = () => {
+      if (chatContainerRef.current) {
+        chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+      }
+    };
+    scrollToBottom();
 
     // Cleanup
     return () => {
@@ -144,6 +176,13 @@ const Chat = ({ chatId }) => {
       streamRef.current?.getTracks().forEach((t) => t.stop());
     };
   }, [chatId, user, token]);
+
+  useEffect(() => {
+    // Scroll xuống cuối khi messages thay đổi
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [messages]);
 
   const sendMessage = () => {
     if (!message.trim() || !stompRef.current?.connected) return;
@@ -221,27 +260,32 @@ const Chat = ({ chatId }) => {
   return (
       <div className="d-flex flex-column h-100 bg-light">
         <div className="p-3 border-bottom bg-white shadow-sm">
-          <h5 className="mb-0">Chat Room #{chatId}</h5>
+          <h5 className="mb-0">{recipientName}</h5>
         </div>
 
-        <div className="flex-grow-1 overflow-auto p-3" ref={chatContainerRef}>
+        <div
+            className="flex-grow-1 overflow-auto p-3"
+            ref={chatContainerRef}
+            style={{ maxHeight: "calc(100vh - 200px)", overflowY: "scroll" }}
+        >
           {messages.map((msg, idx) => (
               <div
-                  key={idx}
+                  key={msg.id || idx} // Sử dụng msg.id để tránh trùng key
                   className={`mb-2 d-flex ${
                       msg.senderId === user?.id ? "justify-content-end" : "justify-content-start"
                   }`}
               >
                 <div
-                    className={`p-2 rounded shadow-sm ${
-                        msg.senderId === user?.id ? "bg-primary text-white" : "bg-white"
+                    className={`p-2 rounded-3 shadow-sm ${
+                        msg.senderId === user?.id ? "bg-dark text-white" : "bg-white text-dark"
                     }`}
+                    style={{ borderRadius: "15px" }}
                 >
                   <small className="d-block fw-bold">{msg.sender?.username}</small>
                   {msg.content}
                   <div className="text-end">
                     <small className="text-muted" style={{ fontSize: "0.75rem" }}>
-                      {new Date(msg.createdAt).toLocaleTimeString()}
+                      {new Date(msg.timestamp).toLocaleTimeString()}
                     </small>
                   </div>
                 </div>
