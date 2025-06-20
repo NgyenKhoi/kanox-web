@@ -28,11 +28,12 @@ public class MessageService {
     private final ChatService chatService;
     private final ChatMemberRepository chatMemberRepository;
     private final MessageStatusRepository messageStatusRepository;
+    private final MessageQueueService messageQueueService;
 
     public MessageService(MessageRepository messageRepository, MessageTypeRepository messageTypeRepository,
                           ChatRepository chatRepository, UserRepository userRepository,
                           SimpMessagingTemplate messagingTemplate, ChatService chatService,
-                          ChatMemberRepository chatMemberRepository, MessageStatusRepository messageStatusRepository) {
+                          ChatMemberRepository chatMemberRepository, MessageStatusRepository messageStatusRepository, MessageQueueService messageQueueService) {
         this.messageRepository = messageRepository;
         this.messageTypeRepository = messageTypeRepository;
         this.chatRepository = chatRepository;
@@ -41,6 +42,7 @@ public class MessageService {
         this.chatService = chatService;
         this.chatMemberRepository = chatMemberRepository;
         this.messageStatusRepository = messageStatusRepository;
+        this.messageQueueService = messageQueueService;
     }
 
     @Transactional
@@ -56,6 +58,7 @@ public class MessageService {
         User sender = userRepository.findById(messageDto.getSenderId().intValue())
                 .orElseThrow(() -> new IllegalArgumentException("Sender not found"));
 
+        // Khởi tạo và gán giá trị cho message trước khi save
         Message message = new Message();
         message.setChat(chat);
         message.setSender(sender);
@@ -63,6 +66,10 @@ public class MessageService {
         message.setType(messageType);
         message.setCreatedAt(Instant.now());
         message = messageRepository.save(message); // Lưu và lấy entity đã lưu
+
+        messageDto.setId(message.getId());
+        messageDto.setCreatedAt(message.getCreatedAt());
+        messageQueueService.queueAndSendMessage(messageDto);
 
         // Lưu trạng thái tin nhắn cho tất cả thành viên trong chat (trừ người gửi)
         List<ChatMember> members = chatMemberRepository.findByChatId(messageDto.getChatId().intValue());
@@ -78,19 +85,10 @@ public class MessageService {
             }
         }
 
-        // Cập nhật messageDto với id và createdAt từ message đã lưu
-        messageDto.setId(message.getId());
-        messageDto.setCreatedAt(message.getCreatedAt());
-        messagingTemplate.convertAndSend("/topic/chat/" + messageDto.getChatId(), messageDto);
-
         // Gửi thông báo tin nhắn mới tới các thành viên
         for (ChatMember member : members) {
             if (!member.getUser().getId().equals(sender.getId())) {
-                System.out.println("Broadcasting to /topic/chat/" + messageDto.getChatId() + ": " + messageDto.getContent());
-                messagingTemplate.convertAndSend(
-                        "/topic/messages/" + member.getUser().getId(),
-                        messageDto
-                );
+                messagingTemplate.convertAndSend("/topic/messages/" + member.getUser().getId(), messageDto);
             }
         }
 

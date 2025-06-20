@@ -36,6 +36,7 @@ const Chat = ({ chatId }) => {
   const peerRef = useRef(null);
   const streamRef = useRef(null);
   const subscriptionsRef = useRef([]);
+  const socketRef = useRef(null);
 
   const videoRef = useRef(null);
   const remoteVideoRef = useRef(null);
@@ -47,7 +48,9 @@ const Chat = ({ chatId }) => {
       return;
     }
 
+    // Khởi tạo WebSocket
     const socket = new SockJS(`${process.env.REACT_APP_WS_URL}/ws`);
+    socketRef.current = socket;
     const client = new Client({
       webSocketFactory: () => socket,
       connectHeaders: { Authorization: `Bearer ${token}` },
@@ -58,19 +61,22 @@ const Chat = ({ chatId }) => {
     });
 
     client.onConnect = () => {
-      console.log("Connected to WebSocket");
+      console.log("WebSocket connected for chatId:", chatId);
       const chatSub = client.subscribe(`/topic/chat/${chatId}`, (msg) => {
-        console.log("Received:", msg.body);
+        console.log("Received message from WebSocket:", msg.body);
         const message = JSON.parse(msg.body);
         setMessages((prev) => {
-          const ids = new Set(prev.map(m => m.id));
+          const ids = new Set(prev.map((m) => m.id));
           if (!ids.has(message.id)) {
-            return [...prev, message];
+            return [...prev, message].sort(
+                (a, b) => new Date(a.createdAt) - new Date(b.createdAt)
+            );
           }
           return prev;
         });
         setIsTyping(false);
       });
+      console.log("Subscription created for /topic/chat/" + chatId);
 
       const typingSub = client.subscribe(`/topic/typing/${chatId}`, (typingMsg) => {
         const data = JSON.parse(typingMsg.body);
@@ -93,16 +99,24 @@ const Chat = ({ chatId }) => {
 
       subscriptionsRef.current = [chatSub, typingSub, callSub];
       stompRef.current = client;
+
+      // Gửi ping định kỳ để giữ kết nối
+      setInterval(() => {
+        if (stompRef.current && stompRef.current.connected) {
+          stompRef.current.send("/app/ping", {}, "ping");
+        }
+      }, 30000);
+    };
+
+    client.onWebSocketClose = () => {
+      console.log("WebSocket disconnected, retrying...");
     };
 
     client.activate();
 
+    // Load tin nhắn cũ
     fetch(`${process.env.REACT_APP_API_URL}/chat/${chatId}/messages`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
+      headers: { Authorization: `Bearer ${token}` },
     })
         .then(async (response) => {
           const data = await response.json();
@@ -111,6 +125,7 @@ const Chat = ({ chatId }) => {
         })
         .catch((err) => toast.error(err.message || "Lỗi khi tải tin nhắn."));
 
+    // Khởi tạo media cho video call
     navigator.mediaDevices
         .getUserMedia({ video: true, audio: true })
         .then((stream) => {
@@ -119,10 +134,12 @@ const Chat = ({ chatId }) => {
         })
         .catch((err) => toast.error("Không thể truy cập camera/microphone."));
 
+    // Cleanup
     return () => {
       console.log("Cleaning up WebSocket...");
       subscriptionsRef.current.forEach((s) => s.unsubscribe());
       stompRef.current?.deactivate();
+      if (socketRef.current) socketRef.current.close();
       peerRef.current?.destroy();
       streamRef.current?.getTracks().forEach((t) => t.stop());
     };
@@ -215,7 +232,11 @@ const Chat = ({ chatId }) => {
                       msg.senderId === user?.id ? "justify-content-end" : "justify-content-start"
                   }`}
               >
-                <div className={`p-2 rounded shadow-sm ${msg.senderId === user?.id ? "bg-primary text-white" : "bg-white"}`}>
+                <div
+                    className={`p-2 rounded shadow-sm ${
+                        msg.senderId === user?.id ? "bg-primary text-white" : "bg-white"
+                    }`}
+                >
                   <small className="d-block fw-bold">{msg.sender?.username}</small>
                   {msg.content}
                   <div className="text-end">
@@ -253,22 +274,30 @@ const Chat = ({ chatId }) => {
             <Col xs={6}>
               <video ref={videoRef} autoPlay muted style={{ width: "100%", borderRadius: 8 }} />
               <div className="mt-2 d-flex justify-content-around">
-                <Button size="sm" variant={isMuted ? "danger" : "outline-danger"} onClick={() => {
-                  const audio = streamRef.current?.getAudioTracks()[0];
-                  if (audio) {
-                    audio.enabled = !isMuted;
-                    setIsMuted(!isMuted);
-                  }
-                }}>
+                <Button
+                    size="sm"
+                    variant={isMuted ? "danger" : "outline-danger"}
+                    onClick={() => {
+                      const audio = streamRef.current?.getAudioTracks()[0];
+                      if (audio) {
+                        audio.enabled = !isMuted;
+                        setIsMuted(!isMuted);
+                      }
+                    }}
+                >
                   <FaMicrophoneSlash />
                 </Button>
-                <Button size="sm" variant={isVideoOff ? "danger" : "outline-danger"} onClick={() => {
-                  const video = streamRef.current?.getVideoTracks()[0];
-                  if (video) {
-                    video.enabled = !isVideoOff;
-                    setIsVideoOff(!isVideoOff);
-                  }
-                }}>
+                <Button
+                    size="sm"
+                    variant={isVideoOff ? "danger" : "outline-danger"}
+                    onClick={() => {
+                      const video = streamRef.current?.getVideoTracks()[0];
+                      if (video) {
+                        video.enabled = !isVideoOff;
+                        setIsVideoOff(!isVideoOff);
+                      }
+                    }}
+                >
                   <FaVideoSlash />
                 </Button>
               </div>
@@ -291,8 +320,15 @@ const Chat = ({ chatId }) => {
           </Modal.Header>
           <Modal.Body>Bạn có muốn nhận cuộc gọi video?</Modal.Body>
           <Modal.Footer>
-            <Button variant="secondary" onClick={() => setShowCallModal(false)}>Từ chối</Button>
-            <Button variant="primary" onClick={() => handleOffer({ sdp: null, userId: null })}>Chấp nhận</Button>
+            <Button variant="secondary" onClick={() => setShowCallModal(false)}>
+              Từ chối
+            </Button>
+            <Button
+                variant="primary"
+                onClick={() => handleOffer({ sdp: null, userId: null })}
+            >
+              Chấp nhận
+            </Button>
           </Modal.Footer>
         </Modal>
 

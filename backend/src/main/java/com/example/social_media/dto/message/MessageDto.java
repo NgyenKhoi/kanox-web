@@ -1,8 +1,9 @@
 package com.example.social_media.dto.message;
 
+import java.io.Serializable;
 import java.time.Instant;
 
-public class MessageDto {
+public class MessageDto implements Serializable {
     private Integer id;
     private Integer chatId;
     private Integer senderId;

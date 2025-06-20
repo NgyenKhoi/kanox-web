@@ -10,6 +10,7 @@ import com.example.social_media.jwt.JwtService;
 import com.example.social_media.repository.UserRepository;
 import com.example.social_media.service.CallSessionService;
 import com.example.social_media.service.ChatService;
+import com.example.social_media.service.MessageQueueService;
 import com.example.social_media.service.MessageService;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -35,8 +36,9 @@ public class ChatController {
     private final JwtService jwtService;
     private final SimpMessagingTemplate messagingTemplate;
     private final WebSocketConfig webSocketConfig;
+    private final MessageQueueService messageQueueService;
 
-    public ChatController(ChatService chatService, MessageService messageService, CallSessionService callSessionService, UserRepository userRepository, JwtService jwtService, SimpMessagingTemplate messagingTemplate, WebSocketConfig webSocketConfig) {
+    public ChatController(ChatService chatService, MessageService messageService, CallSessionService callSessionService, UserRepository userRepository, JwtService jwtService, SimpMessagingTemplate messagingTemplate, WebSocketConfig webSocketConfig, MessageQueueService messageQueueService) {
         this.chatService = chatService;
         this.messageService = messageService;
         this.callSessionService = callSessionService;
@@ -44,6 +46,7 @@ public class ChatController {
         this.jwtService = jwtService;
         this.messagingTemplate = messagingTemplate;
         this.webSocketConfig = webSocketConfig;
+        this.messageQueueService = messageQueueService;
     }
 
     @MessageMapping(URLConfig.SEND_MESSAGES)
@@ -67,12 +70,8 @@ public class ChatController {
             throw new UnauthorizedException("Không thể xác thực người dùng.");
         }
         MessageDto savedMessage = messageService.sendMessage(messageDto, username);
-        try {
-            messagingTemplate.convertAndSend("/topic/chat/" + messageDto.getChatId(), savedMessage);
-            System.out.println("Broadcast successfully sent to /topic/chat/" + messageDto.getChatId() + " with message: " + savedMessage.getContent());
-        } catch (Exception e) {
-            System.err.println("Failed to broadcast message: " + e.getMessage());
-        }
+        messageQueueService.queueAndSendMessage(savedMessage); // Sử dụng queue
+        System.out.println("Message queued and broadcast to /topic/chat/" + messageDto.getChatId() + " with message: " + savedMessage.getContent());
     }
     @MessageMapping(URLConfig.TYPING)
     public void handleTyping(@Payload Map<String, Object> typingData) {
@@ -134,5 +133,9 @@ public class ChatController {
         int unreadCount = messageService.getUnreadMessageCount(user.getId());
         return Map.of("unreadCount", unreadCount);
     }
-
+    @MessageMapping(URLConfig.RESEND)
+    public void resendMessages(@Payload Map<String, Object> payload, @Header("simpSessionId") String sessionId) {
+        String chatId = payload.get("chatId").toString();
+        messageQueueService.resendQueuedMessages(chatId, sessionId);
+    }
 }
