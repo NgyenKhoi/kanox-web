@@ -5,16 +5,11 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="c6c17ae2-c6cb-4c94-a6b8-91c54839fa5e" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/controller/ChatController.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/controller/ChatController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/dto/message/ChatDto.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/dto/message/ChatDto.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/repository/MessageStatusRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/repository/MessageStatusRepository.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/service/ChatService.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/service/ChatService.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/service/MessageService.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/service/MessageService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/target/social-media-0.0.1-SNAPSHOT.jar.original" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/target/social-media-0.0.1-SNAPSHOT.jar.original" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/target/surefire-reports/TEST-com.example.social_media.SocialMediaApplicationTests.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/target/surefire-reports/TEST-com.example.social_media.SocialMediaApplicationTests.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/target/surefire-reports/com.example.social_media.SocialMediaApplicationTests.txt" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/target/surefire-reports/com.example.social_media.SocialMediaApplicationTests.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/components/layout/SidebarLeft/SidebarLeft.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/layout/SidebarLeft/SidebarLeft.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/messages/Chat.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/messages/Chat.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/pages/Messenger/MessengerPage.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/pages/Messenger/MessengerPage.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -113,7 +108,7 @@
       <workItem from="1750293553987" duration="13714000" />
       <workItem from="1750337939608" duration="20945000" />
       <workItem from="1750399185093" duration="20090000" />
-      <workItem from="1750512264409" duration="1968000" />
+      <workItem from="1750512264409" duration="3966000" />
     </task>
     <servers />
   </component>

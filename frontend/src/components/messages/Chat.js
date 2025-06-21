@@ -44,6 +44,30 @@ const Chat = ({ chatId }) => {
   const remoteVideoRef = useRef(null);
   const chatContainerRef = useRef(null);
 
+  const fetchUnreadMessageCount = async () => {
+    try {
+      const token = sessionStorage.getItem("token") || localStorage.getItem("token");
+      const response = await fetch(
+          `${process.env.REACT_APP_API_URL}/chat/messages/unread-count`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+      );
+      if (response.ok) {
+        const messageData = await response.json();
+        window.dispatchEvent(
+            new CustomEvent("updateUnreadCount", {
+              detail: { unreadCount: messageData.unreadCount || 0 },
+            })
+        );
+      }
+    } catch (error) {
+      console.error("Error fetching unread count:", error);
+    }
+  };
+
   useEffect(() => {
     if (!token || !user || !chatId) {
       toast.error("Vui lòng đăng nhập để sử dụng chat.");
@@ -64,6 +88,7 @@ const Chat = ({ chatId }) => {
           }
         })
         .catch((err) => toast.error(err.message || "Lỗi khi lấy thông tin chat."));
+
     // Khởi tạo WebSocket
     const socket = new SockJS(`${process.env.REACT_APP_WS_URL}/ws`);
     socketRef.current = socket;
@@ -82,17 +107,17 @@ const Chat = ({ chatId }) => {
         console.log("Received message from WebSocket:", msg.body);
         const message = JSON.parse(msg.body);
         setMessages((prev) => {
-          // Kiểm tra trùng ID để tránh duplicate
           if (!prev.some((m) => m.id === message.id)) {
             return [...prev, message].sort(
-                (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
+                (a, b) => new Date(a.createdAt) - new Date(b.createdAt)
             );
           }
           return prev;
         });
         setIsTyping(false);
+        // Cập nhật unread count khi nhận tin nhắn mới
+        fetchUnreadMessageCount();
       });
-      console.log("Subscription created for /topic/chat/" + chatId);
 
       const typingSub = client.subscribe(`/topic/typing/${chatId}`, (typingMsg) => {
         const data = JSON.parse(typingMsg.body);
@@ -113,7 +138,16 @@ const Chat = ({ chatId }) => {
         }
       });
 
-      subscriptionsRef.current = [chatSub, typingSub, callSub];
+      const unreadCountSub = client.subscribe(`/topic/unread-count/${user.id}`, (msg) => {
+        const data = JSON.parse(msg.body);
+        window.dispatchEvent(
+            new CustomEvent("updateUnreadCount", {
+              detail: { unreadCount: data || 0 },
+            })
+        );
+      });
+
+      subscriptionsRef.current = [chatSub, typingSub, callSub, unreadCountSub];
       stompRef.current = client;
 
       client.publish({
@@ -121,13 +155,32 @@ const Chat = ({ chatId }) => {
         body: JSON.stringify({ chatId }),
       });
 
-
       // Gửi ping định kỳ để giữ kết nối
-      setInterval(() => {
+      const pingInterval = setInterval(() => {
         if (stompRef.current && stompRef.current.connected) {
           stompRef.current.send("/app/ping", {}, "ping");
         }
       }, 30000);
+
+      // Load tin nhắn cũ từ API
+      fetch(`${process.env.REACT_APP_API_URL}/chat/${chatId}/messages`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+          .then(async (response) => {
+            const data = await response.json();
+            if (response.ok) {
+              setMessages(data.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)));
+              // Cập nhật unread count sau khi tải tin nhắn (đã đánh dấu là read)
+              fetchUnreadMessageCount();
+            } else {
+              throw new Error(data.message || "Lỗi khi tải tin nhắn.");
+            }
+          })
+          .catch((err) => toast.error(err.message || "Lỗi khi tải tin nhắn."));
+
+      return () => {
+        clearInterval(pingInterval);
+      };
     };
 
     client.onWebSocketClose = () => {
@@ -135,21 +188,6 @@ const Chat = ({ chatId }) => {
     };
 
     client.activate();
-
-    // Load tin nhắn cũ từ API
-    fetch(`${process.env.REACT_APP_API_URL}/chat/${chatId}/messages`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-        .then(async (response) => {
-          const data = await response.json();
-          if (response.ok) {
-            setMessages(data.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)));
-          } else {
-            throw new Error(data.message || "Lỗi khi tải tin nhắn.");
-          }
-        })
-        .catch((err) => toast.error(err.message || "Lỗi khi tải tin nhắn."));
-
 
     // Khởi tạo media cho video call
     navigator.mediaDevices
@@ -159,14 +197,6 @@ const Chat = ({ chatId }) => {
           if (videoRef.current) videoRef.current.srcObject = stream;
         })
         .catch((err) => toast.error("Không thể truy cập camera/microphone."));
-
-    // Scroll xuống cuối khi có tin nhắn mới
-    const scrollToBottom = () => {
-      if (chatContainerRef.current) {
-        chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
-      }
-    };
-    scrollToBottom();
 
     // Cleanup
     return () => {
@@ -199,6 +229,7 @@ const Chat = ({ chatId }) => {
       body: JSON.stringify({ chatId, userId: user.id, isTyping: false }),
     });
   };
+
   const handleKeyPress = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -292,7 +323,6 @@ const Chat = ({ chatId }) => {
                     }`}
                     style={{ borderRadius: "20px" }}
                 >
-                  {/* Removed line: <small className="d-block fw-bold">{msg.sender?.displayName || "Unknown"}</small> */}
                   {msg.content}
                   <div className="text-end">
                     <small

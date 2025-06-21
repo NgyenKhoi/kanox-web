@@ -1,10 +1,13 @@
 package com.example.social_media.service;
 
 import com.example.social_media.dto.message.ChatDto;
-import com.example.social_media.dto.user.UserDto;
 import com.example.social_media.entity.*;
 import com.example.social_media.exception.UnauthorizedException;
-import com.example.social_media.repository.*;
+import com.example.social_media.repository.ChatMemberRepository;
+import com.example.social_media.repository.ChatRepository;
+import com.example.social_media.repository.MessageRepository;
+import com.example.social_media.repository.MessageStatusRepository;
+import com.example.social_media.repository.UserRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -59,8 +62,10 @@ public class ChatService {
                 Chat existingChat = cm.getChat();
                 System.out.println("Found existing chat: ID=" + existingChat.getId());
 
-                // Khôi phục ChatMember cho currentUser với status=true
-                if (!chatMemberRepository.existsByChatIdAndUserId(existingChat.getId(), currentUser.getId())) {
+                // Khôi phục ChatMember cho currentUser với status=true và joinedAt mới
+                ChatMember existingMember = chatMemberRepository.findByChatIdAndUserId(existingChat.getId(), currentUser.getId())
+                        .orElse(null);
+                if (existingMember == null) {
                     ChatMember newMember = new ChatMember();
                     ChatMemberId memberId = new ChatMemberId();
                     memberId.setChatId(existingChat.getId());
@@ -69,7 +74,7 @@ public class ChatService {
                     newMember.setChat(existingChat);
                     newMember.setUser(currentUser);
                     newMember.setJoinedAt(Instant.now());
-                    newMember.setStatus(true); // Đặt status=true để thấy lịch sử
+                    newMember.setStatus(true);
                     newMember.setIsAdmin(false);
                     newMember.setIsSpam(false);
                     try {
@@ -79,15 +84,11 @@ public class ChatService {
                         System.err.println("Error restoring ChatMember: " + e.getMessage());
                         throw new RuntimeException("Failed to restore ChatMember due to: " + e.getMessage(), e);
                     }
-                } else {
-                    // Nếu ChatMember đã tồn tại nhưng status=false, cập nhật thành true
-                    ChatMember existingMember = chatMemberRepository.findByChatIdAndUserId(existingChat.getId(), currentUser.getId())
-                            .orElseThrow(() -> new IllegalStateException("ChatMember not found"));
-                    if (!existingMember.getStatus()) {
-                        existingMember.setStatus(true);
-                        chatMemberRepository.saveAndFlush(existingMember);
-                        System.out.println("Updated ChatMember status to true for userId: " + currentUser.getId() + ", chatId: " + existingChat.getId());
-                    }
+                } else if (!existingMember.getStatus()) {
+                    existingMember.setStatus(true);
+                    existingMember.setJoinedAt(Instant.now()); // Cập nhật joinedAt để lọc tin nhắn
+                    chatMemberRepository.saveAndFlush(existingMember);
+                    System.out.println("Updated ChatMember status to true for userId: " + currentUser.getId() + ", chatId: " + existingChat.getId());
                 }
                 return convertToDto(existingChat, currentUser.getId());
             }
@@ -175,7 +176,6 @@ public class ChatService {
         User user = userDetailsService.getUserByUsername(username);
         ChatMember chatMember = chatMemberRepository.findByChatIdAndUserId(chatId, user.getId())
                 .orElseThrow(() -> new UnauthorizedException("You are not a member of this chat."));
-        // Cho phép truy cập với status=false để gửi tin nhắn, nhưng không thấy lịch sử
         Chat chat = chatRepository.findById(chatId)
                 .orElseThrow(() -> new IllegalArgumentException("Chat not found: " + chatId));
         return convertToDto(chat, user.getId());
@@ -186,7 +186,6 @@ public class ChatService {
         if (!chatMemberRepository.existsByChatIdAndUserUsername(chatId, username)) {
             throw new UnauthorizedException("You are not a member of this chat.");
         }
-        // Không kiểm tra status, cho phép gửi tin nhắn dù status=false
     }
 
     @Transactional
@@ -195,7 +194,7 @@ public class ChatService {
         ChatMember chatMember = chatMemberRepository.findByChatIdAndUserId(chatId, user.getId())
                 .orElseThrow(() -> new UnauthorizedException("You are not a member of this chat."));
         System.out.println("Deleting chat for user: " + username + ", chatId: " + chatId);
-        chatMember.setStatus(false); // Đánh dấu status=false thay vì xóa
+        chatMember.setStatus(false); // Đánh dấu status=false
         chatMemberRepository.saveAndFlush(chatMember);
         System.out.println("Marked ChatMember as deleted for chatId: " + chatId + ", userId: " + user.getId());
     }
@@ -208,7 +207,6 @@ public class ChatService {
                 .findFirst()
                 .map(cm -> cm.getUser().getDisplayName())
                 .orElse(chat.getName());
-        // Tính số tin nhắn chưa đọc
         int unreadMessagesCount = messageStatusRepository.countUnreadByChatIdAndUserId(chat.getId(), currentUserId);
         System.out.println("convertToDto: Chat ID=" + chat.getId() + ", Current User ID=" + currentUserId +
                 ", Recipient Name=" + recipientName +

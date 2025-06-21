@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from "react";
+import React, { useState, useContext, useEffect, useRef } from "react";
 import { Nav, Button, Dropdown, Offcanvas, Badge } from "react-bootstrap";
 import {
     FaHome,
@@ -16,18 +16,18 @@ import {
     FaMoon,
     FaSun,
     FaUserFriends,
-    FaListAlt,
     FaUserSlash,
 } from "react-icons/fa";
 import { BsStars } from "react-icons/bs";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import KLogoSvg from "../../svgs/KSvg";
 import { AuthContext } from "../../../context/AuthContext";
-import { useWebSocket } from "../../../hooks/useWebSocket";
 import useMedia from "../../../hooks/useMedia";
 import "./SidebarLeft.css";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import SockJS from "sockjs-client";
+import { Client } from "@stomp/stompjs";
 
 function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
     const { user, logout } = useContext(AuthContext);
@@ -36,6 +36,109 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
     const [showOffcanvas, setShowOffcanvas] = useState(false);
     const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
     const [unreadMessageCount, setUnreadMessageCount] = useState(0);
+    const stompRef = useRef(null);
+
+    const useWebSocket = (onMessageReceived, setCount, topic) => {
+        useEffect(() => {
+            if (!user) return;
+
+            const socket = new SockJS(`${process.env.REACT_APP_WS_URL}/ws`);
+            const client = new Client({
+                webSocketFactory: () => socket,
+                connectHeaders: {
+                    Authorization: `Bearer ${sessionStorage.getItem("token") || localStorage.getItem("token")}`,
+                },
+                debug: (str) => console.log("STOMP Debug:", str),
+                reconnectDelay: 5000,
+                heartbeatIncoming: 4000,
+                heartbeatOutgoing: 4000,
+            });
+
+            client.onConnect = () => {
+                console.log("WebSocket connected for", topic);
+                client.subscribe(topic + user.id, (msg) => {
+                    const data = JSON.parse(msg.body);
+                    console.log(`WebSocket message received (${topic}):`, data);
+                    onMessageReceived(data);
+                    if (topic === "/topic/messages/") {
+                        // Cập nhật unreadMessageCount từ API
+                        fetchUnreadMessageCount();
+                    } else if (topic === "/topic/unread-count/") {
+                        setUnreadMessageCount(data || 0);
+                    }
+                });
+            };
+
+            client.onWebSocketClose = () => {
+                console.log("WebSocket disconnected for", topic);
+            };
+
+            client.activate();
+            stompRef.current = client;
+
+            return () => {
+                client.deactivate();
+            };
+        }, [user]);
+    };
+
+    const fetchUnreadMessageCount = async () => {
+        try {
+            const token = sessionStorage.getItem("token") || localStorage.getItem("token");
+            const response = await fetch(
+                `${process.env.REACT_APP_API_URL}/chat/messages/unread-count`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
+            if (response.ok) {
+                const messageData = await response.json();
+                setUnreadMessageCount(messageData.unreadCount || 0);
+            }
+        } catch (error) {
+            console.error("Error fetching unread count:", error);
+        }
+    };
+
+    useWebSocket(
+        (data) => {
+            toast.info("Bạn có tin nhắn mới!");
+        },
+        setUnreadMessageCount,
+        "/topic/messages/"
+    );
+
+    useWebSocket(
+        (data) => {
+            setUnreadMessageCount(data || 0);
+        },
+        setUnreadMessageCount,
+        "/topic/unread-count/"
+    );
+
+    useEffect(() => {
+        if (!user) {
+            navigate("/login");
+            return;
+        }
+
+        fetchUnreadMessageCount();
+
+        const handleUpdateUnreadCount = (event) => {
+            setUnreadMessageCount(event.detail.unreadCount);
+        };
+        window.addEventListener("updateUnreadCount", handleUpdateUnreadCount);
+
+        if (location.pathname === "/notifications") {
+            setUnreadNotificationCount(0);
+        }
+
+        return () => {
+            window.removeEventListener("updateUnreadCount", handleUpdateUnreadCount);
+        };
+    }, [user, navigate, location.pathname]);
 
     // Sử dụng useMedia để lấy avatar người dùng
     const { mediaUrl: avatarUrl } = useMedia(user?.id, "PROFILE", "image");
@@ -69,20 +172,6 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
                     setUnreadNotificationCount(unreadNotifs);
                 }
 
-                // Lấy số tin nhắn chưa đọc
-                const messageResponse = await fetch(
-                    `${process.env.REACT_APP_API_URL}/chat/messages/unread-count`,
-                    {
-                        headers: {
-                            Authorization: `Bearer ${token}`,
-                        },
-                    }
-                );
-
-                if (messageResponse.ok) {
-                    const messageData = await messageResponse.json();
-                    setUnreadMessageCount(messageData.unreadCount || 0);
-                }
             } catch (error) {
                 console.error("Error fetching counts:", error);
             }
@@ -90,32 +179,6 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
 
         fetchCounts();
     }, [user]);
-
-    useWebSocket(
-        async (message) => {
-            // Xử lý thông báo tin nhắn mới
-            try {
-                const token = sessionStorage.getItem("token") || localStorage.getItem("token");
-                const response = await fetch(
-                    `${process.env.REACT_APP_API_URL}/chat/messages/unread-count`,
-                    {
-                        headers: {
-                            Authorization: `Bearer ${token}`,
-                        },
-                    }
-                );
-                if (response.ok) {
-                    const messageData = await response.json();
-                    setUnreadMessageCount(messageData.unreadCount || 0);
-                }
-                toast.info("Bạn có tin nhắn mới!");
-            } catch (error) {
-                console.error("Error fetching unread count:", error);
-            }
-        },
-        setUnreadMessageCount,
-        "/topic/messages/"
-    );
 
     useEffect(() => {
         if (location.pathname === "/notifications") {

@@ -92,7 +92,7 @@ function MessengerPage() {
         if (!prev.some((chat) => chat.id === data.id)) {
           return [...prev, data];
         }
-        return prev;
+        return prev.map((chat) => chat.id === data.id ? data : chat);
       });
       setSelectedChatId(data.id);
       navigate(`/messages?chatId=${data.id}`);
@@ -153,6 +153,13 @@ function MessengerPage() {
     navigate(`/messages?chatId=${chatId}`);
     try {
       const token = sessionStorage.getItem("token") || localStorage.getItem("token");
+      // Gọi API để lấy tin nhắn và đánh dấu là đã đọc
+      await fetch(`${process.env.REACT_APP_API_URL}/chat/messages/${chatId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      // Cập nhật unread count
       const response = await fetch(
           `${process.env.REACT_APP_API_URL}/chat/messages/unread-count`,
           {
@@ -165,7 +172,7 @@ function MessengerPage() {
         const messageData = await response.json();
         setUnreadChats((prev) => {
           const newUnread = new Set(prev);
-          newUnread.delete(chatId); // Xóa chat khỏi danh sách chưa đọc
+          newUnread.delete(chatId);
           return newUnread;
         });
         window.dispatchEvent(
@@ -175,7 +182,7 @@ function MessengerPage() {
         );
       }
     } catch (error) {
-      console.error("Error fetching unread count:", error);
+      console.error("Error fetching messages or unread count:", error);
     }
   };
 

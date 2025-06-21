@@ -34,7 +34,8 @@ public class MessageService {
     public MessageService(MessageRepository messageRepository, MessageTypeRepository messageTypeRepository,
                           ChatRepository chatRepository, UserRepository userRepository,
                           SimpMessagingTemplate messagingTemplate, ChatService chatService,
-                          ChatMemberRepository chatMemberRepository, MessageStatusRepository messageStatusRepository, MessageQueueService messageQueueService) {
+                          ChatMemberRepository chatMemberRepository, MessageStatusRepository messageStatusRepository,
+                          MessageQueueService messageQueueService) {
         this.messageRepository = messageRepository;
         this.messageTypeRepository = messageTypeRepository;
         this.chatRepository = chatRepository;
@@ -46,7 +47,6 @@ public class MessageService {
         this.messageQueueService = messageQueueService;
     }
 
-    // MessageService.java
     @Transactional
     public MessageDto sendMessage(MessageDto messageDto, String username) {
         chatService.checkChatAccess(messageDto.getChatId().intValue(), username);
@@ -65,8 +65,8 @@ public class MessageService {
         for (ChatMember member : members) {
             if (!member.getUser().getId().equals(sender.getId()) && !member.getStatus()) {
                 member.setStatus(true);
+                member.setJoinedAt(Instant.now()); // Cập nhật joinedAt để chỉ thấy tin nhắn mới
                 chatMemberRepository.save(member);
-                // Gửi thông báo WebSocket để cập nhật danh sách chat của người nhận
                 ChatDto chatDto = chatService.convertToDto(chat, member.getUser().getId());
                 messagingTemplate.convertAndSend("/topic/chats/" + member.getUser().getId(), chatDto);
             }
@@ -105,24 +105,36 @@ public class MessageService {
         return messageDto;
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<MessageDto> getChatMessages(Integer chatId, String username) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
         ChatMember chatMember = chatMemberRepository.findByChatIdAndUserId(chatId, user.getId())
                 .orElseThrow(() -> new UnauthorizedException("You are not a member of this chat."));
         if (!chatMember.getStatus()) {
-            return List.of(); // Không trả lịch sử nếu status=false
+            return List.of();
         }
 
-        // Đánh dấu tất cả tin nhắn trong chat này là đã đọc
-        messageStatusRepository.findByMessageChatIdAndUserId(chatId, user.getId())
-                .forEach(status -> {
-                    status.setStatus("read");
-                    messageStatusRepository.save(status);
-                });
+        // Lấy joinedAt của người dùng để lọc tin nhắn
+        Instant joinedAt = chatMember.getJoinedAt();
 
+        // Đánh dấu tất cả tin nhắn chưa đọc trong chat này là đã đọc
+        List<MessageStatus> unreadStatuses = messageStatusRepository.findByMessageChatIdAndUserId(chatId, user.getId());
+        for (MessageStatus status : unreadStatuses) {
+            if (status.getStatus().equals("unread")) {
+                status.setStatus("read");
+                messageStatusRepository.save(status);
+                System.out.println("Marked message " + status.getId().getMessageId() + " as read for user " + user.getId());
+            }
+        }
+
+        // Gửi thông báo cập nhật unread count qua WebSocket
+        int updatedUnreadCount = messageStatusRepository.countUnreadByUserId(user.getId());
+        messagingTemplate.convertAndSend("/topic/unread-count/" + user.getId(), updatedUnreadCount);
+
+        // Chỉ trả về tin nhắn có createdAt sau joinedAt
         return messageRepository.findByChatId(chatId).stream()
+                .filter(msg -> msg.getCreatedAt().isAfter(joinedAt))
                 .map(msg -> new MessageDto(
                         msg.getId(),
                         msg.getChat().getId(),
@@ -147,6 +159,9 @@ public class MessageService {
 
     @Transactional(readOnly = true)
     public int getUnreadMessageCount(Integer userId) {
-        return messageStatusRepository.countUnreadByUserId(userId);
+        // Đếm tin nhắn có trạng thái 'unread' cho userId
+        int count = messageStatusRepository.countUnreadByUserId(userId);
+        System.out.println("Unread message count for userId " + userId + ": " + count);
+        return count;
     }
 }
