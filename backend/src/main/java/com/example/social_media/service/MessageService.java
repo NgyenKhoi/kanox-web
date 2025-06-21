@@ -97,9 +97,13 @@ public class MessageService {
 
     @Transactional(readOnly = true)
     public List<MessageDto> getChatMessages(Integer chatId, String username) {
-        chatService.checkChatAccess(chatId, username);
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        ChatMember chatMember = chatMemberRepository.findByChatIdAndUserId(chatId, user.getId())
+                .orElseThrow(() -> new UnauthorizedException("You are not a member of this chat."));
+        if (!chatMember.getStatus()) {
+            return List.of(); // Không trả lịch sử nếu status=false
+        }
 
         // Đánh dấu tất cả tin nhắn trong chat này là đã đọc
         messageStatusRepository.findByMessageChatIdAndUserId(chatId, user.getId())
