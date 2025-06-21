@@ -38,6 +38,7 @@ public class URLConfig {
     public static final String TYPING = "/typing";
     public static final String RESEND = "/resend";
     public static final String GET_CHAT = "/{chatId}";
+    public static final String CHAT_DELETE = "/{chatId}/delete";
     // Frontend URLs
     public static final String FRONTEND_RESET_PASSWORD_URL = "https://kanox-web.netlify.app/reset-password?token=";
 

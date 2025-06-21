@@ -9,7 +9,7 @@ import {
   ListGroup,
   Spinner,
 } from "react-bootstrap";
-import { FaSearch, FaPenSquare } from "react-icons/fa";
+import { FaSearch, FaPenSquare, FaTrash } from "react-icons/fa";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import SockJS from "sockjs-client";
@@ -103,6 +103,46 @@ function MessengerPage() {
     }
   };
 
+  const handleDeleteChat = async (chatId) => {
+    if (!token) {
+      toast.error("Vui lòng đăng nhập lại.");
+      navigate("/login");
+      return;
+    }
+
+    try {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/${chatId}/delete`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.status === 401) {
+        toast.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
+        localStorage.removeItem("token");
+        sessionStorage.removeItem("token");
+        navigate("/login");
+        return;
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Lỗi khi xóa chat: ${errorText}`);
+      }
+
+      setChats((prev) => prev.filter((chat) => chat.id !== chatId));
+      if (selectedChatId === chatId) {
+        setSelectedChatId(null);
+        navigate("/messages");
+      }
+      toast.success("Đã xóa chat.");
+    } catch (error) {
+      toast.error("Không thể xóa chat: " + error.message);
+      console.error("Delete chat error:", error);
+    }
+  };
+
   useEffect(() => {
     if (!token || !user) {
       toast.error("Vui lòng đăng nhập để xem tin nhắn.");
@@ -123,14 +163,24 @@ function MessengerPage() {
     client.onConnect = () => {
       console.log("WebSocket connected for chats");
       client.subscribe("/topic/chats/" + user.id, (msg) => {
-        const newChat = JSON.parse(msg.body);
-        console.log("New chat received:", newChat);
-        setChats((prev) => {
-          if (!prev.some((chat) => chat.id === newChat.id)) {
-            return [...prev, newChat];
+        const data = JSON.parse(msg.body);
+        console.log("WebSocket message received:", data);
+        if (data.action === "delete") {
+          setChats((prev) => prev.filter((chat) => chat.id !== data.chatId));
+          if (selectedChatId === data.chatId) {
+            setSelectedChatId(null);
+            navigate("/messages");
           }
-          return prev;
-        });
+          toast.success("Chat đã được xóa.");
+        } else {
+          console.log("New chat received: ID=" + data.id + ", Name=" + data.name);
+          setChats((prev) => {
+            if (!prev.some((chat) => chat.id === data.id)) {
+              return [...prev, data];
+            }
+            return prev;
+          });
+        }
       });
     };
 
@@ -173,7 +223,7 @@ function MessengerPage() {
     return () => {
       stompRef.current?.deactivate();
     };
-  }, [token, user]);
+  }, [token, user, navigate, selectedChatId]);
 
   const filteredChats = chats.filter((chat) => {
     const chatName = chat.name ? chat.name.toLowerCase() : "";
@@ -241,10 +291,6 @@ function MessengerPage() {
                             key={chat.id}
                             action
                             active={selectedChatId === chat.id}
-                            onClick={() => {
-                              setSelectedChatId(chat.id);
-                              navigate(`/messages?chatId=${chat.id}`);
-                            }}
                             className={`d-flex align-items-center p-3 ${
                                 unreadChats.has(chat.id) ? "fw-bold" : ""
                             }`}
@@ -255,10 +301,24 @@ function MessengerPage() {
                               className="rounded-circle me-2"
                               style={{ width: "40px", height: "40px" }}
                           />
-                          <div className="flex-grow-1">
+                          <div className="flex-grow-1" onClick={() => {
+                            setSelectedChatId(chat.id);
+                            navigate(`/messages?chatId=${chat.id}`);
+                          }}>
                             <p className="fw-bold mb-0">{chat.name}</p>
                             <p className="text-muted small mb-0">{chat.lastMessage}</p>
                           </div>
+                          <Button
+                              variant="link"
+                              className="p-0"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteChat(chat.id);
+                              }}
+                              title="Xóa chat"
+                          >
+                            <FaTrash className="text-danger" />
+                          </Button>
                         </ListGroup.Item>
                     ))}
                   </ListGroup>

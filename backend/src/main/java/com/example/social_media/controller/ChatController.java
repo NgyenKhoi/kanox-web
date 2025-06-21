@@ -9,6 +9,7 @@ import com.example.social_media.entity.User;
 import com.example.social_media.exception.UnauthorizedException;
 import com.example.social_media.jwt.JwtService;
 import com.example.social_media.repository.ChatMemberRepository;
+import com.example.social_media.repository.ChatRepository;
 import com.example.social_media.repository.UserRepository;
 import com.example.social_media.service.CallSessionService;
 import com.example.social_media.service.ChatService;
@@ -19,8 +20,6 @@ import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.messaging.simp.stomp.StompCommand;
-import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -42,7 +41,7 @@ public class ChatController {
     private final MessageQueueService messageQueueService;
     private final RedisTemplate<String, MessageDto> redisTemplate;
     private final ChatMemberRepository chatMemberRepository;
-
+    private final ChatRepository chatRepository;
     public ChatController(ChatService chatService,
                           MessageService messageService,
                           CallSessionService callSessionService,
@@ -52,7 +51,8 @@ public class ChatController {
                           WebSocketConfig webSocketConfig,
                           MessageQueueService messageQueueService,
                           RedisTemplate<String, MessageDto> redisTemplate,
-                          ChatMemberRepository chatMemberRepository) {
+                          ChatMemberRepository chatMemberRepository,
+                          ChatRepository chatRepository) {
         this.chatService = chatService;
         this.messageService = messageService;
         this.callSessionService = callSessionService;
@@ -63,6 +63,7 @@ public class ChatController {
         this.messageQueueService = messageQueueService;
         this.redisTemplate = redisTemplate;
         this.chatMemberRepository = chatMemberRepository;
+        this.chatRepository = chatRepository;
     }
 
     @MessageMapping(URLConfig.SEND_MESSAGES)
@@ -87,10 +88,10 @@ public class ChatController {
         }
         MessageDto savedMessage = messageService.sendMessage(messageDto, username);
         redisTemplate.opsForList().rightPush("chat:" + messageDto.getChatId() + ":messages", savedMessage);
-        // Publish tin nhắn qua Redis channel
         redisTemplate.convertAndSend("chat-messages", savedMessage);
         System.out.println("Message published to Redis channel chat-messages for chatId: " + messageDto.getChatId());
     }
+
     @MessageMapping(URLConfig.TYPING)
     public void handleTyping(@Payload Map<String, Object> typingData) {
         Integer chatId = (Integer) typingData.get("chatId");
@@ -98,6 +99,7 @@ public class ChatController {
         Integer userId = (Integer) typingData.get("userId");
         messagingTemplate.convertAndSend("/topic/typing/" + chatId, typingData);
     }
+
     @MessageMapping({URLConfig.WEBSOCKET_CALL_OFFER, URLConfig.WEBSOCKET_CALL_ANSWER})
     public void handleCallSignal(@Payload SignalMessageDto signalMessage) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -107,14 +109,13 @@ public class ChatController {
     @GetMapping(URLConfig.GET_CHAT_MESSAGES)
     public List<MessageDto> getChatMessages(@PathVariable Integer chatId) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        // Lấy tin nhắn từ database
         List<MessageDto> messages = messageService.getChatMessages(chatId, username);
-        // Đồng bộ với Redis
         redisTemplate.delete("chat:" + chatId + ":messages");
         messages.forEach(message ->
                 redisTemplate.opsForList().rightPush("chat:" + chatId + ":messages", message));
         return messages;
     }
+
     @GetMapping(URLConfig.GET_CHAT)
     public ChatDto getChat(@PathVariable Integer chatId) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -131,12 +132,26 @@ public class ChatController {
     public ChatDto createChat(@RequestBody ChatCreateDto chatCreateDto) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         ChatDto newChat = chatService.createChat(username, chatCreateDto.getTargetUserId());
-        // Thông báo cho cả hai người dùng qua WebSocket
         List<ChatMember> members = chatMemberRepository.findByChatId(newChat.getId());
         for (ChatMember member : members) {
-            messagingTemplate.convertAndSend("/topic/chats/" + member.getUser().getId(), newChat);
+            ChatDto userSpecificChat = chatService.convertToDto(
+                    chatRepository.findById(newChat.getId()).orElseThrow(() -> new IllegalArgumentException("Chat not found: " + newChat.getId())),
+                    member.getUser().getId()
+            );
+            System.out.println("Sending ChatDto to /topic/chats/" + member.getUser().getId() + ": ID=" + userSpecificChat.getId() + ", Name=" + userSpecificChat.getName());
+            messagingTemplate.convertAndSend("/topic/chats/" + member.getUser().getId(), userSpecificChat);
         }
+        System.out.println("Returning ChatDto to caller: ID=" + newChat.getId() + ", Name=" + newChat.getName());
         return newChat;
+    }
+    @DeleteMapping(URLConfig.CHAT_DELETE)
+    public void deleteChat(@PathVariable Integer chatId) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        chatService.deleteChat(chatId, username);
+        System.out.println("Notifying user " + username + " of chat deletion: chatId=" + chatId);
+        messagingTemplate.convertAndSend("/topic/chats/" + userRepository.findByUsername(username)
+                        .orElseThrow(() -> new IllegalArgumentException("User not found")).getId(),
+                Map.of("action", "delete", "chatId", chatId));
     }
 
     @PostMapping(URLConfig.CALL_START)
@@ -152,10 +167,8 @@ public class ChatController {
         Integer chatId = request.get("chatId");
         Integer messageId = request.get("messageId");
         messageService.deleteMessage(chatId, messageId, username);
-        // Xóa tin nhắn khỏi Redis nếu cần
         redisTemplate.opsForList().remove("chat:" + chatId + ":messages", 1, messageId);
     }
-
 
     @PostMapping(URLConfig.CALL_END)
     public void endCall(@PathVariable Integer callSessionId) {
@@ -171,10 +184,10 @@ public class ChatController {
         int unreadCount = messageService.getUnreadMessageCount(user.getId());
         return Map.of("unreadCount", unreadCount);
     }
+
     @MessageMapping(URLConfig.RESEND)
     public void resendMessages(@Payload Map<String, Object> payload, @Header("simpSessionId") String sessionId) {
         String chatId = payload.get("chatId").toString();
-        // Không publish lại tin nhắn cũ để tránh duplicate
         System.out.println("Resend requested for chatId: " + chatId);
     }
 }

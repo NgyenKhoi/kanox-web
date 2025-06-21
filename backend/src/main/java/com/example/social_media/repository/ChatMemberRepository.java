@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface ChatMemberRepository extends JpaRepository<ChatMember, ChatMemberId> {
     @Query("SELECT cm FROM ChatMember cm WHERE cm.user.id = :userId")
@@ -22,4 +23,12 @@ public interface ChatMemberRepository extends JpaRepository<ChatMember, ChatMemb
     @Query("SELECT CASE WHEN COUNT(cm) > 0 THEN true ELSE false END " +
             "FROM ChatMember cm WHERE cm.chat.id = :chatId AND cm.user.id = :userId")
     boolean existsByChatIdAndUserId(@Param("chatId") Integer chatId, @Param("userId") Integer userId);
+
+    @Query("SELECT cm FROM ChatMember cm WHERE cm.chat.id = :chatId AND cm.user.id = :userId")
+    Optional<ChatMember> findByChatIdAndUserId(@Param("chatId") Integer chatId, @Param("userId") Integer userId);
+
+    @Query("SELECT cm FROM ChatMember cm WHERE cm.chat.id IN (" +
+            "SELECT cm2.chat.id FROM ChatMember cm2 WHERE cm2.user.id = :userId2 AND cm2.chat.isGroup = false) " +
+            "AND cm.user.id = :userId1 AND cm.chat.isGroup = false")
+    Optional<ChatMember> findChatBetweenUsers(@Param("userId1") Integer userId1, @Param("userId2") Integer userId2);
 }
