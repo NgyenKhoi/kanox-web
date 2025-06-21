@@ -81,8 +81,7 @@ const Chat = ({ chatId }) => {
         .then(async (response) => {
           const data = await response.json();
           if (response.ok) {
-            const recipient = data.participants.find((p) => p.id !== user.id);
-            setRecipientName(recipient?.username || "Unknown User");
+            setRecipientName(data.name || "Unknown User");
           } else {
             throw new Error(data.message || "Lỗi khi lấy thông tin chat.");
           }
