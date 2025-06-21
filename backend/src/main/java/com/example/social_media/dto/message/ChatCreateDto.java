@@ -3,7 +3,6 @@ package com.example.social_media.dto.message;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class ChatCreateDto {
-    @JsonProperty("participantId")
     private Integer targetUserId;
 
     public Integer getTargetUserId() {

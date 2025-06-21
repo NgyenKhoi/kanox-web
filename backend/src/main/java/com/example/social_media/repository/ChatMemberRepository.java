@@ -18,4 +18,8 @@ public interface ChatMemberRepository extends JpaRepository<ChatMember, ChatMemb
 
     @Query("SELECT cm FROM ChatMember cm WHERE cm.chat.id = :chatId")
     List<ChatMember> findByChatId(@Param("chatId") Integer chatId);
+
+    @Query("SELECT CASE WHEN COUNT(cm) > 0 THEN true ELSE false END " +
+            "FROM ChatMember cm WHERE cm.chat.id = :chatId AND cm.user.id = :userId")
+    boolean existsByChatIdAndUserId(@Param("chatId") Integer chatId, @Param("userId") Integer userId);
 }

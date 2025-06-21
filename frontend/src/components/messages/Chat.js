@@ -50,6 +50,20 @@ const Chat = ({ chatId }) => {
       return;
     }
 
+    // Lấy thông tin chat để lấy tên người nhận
+    fetch(`${process.env.REACT_APP_API_URL}/chat/${chatId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+        .then(async (response) => {
+          const data = await response.json();
+          if (response.ok) {
+            const recipient = data.participants.find((p) => p.id !== user.id);
+            setRecipientName(recipient?.username || "Unknown User");
+          } else {
+            throw new Error(data.message || "Lỗi khi lấy thông tin chat.");
+          }
+        })
+        .catch((err) => toast.error(err.message || "Lỗi khi lấy thông tin chat."));
     // Khởi tạo WebSocket
     const socket = new SockJS(`${process.env.REACT_APP_WS_URL}/ws`);
     socketRef.current = socket;
@@ -278,14 +292,14 @@ const Chat = ({ chatId }) => {
                     }`}
                     style={{ borderRadius: "20px" }}
                 >
-                  <small className="d-block fw-bold">{msg.sender?.displayName || "Unknown"}</small>
+                  {/* Removed line: <small className="d-block fw-bold">{msg.sender?.displayName || "Unknown"}</small> */}
                   {msg.content}
                   <div className="text-end">
                     <small
                         className={msg.senderId === user?.id ? "text-light" : "text-muted"}
                         style={{ fontSize: "0.75rem" }}
                     >
-                      {new Date(msg.timestamp).toLocaleTimeString()}
+                      {new Date(msg.createdAt).toLocaleTimeString()}
                     </small>
                   </div>
                 </div>

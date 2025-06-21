@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useRef } from "react";
 import {
   Container,
   Row,
@@ -9,9 +9,11 @@ import {
   ListGroup,
   Spinner,
 } from "react-bootstrap";
-import { FaSearch, FaEnvelope, FaPenSquare, FaCog } from "react-icons/fa";
+import { FaSearch, FaPenSquare } from "react-icons/fa";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import SockJS from "sockjs-client";
+import { Client } from "@stomp/stompjs";
 import SidebarLeft from "../../components/layout/SidebarLeft/SidebarLeft";
 import Chat from "../../components/messages/Chat";
 import { AuthContext } from "../../context/AuthContext";
@@ -28,6 +30,7 @@ function MessengerPage() {
   const [loading, setLoading] = useState(true);
   const [unreadChats, setUnreadChats] = useState(new Set());
   const [showUserSelectionModal, setShowUserSelectionModal] = useState(false);
+  const stompRef = useRef(null);
 
   const {
     searchKeyword,
@@ -35,24 +38,40 @@ function MessengerPage() {
     searchResults,
     isSearching,
     debouncedSearch,
-  } = useUserSearch(token, navigate); // Sử dụng useUserSearch
+  } = useUserSearch(token, navigate);
 
-  // Hàm tạo chat mới
-  const createChat = async (userId) => {
+  useEffect(() => {
+    if (showUserSelectionModal) {
+      setSearchKeyword(searchQuery);
+      debouncedSearch(searchQuery);
+    }
+  }, [searchQuery, showUserSelectionModal, setSearchKeyword, debouncedSearch]);
+
+  const handleOpenUserSelectionModal = () => {
+    setShowUserSelectionModal(true);
+  };
+
+  const handleCloseUserSelectionModal = () => {
+    setShowUserSelectionModal(false);
+    setSearchKeyword("");
+    setSearchQuery("");
+  };
+
+  const handleSelectUser = async (userId) => {
     if (!token) {
       toast.error("Vui lòng đăng nhập lại.");
-      navigate("/");
-      return null;
+      navigate("/login");
+      return;
     }
 
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/create`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/chat/create`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ participantId: userId }),
+        body: JSON.stringify({ targetUserId: userId }),
       });
 
       if (response.status === 401) {
@@ -60,7 +79,7 @@ function MessengerPage() {
         localStorage.removeItem("token");
         sessionStorage.removeItem("token");
         navigate("/login");
-        return null;
+        return;
       }
 
       if (!response.ok) {
@@ -69,41 +88,20 @@ function MessengerPage() {
       }
 
       const data = await response.json();
-      return data.id; // Giả sử backend trả về { id: chatId }
+      setChats((prev) => {
+        if (!prev.some((chat) => chat.id === data.id)) {
+          return [...prev, data];
+        }
+        return prev;
+      });
+      setSelectedChatId(data.id);
+      navigate(`/messages?chatId=${data.id}`);
+      handleCloseUserSelectionModal();
     } catch (error) {
       toast.error("Không thể tạo chat: " + error.message);
       console.error("Create chat error:", error);
-      return null;
     }
   };
-
-  // Hàm xử lý chọn người dùng
-  const handleSelectUser = async (userId) => {
-    const chatId = await createChat(userId);
-    if (chatId) {
-      navigate(`/messages?chatId=${chatId}`);
-      setSearchKeyword("");
-      setShowUserSelectionModal(false);
-    }
-  };
-
-  useEffect(() => {
-    if (showUserSelectionModal) {
-      debouncedSearch(searchKeyword);
-    }
-  }, [searchKeyword, debouncedSearch, showUserSelectionModal]);
-
-  const [localIsDarkMode, setLocalIsDarkMode] = useState(false);
-  const localOnToggleDarkMode = () => {
-    setLocalIsDarkMode((prev) => !prev);
-    console.log("Dark mode toggled locally within MessengerPage's sidebar.");
-  };
-  const localOnShowCreatePost = () => {
-    console.log("Create Post button clicked from MessengerPage Sidebar.");
-  };
-
-  const handleOpenUserSelectionModal = () => setShowUserSelectionModal(true);
-  const handleCloseUserSelectionModal = () => setShowUserSelectionModal(false);
 
   useEffect(() => {
     if (!token || !user) {
@@ -112,9 +110,40 @@ function MessengerPage() {
       return;
     }
 
+    const socket = new SockJS(`${process.env.REACT_APP_WS_URL}/ws`);
+    const client = new Client({
+      webSocketFactory: () => socket,
+      connectHeaders: { Authorization: `Bearer ${token}` },
+      debug: (str) => console.log("STOMP Debug:", str),
+      reconnectDelay: 5000,
+      heartbeatIncoming: 4000,
+      heartbeatOutgoing: 4000,
+    });
+
+    client.onConnect = () => {
+      console.log("WebSocket connected for chats");
+      client.subscribe("/topic/chats/" + user.id, (msg) => {
+        const newChat = JSON.parse(msg.body);
+        console.log("New chat received:", newChat);
+        setChats((prev) => {
+          if (!prev.some((chat) => chat.id === newChat.id)) {
+            return [...prev, newChat];
+          }
+          return prev;
+        });
+      });
+    };
+
+    client.onWebSocketClose = () => {
+      console.log("WebSocket disconnected, retrying...");
+    };
+
+    client.activate();
+    stompRef.current = client;
+
     const fetchChats = async () => {
       try {
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/chats`, {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/api/chat/chats`, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -122,21 +151,16 @@ function MessengerPage() {
           },
         });
 
-        const contentType = response.headers.get("content-type");
-        if (!contentType || !contentType.includes("application/json")) {
-          throw new Error("Phản hồi không phải JSON");
+        if (!response.ok) {
+          throw new Error("Lỗi khi tải danh sách chat.");
         }
 
         const data = await response.json();
-        if (response.ok) {
-          setChats(data);
-          const unread = new Set(
-              data.filter((chat) => chat.unreadMessagesCount > 0).map((chat) => chat.id)
-          );
-          setUnreadChats(unread);
-        } else {
-          throw new Error(data.message || "Lỗi khi tải danh sách chat.");
-        }
+        setChats(data);
+        const unread = new Set(
+            data.filter((chat) => chat.unreadMessagesCount > 0).map((chat) => chat.id)
+        );
+        setUnreadChats(unread);
       } catch (err) {
         toast.error(err.message || "Lỗi khi tải danh sách chat.");
       } finally {
@@ -145,6 +169,10 @@ function MessengerPage() {
     };
 
     fetchChats();
+
+    return () => {
+      stompRef.current?.deactivate();
+    };
   }, [token, user]);
 
   const filteredChats = chats.filter((chat) => {
@@ -156,19 +184,56 @@ function MessengerPage() {
 
   return (
       <div className="d-flex h-100 bg-light">
-        <SidebarLeft onShowCreatePost={localOnShowCreatePost} isDarkMode={localIsDarkMode} onToggleDarkMode={localOnToggleDarkMode} />
+        <style>
+          {`
+          .list-group-item-action.active {
+            background-color: #e9ecef !important;
+            border-color: #e9ecef !important;
+            color: #212529 !important;
+          }
+          .list-group-item-action:hover {
+            background-color: #f8f9fa !important;
+          }
+        `}
+        </style>
+        <SidebarLeft
+            onShowCreatePost={() => console.log("Create Post clicked")}
+            isDarkMode={false}
+            onToggleDarkMode={() => console.log("Toggle Dark Mode")}
+        />
         <div className="flex-grow-1 d-flex flex-column">
           <div className="bg-white border-bottom p-3">
             <h5 className="fw-bold mb-0">Tin nhắn</h5>
-            <InputGroup className="mt-3">
-              <InputGroup.Text><FaSearch /></InputGroup.Text>
-              <Form.Control value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Tìm kiếm" />
+            <InputGroup className="mt-3 rounded-pill shadow-sm">
+              <InputGroup.Text className="bg-light border-0 rounded-pill ps-3">
+                <FaSearch className="text-muted" />
+              </InputGroup.Text>
+              <Form.Control
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    if (showUserSelectionModal) {
+                      setSearchKeyword(e.target.value);
+                    }
+                  }}
+                  placeholder="Tìm kiếm người dùng hoặc tin nhắn"
+                  className="bg-light border-0 rounded-pill py-2"
+              />
+              <Button
+                  variant="primary"
+                  className="rounded-pill ms-2"
+                  onClick={handleOpenUserSelectionModal}
+              >
+                <FaPenSquare /> Tin nhắn mới
+              </Button>
             </InputGroup>
           </div>
           <div className="d-flex flex-grow-1">
-            <div className="border-end" style={{ width: "350px" }}>
+            <div className="border-end bg-white" style={{ width: "350px" }}>
               {loading ? (
-                  <div className="d-flex justify-content-center py-4"><Spinner animation="border" /></div>
+                  <div className="d-flex justify-content-center py-4">
+                    <Spinner animation="border" />
+                  </div>
               ) : (
                   <ListGroup variant="flush">
                     {filteredChats.map((chat) => (
@@ -176,8 +241,11 @@ function MessengerPage() {
                             key={chat.id}
                             action
                             active={selectedChatId === chat.id}
-                            onClick={() => setSelectedChatId(chat.id)}
-                            className={`d-flex align-items-center p-3 hover-bg-light ${
+                            onClick={() => {
+                              setSelectedChatId(chat.id);
+                              navigate(`/messages?chatId=${chat.id}`);
+                            }}
+                            className={`d-flex align-items-center p-3 ${
                                 unreadChats.has(chat.id) ? "fw-bold" : ""
                             }`}
                         >
@@ -187,7 +255,7 @@ function MessengerPage() {
                               className="rounded-circle me-2"
                               style={{ width: "40px", height: "40px" }}
                           />
-                          <div>
+                          <div className="flex-grow-1">
                             <p className="fw-bold mb-0">{chat.name}</p>
                             <p className="text-muted small mb-0">{chat.lastMessage}</p>
                           </div>
@@ -195,28 +263,31 @@ function MessengerPage() {
                     ))}
                   </ListGroup>
               )}
-              <div className="p-3 border-top text-center">
-                <Button
-                    variant="link"
-                    className="text-primary fw-bold"
-                    onClick={handleOpenUserSelectionModal}
-                >
-                  <FaPenSquare /> Tin nhắn mới
-                </Button>
-              </div>
             </div>
-            <div className="flex-grow-1">{selectedChatId ? <Chat chatId={selectedChatId} /> : <div className="d-flex justify-content-center align-items-center h-100"><p>Chọn cuộc trò chuyện</p></div>}</div>
+            <div className="flex-grow-1">
+              {selectedChatId ? (
+                  <Chat chatId={selectedChatId} />
+              ) : (
+                  <div className="d-flex justify-content-center align-items-center h-100">
+                    <p className="text-muted">Chọn một cuộc trò chuyện</p>
+                  </div>
+              )}
+            </div>
           </div>
         </div>
         <UserSelectionModal
             show={showUserSelectionModal}
             handleClose={handleCloseUserSelectionModal}
-            searchKeyword={searchKeyword}
-            setSearchKeyword={setSearchKeyword}
+            searchKeyword={searchQuery}
+            setSearchKeyword={(value) => {
+              setSearchKeyword(value);
+              setSearchQuery(value);
+            }}
             searchResults={searchResults}
             isSearching={isSearching}
             handleSelectUser={handleSelectUser}
         />
+        <ToastContainer />
       </div>
   );
 }

@@ -4,9 +4,11 @@ import com.example.social_media.config.URLConfig;
 import com.example.social_media.config.WebSocketConfig;
 import com.example.social_media.dto.message.*;
 import com.example.social_media.entity.CallSession;
+import com.example.social_media.entity.ChatMember;
 import com.example.social_media.entity.User;
 import com.example.social_media.exception.UnauthorizedException;
 import com.example.social_media.jwt.JwtService;
+import com.example.social_media.repository.ChatMemberRepository;
 import com.example.social_media.repository.UserRepository;
 import com.example.social_media.service.CallSessionService;
 import com.example.social_media.service.ChatService;
@@ -39,8 +41,18 @@ public class ChatController {
     private final WebSocketConfig webSocketConfig;
     private final MessageQueueService messageQueueService;
     private final RedisTemplate<String, MessageDto> redisTemplate;
+    private final ChatMemberRepository chatMemberRepository;
 
-    public ChatController(ChatService chatService, MessageService messageService, CallSessionService callSessionService, UserRepository userRepository, JwtService jwtService, SimpMessagingTemplate messagingTemplate, WebSocketConfig webSocketConfig, MessageQueueService messageQueueService, RedisTemplate<String, MessageDto> redisTemplate) {
+    public ChatController(ChatService chatService,
+                          MessageService messageService,
+                          CallSessionService callSessionService,
+                          UserRepository userRepository,
+                          JwtService jwtService,
+                          SimpMessagingTemplate messagingTemplate,
+                          WebSocketConfig webSocketConfig,
+                          MessageQueueService messageQueueService,
+                          RedisTemplate<String, MessageDto> redisTemplate,
+                          ChatMemberRepository chatMemberRepository) {
         this.chatService = chatService;
         this.messageService = messageService;
         this.callSessionService = callSessionService;
@@ -50,6 +62,7 @@ public class ChatController {
         this.webSocketConfig = webSocketConfig;
         this.messageQueueService = messageQueueService;
         this.redisTemplate = redisTemplate;
+        this.chatMemberRepository = chatMemberRepository;
     }
 
     @MessageMapping(URLConfig.SEND_MESSAGES)
@@ -102,6 +115,11 @@ public class ChatController {
                 redisTemplate.opsForList().rightPush("chat:" + chatId + ":messages", message));
         return messages;
     }
+    @GetMapping(URLConfig.GET_CHAT)
+    public ChatDto getChat(@PathVariable Integer chatId) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        return chatService.getChatById(chatId, username);
+    }
 
     @GetMapping(URLConfig.CHATS)
     public List<ChatDto> getChats() {
@@ -112,7 +130,13 @@ public class ChatController {
     @PostMapping(URLConfig.CHAT_CREATE)
     public ChatDto createChat(@RequestBody ChatCreateDto chatCreateDto) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        return chatService.createChat(username, chatCreateDto.getTargetUserId());
+        ChatDto newChat = chatService.createChat(username, chatCreateDto.getTargetUserId());
+        // Thông báo cho cả hai người dùng qua WebSocket
+        List<ChatMember> members = chatMemberRepository.findByChatId(newChat.getId());
+        for (ChatMember member : members) {
+            messagingTemplate.convertAndSend("/topic/chats/" + member.getUser().getId(), newChat);
+        }
+        return newChat;
     }
 
     @PostMapping(URLConfig.CALL_START)

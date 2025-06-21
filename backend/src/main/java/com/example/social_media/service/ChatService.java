@@ -1,6 +1,7 @@
 package com.example.social_media.service;
 
 import com.example.social_media.dto.message.ChatDto;
+import com.example.social_media.dto.user.UserDto;
 import com.example.social_media.entity.*;
 import com.example.social_media.exception.UnauthorizedException;
 import com.example.social_media.repository.ChatMemberRepository;
@@ -51,7 +52,7 @@ public class ChatService {
 
         Chat chat = new Chat();
         chat.setIsGroup(false);
-        String chatName = currentUser.getUsername() + " - " + targetUser.getUsername();
+        String chatName = "Chat_" + Math.min(currentUser.getId(), targetUser.getId()) + "_" + Math.max(currentUser.getId(), targetUser.getId());
         if (chatName == null || chatName.trim().isEmpty()) {
             throw new IllegalArgumentException("Chat name cannot be null or empty");
         }
@@ -106,7 +107,7 @@ public class ChatService {
             throw new RuntimeException("Failed to save ChatMember due to: " + e.getMessage(), e);
         }
 
-        return convertToDto(savedChat);
+        return convertToDto(savedChat, currentUser.getId());
     }
 
     @Transactional(readOnly = true)
@@ -127,18 +128,51 @@ public class ChatService {
     }
 
     @Transactional(readOnly = true)
+    public ChatDto getChatById(Integer chatId, String username) {
+        User user = userDetailsService.getUserByUsername(username);
+        if (!chatMemberRepository.existsByChatIdAndUserId(chatId, user.getId())) {
+            throw new UnauthorizedException("You are not a member of this chat.");
+        }
+        Chat chat = chatRepository.findById(chatId)
+                .orElseThrow(() -> new IllegalArgumentException("Chat not found: " + chatId));
+        List<UserDto> participants = chatMemberRepository.findByChatId(chatId).stream()
+                .map(cm -> {
+                    User u = cm.getUser();
+                    return new UserDto(u.getId(), u.getUsername(), u.getDisplayName());
+                })
+                .collect(Collectors.toList());
+        Message lastMessage = messageRepository.findTopByChatIdOrderByCreatedAtDesc(chat.getId())
+                .orElse(null);
+        String recipientName = chatMemberRepository.findByChatId(chat.getId()).stream()
+                .filter(cm -> !cm.getUser().getId().equals(user.getId()))
+                .findFirst()
+                .map(cm -> cm.getUser().getDisplayName())
+                .orElse(chat.getName());
+        return new ChatDto(
+                chat.getId(),
+                recipientName,
+                lastMessage != null ? lastMessage.getContent() : ""
+        );
+    }
+    @Transactional(readOnly = true)
     public void checkChatAccess(Integer chatId, String username) {
         if (!chatMemberRepository.existsByChatIdAndUserUsername(chatId, username)) {
             throw new UnauthorizedException("You are not a member of this chat.");
         }
     }
 
-    private ChatDto convertToDto(Chat chat) {
+    private ChatDto convertToDto(Chat chat, Integer currentUserId) {
         Message lastMessage = messageRepository.findTopByChatIdOrderByCreatedAtDesc(chat.getId())
                 .orElse(null);
+        String recipientName = chatMemberRepository.findByChatId(chat.getId()).stream()
+                .filter(cm -> !cm.getUser().getId().equals(currentUserId))
+                .findFirst()
+                .map(cm -> cm.getUser().getDisplayName())
+                .orElse(chat.getName());
+        System.out.println("Chat ID: " + chat.getId() + ", Recipient Name: " + recipientName + ", Last Message: " + (lastMessage != null ? lastMessage.getContent() : "null"));
         return new ChatDto(
                 chat.getId(),
-                chat.getName(),
+                recipientName,
                 lastMessage != null ? lastMessage.getContent() : ""
         );
     }
