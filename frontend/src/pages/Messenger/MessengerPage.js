@@ -161,10 +161,10 @@ function MessengerPage() {
     });
 
     client.onConnect = () => {
-      console.log("WebSocket connected for chats");
+      console.log("WebSocket connected for chats and messages");
       client.subscribe("/topic/chats/" + user.id, (msg) => {
         const data = JSON.parse(msg.body);
-        console.log("WebSocket message received:", data);
+        console.log("WebSocket message received (chats):", data);
         if (data.action === "delete") {
           setChats((prev) => prev.filter((chat) => chat.id !== data.chatId));
           if (selectedChatId === data.chatId) {
@@ -180,6 +180,22 @@ function MessengerPage() {
             }
             return prev;
           });
+        }
+      });
+
+      // Subscribe to new messages
+      client.subscribe("/topic/messages/" + user.id, (msg) => {
+        const message = JSON.parse(msg.body);
+        console.log("New message received: ", message);
+        setChats((prev) => {
+          const updatedChats = prev.map((chat) =>
+              chat.id === message.chatId ? { ...chat, lastMessage: message.content } : chat
+          );
+          return updatedChats;
+        });
+        if (selectedChatId === message.chatId) {
+          // Cập nhật Chat component (giả định Chat nhận prop để reload)
+          window.dispatchEvent(new Event("messageUpdate"));
         }
       });
     };

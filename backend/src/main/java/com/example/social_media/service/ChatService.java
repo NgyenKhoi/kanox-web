@@ -166,9 +166,7 @@ public class ChatService {
         User user = userDetailsService.getUserByUsername(username);
         ChatMember chatMember = chatMemberRepository.findByChatIdAndUserId(chatId, user.getId())
                 .orElseThrow(() -> new UnauthorizedException("You are not a member of this chat."));
-        if (!chatMember.getStatus()) {
-            throw new UnauthorizedException("This chat is not accessible.");
-        }
+        // Cho phép truy cập với status=false để gửi tin nhắn, nhưng không thấy lịch sử
         Chat chat = chatRepository.findById(chatId)
                 .orElseThrow(() -> new IllegalArgumentException("Chat not found: " + chatId));
         return convertToDto(chat, user.getId());
@@ -179,6 +177,7 @@ public class ChatService {
         if (!chatMemberRepository.existsByChatIdAndUserUsername(chatId, username)) {
             throw new UnauthorizedException("You are not a member of this chat.");
         }
+        // Không kiểm tra status, cho phép gửi tin nhắn dù status=false
     }
 
     @Transactional
