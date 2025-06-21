@@ -19,6 +19,7 @@ import {
   FaMicrophoneSlash,
   FaVideoSlash,
   FaPaperPlane,
+  FaPhone,
 } from "react-icons/fa";
 
 const Chat = ({ chatId }) => {
@@ -32,13 +33,13 @@ const Chat = ({ chatId }) => {
   const [showCallModal, setShowCallModal] = useState(false);
   const [messageToDelete, setMessageToDelete] = useState(null);
   const [recipientName, setRecipientName] = useState("");
+  const [showCallPanel, setShowCallPanel] = useState(false);
 
   const stompRef = useRef(null);
   const peerRef = useRef(null);
   const streamRef = useRef(null);
   const subscriptionsRef = useRef([]);
   const socketRef = useRef(null);
-
   const videoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const chatContainerRef = useRef(null);
@@ -48,19 +49,6 @@ const Chat = ({ chatId }) => {
       toast.error("Vui lòng đăng nhập để sử dụng chat.");
       return;
     }
-    fetch(`${process.env.REACT_APP_API_URL}/chat/${chatId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-        .then(async (response) => {
-          const data = await response.json();
-          if (response.ok) {
-            const recipient = data.participants.find((p) => p.id !== user.id);
-            setRecipientName(recipient?.displayName || "Unknown User");
-          } else {
-            throw new Error(data.message || "Lỗi khi lấy thông tin chat.");
-          }
-        })
-        .catch((err) => toast.error(err.message || "Lỗi khi lấy thông tin chat."));
 
     // Khởi tạo WebSocket
     const socket = new SockJS(`${process.env.REACT_APP_WS_URL}/ws`);
@@ -197,6 +185,12 @@ const Chat = ({ chatId }) => {
       body: JSON.stringify({ chatId, userId: user.id, isTyping: false }),
     });
   };
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
 
   const sendTyping = () => {
     if (stompRef.current?.connected && message.length > 0) {
@@ -259,8 +253,11 @@ const Chat = ({ chatId }) => {
 
   return (
       <div className="d-flex flex-column h-100 bg-light">
-        <div className="p-3 border-bottom bg-white shadow-sm">
-          <h5 className="mb-0">{recipientName}</h5>
+        <div className="p-3 border-bottom bg-white shadow-sm d-flex align-items-center">
+          <h5 className="mb-0 flex-grow-1">{recipientName}</h5>
+          <Button variant="outline-primary" size="sm" onClick={() => setShowCallPanel(!showCallPanel)}>
+            <FaPhone />
+          </Button>
         </div>
 
         <div
@@ -268,9 +265,9 @@ const Chat = ({ chatId }) => {
             ref={chatContainerRef}
             style={{ maxHeight: "calc(100vh - 200px)", overflowY: "scroll" }}
         >
-          {messages.map((msg, idx) => (
+          {messages.map((msg) => (
               <div
-                  key={msg.id || idx} // Sử dụng msg.id để tránh trùng key
+                  key={msg.id}
                   className={`mb-2 d-flex ${
                       msg.senderId === user?.id ? "justify-content-end" : "justify-content-start"
                   }`}
@@ -279,12 +276,15 @@ const Chat = ({ chatId }) => {
                     className={`p-2 rounded-3 shadow-sm ${
                         msg.senderId === user?.id ? "bg-dark text-white" : "bg-white text-dark"
                     }`}
-                    style={{ borderRadius: "15px" }}
+                    style={{ borderRadius: "20px" }}
                 >
-                  <small className="d-block fw-bold">{msg.sender?.username}</small>
+                  <small className="d-block fw-bold">{msg.sender?.displayName || "Unknown"}</small>
                   {msg.content}
                   <div className="text-end">
-                    <small className="text-muted" style={{ fontSize: "0.75rem" }}>
+                    <small
+                        className={msg.senderId === user?.id ? "text-light" : "text-muted"}
+                        style={{ fontSize: "0.75rem" }}
+                    >
                       {new Date(msg.timestamp).toLocaleTimeString()}
                     </small>
                   </div>
@@ -295,8 +295,11 @@ const Chat = ({ chatId }) => {
         </div>
 
         <div className="p-3 border-top bg-white">
-          <InputGroup>
-            <Button variant="outline-secondary">
+          <InputGroup
+              className="shadow-sm rounded-3 overflow-hidden"
+              style={{ backgroundColor: "#f8f9fa" }}
+          >
+            <Button variant="outline-secondary" className="border-0">
               <FaPaperclip />
             </Button>
             <Form.Control
@@ -306,57 +309,59 @@ const Chat = ({ chatId }) => {
                   setMessage(e.target.value);
                   sendTyping();
                 }}
+                onKeyPress={handleKeyPress}
+                className="border-0"
+                style={{ backgroundColor: "#f8f9fa" }}
             />
-            <Button onClick={sendMessage} variant="primary">
+            <Button onClick={sendMessage} variant="primary" className="border-0">
               <FaPaperPlane />
             </Button>
           </InputGroup>
         </div>
 
-        <div className="p-3 border-top bg-light">
-          <Row>
-            <Col xs={6}>
-              <video ref={videoRef} autoPlay muted style={{ width: "100%", borderRadius: 8 }} />
-              <div className="mt-2 d-flex justify-content-around">
-                <Button
-                    size="sm"
-                    variant={isMuted ? "danger" : "outline-danger"}
-                    onClick={() => {
-                      const audio = streamRef.current?.getAudioTracks()[0];
-                      if (audio) {
-                        audio.enabled = !isMuted;
-                        setIsMuted(!isMuted);
-                      }
-                    }}
-                >
-                  <FaMicrophoneSlash />
-                </Button>
-                <Button
-                    size="sm"
-                    variant={isVideoOff ? "danger" : "outline-danger"}
-                    onClick={() => {
-                      const video = streamRef.current?.getVideoTracks()[0];
-                      if (video) {
-                        video.enabled = !isVideoOff;
-                        setIsVideoOff(!isVideoOff);
-                      }
-                    }}
-                >
-                  <FaVideoSlash />
-                </Button>
-              </div>
-            </Col>
-            <Col xs={6}>
-              <video ref={remoteVideoRef} autoPlay style={{ width: "100%", borderRadius: 8 }} />
-              <Button variant="danger" className="w-100 mt-2" onClick={leaveCall}>
-                Thoát cuộc gọi
-              </Button>
-            </Col>
-          </Row>
-          <Button variant="success" className="w-100 mt-3" onClick={startCall}>
-            Bắt đầu gọi video
-          </Button>
-        </div>
+        {showCallPanel && (
+            <div className="p-3 border-top bg-light">
+              <Row>
+                <Col xs={6}>
+                  <video ref={videoRef} autoPlay muted style={{ width: "100%", borderRadius: 8 }} />
+                  <div className="mt-2 d-flex justify-content-around">
+                    <Button
+                        size="sm"
+                        variant={isMuted ? "danger" : "outline-danger"}
+                        onClick={() => {
+                          const audio = streamRef.current?.getAudioTracks()[0];
+                          if (audio) {
+                            audio.enabled = !isMuted;
+                            setIsMuted(!isMuted);
+                          }
+                        }}
+                    >
+                      <FaMicrophoneSlash />
+                    </Button>
+                    <Button
+                        size="sm"
+                        variant={isVideoOff ? "danger" : "outline-danger"}
+                        onClick={() => {
+                          const video = streamRef.current?.getVideoTracks()[0];
+                          if (video) {
+                            video.enabled = !isVideoOff;
+                            setIsVideoOff(!isVideoOff);
+                          }
+                        }}
+                    >
+                      <FaVideoSlash />
+                    </Button>
+                  </div>
+                </Col>
+                <Col xs={6}>
+                  <video ref={remoteVideoRef} autoPlay style={{ width: "100%", borderRadius: 8 }} />
+                  <Button variant="danger" className="w-100 mt-2" onClick={leaveCall}>
+                    Thoát cuộc gọi
+                  </Button>
+                </Col>
+              </Row>
+            </div>
+        )}
 
         <Modal show={showCallModal} centered onHide={() => setShowCallModal(false)}>
           <Modal.Header closeButton>

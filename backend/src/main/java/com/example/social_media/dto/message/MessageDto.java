@@ -1,5 +1,7 @@
 package com.example.social_media.dto.message;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+
 import java.io.Serializable;
 import java.time.Instant;
 
@@ -9,6 +11,7 @@ public class MessageDto implements Serializable {
     private Integer senderId;
     private String content;
     private Integer typeId;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
     private Instant createdAt;
 
     public MessageDto() {}
