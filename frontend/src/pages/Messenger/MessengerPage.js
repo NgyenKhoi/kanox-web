@@ -143,7 +143,7 @@ function MessengerPage() {
 
     const fetchChats = async () => {
       try {
-        const response = await fetch(`${process.env.REACT_APP_API_URL}chat/chats`, {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/chats`, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
