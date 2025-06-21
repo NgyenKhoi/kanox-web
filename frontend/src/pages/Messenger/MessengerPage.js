@@ -132,6 +132,11 @@ function MessengerPage() {
       }
 
       setChats((prev) => prev.filter((chat) => chat.id !== chatId));
+      setUnreadChats((prev) => {
+        const newUnread = new Set(prev);
+        newUnread.delete(chatId);
+        return newUnread;
+      });
       if (selectedChatId === chatId) {
         setSelectedChatId(null);
         navigate("/messages");
@@ -140,6 +145,37 @@ function MessengerPage() {
     } catch (error) {
       toast.error("Không thể xóa chat: " + error.message);
       console.error("Delete chat error:", error);
+    }
+  };
+
+  const handleSelectChat = async (chatId) => {
+    setSelectedChatId(chatId);
+    navigate(`/messages?chatId=${chatId}`);
+    try {
+      const token = sessionStorage.getItem("token") || localStorage.getItem("token");
+      const response = await fetch(
+          `${process.env.REACT_APP_API_URL}/chat/messages/unread-count`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+      );
+      if (response.ok) {
+        const messageData = await response.json();
+        setUnreadChats((prev) => {
+          const newUnread = new Set(prev);
+          newUnread.delete(chatId); // Xóa chat khỏi danh sách chưa đọc
+          return newUnread;
+        });
+        window.dispatchEvent(
+            new CustomEvent("updateUnreadCount", {
+              detail: { unreadCount: messageData.unreadCount || 0 },
+            })
+        );
+      }
+    } catch (error) {
+      console.error("Error fetching unread count:", error);
     }
   };
 
@@ -167,6 +203,11 @@ function MessengerPage() {
         console.log("WebSocket message received (chats):", data);
         if (data.action === "delete") {
           setChats((prev) => prev.filter((chat) => chat.id !== data.chatId));
+          setUnreadChats((prev) => {
+            const newUnread = new Set(prev);
+            newUnread.delete(data.chatId);
+            return newUnread;
+          });
           if (selectedChatId === data.chatId) {
             setSelectedChatId(null);
             navigate("/messages");
@@ -175,26 +216,41 @@ function MessengerPage() {
         } else {
           console.log("New chat received: ID=" + data.id + ", Name=" + data.name);
           setChats((prev) => {
-            if (!prev.some((chat) => chat.id === data.id)) {
-              return [...prev, data];
+            const existingChat = prev.find((chat) => chat.id === data.id);
+            if (existingChat) {
+              return prev.map((chat) =>
+                  chat.id === data.id ? { ...chat, ...data } : chat
+              );
             }
-            return prev;
+            return [...prev, data];
+          });
+          setUnreadChats((prev) => {
+            const newUnread = new Set(prev);
+            if (data.unreadMessagesCount > 0) {
+              newUnread.add(data.id);
+            } else {
+              newUnread.delete(data.id);
+            }
+            return newUnread;
           });
         }
       });
 
-      // Subscribe to new messages
       client.subscribe("/topic/messages/" + user.id, (msg) => {
         const message = JSON.parse(msg.body);
         console.log("New message received: ", message);
         setChats((prev) => {
           const updatedChats = prev.map((chat) =>
-              chat.id === message.chatId ? { ...chat, lastMessage: message.content } : chat
+              chat.id === message.chatId ? { ...chat, lastMessage: message.content, unreadMessagesCount: (chat.unreadMessagesCount || 0) + 1 } : chat
           );
           return updatedChats;
         });
+        setUnreadChats((prev) => {
+          const newUnread = new Set(prev);
+          newUnread.add(message.chatId);
+          return newUnread;
+        });
         if (selectedChatId === message.chatId) {
-          // Cập nhật Chat component (giả định Chat nhận prop để reload)
           window.dispatchEvent(new Event("messageUpdate"));
         }
       });
@@ -308,7 +364,7 @@ function MessengerPage() {
                             action
                             active={selectedChatId === chat.id}
                             className={`d-flex align-items-center p-3 ${
-                                unreadChats.has(chat.id) ? "fw-bold" : ""
+                                chat.unreadMessagesCount > 0 ? "fw-bold" : ""
                             }`}
                         >
                           <img
@@ -317,10 +373,10 @@ function MessengerPage() {
                               className="rounded-circle me-2"
                               style={{ width: "40px", height: "40px" }}
                           />
-                          <div className="flex-grow-1" onClick={() => {
-                            setSelectedChatId(chat.id);
-                            navigate(`/messages?chatId=${chat.id}`);
-                          }}>
+                          <div
+                              className="flex-grow-1"
+                              onClick={() => handleSelectChat(chat.id)}
+                          >
                             <p className="fw-bold mb-0">{chat.name}</p>
                             <p className="text-muted small mb-0">{chat.lastMessage}</p>
                           </div>
@@ -350,20 +406,20 @@ function MessengerPage() {
               )}
             </div>
           </div>
+          <UserSelectionModal
+              show={showUserSelectionModal}
+              handleClose={handleCloseUserSelectionModal}
+              searchKeyword={searchQuery}
+              setSearchKeyword={(value) => {
+                setSearchKeyword(value);
+                setSearchQuery(value);
+              }}
+              searchResults={searchResults}
+              isSearching={isSearching}
+              handleSelectUser={handleSelectUser}
+          />
+          <ToastContainer />
         </div>
-        <UserSelectionModal
-            show={showUserSelectionModal}
-            handleClose={handleCloseUserSelectionModal}
-            searchKeyword={searchQuery}
-            setSearchKeyword={(value) => {
-              setSearchKeyword(value);
-              setSearchQuery(value);
-            }}
-            searchResults={searchResults}
-            isSearching={isSearching}
-            handleSelectUser={handleSelectUser}
-        />
-        <ToastContainer />
       </div>
   );
 }

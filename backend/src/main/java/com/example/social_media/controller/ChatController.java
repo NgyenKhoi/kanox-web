@@ -138,7 +138,9 @@ public class ChatController {
                     chatRepository.findById(newChat.getId()).orElseThrow(() -> new IllegalArgumentException("Chat not found: " + newChat.getId())),
                     member.getUser().getId()
             );
-            System.out.println("Sending ChatDto to /topic/chats/" + member.getUser().getId() + ": ID=" + userSpecificChat.getId() + ", Name=" + userSpecificChat.getName());
+            System.out.println("Sending ChatDto to /topic/chats/" + member.getUser().getId() + ": ID=" + userSpecificChat.getId() +
+                    ", Name=" + userSpecificChat.getName() +
+                    ", Unread Messages Count=" + userSpecificChat.getUnreadMessagesCount());
             messagingTemplate.convertAndSend("/topic/chats/" + member.getUser().getId(), userSpecificChat);
         }
         System.out.println("Returning ChatDto to caller: ID=" + newChat.getId() + ", Name=" + newChat.getName());

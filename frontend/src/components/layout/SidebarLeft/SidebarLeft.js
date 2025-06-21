@@ -92,23 +92,46 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
     }, [user]);
 
     useWebSocket(
-        (message) => {
+        async (message) => {
             // Xử lý thông báo tin nhắn mới
-            setUnreadMessageCount((prev) => prev + 1);
-            toast.info("Bạn có tin nhắn mới!");
+            try {
+                const token = sessionStorage.getItem("token") || localStorage.getItem("token");
+                const response = await fetch(
+                    `${process.env.REACT_APP_API_URL}/chat/messages/unread-count`,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                        },
+                    }
+                );
+                if (response.ok) {
+                    const messageData = await response.json();
+                    setUnreadMessageCount(messageData.unreadCount || 0);
+                }
+                toast.info("Bạn có tin nhắn mới!");
+            } catch (error) {
+                console.error("Error fetching unread count:", error);
+            }
         },
         setUnreadMessageCount,
-        "/topic/messages/" // Đăng ký topic cho tin nhắn
+        "/topic/messages/"
     );
 
     useEffect(() => {
         if (location.pathname === "/notifications") {
             setUnreadNotificationCount(0);
         }
-        if (location.pathname === "/messages") {
-            setUnreadMessageCount(0); // Reset số tin nhắn chưa đọc khi vào trang Messages
-        }
     }, [location.pathname]);
+
+    useEffect(() => {
+        const handleUpdateUnreadCount = (event) => {
+            setUnreadMessageCount(event.detail.unreadCount);
+        };
+        window.addEventListener("updateUnreadCount", handleUpdateUnreadCount);
+        return () => {
+            window.removeEventListener("updateUnreadCount", handleUpdateUnreadCount);
+        };
+    }, []);
 
     const mainTabs = [
         { icon: <FaHome size={24} />, label: "Trang chủ", path: "/home" },

@@ -4,10 +4,7 @@ import com.example.social_media.dto.message.ChatDto;
 import com.example.social_media.dto.user.UserDto;
 import com.example.social_media.entity.*;
 import com.example.social_media.exception.UnauthorizedException;
-import com.example.social_media.repository.ChatMemberRepository;
-import com.example.social_media.repository.ChatRepository;
-import com.example.social_media.repository.MessageRepository;
-import com.example.social_media.repository.UserRepository;
+import com.example.social_media.repository.*;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,6 +36,9 @@ public class ChatService {
     @Autowired
     private MessageRepository messageRepository;
 
+    @Autowired
+    private MessageStatusRepository messageStatusRepository;
+
     @Transactional
     public ChatDto createChat(String username, Integer targetUserId) {
         if (username == null || username.trim().isEmpty()) {
@@ -50,16 +50,16 @@ public class ChatService {
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + targetUserId));
         System.out.println("Found currentUser: " + currentUser.getDisplayName() + ", targetUser: " + targetUser.getDisplayName());
 
-        // Kiểm tra chat 1-1 đã tồn tại qua targetUser
+        // Kiểm tra chat 1-1 đã tồn tại
         List<ChatMember> targetUserChats = chatMemberRepository.findByUserId(targetUser.getId());
         for (ChatMember cm : targetUserChats) {
             List<ChatMember> members = chatMemberRepository.findByChatId(cm.getChat().getId());
-            if (members.stream().anyMatch(m -> m.getUser().getId().equals(currentUser.getId()) || m.getUser().getId().equals(targetUser.getId())) &&
+            if (members.stream().anyMatch(m -> m.getUser().getId().equals(currentUser.getId())) &&
                     members.size() == 2 && !cm.getChat().getIsGroup()) {
                 Chat existingChat = cm.getChat();
                 System.out.println("Found existing chat: ID=" + existingChat.getId());
 
-                // Thêm lại ChatMember cho currentUser với status=false (không thấy lịch sử)
+                // Khôi phục ChatMember cho currentUser với status=true
                 if (!chatMemberRepository.existsByChatIdAndUserId(existingChat.getId(), currentUser.getId())) {
                     ChatMember newMember = new ChatMember();
                     ChatMemberId memberId = new ChatMemberId();
@@ -69,22 +69,31 @@ public class ChatService {
                     newMember.setChat(existingChat);
                     newMember.setUser(currentUser);
                     newMember.setJoinedAt(Instant.now());
-                    newMember.setStatus(false); // Không thấy lịch sử
+                    newMember.setStatus(true); // Đặt status=true để thấy lịch sử
                     newMember.setIsAdmin(false);
                     newMember.setIsSpam(false);
                     try {
                         chatMemberRepository.saveAndFlush(newMember);
-                        System.out.println("Restored ChatMember for userId: " + currentUser.getId() + ", chatId: " + existingChat.getId() + ", status=false");
+                        System.out.println("Restored ChatMember for userId: " + currentUser.getId() + ", chatId: " + existingChat.getId() + ", status=true");
                     } catch (Exception e) {
                         System.err.println("Error restoring ChatMember: " + e.getMessage());
                         throw new RuntimeException("Failed to restore ChatMember due to: " + e.getMessage(), e);
+                    }
+                } else {
+                    // Nếu ChatMember đã tồn tại nhưng status=false, cập nhật thành true
+                    ChatMember existingMember = chatMemberRepository.findByChatIdAndUserId(existingChat.getId(), currentUser.getId())
+                            .orElseThrow(() -> new IllegalStateException("ChatMember not found"));
+                    if (!existingMember.getStatus()) {
+                        existingMember.setStatus(true);
+                        chatMemberRepository.saveAndFlush(existingMember);
+                        System.out.println("Updated ChatMember status to true for userId: " + currentUser.getId() + ", chatId: " + existingChat.getId());
                     }
                 }
                 return convertToDto(existingChat, currentUser.getId());
             }
         }
 
-        // Nếu không tìm thấy chat cũ, tạo chat mới
+        // Tạo chat mới nếu không tìm thấy
         Chat chat = new Chat();
         chat.setIsGroup(false);
         String chatName = "Chat_" + Math.min(currentUser.getId(), targetUser.getId()) + "_" + Math.max(currentUser.getId(), targetUser.getId());
@@ -154,7 +163,7 @@ public class ChatService {
     public List<ChatDto> getChats(String username) {
         User user = userDetailsService.getUserByUsername(username);
         List<ChatDto> chats = chatMemberRepository.findByUserId(user.getId()).stream()
-                .filter(cm -> cm.getStatus()) // Chỉ lấy chat có status=true
+                .filter(cm -> cm.getStatus())
                 .map(cm -> convertToDto(cm.getChat(), user.getId()))
                 .collect(Collectors.toList());
         System.out.println("Returning chats for user " + username + ": count=" + chats.size());
@@ -199,12 +208,22 @@ public class ChatService {
                 .findFirst()
                 .map(cm -> cm.getUser().getDisplayName())
                 .orElse(chat.getName());
-        System.out.println("convertToDto: Chat ID=" + chat.getId() + ", Current User ID=" + currentUserId + ", Recipient Name=" + recipientName + ", Last Message=" + (lastMessage != null ? lastMessage.getContent() : "null"));
-        System.out.println("Last message createdAt: " + (lastMessage != null ? lastMessage.getCreatedAt() : "null"));
+        // Tính số tin nhắn chưa đọc
+        int unreadMessagesCount = messageStatusRepository.countUnreadByChatIdAndUserId(chat.getId(), currentUserId);
+        System.out.println("convertToDto: Chat ID=" + chat.getId() + ", Current User ID=" + currentUserId +
+                ", Recipient Name=" + recipientName +
+                ", Last Message=" + (lastMessage != null ? lastMessage.getContent() : "null") +
+                ", Unread Messages Count=" + unreadMessagesCount);
         return new ChatDto(
                 chat.getId(),
                 recipientName,
-                lastMessage != null ? lastMessage.getContent() : ""
+                lastMessage != null ? lastMessage.getContent() : "",
+                unreadMessagesCount
         );
+    }
+
+    @Transactional(readOnly = true)
+    public int countUnreadByChatIdAndUserId(Integer chatId, Integer userId) {
+        return messageStatusRepository.countUnreadByChatIdAndUserId(chatId, userId);
     }
 }

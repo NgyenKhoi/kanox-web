@@ -1,5 +1,6 @@
 package com.example.social_media.service;
 
+import com.example.social_media.dto.message.ChatDto;
 import com.example.social_media.dto.message.MessageDto;
 import com.example.social_media.entity.*;
 import com.example.social_media.exception.UnauthorizedException;
@@ -45,6 +46,7 @@ public class MessageService {
         this.messageQueueService = messageQueueService;
     }
 
+    // MessageService.java
     @Transactional
     public MessageDto sendMessage(MessageDto messageDto, String username) {
         chatService.checkChatAccess(messageDto.getChatId().intValue(), username);
@@ -58,21 +60,30 @@ public class MessageService {
         User sender = userRepository.findById(messageDto.getSenderId().intValue())
                 .orElseThrow(() -> new IllegalArgumentException("Sender not found"));
 
-        // Khởi tạo và gán giá trị cho message trước khi save
+        // Khôi phục ChatMember.status của người nhận nếu status=false
+        List<ChatMember> members = chatMemberRepository.findByChatId(messageDto.getChatId().intValue());
+        for (ChatMember member : members) {
+            if (!member.getUser().getId().equals(sender.getId()) && !member.getStatus()) {
+                member.setStatus(true);
+                chatMemberRepository.save(member);
+                // Gửi thông báo WebSocket để cập nhật danh sách chat của người nhận
+                ChatDto chatDto = chatService.convertToDto(chat, member.getUser().getId());
+                messagingTemplate.convertAndSend("/topic/chats/" + member.getUser().getId(), chatDto);
+            }
+        }
+
         Message message = new Message();
         message.setChat(chat);
         message.setSender(sender);
         message.setContent(messageDto.getContent());
         message.setType(messageType);
         message.setCreatedAt(Instant.now());
-        message = messageRepository.save(message); // Lưu và lấy entity đã lưu
+        message = messageRepository.save(message);
 
         messageDto.setId(message.getId());
         messageDto.setCreatedAt(message.getCreatedAt());
         messageQueueService.queueAndSendMessage(messageDto);
 
-        // Lưu trạng thái tin nhắn cho tất cả thành viên trong chat (trừ người gửi)
-        List<ChatMember> members = chatMemberRepository.findByChatId(messageDto.getChatId().intValue());
         for (ChatMember member : members) {
             if (!member.getUser().getId().equals(sender.getId())) {
                 MessageStatus status = new MessageStatus();
@@ -85,14 +96,13 @@ public class MessageService {
             }
         }
 
-        // Gửi thông báo tin nhắn mới tới các thành viên
         for (ChatMember member : members) {
             if (!member.getUser().getId().equals(sender.getId())) {
                 messagingTemplate.convertAndSend("/topic/messages/" + member.getUser().getId(), messageDto);
             }
         }
 
-        return messageDto; // Trả về messageDto đã cập nhật
+        return messageDto;
     }
 
     @Transactional(readOnly = true)
