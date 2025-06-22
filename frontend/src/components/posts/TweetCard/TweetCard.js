@@ -126,7 +126,7 @@ function TweetCard({ tweet, onPostUpdate }) {
       try {
         const token = localStorage.getItem("token");
         const response = await fetch(
-          `${process.env.REACT_APP_API_URL}/api/v1/comments?postId=${id}`,
+          `${process.env.REACT_APP_API_URL}/comments?postId=${id}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -151,7 +151,7 @@ function TweetCard({ tweet, onPostUpdate }) {
       try {
         const token = localStorage.getItem("token");
         const response = await fetch(
-          `${process.env.REACT_APP_API_URL}/api/v1/posts/${id}`,
+          `${process.env.REACT_APP_API_URL}/posts/${id}`,
           {
             method: "DELETE",
             headers: {
@@ -179,7 +179,7 @@ function TweetCard({ tweet, onPostUpdate }) {
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/api/v1/posts/${id}`,
+        `${process.env.REACT_APP_API_URL}/posts/${id}`,
         {
           method: "PUT",
           headers: {
@@ -221,7 +221,7 @@ function TweetCard({ tweet, onPostUpdate }) {
       setIsCommenting(true);
       const token = localStorage.getItem("token");
       const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/api/v1/comments`,
+        `${process.env.REACT_APP_API_URL}/comments`,
         {
           method: "POST",
           headers: {
