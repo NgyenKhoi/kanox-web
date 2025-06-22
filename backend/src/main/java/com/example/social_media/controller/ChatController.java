@@ -42,6 +42,7 @@ public class ChatController {
     private final RedisTemplate<String, MessageDto> redisTemplate;
     private final ChatMemberRepository chatMemberRepository;
     private final ChatRepository chatRepository;
+
     public ChatController(ChatService chatService,
                           MessageService messageService,
                           CallSessionService callSessionService,
@@ -100,8 +101,8 @@ public class ChatController {
         messagingTemplate.convertAndSend("/topic/typing/" + chatId, typingData);
     }
 
-    @MessageMapping({URLConfig.WEBSOCKET_CALL_OFFER, URLConfig.WEBSOCKET_CALL_ANSWER})
-    public void handleCallSignal(@Payload SignalMessageDto signalMessage, @Header("simpSessionId") String sessionId) {
+    @MessageMapping("/ping")
+    public void handlePing(@Header("simpSessionId") String sessionId) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         if (username == null) {
             String authToken = webSocketConfig.sessionTokenMap.get(sessionId);
@@ -111,7 +112,25 @@ public class ChatController {
                 throw new UnauthorizedException("Không thể xác thực người dùng.");
             }
         }
-        callSessionService.handleSignal(signalMessage, username);
+        messagingTemplate.convertAndSendToUser(sessionId, "/topic/ping", Map.of("status", "pong"));
+    }
+
+    @MessageMapping("/call/end")
+    public void handleCallEnd(@Payload Map<String, Integer> payload, @Header("simpSessionId") String sessionId) {
+        Integer callSessionId = payload.get("callSessionId");
+        Integer chatId = payload.get("chatId");
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        if (username == null) {
+            String authToken = webSocketConfig.sessionTokenMap.get(sessionId);
+            if (authToken != null && authToken.startsWith("Bearer ")) {
+                username = jwtService.extractUsername(authToken.substring(7));
+            } else {
+                throw new UnauthorizedException("Không thể xác thực người dùng.");
+            }
+        }
+        callSessionService.endCall(callSessionId, username);
+        messagingTemplate.convertAndSend("/topic/call/" + chatId,
+                new SignalMessageDto(chatId, "end", null, null, null));
     }
 
     @GetMapping(URLConfig.GET_CHAT_MESSAGES)
@@ -154,6 +173,7 @@ public class ChatController {
         System.out.println("Returning ChatDto to caller: ID=" + newChat.getId() + ", Name=" + newChat.getName());
         return newChat;
     }
+
     @DeleteMapping(URLConfig.CHAT_DELETE)
     public void deleteChat(@PathVariable Integer chatId) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -168,7 +188,6 @@ public class ChatController {
     public CallSessionDto startCall(@PathVariable Integer chatId) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         CallSession callSession = callSessionService.startCall(chatId, username);
-        // Thông báo cho các thành viên trong chat về cuộc gọi mới
         messagingTemplate.convertAndSend("/topic/call/" + chatId,
                 new SignalMessageDto(chatId, "start", null, null, callSession.getHost().getId()));
         return new CallSessionDto(callSession.getId(), callSession.getChat().getId(),
