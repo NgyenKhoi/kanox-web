@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 
 @RestController
@@ -32,8 +33,7 @@ public class UserController {
             UserProfileService userProfileService,
             FriendshipService friendshipService,
             FollowService followService,
-            CustomUserDetailsService customUserDetailsService
-    ) {
+            CustomUserDetailsService customUserDetailsService) {
         this.userProfileService = userProfileService;
         this.friendshipService = friendshipService;
         this.followService = followService;
@@ -60,8 +60,7 @@ public class UserController {
     public ResponseEntity<?> updateUserProfile(
             @PathVariable("username") String username,
             @RequestPart("data") UserUpdateProfileDto updateDto,
-            @RequestPart(value = "avatar", required = false) MultipartFile avatarFile
-    ) {
+            @RequestPart(value = "avatar", required = false) MultipartFile avatarFile) {
         try {
             String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
             if (!username.equals(currentUsername)) {
@@ -93,8 +92,7 @@ public class UserController {
     public ResponseEntity<?> getFriends(
             @PathVariable Integer userId,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
-    ) {
+            @RequestParam(defaultValue = "10") int size) {
         try {
             String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
             User currentUser = customUserDetailsService.getUserByUsername(currentUsername);
@@ -111,8 +109,7 @@ public class UserController {
     public ResponseEntity<?> getFollowing(
             @PathVariable Integer userId,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
-    ) {
+            @RequestParam(defaultValue = "10") int size) {
         try {
             String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
             User currentUser = customUserDetailsService.getUserByUsername(currentUsername);
@@ -129,8 +126,7 @@ public class UserController {
     public ResponseEntity<?> getFollowers(
             @PathVariable Integer userId,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
-    ) {
+            @RequestParam(defaultValue = "10") int size) {
         try {
             String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
             User currentUser = customUserDetailsService.getUserByUsername(currentUsername);
@@ -144,21 +140,41 @@ public class UserController {
 
     // Cập nhật quyền riêng tư của profile
     @PutMapping("/profile/{username}/privacy")
-    public ResponseEntity<?> updateProfilePrivacy(
+    public ResponseEntity<Map<String, Object>> updateProfilePrivacy(
             @PathVariable String username,
-            @RequestBody UserUpdatePrivacyDto privacyDto
-    ) {
+            @RequestBody UserUpdatePrivacyDto privacyDto) {
         try {
             String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
             User currentUser = customUserDetailsService.getUserByUsername(currentUsername);
             if (!currentUser.getUsername().equals(username)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Không thể cập nhật quyền riêng tư của người khác");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
+                        "status", "error",
+                        "message", "Không thể cập nhật quyền riêng tư của người khác"));
             }
 
-            userProfileService.updateProfilePrivacy(currentUser.getId(), privacyDto.getPrivacySetting(), privacyDto.getCustomListId());
-            return ResponseEntity.ok(Map.of("message", "Privacy settings updated successfully"));
+            userProfileService.updateProfilePrivacy(
+                    currentUser.getId(),
+                    privacyDto.getPrivacySetting(),
+                    privacyDto.getCustomListId());
+
+            Map<String, Object> data = new HashMap<>();
+            data.put("profilePrivacySetting", privacyDto.getPrivacySetting());
+            data.put("customListId",
+                    privacyDto.getPrivacySetting().equals("custom") ? privacyDto.getCustomListId() : null);
+
+            return ResponseEntity.ok(Map.of(
+                    "message", "Cập nhật quyền riêng tư hồ sơ thành công",
+                    "data", data));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", e.getMessage(),
+                    "errors", new HashMap<>()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                    "status", "error",
+                    "message", "Lỗi hệ thống: " + e.getMessage(),
+                    "errors", new HashMap<>()));
         }
     }
 }

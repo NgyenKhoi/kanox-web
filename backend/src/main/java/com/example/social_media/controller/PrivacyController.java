@@ -42,8 +42,10 @@ public class PrivacyController {
             }
             Map<String, String> responseData = new HashMap<>();
             responseData.put("postVisibility", settings.getPostViewer() != null ? settings.getPostViewer() : "public");
-            responseData.put("commentPermission", settings.getCommentViewer() != null ? settings.getCommentViewer() : "public");
-            responseData.put("friendRequestPermission", settings.getMessageViewer() != null ? settings.getMessageViewer() : "friends");
+            responseData.put("commentPermission",
+                    settings.getCommentViewer() != null ? settings.getCommentViewer() : "public");
+            responseData.put("friendRequestPermission",
+                    settings.getMessageViewer() != null ? settings.getMessageViewer() : "friends");
 
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Lấy cài đặt thành công");
@@ -71,12 +73,10 @@ public class PrivacyController {
     public ResponseEntity<Map<String, Object>> updatePrivacySettings(@RequestBody Map<String, Object> body) {
         try {
             logger.debug("Updating privacy settings with body: {}", body);
-            // Hỗ trợ cả { data: settings } và settings trực tiếp
             @SuppressWarnings("unchecked")
             Map<String, String> settings = (Map<String, String>) body.get("data");
             if (settings == null) {
                 settings = new HashMap<>();
-                // Nếu body là settings trực tiếp, copy các field
                 for (Map.Entry<String, Object> entry : body.entrySet()) {
                     if (entry.getValue() instanceof String) {
                         settings.put(entry.getKey(), (String) entry.getValue());
@@ -95,7 +95,6 @@ public class PrivacyController {
             String commentPermission = settings.getOrDefault("commentPermission", "public");
             String friendRequestPermission = settings.getOrDefault("friendRequestPermission", "friends");
 
-            // Kiểm tra giá trị hợp lệ
             if (!List.of("public", "friends", "only_me", "custom").contains(postVisibility)) {
                 throw new IllegalArgumentException("Giá trị postVisibility không hợp lệ: " + postVisibility);
             }
@@ -103,34 +102,38 @@ public class PrivacyController {
                 throw new IllegalArgumentException("Giá trị commentPermission không hợp lệ: " + commentPermission);
             }
             if (!List.of("public", "friends", "only_me").contains(friendRequestPermission)) {
-                throw new IllegalArgumentException("Giá trị friendRequestPermission không hợp lệ: " + friendRequestPermission);
+                throw new IllegalArgumentException(
+                        "Giá trị friendRequestPermission không hợp lệ: " + friendRequestPermission);
             }
 
-            // Cập nhật cài đặt
             privacySetting.setPostViewer(postVisibility);
             privacySetting.setCommentViewer(commentPermission);
             privacySetting.setMessageViewer(friendRequestPermission);
             privacySetting.setUpdatedAt(Instant.now());
             privacyService.savePrivacySetting(privacySetting);
 
+            Map<String, Object> data = new HashMap<>();
+            data.put("postVisibility", postVisibility);
+            data.put("commentPermission", commentPermission);
+            data.put("friendRequestPermission", friendRequestPermission);
+
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Cập nhật cài đặt thành công");
+            response.put("data", data);
             logger.debug("Privacy settings updated successfully for user: {}", currentUsername);
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             logger.error("Error updating privacy settings: {}", e.getMessage());
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("status", "error");
-            errorResponse.put("message", e.getMessage());
-            errorResponse.put("errors", new HashMap<>());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", e.getMessage(),
+                    "errors", new HashMap<>()));
         } catch (Exception e) {
             logger.error("Unexpected error: {}", e.getMessage(), e);
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("status", "error");
-            errorResponse.put("message", "Lỗi hệ thống: " + e.getMessage());
-            errorResponse.put("errors", new HashMap<>());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                    "status", "error",
+                    "message", "Lỗi hệ thống: " + e.getMessage(),
+                    "errors", new HashMap<>()));
         }
     }
 
@@ -218,7 +221,8 @@ public class PrivacyController {
     }
 
     @PostMapping(URLConfig.ADD_MEMBER_TO_CUSTOM_LIST)
-    public ResponseEntity<Map<String, Object>> addMemberToCustomList(@PathVariable Integer listId, @RequestBody Map<String, Integer> body) {
+    public ResponseEntity<Map<String, Object>> addMemberToCustomList(@PathVariable Integer listId,
+            @RequestBody Map<String, Integer> body) {
         try {
             String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
             logger.debug("Adding member to custom list {} for user: {}", listId, currentUsername);
@@ -239,7 +243,8 @@ public class PrivacyController {
     }
 
     @DeleteMapping(URLConfig.ADD_MEMBER_TO_CUSTOM_LIST + "/{memberId}")
-    public ResponseEntity<Map<String, Object>> removeMemberFromCustomList(@PathVariable Integer listId, @PathVariable Integer memberId) {
+    public ResponseEntity<Map<String, Object>> removeMemberFromCustomList(@PathVariable Integer listId,
+            @PathVariable Integer memberId) {
         try {
             String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
             logger.debug("Removing member {} from custom list {} for user: {}", memberId, listId, currentUsername);
