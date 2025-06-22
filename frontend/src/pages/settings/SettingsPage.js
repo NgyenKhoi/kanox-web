@@ -90,8 +90,6 @@ function SettingsPage() {
                 body: JSON.stringify({
                     privacySetting: settings.profileViewer,
                     customListId: settings.profileViewer === "custom" ? settings.customListId : null,
-                    postVisibility: settings.postVisibility,
-                    commentPermission: settings.commentPermission,
                 }),
             });
 
