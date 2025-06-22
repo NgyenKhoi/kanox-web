@@ -1,4 +1,4 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import {
   Card,
   Button,
@@ -9,6 +9,8 @@ import {
   Row,
   Col,
   Modal,
+  Form,
+  InputGroup,
 } from "react-bootstrap";
 import {
   FaRegComment,
@@ -33,7 +35,7 @@ import useMedia from "../../../hooks/useMedia";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 
-// Thêm CSS inline hoặc có thể đưa vào file CSS riêng
+// Inline styles
 const imageContainerStyles = {
   overflow: "hidden",
   borderRadius: "12px",
@@ -45,7 +47,7 @@ const imageStyles = {
   height: "100%",
   objectFit: "cover",
   display: "block",
-  cursor: "pointer", // Add cursor pointer to indicate clickability
+  cursor: "pointer",
 };
 
 const enlargedImageStyles = {
@@ -54,6 +56,40 @@ const enlargedImageStyles = {
   objectFit: "contain",
   margin: "auto",
   display: "block",
+};
+
+const commentSectionStyles = {
+  marginTop: "10px",
+  padding: "10px 0",
+  borderTop: "1px solid #e6ecf0",
+};
+
+const commentInputStyles = {
+  backgroundColor: "#f0f2f5",
+  borderRadius: "20px",
+  padding: "8px 12px",
+  border: "none",
+  width: "100%",
+};
+
+const commentStyles = {
+  display: "flex",
+  alignItems: "flex-start",
+  marginBottom: "10px",
+};
+
+const commentAvatarStyles = {
+  width: "32px",
+  height: "32px",
+  borderRadius: "50%",
+  marginRight: "8px",
+};
+
+const commentContentStyles = {
+  backgroundColor: "#f0f2f5",
+  borderRadius: "16px",
+  padding: "8px 12px",
+  maxWidth: "80%",
 };
 
 function TweetCard({ tweet, onPostUpdate }) {
@@ -76,10 +112,37 @@ function TweetCard({ tweet, onPostUpdate }) {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showImageModal, setShowImageModal] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
+  const [comments, setComments] = useState([]);
+  const [newComment, setNewComment] = useState("");
+  const [isCommenting, setIsCommenting] = useState(false);
 
   const { mediaUrl: avatarUrl } = useMedia(owner.id, "PROFILE", "image");
   const { mediaUrls: imageUrls } = useMedia(id, "POST", "image");
   const { mediaUrls: videoUrls } = useMedia(id, "POST", "video");
+
+  // Fetch comments for the post
+  useEffect(() => {
+    const fetchComments = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch(
+          `${process.env.REACT_APP_API_URL}/api/v1/comments?postId=${id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        if (!response.ok) throw new Error("Không thể lấy bình luận!");
+        const data = await response.json();
+        setComments(data.data || []);
+      } catch (err) {
+        toast.error("Lỗi khi tải bình luận: " + err.message);
+      }
+    };
+
+    fetchComments();
+  }, [id]);
 
   const handleEditTweet = () => setShowEditModal(true);
 
@@ -88,7 +151,7 @@ function TweetCard({ tweet, onPostUpdate }) {
       try {
         const token = localStorage.getItem("token");
         const response = await fetch(
-          `${process.env.REACT_APP_API_URL}/posts/${id}`,
+          `${process.env.REACT_APP_API_URL}/api/v1/posts/${id}`,
           {
             method: "DELETE",
             headers: {
@@ -116,7 +179,7 @@ function TweetCard({ tweet, onPostUpdate }) {
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/posts/${id}`,
+        `${process.env.REACT_APP_API_URL}/api/v1/posts/${id}`,
         {
           method: "PUT",
           headers: {
@@ -150,6 +213,51 @@ function TweetCard({ tweet, onPostUpdate }) {
     setShowImageModal(true);
   };
 
+  const handleCommentSubmit = async (e) => {
+    e.preventDefault();
+    if (!newComment.trim()) return;
+
+    try {
+      setIsCommenting(true);
+      const token = localStorage.getItem("token");
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/api/v1/comments`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            userId: user.id,
+            postId: id,
+            content: newComment,
+            privacySetting: "public",
+            parentCommentId: null,
+            customListId: null,
+          }),
+        }
+      );
+      if (!response.ok) throw new Error("Không thể tạo bình luận!");
+      const data = await response.json();
+      setComments([
+        ...comments,
+        {
+          id: data.data.commentId,
+          content: newComment,
+          user,
+          createdAt: new Date(),
+        },
+      ]);
+      setNewComment("");
+      toast.success("Đã đăng bình luận!");
+    } catch (err) {
+      toast.error("Lỗi khi đăng bình luận: " + err.message);
+    } finally {
+      setIsCommenting(false);
+    }
+  };
+
   const renderStatusIcon = (status) => {
     switch (status) {
       case "public":
@@ -180,7 +288,6 @@ function TweetCard({ tweet, onPostUpdate }) {
     }
   };
 
-  // Hàm render ảnh với bố cục giống Facebook
   const renderImages = (images) => {
     if (!images || images.length === 0) return null;
 
@@ -270,7 +377,6 @@ function TweetCard({ tweet, onPostUpdate }) {
       );
     }
 
-    // Trường hợp 5 ảnh trở lên
     return (
       <Row style={imageContainerStyles} className="g-2">
         {images.slice(0, 4).map((url, idx) => (
@@ -309,6 +415,32 @@ function TweetCard({ tweet, onPostUpdate }) {
         ))}
       </Row>
     );
+  };
+
+  const renderComments = () => {
+    return comments.map((comment) => (
+      <div key={comment.id} style={commentStyles}>
+        {comment.user.avatarUrl ? (
+          <BootstrapImage
+            src={comment.user.avatarUrl}
+            style={commentAvatarStyles}
+            roundedCircle
+          />
+        ) : (
+          <FaUserCircle
+            size={32}
+            style={{ marginRight: "8px", color: "#6c757d" }}
+          />
+        )}
+        <div style={commentContentStyles}>
+          <strong>{comment.user.displayName}</strong>
+          <p className="mb-0">{comment.content}</p>
+          <small className="text-muted">
+            {moment(comment.createdAt).fromNow()}
+          </small>
+        </div>
+      </div>
+    ));
   };
 
   return (
@@ -427,10 +559,8 @@ function TweetCard({ tweet, onPostUpdate }) {
               </div>
             )}
 
-            {/* Hiển thị ảnh với bố cục mới */}
             {renderImages(imageUrls)}
 
-            {/* Videos */}
             {videoUrls?.length > 0 &&
               videoUrls.map((url, idx) => (
                 <div key={idx} className="mb-2">
@@ -491,6 +621,35 @@ function TweetCard({ tweet, onPostUpdate }) {
                 <FaShareAlt size={18} />
               </Button>
             </div>
+
+            {/* Comment Section */}
+            <div style={commentSectionStyles}>
+              {renderComments()}
+              <Form onSubmit={handleCommentSubmit}>
+                <InputGroup>
+                  {user?.avatarUrl ? (
+                    <BootstrapImage
+                      src={user.avatarUrl}
+                      style={commentAvatarStyles}
+                      roundedCircle
+                    />
+                  ) : (
+                    <FaUserCircle
+                      size={32}
+                      style={{ marginRight: "8px", color: "#6c757d" }}
+                    />
+                  )}
+                  <Form.Control
+                    type="text"
+                    placeholder="Viết bình luận..."
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    style={commentInputStyles}
+                    disabled={isCommenting}
+                  />
+                </InputGroup>
+              </Form>
+            </div>
           </div>
         </Card.Body>
 
@@ -507,7 +666,6 @@ function TweetCard({ tweet, onPostUpdate }) {
         )}
       </Card>
 
-      {/* Image Zoom Modal */}
       <Modal
         show={showImageModal}
         onHide={() => setShowImageModal(false)}
