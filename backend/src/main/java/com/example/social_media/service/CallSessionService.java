@@ -65,13 +65,24 @@ public class CallSessionService {
         callSession.setEndTime(Instant.now());
         callSession.setStatus(false);
         callSessionRepository.save(callSession);
-        messagingTemplate.convertAndSend("/topic/call/" + callSession.getChat().getId(), new SignalMessageDto(callSession.getChat().getId(), "end", null, null, callSession.getHost().getId()));
+        messagingTemplate.convertAndSend(
+                "/topic/call/" + callSession.getChat().getId(),
+                new SignalMessageDto(
+                        callSession.getChat().getId(),
+                        "end",
+                        null,
+                        null,
+                        callSession.getHost().getId()
+                )
+        );
+        System.out.println("Call ended for chatId: " + callSession.getChat().getId());
     }
 
     @Transactional
     public void handleSignal(SignalMessageDto signalMessage, String username) {
         System.out.println("Handling signal: " + signalMessage.getType() + " for chatId: " + signalMessage.getChatId());
         chatService.checkChatAccess(signalMessage.getChatId(), username);
+        // Gửi signal đến tất cả thành viên trong chat
         messagingTemplate.convertAndSend("/topic/call/" + signalMessage.getChatId(), signalMessage);
         System.out.println("Signal successfully sent to /topic/call/" + signalMessage.getChatId());
     }

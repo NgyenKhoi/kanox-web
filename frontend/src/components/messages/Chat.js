@@ -50,9 +50,7 @@ const Chat = ({ chatId }) => {
       const response = await fetch(
           `${process.env.REACT_APP_API_URL}/chat/messages/unread-count`,
           {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
+            headers: { Authorization: `Bearer ${token}` },
           }
       );
       if (response.ok) {
@@ -114,7 +112,6 @@ const Chat = ({ chatId }) => {
           return prev;
         });
         setIsTyping(false);
-        // Cập nhật unread count khi nhận tin nhắn mới
         fetchUnreadMessageCount();
       });
 
@@ -127,7 +124,6 @@ const Chat = ({ chatId }) => {
         const data = JSON.parse(signal.body);
         if (data.type === "offer" && data.userId !== user?.id) {
           setShowCallModal(true);
-          handleOffer(data);
         } else if (data.type === "answer" && peerRef.current) {
           peerRef.current.signal(data.sdp);
         } else if (data.type === "ice-candidate" && peerRef.current) {
@@ -154,14 +150,12 @@ const Chat = ({ chatId }) => {
         body: JSON.stringify({ chatId }),
       });
 
-      // Gửi ping định kỳ để giữ kết nối
       const pingInterval = setInterval(() => {
         if (stompRef.current && stompRef.current.connected) {
           stompRef.current.send("/app/ping", {}, "ping");
         }
       }, 30000);
 
-      // Load tin nhắn cũ từ API
       fetch(`${process.env.REACT_APP_API_URL}/chat/${chatId}/messages`, {
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -169,7 +163,6 @@ const Chat = ({ chatId }) => {
             const data = await response.json();
             if (response.ok) {
               setMessages(data.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)));
-              // Cập nhật unread count sau khi tải tin nhắn (đã đánh dấu là read)
               fetchUnreadMessageCount();
             } else {
               throw new Error(data.message || "Lỗi khi tải tin nhắn.");
@@ -188,16 +181,20 @@ const Chat = ({ chatId }) => {
 
     client.activate();
 
-    // Khởi tạo media cho video call
     navigator.mediaDevices
         .getUserMedia({ video: true, audio: true })
         .then((stream) => {
           streamRef.current = stream;
-          if (videoRef.current) videoRef.current.srcObject = stream;
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+            videoRef.current.play().catch((err) => console.error("Error playing video:", err));
+          }
         })
-        .catch((err) => toast.error("Không thể truy cập camera/microphone."));
+        .catch((err) => {
+          console.error("Error accessing media devices:", err);
+          toast.error("Không thể truy cập camera/microphone.");
+        });
 
-    // Cleanup
     return () => {
       console.log("Cleaning up WebSocket...");
       subscriptionsRef.current.forEach((s) => s.unsubscribe());
@@ -209,7 +206,6 @@ const Chat = ({ chatId }) => {
   }, [chatId, user, token]);
 
   useEffect(() => {
-    // Scroll xuống cuối khi messages thay đổi
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
@@ -245,43 +241,115 @@ const Chat = ({ chatId }) => {
     }
   };
 
-  const startCall = () => {
-    if (!streamRef.current || !stompRef.current?.connected) return;
-    const newPeer = new Peer({
-      initiator: true,
-      trickle: false,
-      stream: streamRef.current,
-    });
-    newPeer.on("signal", (signalData) => {
-      stompRef.current.publish({
-        destination: "/app/call/offer",
-        body: JSON.stringify({ chatId, type: "offer", sdp: signalData, userId: user.id }),
+  const startCall = async () => {
+    if (!streamRef.current || !stompRef.current?.connected) {
+      toast.error("Không thể bắt đầu cuộc gọi. Vui lòng kiểm tra kết nối hoặc thiết bị media.");
+      return;
+    }
+
+    try {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/call/start/${chatId}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
       });
-    });
-    newPeer.on("stream", (remoteStream) => {
-      if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStream;
-    });
-    peerRef.current = newPeer;
+      if (!response.ok) {
+        throw new Error("Không thể khởi tạo cuộc gọi.");
+      }
+      const callSession = await response.json();
+      console.log("Call session started:", callSession);
+
+      setShowCallPanel(true);
+
+      const newPeer = new Peer({
+        initiator: true,
+        trickle: false,
+        stream: streamRef.current,
+        config: { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] },
+        debug: true,
+      });
+
+      newPeer.on("signal", (signalData) => {
+        console.log("Sending signal data:", signalData);
+        stompRef.current.publish({
+          destination: "/app/call/offer",
+          body: JSON.stringify({ chatId, type: "offer", sdp: signalData, userId: user.id }),
+        });
+      });
+
+      newPeer.on("ice-candidate", (candidate) => {
+        console.log("Sending ICE candidate:", candidate);
+        stompRef.current.publish({
+          destination: "/app/call/ice-candidate",
+          body: JSON.stringify({ chatId, type: "ice-candidate", candidate, userId: user.id }),
+        });
+      });
+
+      newPeer.on("stream", (remoteStream) => {
+        console.log("Received remote stream");
+        if (remoteVideoRef.current) {
+          remoteVideoRef.current.srcObject = remoteStream;
+          remoteVideoRef.current.play().catch((err) => console.error("Error playing remote video:", err));
+        }
+      });
+
+      newPeer.on("error", (err) => {
+        console.error("Peer error:", err);
+        toast.error("Lỗi trong quá trình gọi video.");
+      });
+
+      peerRef.current = newPeer;
+    } catch (err) {
+      console.error("Error starting call:", err);
+      toast.error(err.message || "Lỗi khi bắt đầu cuộc gọi.");
+    }
   };
 
   const handleOffer = (data) => {
-    if (!streamRef.current) return;
+    if (!streamRef.current || !stompRef.current?.connected) {
+      toast.error("Không thể nhận cuộc gọi. Vui lòng kiểm tra kết nối hoặc thiết bị media.");
+      return;
+    }
+
     const newPeer = new Peer({
       initiator: false,
       trickle: false,
       stream: streamRef.current,
+      config: { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] },
+      debug: true,
     });
+
     newPeer.on("signal", (signalData) => {
+      console.log("Sending answer signal:", signalData);
       stompRef.current.publish({
         destination: "/app/call/answer",
         body: JSON.stringify({ chatId, type: "answer", sdp: signalData, userId: user.id }),
       });
     });
-    newPeer.on("stream", (remoteStream) => {
-      if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStream;
+
+    newPeer.on("ice-candidate", (candidate) => {
+      console.log("Sending ICE candidate:", candidate);
+      stompRef.current.publish({
+        destination: "/app/call/ice-candidate",
+        body: JSON.stringify({ chatId, type: "ice-candidate", candidate, userId: user.id }),
+      });
     });
+
+    newPeer.on("stream", (remoteStream) => {
+      console.log("Received remote stream in handleOffer");
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.srcObject = remoteStream;
+        remoteVideoRef.current.play().catch((err) => console.error("Error playing remote video:", err));
+      }
+    });
+
+    newPeer.on("error", (err) => {
+      console.error("Peer error:", err);
+      toast.error("Lỗi trong quá trình gọi video.");
+    });
+
     newPeer.signal(data.sdp);
     peerRef.current = newPeer;
+    setShowCallPanel(true);
     setShowCallModal(false);
   };
 
@@ -293,13 +361,21 @@ const Chat = ({ chatId }) => {
       body: JSON.stringify({ chatId, userId: user.id, type: "end" }),
     });
     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+    setShowCallPanel(false);
   };
 
   return (
       <div className="d-flex flex-column h-100 bg-light">
         <div className="p-3 border-bottom bg-white shadow-sm d-flex align-items-center">
           <h5 className="mb-0 flex-grow-1">{recipientName}</h5>
-          <Button variant="outline-primary" size="sm" onClick={() => setShowCallPanel(!showCallPanel)}>
+          <Button
+              variant="outline-primary"
+              size="sm"
+              onClick={() => {
+                setShowCallPanel(true);
+                startCall();
+              }}
+          >
             <FaPhone />
           </Button>
         </div>
@@ -366,7 +442,13 @@ const Chat = ({ chatId }) => {
             <div className="p-3 border-top bg-light">
               <Row>
                 <Col xs={6}>
-                  <video ref={videoRef} autoPlay muted style={{ width: "100%", borderRadius: 8 }} />
+                  <h6>Video của bạn</h6>
+                  <video
+                      ref={videoRef}
+                      autoPlay
+                      muted
+                      style={{ width: "100%", borderRadius: 8, backgroundColor: "#000" }}
+                  />
                   <div className="mt-2 d-flex justify-content-around">
                     <Button
                         size="sm"
@@ -397,7 +479,12 @@ const Chat = ({ chatId }) => {
                   </div>
                 </Col>
                 <Col xs={6}>
-                  <video ref={remoteVideoRef} autoPlay style={{ width: "100%", borderRadius: 8 }} />
+                  <h6>Video của người nhận</h6>
+                  <video
+                      ref={remoteVideoRef}
+                      autoPlay
+                      style={{ width: "100%", borderRadius: 8, backgroundColor: "#000" }}
+                  />
                   <Button variant="danger" className="w-100 mt-2" onClick={leaveCall}>
                     Thoát cuộc gọi
                   </Button>
@@ -417,7 +504,10 @@ const Chat = ({ chatId }) => {
             </Button>
             <Button
                 variant="primary"
-                onClick={() => handleOffer({ sdp: null, userId: null })}
+                onClick={() => {
+                  const data = JSON.parse(localStorage.getItem("lastOffer") || "{}");
+                  handleOffer(data);
+                }}
             >
               Chấp nhận
             </Button>
