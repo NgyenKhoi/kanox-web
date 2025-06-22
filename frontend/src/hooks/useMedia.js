@@ -1,11 +1,12 @@
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext, useRef } from "react";
 import { toast } from "react-toastify";
 import { AuthContext } from "../context/AuthContext";
 
 const useMedia = (
   targetId,
   targetTypeCode = "PROFILE",
-  mediaTypeName = "image"
+  mediaTypeName = "image",
+  onUpdate = () => {}
 ) => {
   const [mediaUrl, setMediaUrl] = useState(null);
   const [mediaUrls, setMediaUrls] = useState([]);
@@ -58,6 +59,7 @@ const useMedia = (
             setMediaUrls(urls);
             setMediaUrl(urls[0] || null);
             setLoading(false);
+            onUpdate(urls[0] || null); // Gọi callback khi dữ liệu sẵn sàng
           }
         } else if (retryCount < maxRetries) {
           retryCount++;
@@ -86,7 +88,7 @@ const useMedia = (
     return () => {
       isMounted = false;
     };
-  }, [targetId, targetTypeCode, mediaTypeName, token]);
+  }, [targetId, targetTypeCode, mediaTypeName, token, onUpdate]);
 
   return { mediaUrl, mediaUrls, loading, error };
 };

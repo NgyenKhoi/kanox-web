@@ -31,7 +31,8 @@ import {
 import moment from "moment";
 import { AuthContext } from "../../../context/AuthContext";
 import EditPostModal from "../TweetInput/EditPostModal";
-import useMedia from "../../../hooks/useMedia";
+import useMedia from "../../../hooks/useMedia"; // Import useMedia
+import useCommentAvatars from "../../../hooks/useCommentAvatars"; // Import useCommentAvatars
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 
@@ -115,15 +116,22 @@ function TweetCard({ tweet, onPostUpdate }) {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
   const [isCommenting, setIsCommenting] = useState(false);
+  const [showCommentBox, setShowCommentBox] = useState(false);
+  const [isLoadingComments, setIsLoadingComments] = useState(true);
 
+  // Sử dụng useCommentAvatars để quản lý avatars của comments
+  const { avatars: commentAvatars } = useCommentAvatars(comments);
+
+  // Sử dụng useMedia ở cấp component
   const { mediaUrl: avatarUrl } = useMedia(owner.id, "PROFILE", "image");
   const { mediaUrls: imageUrls } = useMedia(id, "POST", "image");
   const { mediaUrls: videoUrls } = useMedia(id, "POST", "video");
 
-  // Fetch comments for the post
+  // Fetch comments
   useEffect(() => {
     const fetchComments = async () => {
       try {
+        setIsLoadingComments(true);
         const token = localStorage.getItem("token");
         const response = await fetch(
           `${process.env.REACT_APP_API_URL}/comments?postId=${id}`,
@@ -138,11 +146,59 @@ function TweetCard({ tweet, onPostUpdate }) {
         setComments(data.data || []);
       } catch (err) {
         toast.error("Lỗi khi tải bình luận: " + err.message);
+      } finally {
+        setIsLoadingComments(false);
       }
     };
 
     fetchComments();
   }, [id]);
+
+  const handleCommentSubmit = async (e) => {
+    e.preventDefault();
+    if (!newComment.trim()) return;
+
+    try {
+      setIsCommenting(true);
+      const token = localStorage.getItem("token");
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/comments`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            userId: user.id,
+            postId: id,
+            content: newComment,
+            privacySetting: "public",
+            parentCommentId: null,
+            customListId: null,
+          }),
+        }
+      );
+      if (!response.ok) throw new Error("Không thể tạo bình luận!");
+      toast.success("Đã đăng bình luận!");
+      setNewComment("");
+
+      const commentRes = await fetch(
+        `${process.env.REACT_APP_API_URL}/comments?postId=${id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      const commentData = await commentRes.json();
+      setComments(commentData.data || []);
+    } catch (err) {
+      toast.error("Lỗi khi đăng bình luận: " + err.message);
+    } finally {
+      setIsCommenting(false);
+    }
+  };
 
   const handleEditTweet = () => setShowEditModal(true);
 
@@ -211,51 +267,6 @@ function TweetCard({ tweet, onPostUpdate }) {
   const handleImageClick = (url) => {
     setSelectedImage(url);
     setShowImageModal(true);
-  };
-
-  const handleCommentSubmit = async (e) => {
-    e.preventDefault();
-    if (!newComment.trim()) return;
-
-    try {
-      setIsCommenting(true);
-      const token = localStorage.getItem("token");
-      const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/comments`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            userId: user.id,
-            postId: id,
-            content: newComment,
-            privacySetting: "public",
-            parentCommentId: null,
-            customListId: null,
-          }),
-        }
-      );
-      if (!response.ok) throw new Error("Không thể tạo bình luận!");
-      const data = await response.json();
-      setComments([
-        ...comments,
-        {
-          id: data.data.commentId,
-          content: newComment,
-          user,
-          createdAt: new Date(),
-        },
-      ]);
-      setNewComment("");
-      toast.success("Đã đăng bình luận!");
-    } catch (err) {
-      toast.error("Lỗi khi đăng bình luận: " + err.message);
-    } finally {
-      setIsCommenting(false);
-    }
   };
 
   const renderStatusIcon = (status) => {
@@ -418,29 +429,40 @@ function TweetCard({ tweet, onPostUpdate }) {
   };
 
   const renderComments = () => {
-    return comments.map((comment) => (
-      <div key={comment.id} style={commentStyles}>
-        {comment.user.avatarUrl ? (
-          <BootstrapImage
-            src={comment.user.avatarUrl}
-            style={commentAvatarStyles}
-            roundedCircle
-          />
-        ) : (
-          <FaUserCircle
-            size={32}
-            style={{ marginRight: "8px", color: "#6c757d" }}
-          />
-        )}
-        <div style={commentContentStyles}>
-          <strong>{comment.user.displayName}</strong>
-          <p className="mb-0">{comment.content}</p>
-          <small className="text-muted">
-            {moment(comment.createdAt).fromNow()}
-          </small>
+    if (isLoadingComments)
+      return <div className="text-muted">Đang tải bình luận...</div>;
+
+    if (comments.length === 0)
+      return <div className="text-muted">Chưa có bình luận nào.</div>;
+
+    return comments.map((comment) => {
+      const avatarUrl = commentAvatars[comment.user.id];
+
+      return (
+        <div key={comment.id} style={commentStyles}>
+          {avatarUrl ? (
+            <BootstrapImage
+              src={avatarUrl}
+              style={commentAvatarStyles}
+              roundedCircle
+            />
+          ) : (
+            <FaUserCircle
+              size={32}
+              style={{ marginRight: "8px", color: "#6c757d" }}
+            />
+          )}
+
+          <div style={commentContentStyles}>
+            <strong>{comment.user.displayName}</strong>
+            <p className="mb-1">{comment.content}</p>
+            <small className="text-muted">
+              {moment(comment.createdAt).fromNow()}
+            </small>
+          </div>
         </div>
-      </div>
-    ));
+      );
+    });
   };
 
   return (
@@ -575,6 +597,7 @@ function TweetCard({ tweet, onPostUpdate }) {
               <Button
                 variant="link"
                 className="text-muted p-1 rounded-circle hover-bg-light"
+                onClick={() => setShowCommentBox((prev) => !prev)}
               >
                 <FaRegComment size={18} className="me-1" />
                 {commentCount > 0 && commentCount}
@@ -623,33 +646,35 @@ function TweetCard({ tweet, onPostUpdate }) {
             </div>
 
             {/* Comment Section */}
-            <div style={commentSectionStyles}>
-              {renderComments()}
-              <Form onSubmit={handleCommentSubmit}>
-                <InputGroup>
-                  {user?.avatarUrl ? (
-                    <BootstrapImage
-                      src={user.avatarUrl}
-                      style={commentAvatarStyles}
-                      roundedCircle
+            {showCommentBox && (
+              <div style={commentSectionStyles}>
+                {renderComments()}
+                <Form onSubmit={handleCommentSubmit} className="mt-2">
+                  <InputGroup>
+                    {user?.avatarUrl ? (
+                      <BootstrapImage
+                        src={user.avatarUrl}
+                        style={commentAvatarStyles}
+                        roundedCircle
+                      />
+                    ) : (
+                      <FaUserCircle
+                        size={32}
+                        style={{ marginRight: "8px", color: "#6c757d" }}
+                      />
+                    )}
+                    <Form.Control
+                      type="text"
+                      placeholder="Viết bình luận..."
+                      value={newComment}
+                      onChange={(e) => setNewComment(e.target.value)}
+                      style={commentInputStyles}
+                      disabled={isCommenting}
                     />
-                  ) : (
-                    <FaUserCircle
-                      size={32}
-                      style={{ marginRight: "8px", color: "#6c757d" }}
-                    />
-                  )}
-                  <Form.Control
-                    type="text"
-                    placeholder="Viết bình luận..."
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    style={commentInputStyles}
-                    disabled={isCommenting}
-                  />
-                </InputGroup>
-              </Form>
-            </div>
+                  </InputGroup>
+                </Form>
+              </div>
+            )}
           </div>
         </Card.Body>
 
