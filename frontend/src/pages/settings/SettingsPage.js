@@ -14,6 +14,7 @@ function SettingsPage() {
         postVisibility: "public",
         commentPermission: "public",
         profileViewer: "public",
+        customListId: null,
     });
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -29,29 +30,37 @@ function SettingsPage() {
         }
 
         try {
-            const response = await fetch(`${process.env.REACT_APP_API_URL}/user/profile/${user.username}`, {
-                headers: {
-                    "Content-Type": "application/json",
-                    Accept: "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-            });
+            const [generalRes, profileRes] = await Promise.all([
+                fetch(`${process.env.REACT_APP_API_URL}/privacy`, {
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`,
+                    },
+                }),
+                fetch(`${process.env.REACT_APP_API_URL}/user/profile/${user.username}`, {
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`,
+                    },
+                }),
+            ]);
 
-            const data = await response.json();
-            console.log("Fetch privacy settings response:", data); // Debug
-            if (!response.ok) {
-                throw new Error(data.message || "Không thể lấy cài đặt quyền riêng tư.");
+            const generalData = await generalRes.json();
+            const profileData = await profileRes.json();
+
+            if (!generalRes.ok || !profileRes.ok) {
+                throw new Error("Không thể lấy cài đặt quyền riêng tư.");
             }
 
-            // Ánh xạ trực tiếp từ data
             setSettings({
-                postVisibility: data.data.postVisibility || "public",
-                commentPermission: data.data.commentPermission || "public",
-                profileViewer: data.data.profilePrivacySetting || "public",
+                postVisibility: generalData.data.postVisibility || "public",
+                commentPermission: generalData.data.commentPermission || "public",
+                profileViewer: profileData.data.profilePrivacySetting || "public",
+                customListId: profileData.data.customListId || null,
             });
         } catch (error) {
-            console.error("Lỗi khi lấy cài đặt quyền riêng tư:", error);
-            toast.error(error.message || "Không thể tải cài đặt!");
+            console.error("Lỗi khi lấy cài đặt:", error);
+            toast.error(error.message || "Không thể tải cài đặt quyền riêng tư!");
         } finally {
             setLoading(false);
         }
@@ -62,7 +71,6 @@ function SettingsPage() {
             navigate("/");
             return;
         }
-
         fetchPrivacySettings();
     }, [user, navigate]);
 
@@ -81,7 +89,26 @@ function SettingsPage() {
         }
 
         try {
-            const response = await fetch(`${process.env.REACT_APP_API_URL}/user/profile/${user.username}/privacy`, {
+            // Gửi cập nhật bài đăng/bình luận
+            const generalPrivacyRes = await fetch(`${process.env.REACT_APP_API_URL}/privacy`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    postVisibility: settings.postVisibility,
+                    commentPermission: settings.commentPermission,
+                }),
+            });
+
+            const generalData = await generalPrivacyRes.json();
+            if (!generalPrivacyRes.ok) {
+                throw new Error(generalData.message || "Lỗi khi cập nhật quyền riêng tư bài đăng.");
+            }
+
+            // Gửi cập nhật hồ sơ cá nhân
+            const profilePrivacyRes = await fetch(`${process.env.REACT_APP_API_URL}/user/profile/${user.username}/privacy`, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
@@ -93,13 +120,13 @@ function SettingsPage() {
                 }),
             });
 
-            const data = await response.json();
-            if (!response.ok)    {
-                throw new Error(data.message || "Không thể lưu cài đặt!");
+            const profileData = await profilePrivacyRes.json();
+            if (!profilePrivacyRes.ok) {
+                throw new Error(profileData.message || "Lỗi khi cập nhật quyền riêng tư hồ sơ.");
             }
 
-            toast.success(data.message || "Cài đặt quyền riêng tư đã được lưu thành công!");
-            await fetchPrivacySettings(); // Đồng bộ state
+            toast.success("Cài đặt quyền riêng tư đã được lưu thành công!");
+            await fetchPrivacySettings();
         } catch (error) {
             console.error("Lỗi khi lưu cài đặt quyền riêng tư:", error);
             toast.error(error.message || "Không thể lưu cài đặt!");
