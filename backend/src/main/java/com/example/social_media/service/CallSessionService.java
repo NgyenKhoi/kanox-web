@@ -82,7 +82,6 @@ public class CallSessionService {
     public void handleSignal(SignalMessageDto signalMessage, String username) {
         System.out.println("Handling signal: " + signalMessage.getType() + " for chatId: " + signalMessage.getChatId());
         chatService.checkChatAccess(signalMessage.getChatId(), username);
-        // Gửi signal đến tất cả thành viên trong chat
         messagingTemplate.convertAndSend("/topic/call/" + signalMessage.getChatId(), signalMessage);
         System.out.println("Signal successfully sent to /topic/call/" + signalMessage.getChatId());
     }
