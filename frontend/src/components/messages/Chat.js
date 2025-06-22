@@ -33,6 +33,7 @@ const Chat = ({ chatId }) => {
   const [messageToDelete, setMessageToDelete] = useState(null);
   const [recipientName, setRecipientName] = useState("");
   const [showCallPanel, setShowCallPanel] = useState(false);
+  const [callSessionId, setCallSessionId] = useState(null); // Thêm trạng thái để lưu callSessionId
 
   const stompRef = useRef(null);
   const peerRef = useRef(null);
@@ -45,7 +46,6 @@ const Chat = ({ chatId }) => {
 
   const fetchUnreadMessageCount = async () => {
     try {
-      const token = sessionStorage.getItem("token") || localStorage.getItem("token");
       const response = await fetch(
           `${process.env.REACT_APP_API_URL}/chat/messages/unread-count`,
           {
@@ -119,6 +119,7 @@ const Chat = ({ chatId }) => {
 
       const callSub = client.subscribe(`/topic/call/${chatId}`, (signal) => {
         const data = JSON.parse(signal.body);
+        console.log("Received signal:", data);
         if (data.type === "offer" && data.userId !== user?.id) {
           localStorage.setItem("lastOffer", JSON.stringify(data));
           setShowCallModal(true);
@@ -127,7 +128,7 @@ const Chat = ({ chatId }) => {
           peerRef.current.signal(data.sdp);
         } else if (data.type === "ice-candidate" && peerRef.current) {
           console.log("Received ICE candidate:", data.candidate);
-          peerRef.current.addIceCandidate(new RTCIceCandidate(data.candidate));
+          peerRef.current.signal(data.candidate); // Sử dụng signal thay vì addIceCandidate
         } else if (data.type === "end") {
           console.log("Call ended by remote user");
           leaveCall();
@@ -155,7 +156,7 @@ const Chat = ({ chatId }) => {
         if (stompRef.current && stompRef.current.connected) {
           stompRef.current.publish({
             destination: "/app/ping",
-            body: "ping",
+            body: JSON.stringify({ status: "ping" }),
           });
         }
       }, 30000);
@@ -181,6 +182,11 @@ const Chat = ({ chatId }) => {
 
     client.onWebSocketClose = () => {
       console.log("WebSocket disconnected, retrying...");
+    };
+
+    client.onStompError = (frame) => {
+      console.error("STOMP error:", frame);
+      toast.error("Lỗi kết nối WebSocket. Vui lòng thử lại.");
     };
 
     client.activate();
@@ -261,37 +267,34 @@ const Chat = ({ chatId }) => {
       }
       const callSession = await response.json();
       console.log("Call session started:", callSession);
+      setCallSessionId(callSession.id); // Lưu callSessionId
 
       setShowCallPanel(true);
 
       const newPeer = new Peer({
         initiator: true,
-        trickle: false,
+        trickle: true, // Bật trickle để gửi ICE candidate ngay lập tức
         stream: streamRef.current,
         config: { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] },
-        debug: true,
       });
 
       newPeer.on("signal", (signalData) => {
         console.log("Sending signal data:", signalData);
         if (stompRef.current?.connected) {
-          stompRef.current.publish({
-            destination: "/app/call/offer",
-            body: JSON.stringify({ chatId, type: "offer", sdp: signalData, userId: user.id }),
-          });
+          if (signalData.type === "offer") {
+            stompRef.current.publish({
+              destination: "/app/call/offer",
+              body: JSON.stringify({ chatId, type: "offer", sdp: signalData, userId: user.id }),
+            });
+          } else if (signalData.candidate) {
+            stompRef.current.publish({
+              destination: "/app/call/ice-candidate",
+              body: JSON.stringify({ chatId, type: "ice-candidate", candidate: signalData, userId: user.id }),
+            });
+          }
         } else {
           console.error("WebSocket not connected");
           toast.error("Không thể gửi tín hiệu cuộc gọi do mất kết nối WebSocket.");
-        }
-      });
-
-      newPeer.on("ice-candidate", (candidate) => {
-        console.log("Sending ICE candidate:", candidate);
-        if (stompRef.current?.connected) {
-          stompRef.current.publish({
-            destination: "/app/call/ice-candidate",
-            body: JSON.stringify({ chatId, type: "ice-candidate", candidate, userId: user.id }),
-          });
         }
       });
 
@@ -333,26 +336,24 @@ const Chat = ({ chatId }) => {
 
     const newPeer = new Peer({
       initiator: false,
-      trickle: false,
+      trickle: true, // Bật trickle để gửi ICE candidate ngay lập tức
       stream: streamRef.current,
       config: { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] },
-      debug: true,
     });
 
     newPeer.on("signal", (signalData) => {
-      console.log("Sending answer signal:", signalData);
-      stompRef.current.publish({
-        destination: "/app/call/answer",
-        body: JSON.stringify({ chatId, type: "answer", sdp: signalData, userId: user.id }),
-      });
-    });
-
-    newPeer.on("ice-candidate", (candidate) => {
-      console.log("Sending ICE candidate:", candidate);
-      stompRef.current.publish({
-        destination: "/app/call/ice-candidate",
-        body: JSON.stringify({ chatId, type: "ice-candidate", candidate, userId: user.id }),
-      });
+      console.log("Sending signal data:", signalData);
+      if (signalData.type === "answer") {
+        stompRef.current.publish({
+          destination: "/app/call/answer",
+          body: JSON.stringify({ chatId, type: "answer", sdp: signalData, userId: user.id }),
+        });
+      } else if (signalData.candidate) {
+        stompRef.current.publish({
+          destination: "/app/call/ice-candidate",
+          body: JSON.stringify({ chatId, type: "ice-candidate", candidate: signalData, userId: user.id }),
+        });
+      }
     });
 
     newPeer.on("stream", (remoteStream) => {
@@ -379,16 +380,21 @@ const Chat = ({ chatId }) => {
   };
 
   const leaveCall = () => {
-    peerRef.current?.destroy();
-    peerRef.current = null;
-    if (stompRef.current?.connected) {
+    if (peerRef.current) {
+      peerRef.current.destroy();
+      peerRef.current = null;
+    }
+    if (stompRef.current?.connected && callSessionId) {
       stompRef.current.publish({
         destination: "/app/call/end",
-        body: JSON.stringify({ chatId, userId: user.id, type: "end" }),
+        body: JSON.stringify({ chatId, callSessionId, userId: user.id }),
       });
     }
     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
     setShowCallPanel(false);
+    setCallSessionId(null);
   };
 
   return (
