@@ -209,6 +209,7 @@ public class MediaService {
                 dto.setId(media.getId());
                 dto.setUrl(media.getMediaUrl());
                 dto.setType(media.getMediaType().getName());
+                dto.setTargetId(media.getTargetId());
                 dto.setTargetType(media.getTargetType().getCode());
                 dto.setStatus(media.getStatus());
                 return dto;
