@@ -1,9 +1,4 @@
-import React, {
-  useState,
-  useContext,
-  useEffect,
-  useMemo,
-} from "react";
+import React, { useState, useContext, useEffect, useMemo } from "react";
 import {
   Card,
   Button,
@@ -36,8 +31,8 @@ import {
 import moment from "moment";
 import { AuthContext } from "../../../context/AuthContext";
 import EditPostModal from "../TweetInput/EditPostModal";
-import useMedia from "../../../hooks/useMedia"; // Import useMedia
-import useCommentAvatars from "../../../hooks/useCommentAvatars"; // Import useCommentAvatars
+import useMedia from "../../../hooks/useMedia";
+import useCommentAvatars from "../../../hooks/useCommentAvatars";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 
@@ -111,9 +106,9 @@ function TweetCard({ tweet, onPostUpdate }) {
     likeCount,
     taggedUsers = [],
     privacySetting = "public",
-  } = tweet;
+  } = tweet || {};
 
-  const isOwnTweet = user && user.username === owner.username;
+  const isOwnTweet = user && user.username === owner?.username;
   const [reaction, setReaction] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showImageModal, setShowImageModal] = useState(false);
@@ -124,17 +119,36 @@ function TweetCard({ tweet, onPostUpdate }) {
   const [showCommentBox, setShowCommentBox] = useState(false);
   const [isLoadingComments, setIsLoadingComments] = useState(true);
 
-  const mediaImageTargets = useMemo(() => [owner.id, id], [owner.id, id]);
-  const { mediaData } = useMedia(mediaImageTargets, "POST", "image");
+  // Đảm bảo owner.id và id là hợp lệ trước khi truyền vào useMedia
+  const mediaImageTargets = useMemo(
+    () => (owner?.id && id ? [owner.id, id] : []),
+    [owner?.id, id]
+  );
+  const { mediaData, error: mediaError } = useMedia(
+    mediaImageTargets,
+    "POST",
+    "image"
+  );
+  const { mediaData: videoData, error: videoError } = useMedia(
+    id ? [id] : [], // Truyền id dưới dạng mảng
+    "POST",
+    "video"
+  );
 
   const avatarUrl = useMemo(
-    () => mediaData[owner.id]?.[0] || null,
-    [mediaData, owner.id]
+    () => (Array.isArray(mediaData[owner?.id]) ? mediaData[owner.id][0] : null),
+    [mediaData, owner?.id]
   );
-  const imageUrls = useMemo(() => mediaData[id] || [], [mediaData, id]);
-  const { mediaUrls: videoUrls } = useMedia(id, "POST", "video");
+  const imageUrls = useMemo(
+    () => (Array.isArray(mediaData[id]) ? mediaData[id] : []),
+    [mediaData, id]
+  );
+  const videoUrls = useMemo(
+    () => (Array.isArray(videoData[id]) ? videoData[id] : []),
+    [videoData, id]
+  );
 
-   const { avatars: commentAvatars } = useCommentAvatars(comments);
+  const { avatars: commentAvatars } = useCommentAvatars(comments);
 
   // Fetch comments
   useEffect(() => {
@@ -142,6 +156,7 @@ function TweetCard({ tweet, onPostUpdate }) {
       try {
         setIsLoadingComments(true);
         const token = localStorage.getItem("token");
+        if (!token) throw new Error("Vui lòng đăng nhập để tải bình luận!");
         const response = await fetch(
           `${process.env.REACT_APP_API_URL}/comments?postId=${id}`,
           {
@@ -152,14 +167,14 @@ function TweetCard({ tweet, onPostUpdate }) {
         );
         if (!response.ok) throw new Error("Không thể lấy bình luận!");
         const data = await response.json();
-        setComments(data.data || []);
+        setComments(Array.isArray(data.data) ? data.data : []);
       } catch (err) {
         toast.error("Lỗi khi tải bình luận: " + err.message);
       } finally {
         setIsLoadingComments(false);
       }
     };
-    fetchComments();
+    if (id) fetchComments();
   }, [id]);
 
   const handleCommentSubmit = async (e) => {
@@ -169,6 +184,7 @@ function TweetCard({ tweet, onPostUpdate }) {
     try {
       setIsCommenting(true);
       const token = localStorage.getItem("token");
+      if (!token) throw new Error("Vui lòng đăng nhập để bình luận!");
       const response = await fetch(
         `${process.env.REACT_APP_API_URL}/comments`,
         {
@@ -178,7 +194,7 @@ function TweetCard({ tweet, onPostUpdate }) {
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            userId: user.id,
+            userId: user?.id,
             postId: id,
             content: newComment,
             privacySetting: "public",
@@ -200,7 +216,7 @@ function TweetCard({ tweet, onPostUpdate }) {
         }
       );
       const commentData = await commentRes.json();
-      setComments(commentData.data || []);
+      setComments(Array.isArray(commentData.data) ? commentData.data : []);
     } catch (err) {
       toast.error("Lỗi khi đăng bình luận: " + err.message);
     } finally {
@@ -214,6 +230,7 @@ function TweetCard({ tweet, onPostUpdate }) {
     if (window.confirm("Bạn có chắc muốn xóa bài đăng này?")) {
       try {
         const token = localStorage.getItem("token");
+        if (!token) throw new Error("Vui lòng đăng nhập để xóa bài đăng!");
         const response = await fetch(
           `${process.env.REACT_APP_API_URL}/posts/${id}`,
           {
@@ -242,6 +259,7 @@ function TweetCard({ tweet, onPostUpdate }) {
   const handleStatusChange = async (newStatus) => {
     try {
       const token = localStorage.getItem("token");
+      if (!token) throw new Error("Vui lòng đăng nhập để cập nhật trạng thái!");
       const response = await fetch(
         `${process.env.REACT_APP_API_URL}/posts/${id}`,
         {
@@ -253,8 +271,10 @@ function TweetCard({ tweet, onPostUpdate }) {
           body: JSON.stringify({
             content,
             privacySetting: newStatus,
-            taggedUserIds: taggedUsers.map((u) => u.id),
-            customListId: newStatus === "custom" ? tweet.customListId : null,
+            taggedUserIds: Array.isArray(taggedUsers)
+              ? taggedUsers.map((u) => u.id).filter(Boolean)
+              : [],
+            customListId: newStatus === "custom" ? tweet?.customListId : null,
           }),
         }
       );
@@ -267,7 +287,7 @@ function TweetCard({ tweet, onPostUpdate }) {
   };
 
   const handleNavigateToProfile = () => {
-    if (owner.username && owner.username !== "unknown") {
+    if (owner?.username && owner.username !== "unknown") {
       navigate(`/profile/${owner.username}`);
     }
   };
@@ -308,7 +328,7 @@ function TweetCard({ tweet, onPostUpdate }) {
   };
 
   const renderImages = (images) => {
-    if (!images || images.length === 0) return null;
+    if (!Array.isArray(images) || images.length === 0) return null;
 
     const imageCount = images.length;
 
@@ -440,11 +460,11 @@ function TweetCard({ tweet, onPostUpdate }) {
     if (isLoadingComments)
       return <div className="text-muted">Đang tải bình luận...</div>;
 
-    if (comments.length === 0)
+    if (!Array.isArray(comments) || comments.length === 0)
       return <div className="text-muted">Chưa có bình luận nào.</div>;
 
     return comments.map((comment) => {
-      const avatarUrl = commentAvatars[comment.user.id];
+      const avatarUrl = comment?.user?.id && commentAvatars[comment.user.id];
 
       return (
         <div key={comment.id} style={commentStyles}>
@@ -462,7 +482,7 @@ function TweetCard({ tweet, onPostUpdate }) {
           )}
 
           <div style={commentContentStyles}>
-            <strong>{comment.user.displayName}</strong>
+            <strong>{comment?.user?.displayName || "Ẩn danh"}</strong>
             <p className="mb-1">{comment.content}</p>
             <small className="text-muted">
               {moment(comment.createdAt).fromNow()}
@@ -472,6 +492,15 @@ function TweetCard({ tweet, onPostUpdate }) {
       );
     });
   };
+
+  // Hiển thị lỗi nếu không tải được media
+  if (mediaError || videoError) {
+    return (
+      <div className="text-danger">
+        Lỗi tải media: {mediaError || videoError}
+      </div>
+    );
+  }
 
   return (
     <>
@@ -500,9 +529,11 @@ function TweetCard({ tweet, onPostUpdate }) {
                   onClick={handleNavigateToProfile}
                   style={{ cursor: "pointer" }}
                 >
-                  {owner.displayName}
+                  {owner?.displayName || "Ẩn danh"}
                 </h6>
-                <span className="text-muted small me-1">@{owner.username}</span>
+                <span className="text-muted small me-1">
+                  @{owner?.username || "unknown"}
+                </span>
                 <span className="text-muted small me-1">
                   · {moment(createdAt).fromNow()}
                 </span>
@@ -576,22 +607,25 @@ function TweetCard({ tweet, onPostUpdate }) {
 
             <p className="mb-2">{content}</p>
 
-            {taggedUsers.length > 0 && (
+            {Array.isArray(taggedUsers) && taggedUsers.length > 0 && (
               <div className="mb-2">
                 <small className="text-muted">
                   Đã tag:{" "}
-                  {taggedUsers.map((tag, index) => (
-                    <span key={index} className="text-primary me-1">
-                      @{tag.username}
-                    </span>
-                  ))}
+                  {taggedUsers
+                    .filter((tag) => tag?.username)
+                    .map((tag, index) => (
+                      <span key={index} className="text-primary me-1">
+                        @{tag.username}
+                      </span>
+                    ))}
                 </small>
               </div>
             )}
 
             {renderImages(imageUrls)}
 
-            {videoUrls?.length > 0 &&
+            {Array.isArray(videoUrls) &&
+              videoUrls.length > 0 &&
               videoUrls.map((url, idx) => (
                 <div key={idx} className="mb-2">
                   <video controls width="100%" style={{ borderRadius: "12px" }}>
@@ -606,6 +640,7 @@ function TweetCard({ tweet, onPostUpdate }) {
                 variant="link"
                 className="text-muted p-1 rounded-circle hover-bg-light"
                 onClick={() => setShowCommentBox((prev) => !prev)}
+                aria-label="Toggle comment box"
               >
                 <FaRegComment size={18} className="me-1" />
                 {commentCount > 0 && commentCount}
@@ -613,6 +648,7 @@ function TweetCard({ tweet, onPostUpdate }) {
               <Button
                 variant="link"
                 className="text-muted p-1 rounded-circle hover-bg-light"
+                aria-label="Retweet"
               >
                 <FaRetweet size={18} className="me-1" />
                 {shareCount > 0 && shareCount}
@@ -625,6 +661,7 @@ function TweetCard({ tweet, onPostUpdate }) {
                   <Dropdown.Toggle
                     variant="link"
                     className="text-muted p-1 rounded-circle hover-bg-light"
+                    aria-label="Select reaction"
                   >
                     {reaction ? (
                       <span>{`${reaction} `}</span>
@@ -648,6 +685,7 @@ function TweetCard({ tweet, onPostUpdate }) {
               <Button
                 variant="link"
                 className="text-muted p-1 rounded-circle hover-bg-light"
+                aria-label="Share"
               >
                 <FaShareAlt size={18} />
               </Button>
@@ -678,6 +716,7 @@ function TweetCard({ tweet, onPostUpdate }) {
                       onChange={(e) => setNewComment(e.target.value)}
                       style={commentInputStyles}
                       disabled={isCommenting}
+                      aria-label="Write a comment"
                     />
                   </InputGroup>
                 </Form>
@@ -708,9 +747,10 @@ function TweetCard({ tweet, onPostUpdate }) {
       >
         <Modal.Body className="p-0">
           <Button
-            variant="link"
-            className="text-white position-absolute top-0 end-0 m-2"
+            variant="dark"
+            className="position-absolute top-0 end-0 m-2 rounded-circle"
             onClick={() => setShowImageModal(false)}
+            aria-label="Close image modal"
           >
             ✕
           </Button>

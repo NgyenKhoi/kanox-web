@@ -2,16 +2,30 @@ import { useState, useEffect } from "react";
 
 const useCommentAvatars = (comments) => {
   const [avatars, setAvatars] = useState({});
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchAvatars = async () => {
       try {
+        setError(null);
+        if (!Array.isArray(comments) || comments.length === 0) {
+          setAvatars({});
+          return;
+        }
+
         const newAvatars = {};
         const uniqueUserIds = [
-          ...new Set(comments.map((c) => c.user?.id).filter(Boolean)),
+          ...new Set(
+            comments
+              .map((c) => c?.user?.id)
+              .filter((id) => id && typeof id === "string")
+          ),
         ];
 
-        if (uniqueUserIds.length === 0) return;
+        if (uniqueUserIds.length === 0) {
+          setAvatars({});
+          return;
+        }
 
         const responses = await Promise.all(
           uniqueUserIds.map((userId) =>
@@ -36,17 +50,14 @@ const useCommentAvatars = (comments) => {
         setAvatars(newAvatars);
       } catch (err) {
         console.error("Lỗi khi lấy avatar:", err.message);
+        setError(err.message);
       }
     };
 
-    if (comments?.length > 0) {
-      fetchAvatars();
-    } else {
-      setAvatars({});
-    }
+    fetchAvatars();
   }, [comments]);
 
-  return { avatars };
+  return { avatars, error };
 };
 
 export default useCommentAvatars;
