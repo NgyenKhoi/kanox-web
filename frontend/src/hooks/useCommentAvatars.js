@@ -6,8 +6,9 @@ const useCommentAvatars = (comments) => {
   useEffect(() => {
     const fetchAvatars = async () => {
       const newAvatars = {};
-      for (const comment of comments) {
-        const userId = comment.user.id;
+      const uniqueUserIds = [...new Set(comments.map((c) => c.user.id))];
+
+      for (const userId of uniqueUserIds) {
         if (!newAvatars[userId]) {
           try {
             const res = await fetch(
@@ -22,6 +23,7 @@ const useCommentAvatars = (comments) => {
           }
         }
       }
+
       setAvatars(newAvatars);
     };
 
