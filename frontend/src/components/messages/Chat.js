@@ -63,6 +63,19 @@ const Chat = ({ chatId }) => {
     }
   };
 
+  const cleanupPeerConnection = () => {
+    if (peerRef.current) {
+      console.log("Destroying existing PeerConnection...");
+      peerRef.current.destroy();
+      peerRef.current = null; // Đảm bảo gán null sau khi destroy
+    }
+    if (streamRef.current) {
+      console.log("Stopping existing media stream...");
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+  };
+
   const initializeMediaStream = async () => {
     try {
       const permissionStatus = await navigator.permissions.query({ name: "camera" });
@@ -71,10 +84,7 @@ const Chat = ({ chatId }) => {
         return null;
       }
 
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((t) => t.stop());
-        streamRef.current = null;
-      }
+      cleanupPeerConnection(); // Làm sạch trước khi khởi tạo stream mới
 
       const streamPromise = navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       const timeoutPromise = new Promise((_, reject) => {
@@ -102,15 +112,7 @@ const Chat = ({ chatId }) => {
       return;
     }
 
-    // Làm sạch khi mount hoặc chatId thay đổi
-    if (peerRef.current) {
-      peerRef.current.destroy();
-      peerRef.current = null;
-    }
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((t) => t.stop());
-      streamRef.current = null;
-    }
+    cleanupPeerConnection(); // Làm sạch khi mount hoặc chatId thay đổi
 
     fetch(`${process.env.REACT_APP_API_URL}/chat/${chatId}`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -166,7 +168,7 @@ const Chat = ({ chatId }) => {
           localStorage.setItem("lastOffer", JSON.stringify(data));
           setShowCallModal(true);
         } else if (data.type === "answer" && peerRef.current && data.userId !== user?.id) {
-          console.log("Received answer signal:", data.sdp);
+          console.log("Received answer signal:", data.sdp, "Signaling state:", peerRef.current._pc.signalingState);
           if (peerRef.current._pc.signalingState !== "stable") {
             peerRef.current.signal(JSON.parse(data.sdp));
           } else {
@@ -238,22 +240,12 @@ const Chat = ({ chatId }) => {
 
     client.activate();
 
-    // Không gọi initializeMediaStream() khi mount, chỉ gọi khi cần
-    // initializeMediaStream(); // Bỏ dòng này để tránh khởi tạo ngầm
-
     return () => {
-      console.log("Cleaning up WebSocket...");
+      console.log("Cleaning up WebSocket and PeerConnection...");
       subscriptionsRef.current.forEach((s) => s.unsubscribe());
       stompRef.current?.deactivate();
       if (socketRef.current) socketRef.current.close();
-      if (peerRef.current) {
-        peerRef.current.destroy();
-        peerRef.current = null;
-      }
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((t) => t.stop());
-        streamRef.current = null;
-      }
+      cleanupPeerConnection();
     };
   }, [chatId, user, token]);
 
@@ -301,10 +293,7 @@ const Chat = ({ chatId }) => {
       return;
     }
 
-    if (peerRef.current) {
-      peerRef.current.destroy();
-      peerRef.current = null;
-    }
+    cleanupPeerConnection(); // Làm sạch trước khi khởi tạo
     const newStream = await initializeMediaStream();
     if (!newStream) {
       toast.error("Không thể khởi tạo stream media. Vui lòng kiểm tra camera/microphone.");
@@ -418,10 +407,7 @@ const Chat = ({ chatId }) => {
       return;
     }
 
-    if (peerRef.current) {
-      peerRef.current.destroy();
-      peerRef.current = null;
-    }
+    cleanupPeerConnection(); // Làm sạch trước khi khởi tạo
     const newStream = await initializeMediaStream();
     if (!newStream) {
       toast.error("Không thể khởi tạo stream media. Vui lòng kiểm tra camera/microphone.");
@@ -519,6 +505,7 @@ const Chat = ({ chatId }) => {
       }
     });
 
+    console.log("New Peer signaling state before signal:", newPeer._pc.signalingState);
     if (newPeer._pc.signalingState !== "stable") {
       newPeer.signal(JSON.parse(offerData.sdp));
     } else {
