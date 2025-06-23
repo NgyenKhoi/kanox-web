@@ -119,19 +119,10 @@ function TweetCard({ tweet, onPostUpdate }) {
   const [showCommentBox, setShowCommentBox] = useState(false);
   const [isLoadingComments, setIsLoadingComments] = useState(true);
 
-  // Sử dụng useCommentAvatars để quản lý avatars của comments
   const { avatars: commentAvatars } = useCommentAvatars(comments);
 
-  // Sử dụng useMedia cho avatar của owner
-  const { mediaUrl: avatarUrl, setMediaUrl: setAvatarUrl } = useMedia(owner.id, "PROFILE", "image", (url) => {
-    if (url) setAvatarUrl(url); // Đồng bộ hóa khi có dữ liệu mới
-  });
-
-  // Sử dụng useMedia cho ảnh post
-  const { mediaUrls: imageUrls, setMediaUrls: setImageUrls } = useMedia(id, "POST", "image", (urls) => {
-    if (urls) setImageUrls(urls); // Đồng bộ hóa khi có dữ liệu mới
-  });
-
+  const { mediaUrl: avatarUrl } = useMedia(owner.id, "PROFILE", "image", handleAvatarUpdate);
+  const { mediaUrls: imageUrls } = useMedia(id, "POST", "image", handleImageUpdate);
   const { mediaUrls: videoUrls } = useMedia(id, "POST", "video");
 
   // Fetch comments
