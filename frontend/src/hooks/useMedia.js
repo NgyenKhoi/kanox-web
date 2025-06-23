@@ -1,15 +1,11 @@
 import { useState, useEffect, useContext } from "react";
-import { toast } from "react-toastify";
 import { AuthContext } from "../context/AuthContext";
+import { toast } from "react-toastify";
 
-// Local cache để lưu trữ dữ liệu media đã fetch
+// Simple in-memory cache
 const mediaCache = new Map();
 
-const useMedia = (
-  targetIds,
-  targetTypeCode = "PROFILE",
-  mediaTypeName = "image"
-) => {
+const useMedia = (targetIds, targetTypeCode = "PROFILE", mediaTypeName = "image") => {
   const [mediaData, setMediaData] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -29,66 +25,48 @@ const useMedia = (
     let isMounted = true;
     const controller = new AbortController();
 
+    const validIds = [...new Set(targetIds.filter((id) => !!id))];
+    const cacheKey = `${validIds.sort().join(",")}:${targetTypeCode}:${mediaTypeName}`;
+
     const fetchMedia = async () => {
       setLoading(true);
+      setError(null);
+
+      if (mediaCache.has(cacheKey)) {
+        setMediaData(mediaCache.get(cacheKey));
+        setLoading(false);
+        return;
+      }
+
       try {
-        if (!token) throw new Error("Vui lòng đăng nhập để tải media!");
-        if (!process.env.REACT_APP_API_URL)
-          throw new Error("API URL chưa được định nghĩa!");
-
-        const validTargetIds = targetIds.filter(
-          (id) => id && typeof id === "string"
-        );
-        if (validTargetIds.length === 0) {
-          setMediaData({});
-          return;
-        }
-
-        // Tạo key cho cache dựa trên targetIds, targetTypeCode, và mediaTypeName
-        const cacheKey = `${validTargetIds.join(",")}:${targetTypeCode}:${mediaTypeName}`;
-        if (mediaCache.has(cacheKey)) {
-          // Sử dụng dữ liệu từ cache nếu có
-          if (isMounted) {
-            setMediaData(mediaCache.get(cacheKey));
-          }
-          return;
-        }
-
-        const responses = await Promise.all(
-          validTargetIds.map((targetId) =>
-            fetch(
-              `${process.env.REACT_APP_API_URL}/media/target?targetId=${targetId}&targetTypeCode=${targetTypeCode}&mediaTypeName=${mediaTypeName}&status=true`,
-              {
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${token}`,
-                },
-                signal: controller.signal,
-              }
-            )
-          )
-        );
-
-        const mediaResults = await Promise.all(
-          responses.map(async (res) => {
-            if (!res.ok) throw new Error(`Lỗi fetch media: ${res.status}`);
-            return res.json();
-          })
-        );
-
-        const newMediaData = {};
-        mediaResults.forEach((data, index) => {
-          newMediaData[validTargetIds[index]] = Array.isArray(data?.data)
-            ? data.data.map((m) => m?.url).filter(Boolean)
-            : [];
+        const query = new URLSearchParams({
+          targetIds: validIds.join(","),
+          targetTypeCode,
+          mediaTypeName,
+          status: "true",
         });
 
-        // Lưu vào cache
-        mediaCache.set(cacheKey, newMediaData);
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/media/targets?${query}`, {
+          headers: {
+            "Content-Type": "application/json",
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
+          signal: controller.signal,
+        });
 
-        if (isMounted) {
-          setMediaData(newMediaData);
+        if (!response.ok) throw new Error(`Lỗi fetch media: ${response.status}`);
+
+        const data = await response.json();
+        const grouped = {};
+
+        for (const item of data) {
+          if (!grouped[item.id]) grouped[item.targetId] = [];
+          grouped[item.targetId].push(item.url);
         }
+
+        mediaCache.set(cacheKey, grouped);
+
+        if (isMounted) setMediaData(grouped);
       } catch (err) {
         if (err.name === "AbortError") return;
         const msg = err.message || "Lỗi khi lấy media.";
@@ -101,11 +79,12 @@ const useMedia = (
       }
     };
 
-    fetchMedia();
+    const delay = setTimeout(fetchMedia, 150);
 
     return () => {
       isMounted = false;
       controller.abort();
+      clearTimeout(delay);
     };
   }, [targetIds, targetTypeCode, mediaTypeName, token]);
 

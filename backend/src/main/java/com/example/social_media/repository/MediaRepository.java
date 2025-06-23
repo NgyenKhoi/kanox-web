@@ -12,4 +12,10 @@ public interface MediaRepository extends JpaRepository<Media, Integer> {
     List<Media> findByTargetIdAndTargetTypeIdAndMediaTypeIdAndStatus(Integer targetId, Integer targetTypeId, Integer mediaTypeId, Boolean status);
     List<Media> findByTargetIdAndTargetTypeIdAndStatus(Integer targetId, Integer targetTypeId, Boolean status);
     List<Media> findByTargetIdAndTargetTypeAndMediaTypeAndStatusTrue(Integer targetId, TargetType targetType, MediaType mediaType);
+    List<Media> findByTargetIdInAndTargetTypeIdAndMediaTypeIdAndStatus(
+        List<Integer> targetIds,
+        Integer targetTypeId,
+        Integer mediaTypeId,
+        Boolean status
+);
 }

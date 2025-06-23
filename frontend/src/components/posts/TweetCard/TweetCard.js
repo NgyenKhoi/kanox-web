@@ -119,37 +119,37 @@ function TweetCard({ tweet, onPostUpdate }) {
   const [showCommentBox, setShowCommentBox] = useState(false);
   const [isLoadingComments, setIsLoadingComments] = useState(true);
 
-  // Tách biệt API calls cho ảnh đại diện và ảnh bài đăng
+  const ownerId = owner?.id || null;
+  const postId = id || null;
+
+  // Lấy avatar (PROFILE + image)
   const { mediaData: avatarData, error: avatarError } = useMedia(
-    owner?.id ? [owner.id] : [],
+    [ownerId],
     "PROFILE",
     "image"
   );
-  const { mediaData: postImageData, error: mediaError } = useMedia(
-    id ? [id] : [],
+
+  // Lấy ảnh bài viết (POST + image)
+  const { mediaData: imageData, error: mediaError } = useMedia(
+    [postId],
     "POST",
     "image"
   );
+
   const { mediaData: videoData, error: videoError } = useMedia(
-    id ? [id] : [],
+    [postId],
     "POST",
     "video"
   );
 
-  const avatarUrl = useMemo(
-    () => (Array.isArray(avatarData[owner?.id]) ? avatarData[owner.id][0] : null),
-    [avatarData, owner?.id]
-  );
-  const imageUrls = useMemo(
-    () => (Array.isArray(postImageData[id]) ? postImageData[id] : []),
-    [postImageData, id]
-  );
-  const videoUrls = useMemo(
-    () => (Array.isArray(videoData[id]) ? videoData[id] : []),
-    [videoData, id]
-  );
+  const avatarUrl = avatarData[ownerId]?.[0] || null;
 
-  const { avatars: commentAvatars, error: commentAvatarError } = useCommentAvatars(comments);
+  const imageUrls = imageData[postId] || [];
+
+  const videoUrls = videoData[postId] || [];
+
+  const { avatars: commentAvatars, error: commentAvatarError } =
+    useCommentAvatars(comments);
 
   // Fetch comments
   useEffect(() => {
@@ -481,7 +481,9 @@ function TweetCard({ tweet, onPostUpdate }) {
               src={avatarUrl}
               style={commentAvatarStyles}
               roundedCircle
-              aria-label={`Ảnh đại diện của ${comment?.user?.displayName || "Ẩn danh"}`}
+              aria-label={`Ảnh đại diện của ${
+                comment?.user?.displayName || "Ẩn danh"
+              }`}
             />
           ) : (
             <FaUserCircle
@@ -507,7 +509,8 @@ function TweetCard({ tweet, onPostUpdate }) {
   if (avatarError || mediaError || videoError || commentAvatarError) {
     return (
       <div className="text-danger">
-        Lỗi tải media: {avatarError || mediaError || videoError || commentAvatarError}
+        Lỗi tải media:{" "}
+        {avatarError || mediaError || videoError || commentAvatarError}
       </div>
     );
   }
@@ -543,13 +546,17 @@ function TweetCard({ tweet, onPostUpdate }) {
                 >
                   {owner?.displayName || "Ẩn danh"}
                 </h6>
-                <span className="text-muted small me-1">@{owner?.username || "unknown"}</span>
+                <span className="text-muted small me-1">
+                  @{owner?.username || "unknown"}
+                </span>
                 <span className="text-muted small me-1">
                   · {moment(createdAt).fromNow()}
                 </span>
                 <OverlayTrigger
                   placement="top"
-                  overlay={<Tooltip>{renderStatusText(privacySetting)}</Tooltip>}
+                  overlay={
+                    <Tooltip>{renderStatusText(privacySetting)}</Tooltip>
+                  }
                 >
                   <span>{renderStatusIcon(privacySetting)}</span>
                 </OverlayTrigger>
@@ -580,16 +587,24 @@ function TweetCard({ tweet, onPostUpdate }) {
                           {renderStatusText(privacySetting)}
                         </Dropdown.Toggle>
                         <Dropdown.Menu>
-                          <Dropdown.Item onClick={() => handleStatusChange("public")}>
+                          <Dropdown.Item
+                            onClick={() => handleStatusChange("public")}
+                          >
                             <FaGlobeAmericas className="me-2" /> Công khai
                           </Dropdown.Item>
-                          <Dropdown.Item onClick={() => handleStatusChange("friends")}>
+                          <Dropdown.Item
+                            onClick={() => handleStatusChange("friends")}
+                          >
                             <FaUserFriends className="me-2" /> Bạn bè
                           </Dropdown.Item>
-                          <Dropdown.Item onClick={() => handleStatusChange("only_me")}>
+                          <Dropdown.Item
+                            onClick={() => handleStatusChange("only_me")}
+                          >
                             <FaLock className="me-2" /> Chỉ mình tôi
                           </Dropdown.Item>
-                          <Dropdown.Item onClick={() => handleStatusChange("custom")}>
+                          <Dropdown.Item
+                            onClick={() => handleStatusChange("custom")}
+                          >
                             <FaList className="me-2" /> Tùy chỉnh
                           </Dropdown.Item>
                         </Dropdown.Menu>

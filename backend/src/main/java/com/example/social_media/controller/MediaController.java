@@ -76,4 +76,19 @@ public class MediaController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
     }
+
+    @GetMapping("/targets")
+    public ResponseEntity<?> getMediaByTargets(
+            @RequestParam("targetIds") List<Integer> targetIds,
+            @RequestParam("targetTypeCode") String targetTypeCode,
+            @RequestParam("mediaTypeName") String mediaTypeName,
+            @RequestParam(value = "status", defaultValue = "true") Boolean status) {
+        try {
+            List<MediaDto> mediaList = mediaService.getMediaByTargetIds(targetIds, targetTypeCode, mediaTypeName,
+                    status);
+            return ResponseEntity.ok(mediaList);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body("Invalid request: " + e.getMessage());
+        }
+    }
 }
