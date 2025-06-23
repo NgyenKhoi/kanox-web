@@ -4,7 +4,7 @@ import { toast } from "react-toastify";
 
 // Simple in-memory cache
 const mediaCache = new Map();
-
+window.mediaCache = mediaCache;
 const useMedia = (
   targetIds,
   targetTypeCode = "PROFILE",
