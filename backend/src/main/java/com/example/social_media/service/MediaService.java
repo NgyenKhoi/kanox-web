@@ -208,4 +208,18 @@ public class MediaService {
                         throw new IllegalArgumentException("Loại file không được hỗ trợ: " + contentType);
                 }
         }
+
+        public List<MediaDto> getMediaByTargetIds(List<Integer> targetIds, String targetTypeCode, String mediaTypeName,
+                        Boolean status) {
+                TargetType targetType = targetTypeRepository.findByCode(targetTypeCode)
+                                .orElseThrow(() -> new IllegalArgumentException("Loại target không hợp lệ"));
+
+                MediaType mediaType = mediaTypeRepository.findByName(mediaTypeName)
+                                .orElseThrow(() -> new IllegalArgumentException("Loại media không hợp lệ"));
+
+                List<Media> mediaList = mediaRepository.findByTargetIdInAndTargetTypeIdAndMediaTypeIdAndStatus(
+                                targetIds, targetType.getId(), mediaType.getId(), status);
+
+                return mediaList.stream().map(this::toDto).collect(Collectors.toList());
+        }
 }
