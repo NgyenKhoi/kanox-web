@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react";
+import { toast } from "react-toastify";
 
 const useCommentAvatars = (comments) => {
   const [avatars, setAvatars] = useState({});
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    const controller = new AbortController();
+
     const fetchAvatars = async () => {
       try {
         setError(null);
@@ -13,7 +16,6 @@ const useCommentAvatars = (comments) => {
           return;
         }
 
-        const newAvatars = {};
         const uniqueUserIds = [
           ...new Set(
             comments
@@ -30,7 +32,13 @@ const useCommentAvatars = (comments) => {
         const responses = await Promise.all(
           uniqueUserIds.map((userId) =>
             fetch(
-              `${process.env.REACT_APP_API_URL}/media/target?targetId=${userId}&targetTypeCode=PROFILE&mediaTypeName=image&status=true`
+              `${process.env.REACT_APP_API_URL}/media/target?targetId=${userId}&targetTypeCode=PROFILE&mediaTypeName=image&status=true`,
+              {
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                signal: controller.signal,
+              }
             )
           )
         );
@@ -42,6 +50,7 @@ const useCommentAvatars = (comments) => {
           })
         );
 
+        const newAvatars = {};
         avatarResults.forEach((data, index) => {
           const mediaArray = Array.isArray(data?.data) ? data.data : [];
           newAvatars[uniqueUserIds[index]] = mediaArray[0]?.url || null;
@@ -49,12 +58,18 @@ const useCommentAvatars = (comments) => {
 
         setAvatars(newAvatars);
       } catch (err) {
-        console.error("Lỗi khi lấy avatar:", err.message);
-        setError(err.message);
+        if (err.name === "AbortError") return;
+        const msg = err.message || "Lỗi khi lấy avatar.";
+        setError(msg);
+        toast.error(msg);
       }
     };
 
     fetchAvatars();
+
+    return () => {
+      controller.abort();
+    };
   }, [comments]);
 
   return { avatars, error };

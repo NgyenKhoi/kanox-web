@@ -2,6 +2,9 @@ import { useState, useEffect, useContext } from "react";
 import { toast } from "react-toastify";
 import { AuthContext } from "../context/AuthContext";
 
+// Local cache để lưu trữ dữ liệu media đã fetch
+const mediaCache = new Map();
+
 const useMedia = (
   targetIds,
   targetTypeCode = "PROFILE",
@@ -18,22 +21,49 @@ const useMedia = (
     localStorage.getItem("token");
 
   useEffect(() => {
-    if (!targetIds || targetIds.length === 0) return;
+    if (!Array.isArray(targetIds) || targetIds.length === 0) {
+      setMediaData({});
+      return;
+    }
 
     let isMounted = true;
+    const controller = new AbortController();
 
     const fetchMedia = async () => {
       setLoading(true);
       try {
+        if (!token) throw new Error("Vui lòng đăng nhập để tải media!");
+        if (!process.env.REACT_APP_API_URL)
+          throw new Error("API URL chưa được định nghĩa!");
+
+        const validTargetIds = targetIds.filter(
+          (id) => id && typeof id === "string"
+        );
+        if (validTargetIds.length === 0) {
+          setMediaData({});
+          return;
+        }
+
+        // Tạo key cho cache dựa trên targetIds, targetTypeCode, và mediaTypeName
+        const cacheKey = `${validTargetIds.join(",")}:${targetTypeCode}:${mediaTypeName}`;
+        if (mediaCache.has(cacheKey)) {
+          // Sử dụng dữ liệu từ cache nếu có
+          if (isMounted) {
+            setMediaData(mediaCache.get(cacheKey));
+          }
+          return;
+        }
+
         const responses = await Promise.all(
-          targetIds.map((targetId) =>
+          validTargetIds.map((targetId) =>
             fetch(
               `${process.env.REACT_APP_API_URL}/media/target?targetId=${targetId}&targetTypeCode=${targetTypeCode}&mediaTypeName=${mediaTypeName}&status=true`,
               {
                 headers: {
                   "Content-Type": "application/json",
-                  ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                  Authorization: `Bearer ${token}`,
                 },
+                signal: controller.signal,
               }
             )
           )
@@ -48,18 +78,20 @@ const useMedia = (
 
         const newMediaData = {};
         mediaResults.forEach((data, index) => {
-          if (Array.isArray(data?.data)) {
-            newMediaData[targetIds[index]] = data.data
-              .map((m) => m.url)
-              .filter(Boolean);
-          }
+          newMediaData[validTargetIds[index]] = Array.isArray(data?.data)
+            ? data.data.map((m) => m?.url).filter(Boolean)
+            : [];
         });
+
+        // Lưu vào cache
+        mediaCache.set(cacheKey, newMediaData);
 
         if (isMounted) {
           setMediaData(newMediaData);
         }
       } catch (err) {
-        const msg = err.message || "Lỗi khi lấy ảnh.";
+        if (err.name === "AbortError") return;
+        const msg = err.message || "Lỗi khi lấy media.";
         if (isMounted) {
           setError(msg);
           toast.error(msg);
@@ -73,6 +105,7 @@ const useMedia = (
 
     return () => {
       isMounted = false;
+      controller.abort();
     };
   }, [targetIds, targetTypeCode, mediaTypeName, token]);
 

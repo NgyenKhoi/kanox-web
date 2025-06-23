@@ -119,36 +119,37 @@ function TweetCard({ tweet, onPostUpdate }) {
   const [showCommentBox, setShowCommentBox] = useState(false);
   const [isLoadingComments, setIsLoadingComments] = useState(true);
 
-  // Đảm bảo owner.id và id là hợp lệ trước khi truyền vào useMedia
-  const mediaImageTargets = useMemo(
-    () => (owner?.id && id ? [owner.id, id] : []),
-    [owner?.id, id]
+  // Tách biệt API calls cho ảnh đại diện và ảnh bài đăng
+  const { mediaData: avatarData, error: avatarError } = useMedia(
+    owner?.id ? [owner.id] : [],
+    "PROFILE",
+    "image"
   );
-  const { mediaData, error: mediaError } = useMedia(
-    mediaImageTargets,
+  const { mediaData: postImageData, error: mediaError } = useMedia(
+    id ? [id] : [],
     "POST",
     "image"
   );
   const { mediaData: videoData, error: videoError } = useMedia(
-    id ? [id] : [], // Truyền id dưới dạng mảng
+    id ? [id] : [],
     "POST",
     "video"
   );
 
   const avatarUrl = useMemo(
-    () => (Array.isArray(mediaData[owner?.id]) ? mediaData[owner.id][0] : null),
-    [mediaData, owner?.id]
+    () => (Array.isArray(avatarData[owner?.id]) ? avatarData[owner.id][0] : null),
+    [avatarData, owner?.id]
   );
   const imageUrls = useMemo(
-    () => (Array.isArray(mediaData[id]) ? mediaData[id] : []),
-    [mediaData, id]
+    () => (Array.isArray(postImageData[id]) ? postImageData[id] : []),
+    [postImageData, id]
   );
   const videoUrls = useMemo(
     () => (Array.isArray(videoData[id]) ? videoData[id] : []),
     [videoData, id]
   );
 
-  const { avatars: commentAvatars } = useCommentAvatars(comments);
+  const { avatars: commentAvatars, error: commentAvatarError } = useCommentAvatars(comments);
 
   // Fetch comments
   useEffect(() => {
@@ -272,7 +273,7 @@ function TweetCard({ tweet, onPostUpdate }) {
             content,
             privacySetting: newStatus,
             taggedUserIds: Array.isArray(taggedUsers)
-              ? taggedUsers.map((u) => u.id).filter(Boolean)
+              ? taggedUsers.map((u) => u?.id).filter(Boolean)
               : [],
             customListId: newStatus === "custom" ? tweet?.customListId : null,
           }),
@@ -341,6 +342,7 @@ function TweetCard({ tweet, onPostUpdate }) {
             fluid
             rounded
             onClick={() => handleImageClick(images[0])}
+            aria-label="Hình ảnh bài đăng"
           />
         </div>
       );
@@ -357,6 +359,7 @@ function TweetCard({ tweet, onPostUpdate }) {
                 fluid
                 rounded
                 onClick={() => handleImageClick(url)}
+                aria-label={`Hình ảnh bài đăng ${idx + 1}`}
               />
             </Col>
           ))}
@@ -374,6 +377,7 @@ function TweetCard({ tweet, onPostUpdate }) {
               fluid
               rounded
               onClick={() => handleImageClick(images[0])}
+              aria-label="Hình ảnh bài đăng chính"
             />
           </Col>
           <Col xs={6}>
@@ -384,6 +388,7 @@ function TweetCard({ tweet, onPostUpdate }) {
                 fluid
                 rounded
                 onClick={() => handleImageClick(images[1])}
+                aria-label="Hình ảnh bài đăng phụ 1"
               />
               <BootstrapImage
                 src={images[2]}
@@ -391,6 +396,7 @@ function TweetCard({ tweet, onPostUpdate }) {
                 fluid
                 rounded
                 onClick={() => handleImageClick(images[2])}
+                aria-label="Hình ảnh bài đăng phụ 2"
               />
             </div>
           </Col>
@@ -409,6 +415,7 @@ function TweetCard({ tweet, onPostUpdate }) {
                 fluid
                 rounded
                 onClick={() => handleImageClick(url)}
+                aria-label={`Hình ảnh bài đăng ${idx + 1}`}
               />
             </Col>
           ))}
@@ -427,6 +434,7 @@ function TweetCard({ tweet, onPostUpdate }) {
                 fluid
                 rounded
                 onClick={() => handleImageClick(url)}
+                aria-label={`Hình ảnh bài đăng ${idx + 1}`}
               />
               {idx === 3 && images.length > 4 && (
                 <div
@@ -473,11 +481,13 @@ function TweetCard({ tweet, onPostUpdate }) {
               src={avatarUrl}
               style={commentAvatarStyles}
               roundedCircle
+              aria-label={`Ảnh đại diện của ${comment?.user?.displayName || "Ẩn danh"}`}
             />
           ) : (
             <FaUserCircle
               size={32}
               style={{ marginRight: "8px", color: "#6c757d" }}
+              aria-label="Ảnh đại diện mặc định"
             />
           )}
 
@@ -494,10 +504,10 @@ function TweetCard({ tweet, onPostUpdate }) {
   };
 
   // Hiển thị lỗi nếu không tải được media
-  if (mediaError || videoError) {
+  if (avatarError || mediaError || videoError || commentAvatarError) {
     return (
       <div className="text-danger">
-        Lỗi tải media: {mediaError || videoError}
+        Lỗi tải media: {avatarError || mediaError || videoError || commentAvatarError}
       </div>
     );
   }
@@ -514,11 +524,13 @@ function TweetCard({ tweet, onPostUpdate }) {
               height={50}
               roundedCircle
               className="me-3 d-none d-md-block"
+              aria-label={`Ảnh đại diện của ${owner?.displayName || "Ẩn danh"}`}
             />
           ) : (
             <FaUserCircle
               size={50}
               className="me-3 d-none d-md-block text-secondary"
+              aria-label="Ảnh đại diện mặc định"
             />
           )}
           <div className="flex-grow-1">
@@ -531,17 +543,13 @@ function TweetCard({ tweet, onPostUpdate }) {
                 >
                   {owner?.displayName || "Ẩn danh"}
                 </h6>
-                <span className="text-muted small me-1">
-                  @{owner?.username || "unknown"}
-                </span>
+                <span className="text-muted small me-1">@{owner?.username || "unknown"}</span>
                 <span className="text-muted small me-1">
                   · {moment(createdAt).fromNow()}
                 </span>
                 <OverlayTrigger
                   placement="top"
-                  overlay={
-                    <Tooltip>{renderStatusText(privacySetting)}</Tooltip>
-                  }
+                  overlay={<Tooltip>{renderStatusText(privacySetting)}</Tooltip>}
                 >
                   <span>{renderStatusIcon(privacySetting)}</span>
                 </OverlayTrigger>
@@ -550,6 +558,7 @@ function TweetCard({ tweet, onPostUpdate }) {
                 <Dropdown.Toggle
                   variant="link"
                   className="text-muted p-1 rounded-circle"
+                  aria-label="Tùy chọn bài đăng"
                 >
                   <FaEllipsisH />
                 </Dropdown.Toggle>
@@ -571,24 +580,16 @@ function TweetCard({ tweet, onPostUpdate }) {
                           {renderStatusText(privacySetting)}
                         </Dropdown.Toggle>
                         <Dropdown.Menu>
-                          <Dropdown.Item
-                            onClick={() => handleStatusChange("public")}
-                          >
+                          <Dropdown.Item onClick={() => handleStatusChange("public")}>
                             <FaGlobeAmericas className="me-2" /> Công khai
                           </Dropdown.Item>
-                          <Dropdown.Item
-                            onClick={() => handleStatusChange("friends")}
-                          >
+                          <Dropdown.Item onClick={() => handleStatusChange("friends")}>
                             <FaUserFriends className="me-2" /> Bạn bè
                           </Dropdown.Item>
-                          <Dropdown.Item
-                            onClick={() => handleStatusChange("only_me")}
-                          >
+                          <Dropdown.Item onClick={() => handleStatusChange("only_me")}>
                             <FaLock className="me-2" /> Chỉ mình tôi
                           </Dropdown.Item>
-                          <Dropdown.Item
-                            onClick={() => handleStatusChange("custom")}
-                          >
+                          <Dropdown.Item onClick={() => handleStatusChange("custom")}>
                             <FaList className="me-2" /> Tùy chỉnh
                           </Dropdown.Item>
                         </Dropdown.Menu>
@@ -628,7 +629,12 @@ function TweetCard({ tweet, onPostUpdate }) {
               videoUrls.length > 0 &&
               videoUrls.map((url, idx) => (
                 <div key={idx} className="mb-2">
-                  <video controls width="100%" style={{ borderRadius: "12px" }}>
+                  <video
+                    controls
+                    width="100%"
+                    style={{ borderRadius: "12px" }}
+                    aria-label={`Video bài đăng ${idx + 1}`}
+                  >
                     <source src={url} type="video/mp4" />
                     Trình duyệt không hỗ trợ phát video.
                   </video>
@@ -640,7 +646,7 @@ function TweetCard({ tweet, onPostUpdate }) {
                 variant="link"
                 className="text-muted p-1 rounded-circle hover-bg-light"
                 onClick={() => setShowCommentBox((prev) => !prev)}
-                aria-label="Toggle comment box"
+                aria-label="Mở/đóng hộp bình luận"
               >
                 <FaRegComment size={18} className="me-1" />
                 {commentCount > 0 && commentCount}
@@ -648,7 +654,7 @@ function TweetCard({ tweet, onPostUpdate }) {
               <Button
                 variant="link"
                 className="text-muted p-1 rounded-circle hover-bg-light"
-                aria-label="Retweet"
+                aria-label="Chia sẻ lại"
               >
                 <FaRetweet size={18} className="me-1" />
                 {shareCount > 0 && shareCount}
@@ -661,7 +667,7 @@ function TweetCard({ tweet, onPostUpdate }) {
                   <Dropdown.Toggle
                     variant="link"
                     className="text-muted p-1 rounded-circle hover-bg-light"
-                    aria-label="Select reaction"
+                    aria-label="Chọn biểu cảm"
                   >
                     {reaction ? (
                       <span>{`${reaction} `}</span>
@@ -685,13 +691,12 @@ function TweetCard({ tweet, onPostUpdate }) {
               <Button
                 variant="link"
                 className="text-muted p-1 rounded-circle hover-bg-light"
-                aria-label="Share"
+                aria-label="Chia sẻ"
               >
                 <FaShareAlt size={18} />
               </Button>
             </div>
 
-            {/* Comment Section */}
             {showCommentBox && (
               <div style={commentSectionStyles}>
                 {renderComments()}
@@ -702,11 +707,13 @@ function TweetCard({ tweet, onPostUpdate }) {
                         src={user.avatarUrl}
                         style={commentAvatarStyles}
                         roundedCircle
+                        aria-label={`Ảnh đại diện của ${user.displayName}`}
                       />
                     ) : (
                       <FaUserCircle
                         size={32}
                         style={{ marginRight: "8px", color: "#6c757d" }}
+                        aria-label="Ảnh đại diện mặc định"
                       />
                     )}
                     <Form.Control
@@ -716,7 +723,7 @@ function TweetCard({ tweet, onPostUpdate }) {
                       onChange={(e) => setNewComment(e.target.value)}
                       style={commentInputStyles}
                       disabled={isCommenting}
-                      aria-label="Write a comment"
+                      aria-label="Viết bình luận"
                     />
                   </InputGroup>
                 </Form>
@@ -750,7 +757,7 @@ function TweetCard({ tweet, onPostUpdate }) {
             variant="dark"
             className="position-absolute top-0 end-0 m-2 rounded-circle"
             onClick={() => setShowImageModal(false)}
-            aria-label="Close image modal"
+            aria-label="Đóng modal hình ảnh"
           >
             ✕
           </Button>
@@ -759,6 +766,7 @@ function TweetCard({ tweet, onPostUpdate }) {
               src={selectedImage}
               style={enlargedImageStyles}
               fluid
+              aria-label="Hình ảnh phóng to"
             />
           )}
         </Modal.Body>
