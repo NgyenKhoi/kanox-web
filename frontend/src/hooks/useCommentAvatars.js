@@ -5,34 +5,48 @@ const useCommentAvatars = (comments) => {
 
   useEffect(() => {
     const fetchAvatars = async () => {
-      const newAvatars = {};
-      const uniqueUserIds = [...new Set(comments.map((c) => c.user.id))];
+      try {
+        const newAvatars = {};
+        const uniqueUserIds = [
+          ...new Set(comments.map((c) => c.user?.id).filter(Boolean)),
+        ];
 
-      for (const userId of uniqueUserIds) {
-        if (!newAvatars[userId]) {
-          try {
-            const res = await fetch(
+        if (uniqueUserIds.length === 0) return;
+
+        const responses = await Promise.all(
+          uniqueUserIds.map((userId) =>
+            fetch(
               `${process.env.REACT_APP_API_URL}/media/target?targetId=${userId}&targetTypeCode=PROFILE&mediaTypeName=image&status=true`
-            );
-            const data = await res.json();
-            const mediaArray = Array.isArray(data?.data) ? data.data : [];
-            newAvatars[userId] = mediaArray[0]?.url || null;
-          } catch (err) {
-            console.error("Lỗi khi lấy avatar:", err.message);
-            newAvatars[userId] = null;
-          }
-        }
-      }
+            )
+          )
+        );
 
-      setAvatars(newAvatars);
+        const avatarResults = await Promise.all(
+          responses.map(async (res) => {
+            if (!res.ok) throw new Error(`Lỗi khi fetch avatar: ${res.status}`);
+            return res.json();
+          })
+        );
+
+        avatarResults.forEach((data, index) => {
+          const mediaArray = Array.isArray(data?.data) ? data.data : [];
+          newAvatars[uniqueUserIds[index]] = mediaArray[0]?.url || null;
+        });
+
+        setAvatars(newAvatars);
+      } catch (err) {
+        console.error("Lỗi khi lấy avatar:", err.message);
+      }
     };
 
     if (comments?.length > 0) {
       fetchAvatars();
+    } else {
+      setAvatars({});
     }
   }, [comments]);
 
-  return avatars;
+  return { avatars };
 };
 
 export default useCommentAvatars;

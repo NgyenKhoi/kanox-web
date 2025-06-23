@@ -1,4 +1,9 @@
-import React, { useState, useContext, useEffect } from "react";
+import React, {
+  useState,
+  useContext,
+  useEffect,
+  useMemo,
+} from "react";
 import {
   Card,
   Button,
@@ -119,23 +124,17 @@ function TweetCard({ tweet, onPostUpdate }) {
   const [showCommentBox, setShowCommentBox] = useState(false);
   const [isLoadingComments, setIsLoadingComments] = useState(true);
 
-  const { avatars: commentAvatars } = useCommentAvatars(comments);
+  const mediaImageTargets = useMemo(() => [owner.id, id], [owner.id, id]);
+  const { mediaData } = useMedia(mediaImageTargets, "POST", "image");
 
-    // Định nghĩa hàm handleAvatarUpdate
-    const handleAvatarUpdate = (newAvatarUrl) => {
-        // Xử lý cập nhật avatar nếu cần
-        console.log("Avatar đã được cập nhật:", newAvatarUrl);
-    };
-
-    // Định nghĩa hàm handleImageUpdate
-    const handleImageUpdate = (newImageUrls) => {
-        // Xử lý cập nhật hình ảnh nếu cần
-        console.log("Hình ảnh đã được cập nhật:", newImageUrls);
-    };
-  
-  const { mediaUrl: avatarUrl } = useMedia(owner.id, "PROFILE", "image", handleAvatarUpdate);
-  const { mediaUrls: imageUrls } = useMedia(id, "POST", "image", handleImageUpdate);
+  const avatarUrl = useMemo(
+    () => mediaData[owner.id]?.[0] || null,
+    [mediaData, owner.id]
+  );
+  const imageUrls = useMemo(() => mediaData[id] || [], [mediaData, id]);
   const { mediaUrls: videoUrls } = useMedia(id, "POST", "video");
+
+   const { avatars: commentAvatars } = useCommentAvatars(comments);
 
   // Fetch comments
   useEffect(() => {
@@ -160,7 +159,6 @@ function TweetCard({ tweet, onPostUpdate }) {
         setIsLoadingComments(false);
       }
     };
-
     fetchComments();
   }, [id]);
 
