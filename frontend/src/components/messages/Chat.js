@@ -71,7 +71,6 @@ const Chat = ({ chatId }) => {
         return null;
       }
 
-      // Dừng stream cũ trước khi khởi tạo mới
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((t) => t.stop());
         streamRef.current = null;
@@ -101,6 +100,16 @@ const Chat = ({ chatId }) => {
     if (!token || !user || !chatId) {
       toast.error("Vui lòng đăng nhập để sử dụng chat.");
       return;
+    }
+
+    // Làm sạch khi mount hoặc chatId thay đổi
+    if (peerRef.current) {
+      peerRef.current.destroy();
+      peerRef.current = null;
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
     }
 
     fetch(`${process.env.REACT_APP_API_URL}/chat/${chatId}`, {
@@ -153,7 +162,7 @@ const Chat = ({ chatId }) => {
         const data = JSON.parse(signal.body);
         console.log("Received signal:", data);
         if (data.type === "offer" && data.userId !== user?.id) {
-          localStorage.removeItem("lastOffer"); // Xóa offer cũ
+          localStorage.removeItem("lastOffer");
           localStorage.setItem("lastOffer", JSON.stringify(data));
           setShowCallModal(true);
         } else if (data.type === "answer" && peerRef.current && data.userId !== user?.id) {
@@ -229,7 +238,8 @@ const Chat = ({ chatId }) => {
 
     client.activate();
 
-    initializeMediaStream();
+    // Không gọi initializeMediaStream() khi mount, chỉ gọi khi cần
+    // initializeMediaStream(); // Bỏ dòng này để tránh khởi tạo ngầm
 
     return () => {
       console.log("Cleaning up WebSocket...");
@@ -291,7 +301,6 @@ const Chat = ({ chatId }) => {
       return;
     }
 
-    // Làm sạch và khởi tạo lại stream
     if (peerRef.current) {
       peerRef.current.destroy();
       peerRef.current = null;
@@ -409,7 +418,6 @@ const Chat = ({ chatId }) => {
       return;
     }
 
-    // Làm sạch và khởi tạo lại stream
     if (peerRef.current) {
       peerRef.current.destroy();
       peerRef.current = null;

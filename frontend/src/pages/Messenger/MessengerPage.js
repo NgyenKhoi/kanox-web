@@ -155,18 +155,12 @@ function MessengerPage() {
       const token = sessionStorage.getItem("token") || localStorage.getItem("token");
       // Gọi API để lấy tin nhắn và đánh dấu là đã đọc
       await fetch(`${process.env.REACT_APP_API_URL}/chat/messages/${chatId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
       // Cập nhật unread count
       const response = await fetch(
           `${process.env.REACT_APP_API_URL}/chat/messages/unread-count`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
+          { headers: { Authorization: `Bearer ${token}` } }
       );
       if (response.ok) {
         const messageData = await response.json();
@@ -181,6 +175,8 @@ function MessengerPage() {
             })
         );
       }
+      // Gửi sự kiện làm sạch Chat component
+      window.dispatchEvent(new CustomEvent("chatSwitch", { detail: { chatId } }));
     } catch (error) {
       console.error("Error fetching messages or unread count:", error);
     }
@@ -303,6 +299,16 @@ function MessengerPage() {
       stompRef.current?.deactivate();
     };
   }, [token, user, navigate, selectedChatId]);
+
+  useEffect(() => {
+    const handleChatSwitch = () => {
+      // Logic làm sạch nếu cần, hiện tại chỉ log để debug
+      console.log("Switching chat, cleaning up previous state if any...");
+      // Có thể gọi API hoặc gửi tín hiệu để hủy cuộc gọi cũ nếu cần
+    };
+    window.addEventListener("chatSwitch", handleChatSwitch);
+    return () => window.removeEventListener("chatSwitch", handleChatSwitch);
+  }, []);
 
   const filteredChats = chats.filter((chat) => {
     const chatName = chat.name ? chat.name.toLowerCase() : "";
