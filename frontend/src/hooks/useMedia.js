@@ -50,11 +50,11 @@ const useMedia = (
       setLoading(true);
       setError(null);
 
-      if (mediaCache.has(cacheKey)) {
-        setMediaData(mediaCache.get(cacheKey));
-        setLoading(false);
-        return;
-      }
+      // if (mediaCache.has(cacheKey)) {
+      //   setMediaData(mediaCache.get(cacheKey));
+      //   setLoading(false);
+      //   return;
+      // }
 
       try {
         const query = new URLSearchParams({
@@ -63,7 +63,7 @@ const useMedia = (
           mediaTypeName,
           status: "true",
         });
-
+        console.log("🚀 GỌI FETCH:", query.toString());
         const response = await fetch(
           `${process.env.REACT_APP_API_URL}/media/targets?${query}`,
           {
