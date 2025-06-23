@@ -33,7 +33,7 @@ const Chat = ({ chatId }) => {
   const [messageToDelete, setMessageToDelete] = useState(null);
   const [recipientName, setRecipientName] = useState("");
   const [showCallPanel, setShowCallPanel] = useState(false);
-  const [callSessionId, setCallSessionId] = useState(null); // Thêm trạng thái để lưu callSessionId
+  const [callSessionId, setCallSessionId] = useState(null);
 
   const stompRef = useRef(null);
   const peerRef = useRef(null);
@@ -48,9 +48,7 @@ const Chat = ({ chatId }) => {
     try {
       const response = await fetch(
           `${process.env.REACT_APP_API_URL}/chat/messages/unread-count`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
+          { headers: { Authorization: `Bearer ${token}` } }
       );
       if (response.ok) {
         const messageData = await response.json();
@@ -62,6 +60,31 @@ const Chat = ({ chatId }) => {
       }
     } catch (error) {
       console.error("Error fetching unread count:", error);
+    }
+  };
+
+  const initializeMediaStream = async () => {
+    try {
+      const permissionStatus = await navigator.permissions.query({ name: "camera" });
+      if (permissionStatus.state !== "granted") {
+        toast.info("Vui lòng cấp quyền truy cập camera để bắt đầu cuộc gọi.");
+      }
+
+      const streamPromise = navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("Timeout waiting for camera stream")), 10000);
+      });
+
+      const stream = await Promise.race([streamPromise, timeoutPromise]);
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+        console.log("Local video stream started");
+      }
+    } catch (err) {
+      console.error("Error accessing media devices:", err);
+      toast.error("Không thể truy cập camera/microphone: " + err.message);
     }
   };
 
@@ -125,10 +148,10 @@ const Chat = ({ chatId }) => {
           setShowCallModal(true);
         } else if (data.type === "answer" && peerRef.current) {
           console.log("Received answer signal:", data.sdp);
-          peerRef.current.signal(data.sdp);
+          peerRef.current.signal(JSON.parse(data.sdp));
         } else if (data.type === "ice-candidate" && peerRef.current) {
           console.log("Received ICE candidate:", data.candidate);
-          peerRef.current.signal(data.candidate); // Sử dụng signal thay vì addIceCandidate
+          peerRef.current.signal({ candidate: data.candidate });
         } else if (data.type === "end") {
           console.log("Call ended by remote user");
           leaveCall();
@@ -149,14 +172,15 @@ const Chat = ({ chatId }) => {
 
       client.publish({
         destination: "/app/resend",
-        body: JSON.stringify({ chatId }),
+        body: JSON.stringify({ chatId: Number(chatId) }),
       });
 
       const pingInterval = setInterval(() => {
         if (stompRef.current && stompRef.current.connected) {
+          console.log("Sending ping");
           stompRef.current.publish({
             destination: "/app/ping",
-            body: JSON.stringify({ status: "ping" }),
+            body: null,
           });
         }
       }, 30000);
@@ -191,19 +215,7 @@ const Chat = ({ chatId }) => {
 
     client.activate();
 
-    navigator.mediaDevices
-        .getUserMedia({ video: true, audio: true })
-        .then((stream) => {
-          streamRef.current = stream;
-          if (videoRef.current) {
-            videoRef.current.srcObject = stream;
-            videoRef.current.play().catch((err) => console.error("Error playing local video:", err));
-          }
-        })
-        .catch((err) => {
-          console.error("Error accessing media devices:", err);
-          toast.error("Không thể truy cập camera/microphone.");
-        });
+    initializeMediaStream();
 
     return () => {
       console.log("Cleaning up WebSocket...");
@@ -223,7 +235,7 @@ const Chat = ({ chatId }) => {
 
   const sendMessage = () => {
     if (!message.trim() || !stompRef.current?.connected) return;
-    const msg = { chatId, senderId: user.id, content: message, typeId: 1 };
+    const msg = { chatId: Number(chatId), senderId: user.id, content: message, typeId: 1 };
     stompRef.current.publish({
       destination: "/app/sendMessage",
       body: JSON.stringify(msg),
@@ -231,8 +243,9 @@ const Chat = ({ chatId }) => {
     setMessage("");
     stompRef.current.publish({
       destination: "/app/typing",
-      body: JSON.stringify({ chatId, userId: user.id, isTyping: false }),
+      body: JSON.stringify({ chatId: Number(chatId), userId: user.id, isTyping: false }),
     });
+    console.log("Sent message:", msg);
   };
 
   const handleKeyPress = (e) => {
@@ -246,8 +259,9 @@ const Chat = ({ chatId }) => {
     if (stompRef.current?.connected && message.length > 0) {
       stompRef.current.publish({
         destination: "/app/typing",
-        body: JSON.stringify({ chatId, userId: user.id, isTyping: true }),
+        body: JSON.stringify({ chatId: Number(chatId), userId: user.id, isTyping: true }),
       });
+      console.log("Sent typing status");
     }
   };
 
@@ -267,15 +281,22 @@ const Chat = ({ chatId }) => {
       }
       const callSession = await response.json();
       console.log("Call session started:", callSession);
-      setCallSessionId(callSession.id); // Lưu callSessionId
+      setCallSessionId(callSession.id);
 
       setShowCallPanel(true);
 
       const newPeer = new Peer({
         initiator: true,
-        trickle: true, // Bật trickle để gửi ICE candidate ngay lập tức
+        trickle: true,
         stream: streamRef.current,
-        config: { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] },
+        config: {
+          iceServers: [
+            { urls: "stun:stun.l.google.com:19302" },
+            // Thêm TURN server nếu có
+            // { urls: "turn:your-turn-server", username: "username", credential: "password" }
+          ],
+        },
+        debug: true,
       });
 
       newPeer.on("signal", (signalData) => {
@@ -284,12 +305,24 @@ const Chat = ({ chatId }) => {
           if (signalData.type === "offer") {
             stompRef.current.publish({
               destination: "/app/call/offer",
-              body: JSON.stringify({ chatId, type: "offer", sdp: signalData, userId: user.id }),
+              body: JSON.stringify({
+                chatId: Number(chatId),
+                type: "offer",
+                sdp: JSON.stringify(signalData),
+                userId: Number(user.id),
+                candidate: null,
+              }),
             });
           } else if (signalData.candidate) {
             stompRef.current.publish({
               destination: "/app/call/ice-candidate",
-              body: JSON.stringify({ chatId, type: "ice-candidate", candidate: signalData, userId: user.id }),
+              body: JSON.stringify({
+                chatId: Number(chatId),
+                type: "ice-candidate",
+                candidate: signalData.candidate,
+                userId: Number(user.id),
+                sdp: null,
+              }),
             });
           }
         } else {
@@ -336,23 +369,47 @@ const Chat = ({ chatId }) => {
 
     const newPeer = new Peer({
       initiator: false,
-      trickle: true, // Bật trickle để gửi ICE candidate ngay lập tức
+      trickle: true,
       stream: streamRef.current,
-      config: { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] },
+      config: {
+        iceServers: [
+          { urls: "stun:stun.l.google.com:19302" },
+          // Thêm TURN server nếu có
+          // { urls: "turn:your-turn-server", username: "username", credential: "password" }
+        ],
+      },
+      debug: true,
     });
 
     newPeer.on("signal", (signalData) => {
       console.log("Sending signal data:", signalData);
-      if (signalData.type === "answer") {
-        stompRef.current.publish({
-          destination: "/app/call/answer",
-          body: JSON.stringify({ chatId, type: "answer", sdp: signalData, userId: user.id }),
-        });
-      } else if (signalData.candidate) {
-        stompRef.current.publish({
-          destination: "/app/call/ice-candidate",
-          body: JSON.stringify({ chatId, type: "ice-candidate", candidate: signalData, userId: user.id }),
-        });
+      if (stompRef.current?.connected) {
+        if (signalData.type === "answer") {
+          stompRef.current.publish({
+            destination: "/app/call/answer",
+            body: JSON.stringify({
+              chatId: Number(chatId),
+              type: "answer",
+              sdp: JSON.stringify(signalData),
+              userId: Number(user.id),
+              candidate: null,
+            }),
+          });
+        } else if (signalData.candidate) {
+          stompRef.current.publish({
+            destination: "/app/call/ice-candidate",
+            body: JSON.stringify({
+              chatId: Number(chatId),
+              type: "ice-candidate",
+              candidate: signalData.candidate,
+              userId: Number(user.id),
+              sdp: null,
+            }),
+          });
+        }
+      } else {
+        console.error("WebSocket not connected");
+        toast.error("Không thể gửi tín hiệu cuộc gọi do mất kết nối WebSocket.");
       }
     });
 
@@ -373,7 +430,7 @@ const Chat = ({ chatId }) => {
       toast.error("Lỗi trong quá trình gọi video.");
     });
 
-    newPeer.signal(offerData.sdp);
+    newPeer.signal(JSON.parse(offerData.sdp));
     peerRef.current = newPeer;
     setShowCallPanel(true);
     setShowCallModal(false);
@@ -385,9 +442,15 @@ const Chat = ({ chatId }) => {
       peerRef.current = null;
     }
     if (stompRef.current?.connected && callSessionId) {
+      const payload = {
+        chatId: Number(chatId),
+        callSessionId: Number(callSessionId),
+        userId: Number(user.id),
+      };
+      console.log("Sending call end signal:", payload);
       stompRef.current.publish({
         destination: "/app/call/end",
-        body: JSON.stringify({ chatId, callSessionId, userId: user.id }),
+        body: JSON.stringify(payload),
       });
     }
     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
@@ -480,6 +543,8 @@ const Chat = ({ chatId }) => {
                       ref={videoRef}
                       autoPlay
                       muted
+                      onLoadedMetadata={() => console.log("Local video metadata loaded")}
+                      onError={(e) => console.error("Local video error:", e)}
                       style={{ width: "100%", borderRadius: 8, backgroundColor: "#000" }}
                   />
                   <div className="mt-2 d-flex justify-content-around">
@@ -516,6 +581,8 @@ const Chat = ({ chatId }) => {
                   <video
                       ref={remoteVideoRef}
                       autoPlay
+                      onLoadedMetadata={() => console.log("Remote video metadata loaded")}
+                      onError={(e) => console.error("Remote video error:", e)}
                       style={{ width: "100%", borderRadius: 8, backgroundColor: "#000" }}
                   />
                   <Button variant="danger" className="w-100 mt-2" onClick={leaveCall}>
