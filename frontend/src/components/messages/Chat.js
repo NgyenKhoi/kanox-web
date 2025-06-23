@@ -68,6 +68,13 @@ const Chat = ({ chatId }) => {
       const permissionStatus = await navigator.permissions.query({ name: "camera" });
       if (permissionStatus.state !== "granted") {
         toast.info("Vui lòng cấp quyền truy cập camera để bắt đầu cuộc gọi.");
+        return null;
+      }
+
+      // Dừng stream cũ trước khi khởi tạo mới
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((t) => t.stop());
+        streamRef.current = null;
       }
 
       const streamPromise = navigator.mediaDevices.getUserMedia({ video: true, audio: true });
@@ -80,11 +87,13 @@ const Chat = ({ chatId }) => {
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
-        console.log("Local video stream started");
+        console.log("Local video stream started with stream id:", stream.id);
       }
+      return stream;
     } catch (err) {
       console.error("Error accessing media devices:", err);
       toast.error("Không thể truy cập camera/microphone: " + err.message);
+      return null;
     }
   };
 
@@ -144,6 +153,7 @@ const Chat = ({ chatId }) => {
         const data = JSON.parse(signal.body);
         console.log("Received signal:", data);
         if (data.type === "offer" && data.userId !== user?.id) {
+          localStorage.removeItem("lastOffer"); // Xóa offer cũ
           localStorage.setItem("lastOffer", JSON.stringify(data));
           setShowCallModal(true);
         } else if (data.type === "answer" && peerRef.current && data.userId !== user?.id) {
@@ -226,8 +236,14 @@ const Chat = ({ chatId }) => {
       subscriptionsRef.current.forEach((s) => s.unsubscribe());
       stompRef.current?.deactivate();
       if (socketRef.current) socketRef.current.close();
-      peerRef.current?.destroy();
-      streamRef.current?.getTracks().forEach((t) => t.stop());
+      if (peerRef.current) {
+        peerRef.current.destroy();
+        peerRef.current = null;
+      }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((t) => t.stop());
+        streamRef.current = null;
+      }
     };
   }, [chatId, user, token]);
 
@@ -270,15 +286,20 @@ const Chat = ({ chatId }) => {
   };
 
   const startCall = async () => {
-    if (!streamRef.current || !stompRef.current?.connected) {
-      toast.error("Không thể bắt đầu cuộc gọi. Vui lòng kiểm tra kết nối hoặc thiết bị media.");
+    if (!stompRef.current?.connected) {
+      toast.error("Không thể bắt đầu cuộc gọi. Vui lòng kiểm tra kết nối WebSocket.");
       return;
     }
 
-    // Làm sạch peer cũ trước khi khởi tạo
+    // Làm sạch và khởi tạo lại stream
     if (peerRef.current) {
       peerRef.current.destroy();
       peerRef.current = null;
+    }
+    const newStream = await initializeMediaStream();
+    if (!newStream) {
+      toast.error("Không thể khởi tạo stream media. Vui lòng kiểm tra camera/microphone.");
+      return;
     }
 
     try {
@@ -298,11 +319,11 @@ const Chat = ({ chatId }) => {
       const newPeer = new Peer({
         initiator: true,
         trickle: true,
-        stream: streamRef.current,
+        stream: newStream,
         config: {
           iceServers: [
             { urls: "stun:stun.l.google.com:19302" },
-            // Thêm TURN server nếu có
+            // Thêm TURN server nếu cần
             // { urls: "turn:your-turn-server", username: "username", credential: "password" }
           ],
           iceTransportPolicy: "all",
@@ -313,12 +334,12 @@ const Chat = ({ chatId }) => {
         debug: true,
       });
 
-      let hasReceivedAnswer = false; // Theo dõi trạng thái answer
+      let hasReceivedAnswer = false;
 
       newPeer.on("signal", (signalData) => {
         if (hasReceivedAnswer && signalData.type === "answer") {
           console.log("Skipping duplicate answer signal");
-          return; // Bỏ qua tín hiệu answer trùng lặp
+          return;
         }
 
         console.log("Sending signal data:", signalData);
@@ -362,14 +383,13 @@ const Chat = ({ chatId }) => {
 
       newPeer.on("connect", () => {
         console.log("Peer connection established");
-        hasReceivedAnswer = true; // Đánh dấu đã thiết lập kết nối
+        hasReceivedAnswer = true;
       });
 
       newPeer.on("error", (err) => {
         console.error("Peer error:", err);
         if (err.message.includes("InvalidStateError")) {
           console.log("Ignoring InvalidStateError due to state mismatch");
-          // Không hiển thị toast.error cho lỗi này
         } else {
           toast.error("Lỗi trong quá trình gọi video: " + err.message);
         }
@@ -382,39 +402,40 @@ const Chat = ({ chatId }) => {
     }
   };
 
-  const handleOffer = () => {
-    if (!streamRef.current || !stompRef.current?.connected) {
-      toast.error("Không thể nhận cuộc gọi. Vui lòng kiểm tra kết nối hoặc thiết bị media.");
-      setShowCallModal(false); // Đảm bảo đóng modal nếu không thể tiếp tục
+  const handleOffer = async () => {
+    if (!stompRef.current?.connected) {
+      toast.error("Không thể nhận cuộc gọi. Vui lòng kiểm tra kết nối WebSocket.");
+      setShowCallModal(false);
       return;
     }
 
-    // Làm sạch peer và stream cũ trước khi khởi tạo
+    // Làm sạch và khởi tạo lại stream
     if (peerRef.current) {
       peerRef.current.destroy();
       peerRef.current = null;
     }
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((t) => t.stop());
-      streamRef.current = null;
-      initializeMediaStream().catch((err) => console.error("Error reinitializing stream:", err));
+    const newStream = await initializeMediaStream();
+    if (!newStream) {
+      toast.error("Không thể khởi tạo stream media. Vui lòng kiểm tra camera/microphone.");
+      setShowCallModal(false);
+      return;
     }
 
     const offerData = JSON.parse(localStorage.getItem("lastOffer") || "{}");
     if (!offerData.sdp) {
       toast.error("Dữ liệu cuộc gọi không hợp lệ.");
-      setShowCallModal(false); // Đảm bảo đóng modal nếu dữ liệu không hợp lệ
+      setShowCallModal(false);
       return;
     }
 
     const newPeer = new Peer({
       initiator: false,
       trickle: true,
-      stream: streamRef.current,
+      stream: newStream,
       config: {
         iceServers: [
           { urls: "stun:stun.l.google.com:19302" },
-          // Thêm TURN server nếu có
+          // Thêm TURN server nếu cần
           // { urls: "turn:your-turn-server", username: "username", credential: "password" }
         ],
         iceTransportPolicy: "all",
@@ -425,12 +446,12 @@ const Chat = ({ chatId }) => {
       debug: true,
     });
 
-    let hasSentAnswer = false; // Theo dõi trạng thái answer
+    let hasSentAnswer = false;
 
     newPeer.on("signal", (signalData) => {
       if (hasSentAnswer && signalData.type === "answer") {
         console.log("Skipping duplicate answer signal");
-        return; // Bỏ qua tín hiệu answer trùng lặp
+        return;
       }
 
       console.log("Sending signal data:", signalData);
@@ -446,7 +467,7 @@ const Chat = ({ chatId }) => {
               candidate: null,
             }),
           });
-          hasSentAnswer = true; // Đánh dấu đã gửi answer
+          hasSentAnswer = true;
         } else if (signalData.candidate) {
           stompRef.current.publish({
             destination: "/app/call/ice-candidate",
@@ -471,36 +492,35 @@ const Chat = ({ chatId }) => {
         remoteVideoRef.current.srcObject = remoteStream;
         remoteVideoRef.current.play().catch((err) => console.error("Error playing remote video:", err));
       }
-      setShowCallModal(false); // Đóng modal khi stream được nhận
+      setShowCallModal(false);
     });
 
     newPeer.on("connect", () => {
       console.log("Peer connection established");
-      setShowCallModal(false); // Đóng modal khi kết nối thành công
+      setShowCallModal(false);
     });
 
     newPeer.on("error", (err) => {
       console.error("Peer error:", err);
       if (err.message.includes("InvalidStateError")) {
         console.log("Ignoring InvalidStateError due to state mismatch");
-        setShowCallModal(false); // Đóng modal nếu có lỗi InvalidStateError
+        setShowCallModal(false);
       } else {
         toast.error("Lỗi trong quá trình gọi video: " + err.message);
-        setShowCallModal(false); // Đóng modal nếu có lỗi khác
+        setShowCallModal(false);
       }
     });
 
-    // Kiểm tra signalingState trước khi xử lý offer
     if (newPeer._pc.signalingState !== "stable") {
       newPeer.signal(JSON.parse(offerData.sdp));
     } else {
       console.log("Skipping offer signal: connection already stable");
-      setShowCallModal(false); // Đóng modal nếu trạng thái không hợp lệ
+      setShowCallModal(false);
+      toast.error("Không thể nhận cuộc gọi do trạng thái kết nối không hợp lệ.");
       return;
     }
     peerRef.current = newPeer;
     setShowCallPanel(true);
-    // setShowCallModal(false) được gọi trong các sự kiện on('stream', 'connect', 'error')
   };
 
   const leaveCall = () => {
