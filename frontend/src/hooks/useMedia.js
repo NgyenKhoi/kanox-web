@@ -5,7 +5,11 @@ import { toast } from "react-toastify";
 // Simple in-memory cache
 const mediaCache = new Map();
 
-const useMedia = (targetIds, targetTypeCode = "PROFILE", mediaTypeName = "image") => {
+const useMedia = (
+  targetIds,
+  targetTypeCode = "PROFILE",
+  mediaTypeName = "image"
+) => {
   const [mediaData, setMediaData] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -26,7 +30,9 @@ const useMedia = (targetIds, targetTypeCode = "PROFILE", mediaTypeName = "image"
     const controller = new AbortController();
 
     const validIds = [...new Set(targetIds.filter((id) => !!id))];
-    const cacheKey = `${validIds.sort().join(",")}:${targetTypeCode}:${mediaTypeName}`;
+    const cacheKey = `${validIds
+      .sort()
+      .join(",")}:${targetTypeCode}:${mediaTypeName}`;
 
     const fetchMedia = async () => {
       setLoading(true);
@@ -46,21 +52,25 @@ const useMedia = (targetIds, targetTypeCode = "PROFILE", mediaTypeName = "image"
           status: "true",
         });
 
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/media/targets?${query}`, {
-          headers: {
-            "Content-Type": "application/json",
-            ...(token && { Authorization: `Bearer ${token}` }),
-          },
-          signal: controller.signal,
-        });
+        const response = await fetch(
+          `${process.env.REACT_APP_API_URL}/media/targets?${query}`,
+          {
+            headers: {
+              "Content-Type": "application/json",
+              ...(token && { Authorization: `Bearer ${token}` }),
+            },
+            signal: controller.signal,
+          }
+        );
 
-        if (!response.ok) throw new Error(`Lỗi fetch media: ${response.status}`);
+        if (!response.ok)
+          throw new Error(`Lỗi fetch media: ${response.status}`);
 
         const data = await response.json();
         const grouped = {};
 
         for (const item of data) {
-          if (!grouped[item.id]) grouped[item.targetId] = [];
+          if (!grouped[item.targetId]) grouped[item.targetId] = [];
           grouped[item.targetId].push(item.url);
         }
 
