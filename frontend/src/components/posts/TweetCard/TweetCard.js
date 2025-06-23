@@ -125,7 +125,6 @@ function TweetCard({ tweet, onPostUpdate }) {
   console.log("🐛 tweet:", tweet);
   console.log("🐛 tweet.id:", tweet?.id);
   console.log("🐛 owner.id:", tweet?.owner?.id);
-  
 
   // Lấy avatar (PROFILE + image)
   const { mediaData: avatarData, error: avatarError } = useMedia(
@@ -147,18 +146,12 @@ function TweetCard({ tweet, onPostUpdate }) {
     "video"
   );
 
-  const avatarUrl = avatarData[ownerId]?.[0] || null;
-
-  const imageUrls = imageData[postId] || [];
-
-  const videoUrls = videoData[postId] || [];
+  const avatarUrl = avatarData?.[ownerId]?.[0] || null;
+  const imageUrls = imageData?.[postId] || [];
+  const videoUrls = videoData?.[postId] || [];
 
   const { avatars: commentAvatars, error: commentAvatarError } =
     useCommentAvatars(comments);
-    
-
-  console.log("TweetCard ownerId:", owner?.id);
-  console.log("TweetCard postId:", id);
   // Fetch comments
   useEffect(() => {
     const fetchComments = async () => {

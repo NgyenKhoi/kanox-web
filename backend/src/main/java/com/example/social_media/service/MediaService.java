@@ -3,14 +3,15 @@ package com.example.social_media.service;
 import com.example.social_media.dto.media.MediaDto;
 import com.example.social_media.entity.*;
 import com.example.social_media.repository.*;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -21,22 +22,33 @@ public class MediaService {
         private final MediaTypeRepository mediaTypeRepository;
         private final TargetTypeRepository targetTypeRepository;
         private final GcsService gcsService;
+        private final RedisTemplate<String, List<MediaDto>> redisTemplate;
 
         private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
                         "image/jpeg", "image/jpg",
                         "video/mp4",
                         "audio/mpeg");
 
+        private static final Duration CACHE_TTL = Duration.ofMinutes(10);
+
         public MediaService(MediaRepository mediaRepository,
                         UserRepository userRepository,
                         MediaTypeRepository mediaTypeRepository,
                         TargetTypeRepository targetTypeRepository,
-                        GcsService gcsService) {
+                        GcsService gcsService,
+                        RedisTemplate<String, List<MediaDto>> redisTemplate) {
                 this.mediaRepository = mediaRepository;
                 this.userRepository = userRepository;
                 this.mediaTypeRepository = mediaTypeRepository;
                 this.targetTypeRepository = targetTypeRepository;
                 this.gcsService = gcsService;
+                this.redisTemplate = redisTemplate;
+        }
+
+        private String buildCacheKey(List<Integer> targetIds, String targetTypeCode, String mediaTypeName) {
+                List<Integer> sortedIds = new ArrayList<>(targetIds);
+                Collections.sort(sortedIds);
+                return String.format("media:%s:%s:%s", sortedIds.toString(), targetTypeCode, mediaTypeName);
         }
 
         public MediaDto uploadMedia(Integer userId, Integer targetId, String targetTypeCode, String mediaTypeName,
@@ -211,6 +223,12 @@ public class MediaService {
 
         public List<MediaDto> getMediaByTargetIds(List<Integer> targetIds, String targetTypeCode, String mediaTypeName,
                         Boolean status) {
+                String cacheKey = buildCacheKey(targetIds, targetTypeCode, mediaTypeName);
+
+                List<MediaDto> cached = redisTemplate.opsForValue().get(cacheKey);
+                if (cached != null)
+                        return cached;
+
                 TargetType targetType = targetTypeRepository.findByCode(targetTypeCode)
                                 .orElseThrow(() -> new IllegalArgumentException("Loại target không hợp lệ"));
 
@@ -220,6 +238,8 @@ public class MediaService {
                 List<Media> mediaList = mediaRepository.findByTargetIdInAndTargetTypeIdAndMediaTypeIdAndStatus(
                                 targetIds, targetType.getId(), mediaType.getId(), status);
 
-                return mediaList.stream().map(this::toDto).collect(Collectors.toList());
+                List<MediaDto> dtoList = mediaList.stream().map(this::toDto).collect(Collectors.toList());
+                redisTemplate.opsForValue().set(cacheKey, dtoList, CACHE_TTL);
+                return dtoList;
         }
 }

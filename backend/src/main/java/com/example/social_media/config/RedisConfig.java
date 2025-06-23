@@ -1,5 +1,6 @@
 package com.example.social_media.config;
 
+import com.example.social_media.dto.media.MediaDto;
 import com.example.social_media.dto.message.MessageDto;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -12,22 +13,34 @@ import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
+import java.util.List;
+
 @Configuration
 public class RedisConfig {
 
+    // RedisTemplate cho chat: String -> MessageDto
     @Bean
-    public RedisTemplate<String, MessageDto> redisTemplate(RedisConnectionFactory connectionFactory) {
+    public RedisTemplate<String, MessageDto> redisMessageTemplate(RedisConnectionFactory connectionFactory, ObjectMapper objectMapper) {
         RedisTemplate<String, MessageDto> template = new RedisTemplate<>();
         template.setConnectionFactory(connectionFactory);
-        // Sử dụng ObjectMapper với JavaTimeModule
-        ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
-        template.setValueSerializer(new GenericJackson2JsonRedisSerializer(objectMapper));
         template.setKeySerializer(new StringRedisSerializer());
+        template.setValueSerializer(new GenericJackson2JsonRedisSerializer(objectMapper));
         template.afterPropertiesSet();
         return template;
     }
 
+    // RedisTemplate cho media: String -> List<MediaDto>
+    @Bean
+    public RedisTemplate<String, List<MediaDto>> redisMediaTemplate(RedisConnectionFactory connectionFactory, ObjectMapper objectMapper) {
+        RedisTemplate<String, List<MediaDto>> template = new RedisTemplate<>();
+        template.setConnectionFactory(connectionFactory);
+        template.setKeySerializer(new StringRedisSerializer());
+        template.setValueSerializer(new GenericJackson2JsonRedisSerializer(objectMapper));
+        template.afterPropertiesSet();
+        return template;
+    }
+
+    // Đăng ký Redis Pub/Sub cho chat
     @Bean
     public RedisMessageListenerContainer container(RedisConnectionFactory connectionFactory, RedisMessageSubscriber subscriber) {
         RedisMessageListenerContainer container = new RedisMessageListenerContainer();
@@ -36,6 +49,7 @@ public class RedisConfig {
         return container;
     }
 
+    // ObjectMapper dùng chung
     @Bean
     public ObjectMapper objectMapper() {
         ObjectMapper mapper = new ObjectMapper();
