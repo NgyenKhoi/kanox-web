@@ -146,11 +146,16 @@ const Chat = ({ chatId }) => {
         if (data.type === "offer" && data.userId !== user?.id) {
           localStorage.setItem("lastOffer", JSON.stringify(data));
           setShowCallModal(true);
-        } else if (data.type === "answer" && peerRef.current && !data.processed) {
+        } else if (data.type === "answer" && peerRef.current && data.userId !== user?.id) {
+          // SỬA: Chỉ xử lý answer từ người khác, kiểm tra signalingState
           console.log("Received answer signal:", data.sdp);
-          peerRef.current.signal(JSON.parse(data.sdp));
-          data.processed = true; // Đánh dấu tín hiệu đã được xử lý
-        } else if (data.type === "ice-candidate" && peerRef.current) {
+          if (peerRef.current._pc.signalingState !== "stable") {
+            peerRef.current.signal(JSON.parse(data.sdp));
+          } else {
+            console.log("Skipping answer signal: connection already stable");
+          }
+        } else if (data.type === "ice-candidate" && peerRef.current && data.userId !== user?.id) {
+          // SỬA: Chỉ xử lý ICE candidate từ người khác
           console.log("Received ICE candidate:", data.candidate);
           peerRef.current.signal({ candidate: data.candidate });
         } else if (data.type === "end") {
@@ -457,7 +462,13 @@ const Chat = ({ chatId }) => {
       }
     });
 
-    newPeer.signal(JSON.parse(offerData.sdp));
+    // SỬA: Kiểm tra signalingState trước khi xử lý offer
+    if (newPeer._pc.signalingState !== "stable") {
+      newPeer.signal(JSON.parse(offerData.sdp));
+    } else {
+      console.log("Skipping offer signal: connection already stable");
+      return;
+    }
     peerRef.current = newPeer;
     setShowCallPanel(true);
     setShowCallModal(false);
