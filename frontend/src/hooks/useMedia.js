@@ -17,14 +17,13 @@ const useMedia = (targetIds, targetTypeCode = "PROFILE", mediaTypeName = "image"
     localStorage.getItem("token");
 
   useEffect(() => {
-    if (!Array.isArray(targetIds) || targetIds.length === 0) {
-      setMediaData({});
-      return;
-    }
+    const validIds = Array.isArray(targetIds)
+      ? [...new Set(targetIds.filter((id) => id !== null && id !== undefined))]
+      : [];
 
-    const validIds = [...new Set(targetIds.filter((id) => id !== null && id !== undefined))];
     if (validIds.length === 0) {
       setMediaData({});
+      console.debug("[useMedia] Không có targetIds hợp lệ.");
       return;
     }
 
@@ -33,13 +32,15 @@ const useMedia = (targetIds, targetTypeCode = "PROFILE", mediaTypeName = "image"
     let isMounted = true;
 
     const fetchMedia = async () => {
+      console.debug("[useMedia] Fetching media for:", validIds);
       setLoading(true);
       setError(null);
 
-      // Cache hit
       if (mediaCache.has(cacheKey)) {
+        const cached = mediaCache.get(cacheKey);
+        console.debug("[useMedia] Dữ liệu lấy từ cache:", cached);
         if (isMounted) {
-          setMediaData(mediaCache.get(cacheKey));
+          setMediaData(cached);
           setLoading(false);
         }
         return;
@@ -53,22 +54,25 @@ const useMedia = (targetIds, targetTypeCode = "PROFILE", mediaTypeName = "image"
           status: "true",
         });
 
-        const response = await fetch(
-          `${process.env.REACT_APP_API_URL}/media/targets?${query}`,
-          {
-            headers: {
-              "Content-Type": "application/json",
-              ...(token && { Authorization: `Bearer ${token}` }),
-            },
-            signal: controller.signal,
-          }
-        );
+        const apiUrl = `${process.env.REACT_APP_API_URL}/media/targets?${query}`;
+        console.debug("[useMedia] API URL:", apiUrl);
 
-        if (!response.ok) throw new Error(`Lỗi fetch media: ${response.status}`);
+        const response = await fetch(apiUrl, {
+          headers: {
+            "Content-Type": "application/json",
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error(`Lỗi fetch media: ${response.status}`);
+        }
 
         const data = await response.json();
-        const grouped = {};
+        console.debug("[useMedia] Data nhận được từ API:", data);
 
+        const grouped = {};
         for (const item of data) {
           const targetId = item.targetId;
           if (!grouped[targetId]) grouped[targetId] = [];
@@ -78,6 +82,7 @@ const useMedia = (targetIds, targetTypeCode = "PROFILE", mediaTypeName = "image"
         mediaCache.set(cacheKey, grouped);
         if (isMounted) setMediaData(grouped);
       } catch (err) {
+        console.error("[useMedia] Lỗi:", err);
         if (err.name !== "AbortError" && isMounted) {
           const msg = err.message || "Lỗi khi lấy media.";
           setError(msg);
@@ -89,7 +94,6 @@ const useMedia = (targetIds, targetTypeCode = "PROFILE", mediaTypeName = "image"
     };
 
     const delay = setTimeout(fetchMedia, 100);
-
     return () => {
       isMounted = false;
       controller.abort();

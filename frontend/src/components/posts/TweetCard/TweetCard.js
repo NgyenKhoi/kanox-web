@@ -154,6 +154,10 @@ function TweetCard({ tweet, onPostUpdate }) {
     useCommentAvatars(comments);
   // Fetch comments
   useEffect(() => {
+    console.log("Avatars:", avatars);
+    console.log("MediaData:", mediaData);
+    console.log("Loading:", loading);
+    console.log("Error:", error);
     const fetchComments = async () => {
       try {
         setIsLoadingComments(true);
