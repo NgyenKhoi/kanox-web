@@ -146,9 +146,10 @@ const Chat = ({ chatId }) => {
         if (data.type === "offer" && data.userId !== user?.id) {
           localStorage.setItem("lastOffer", JSON.stringify(data));
           setShowCallModal(true);
-        } else if (data.type === "answer" && peerRef.current) {
+        } else if (data.type === "answer" && peerRef.current && !data.processed) {
           console.log("Received answer signal:", data.sdp);
           peerRef.current.signal(JSON.parse(data.sdp));
+          data.processed = true; // Đánh dấu tín hiệu đã được xử lý
         } else if (data.type === "ice-candidate" && peerRef.current) {
           console.log("Received ICE candidate:", data.candidate);
           peerRef.current.signal({ candidate: data.candidate });
@@ -299,7 +300,14 @@ const Chat = ({ chatId }) => {
         debug: true,
       });
 
+      let hasReceivedAnswer = false; // Theo dõi trạng thái answer
+
       newPeer.on("signal", (signalData) => {
+        if (hasReceivedAnswer && signalData.type === "answer") {
+          console.log("Skipping duplicate answer signal");
+          return; // Bỏ qua tín hiệu answer trùng lặp
+        }
+
         console.log("Sending signal data:", signalData);
         if (stompRef.current?.connected) {
           if (signalData.type === "offer") {
@@ -341,11 +349,17 @@ const Chat = ({ chatId }) => {
 
       newPeer.on("connect", () => {
         console.log("Peer connection established");
+        hasReceivedAnswer = true; // Đánh dấu đã thiết lập kết nối
       });
 
       newPeer.on("error", (err) => {
         console.error("Peer error:", err);
-        toast.error("Lỗi trong quá trình gọi video.");
+        if (err.message.includes("InvalidStateError")) {
+          console.log("Ignoring InvalidStateError due to state mismatch");
+          // Không hiển thị toast.error cho lỗi này
+        } else {
+          toast.error("Lỗi trong quá trình gọi video: " + err.message);
+        }
       });
 
       peerRef.current = newPeer;
@@ -381,7 +395,14 @@ const Chat = ({ chatId }) => {
       debug: true,
     });
 
+    let hasSentAnswer = false; // Theo dõi trạng thái answer
+
     newPeer.on("signal", (signalData) => {
+      if (hasSentAnswer && signalData.type === "answer") {
+        console.log("Skipping duplicate answer signal");
+        return; // Bỏ qua tín hiệu answer trùng lặp
+      }
+
       console.log("Sending signal data:", signalData);
       if (stompRef.current?.connected) {
         if (signalData.type === "answer") {
@@ -395,6 +416,7 @@ const Chat = ({ chatId }) => {
               candidate: null,
             }),
           });
+          hasSentAnswer = true; // Đánh dấu đã gửi answer
         } else if (signalData.candidate) {
           stompRef.current.publish({
             destination: "/app/call/ice-candidate",
@@ -427,7 +449,12 @@ const Chat = ({ chatId }) => {
 
     newPeer.on("error", (err) => {
       console.error("Peer error:", err);
-      toast.error("Lỗi trong quá trình gọi video.");
+      if (err.message.includes("InvalidStateError")) {
+        console.log("Ignoring InvalidStateError due to state mismatch");
+        // Không hiển thị toast.error cho lỗi này
+      } else {
+        toast.error("Lỗi trong quá trình gọi video: " + err.message);
+      }
     });
 
     newPeer.signal(JSON.parse(offerData.sdp));
