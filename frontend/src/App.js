@@ -51,8 +51,14 @@ function App() {
                 <Route path="/notifications" element={<NotificationPage />} />
                 <Route path="/messages" element={<MessengerPage />} />
                 <Route path="/communities" element={<CommunityPage />} />
-                <Route path="/community/:communityId" element={<CommunityDetail />} />
-                <Route path="/privacy/lists" element={<CustomPrivacyListPage />} />
+                <Route
+                  path="/community/:communityId"
+                  element={<CommunityDetail />}
+                />
+                <Route
+                  path="/privacy/lists"
+                  element={<CustomPrivacyListPage />}
+                />
                 <Route path="/blocks" element={<BlockedUsersPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route path="/friends" element={<FriendsPage />} />
