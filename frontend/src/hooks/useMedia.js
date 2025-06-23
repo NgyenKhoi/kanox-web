@@ -21,6 +21,10 @@ const useMedia = (
     localStorage.getItem("token");
 
   useEffect(() => {
+    console.log("⏱️ useMedia called with:");
+    console.log("👉 targetIds:", targetIds);
+    console.log("👉 targetTypeCode:", targetTypeCode);
+    console.log("👉 mediaTypeName:", mediaTypeName);
     if (!Array.isArray(targetIds) || targetIds.length === 0) {
       setMediaData({});
       return;

@@ -151,6 +151,8 @@ function TweetCard({ tweet, onPostUpdate }) {
   const { avatars: commentAvatars, error: commentAvatarError } =
     useCommentAvatars(comments);
 
+  console.log("TweetCard ownerId:", owner?.id);
+  console.log("TweetCard postId:", id);
   // Fetch comments
   useEffect(() => {
     const fetchComments = async () => {
