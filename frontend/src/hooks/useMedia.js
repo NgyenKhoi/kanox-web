@@ -26,6 +26,7 @@ const useMedia = (
     console.log("👉 targetTypeCode:", targetTypeCode);
     console.log("👉 mediaTypeName:", mediaTypeName);
     if (!Array.isArray(targetIds) || targetIds.length === 0) {
+      console.warn("❌ useMedia: Không có targetIds hợp lệ, bỏ qua fetch.");
       setMediaData({});
       return;
     }
@@ -34,6 +35,13 @@ const useMedia = (
     const controller = new AbortController();
 
     const validIds = [...new Set(targetIds.filter((id) => !!id))];
+    console.log("✅ validIds:", validIds);
+
+    if (validIds.length === 0) {
+      console.warn("❌ useMedia: Tất cả targetIds không hợp lệ sau khi lọc.");
+      setMediaData({});
+      return;
+    }
     const cacheKey = `${validIds
       .sort()
       .join(",")}:${targetTypeCode}:${mediaTypeName}`;

@@ -122,6 +122,11 @@ function TweetCard({ tweet, onPostUpdate }) {
   const ownerId = owner?.id || null;
   const postId = id || null;
 
+  console.log("🐛 tweet:", tweet);
+  console.log("🐛 tweet.id:", tweet?.id);
+  console.log("🐛 owner.id:", tweet?.owner?.id);
+  
+
   // Lấy avatar (PROFILE + image)
   const { mediaData: avatarData, error: avatarError } = useMedia(
     [ownerId],
@@ -150,6 +155,7 @@ function TweetCard({ tweet, onPostUpdate }) {
 
   const { avatars: commentAvatars, error: commentAvatarError } =
     useCommentAvatars(comments);
+    
 
   console.log("TweetCard ownerId:", owner?.id);
   console.log("TweetCard postId:", id);
