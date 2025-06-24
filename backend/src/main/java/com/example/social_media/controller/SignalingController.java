@@ -76,7 +76,9 @@ public class SignalingController {
         if (!chatMemberRepository.existsByChatIdAndUserUsername(signal.getChatId(), username)) {
             throw new SecurityException("User is not a member of this chat");
         }
-        System.out.println("Received ICE candidate for chatId: " + signal.getChatId() + ", candidate: " + signal.getCandidate() + ", from user: " + username);
+        System.out.println("Received ICE candidate for chatId: " + signal.getChatId() +
+                ", candidate: " + (signal.getCandidate() != null ? signal.getCandidate().getCandidate() : "null") +
+                ", from user: " + username);
         messagingTemplate.convertAndSend("/topic/call/" + signal.getChatId(), signal);
     }
 }

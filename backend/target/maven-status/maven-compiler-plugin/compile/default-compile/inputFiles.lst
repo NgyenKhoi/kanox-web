@@ -158,6 +158,7 @@ D:\SWP391\kanox-web\backend\src\main\java\com\example\social_media\dto\media\Med
 D:\SWP391\kanox-web\backend\src\main\java\com\example\social_media\controller\GroupController.java
 D:\SWP391\kanox-web\backend\src\main\java\com\example\social_media\entity\Group.java
 D:\SWP391\kanox-web\backend\src\main\java\com\example\social_media\dto\message\SignalMessageDto.java
+D:\SWP391\kanox-web\backend\src\main\java\com\example\social_media\dto\message\IceCandidateDto.java
 D:\SWP391\kanox-web\backend\src\main\java\com\example\social_media\service\MessageQueueService.java
 D:\SWP391\kanox-web\backend\src\main\java\com\example\social_media\document\UserDocument.java
 D:\SWP391\kanox-web\backend\src\main\java\com\example\social_media\repository\document_repository\UserDocumentRepository.java

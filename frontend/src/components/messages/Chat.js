@@ -169,14 +169,22 @@ const Chat = ({ chatId }) => {
           setShowCallModal(true);
         } else if (data.type === "answer" && peerRef.current) {
           console.log("Received answer signal:", data.sdp, "Signaling state:", peerRef.current._pc?.signalingState);
-          if (peerRef.current._pc?.signalingState !== "stable") {
+          if (peerRef.current._pc?.signalingState === "have-local-offer") {
             peerRef.current.signal(JSON.parse(data.sdp));
           } else {
-            console.warn("Skipping answer due to stable state");
+            console.warn("Skipping answer due to unexpected state:", peerRef.current._pc?.signalingState);
           }
         } else if (data.type === "ice-candidate" && peerRef.current) {
           console.log("Received ICE candidate:", data.candidate);
-          peerRef.current.signal({ candidate: data.candidate });
+          if (data.candidate) {
+            peerRef.current.signal({
+              candidate: {
+                candidate: data.candidate.candidate,
+                sdpMid: data.candidate.sdpMid,
+                sdpMLineIndex: data.candidate.sdpMLineIndex,
+              },
+            });
+          }
         } else if (data.type === "end") {
           console.log("Call ended by remote user");
           leaveCall();
@@ -357,7 +365,11 @@ const Chat = ({ chatId }) => {
               body: JSON.stringify({
                 chatId: Number(chatId),
                 type: "ice-candidate",
-                candidate: signalData.candidate,
+                candidate: {
+                  candidate: signalData.candidate.candidate,
+                  sdpMid: signalData.candidate.sdpMid,
+                  sdpMLineIndex: signalData.candidate.sdpMLineIndex,
+                },
                 userId: Number(user.id),
                 sdp: null,
               }),
@@ -464,7 +476,11 @@ const Chat = ({ chatId }) => {
             body: JSON.stringify({
               chatId: Number(chatId),
               type: "ice-candidate",
-              candidate: signalData.candidate,
+              candidate: {
+                candidate: signalData.candidate.candidate,
+                sdpMid: signalData.candidate.sdpMid,
+                sdpMLineIndex: signalData.candidate.sdpMLineIndex,
+              },
               userId: Number(user.id),
               sdp: null,
             }),

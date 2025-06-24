@@ -4,12 +4,12 @@ public class SignalMessageDto {
     private Integer chatId;
     private String type;
     private String sdp;
-    private String candidate;
+    private IceCandidateDto candidate;
     private Integer userId;
 
     public SignalMessageDto() {}
 
-    public SignalMessageDto(Integer chatId, String type, String sdp, String candidate, Integer userId) {
+    public SignalMessageDto(Integer chatId, String type, String sdp, IceCandidateDto candidate, Integer userId) {
         this.chatId = chatId;
         this.type = type;
         this.sdp = sdp;
@@ -23,8 +23,8 @@ public class SignalMessageDto {
     public void setType(String type) { this.type = type; }
     public String getSdp() { return sdp; }
     public void setSdp(String sdp) { this.sdp = sdp; }
-    public String getCandidate() { return candidate; }
-    public void setCandidate(String candidate) { this.candidate = candidate; }
+    public IceCandidateDto getCandidate() { return candidate; }
+    public void setCandidate(IceCandidateDto candidate) { this.candidate = candidate; }
     public Integer getUserId() { return userId; }
     public void setUserId(Integer userId) { this.userId = userId; }
 }
