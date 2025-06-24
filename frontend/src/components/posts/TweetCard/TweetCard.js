@@ -27,6 +27,8 @@ import {
   FaLock,
   FaList,
   FaUserCircle,
+  FaArrowLeft,
+  FaArrowRight,
 } from "react-icons/fa";
 import moment from "moment";
 import { AuthContext } from "../../../context/AuthContext";
@@ -57,6 +59,21 @@ const enlargedImageStyles = {
   objectFit: "contain",
   margin: "auto",
   display: "block",
+};
+
+const arrowButtonStyles = {
+  position: "absolute",
+  top: "50%",
+  transform: "translateY(-50%)",
+  background: "rgba(0, 0, 0, 0.5)",
+  color: "white",
+  borderRadius: "50%",
+  width: "40px",
+  height: "40px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  cursor: "pointer",
 };
 
 const commentSectionStyles = {
@@ -113,6 +130,7 @@ function TweetCard({ tweet, onPostUpdate }) {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showImageModal, setShowImageModal] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
   const [isCommenting, setIsCommenting] = useState(false);
@@ -122,17 +140,13 @@ function TweetCard({ tweet, onPostUpdate }) {
   const ownerId = owner?.id || null;
   const postId = id || null;
 
-  // Lấy avatar (PROFILE + image)
   const avatarMedia = useMedia([ownerId], "PROFILE", "image");
   const imageMedia = useMedia([postId], "POST", "image");
   const videoMedia = useMedia([postId], "POST", "video");
-  // Sau đó dùng thế này:
   const avatarData = !loading && token && ownerId ? avatarMedia.mediaData : {};
   const avatarError = avatarMedia.error;
-
   const imageData = !loading && token && postId ? imageMedia.mediaData : {};
   const mediaError = imageMedia.error;
-
   const videoData = !loading && token && postId ? videoMedia.mediaData : {};
   const videoError = videoMedia.error;
 
@@ -142,7 +156,27 @@ function TweetCard({ tweet, onPostUpdate }) {
 
   const { avatars: commentAvatars, error: commentAvatarError } =
     useCommentAvatars(comments || []);
-  // Fetch comments
+
+  const handleNextImage = () => {
+    if (currentImageIndex < imageUrls.length - 1) {
+      setCurrentImageIndex((prev) => prev + 1);
+      setSelectedImage(imageUrls[currentImageIndex + 1].url);
+    }
+  };
+
+  const handlePrevImage = () => {
+    if (currentImageIndex > 0) {
+      setCurrentImageIndex((prev) => prev - 1);
+      setSelectedImage(imageUrls[currentImageIndex - 1].url);
+    }
+  };
+
+  const handleImageClick = (url, index) => {
+    setSelectedImage(url);
+    setCurrentImageIndex(index);
+    setShowImageModal(true);
+  };
+
   useEffect(() => {
     const fetchComments = async () => {
       try {
@@ -284,11 +318,6 @@ function TweetCard({ tweet, onPostUpdate }) {
     }
   };
 
-  const handleImageClick = (url) => {
-    setSelectedImage(url);
-    setShowImageModal(true);
-  };
-
   const renderStatusIcon = (status) => {
     switch (status) {
       case "public":
@@ -332,7 +361,7 @@ function TweetCard({ tweet, onPostUpdate }) {
             style={{ ...imageStyles, maxHeight: "500px" }}
             fluid
             rounded
-            onClick={() => handleImageClick(images[0])}
+            onClick={() => handleImageClick(images[0], 0)}
             aria-label="Hình ảnh bài đăng"
           />
         </div>
@@ -349,7 +378,7 @@ function TweetCard({ tweet, onPostUpdate }) {
                 style={{ ...imageStyles, height: "300px" }}
                 fluid
                 rounded
-                onClick={() => handleImageClick(url)}
+                onClick={() => handleImageClick(url, idx)}
                 aria-label={`Hình ảnh bài đăng ${idx + 1}`}
               />
             </Col>
@@ -367,7 +396,7 @@ function TweetCard({ tweet, onPostUpdate }) {
               style={{ ...imageStyles, height: "400px" }}
               fluid
               rounded
-              onClick={() => handleImageClick(images[0])}
+              onClick={() => handleImageClick(images[0], 0)}
               aria-label="Hình ảnh bài đăng chính"
             />
           </Col>
@@ -378,7 +407,7 @@ function TweetCard({ tweet, onPostUpdate }) {
                 style={{ ...imageStyles, height: "198px", marginBottom: "4px" }}
                 fluid
                 rounded
-                onClick={() => handleImageClick(images[1])}
+                onClick={() => handleImageClick(images[1], 1)}
                 aria-label="Hình ảnh bài đăng phụ 1"
               />
               <BootstrapImage
@@ -386,30 +415,11 @@ function TweetCard({ tweet, onPostUpdate }) {
                 style={{ ...imageStyles, height: "198px" }}
                 fluid
                 rounded
-                onClick={() => handleImageClick(images[2])}
+                onClick={() => handleImageClick(images[2], 2)}
                 aria-label="Hình ảnh bài đăng phụ 2"
               />
             </div>
           </Col>
-        </Row>
-      );
-    }
-
-    if (imageCount === 4) {
-      return (
-        <Row style={imageContainerStyles} className="g-2">
-          {images.map((url, idx) => (
-            <Col key={idx} xs={6}>
-              <BootstrapImage
-                src={url}
-                style={{ ...imageStyles, height: "200px" }}
-                fluid
-                rounded
-                onClick={() => handleImageClick(url)}
-                aria-label={`Hình ảnh bài đăng ${idx + 1}`}
-              />
-            </Col>
-          ))}
         </Row>
       );
     }
@@ -424,7 +434,7 @@ function TweetCard({ tweet, onPostUpdate }) {
                 style={{ ...imageStyles, height: "200px" }}
                 fluid
                 rounded
-                onClick={() => handleImageClick(url)}
+                onClick={() => idx < 4 ? handleImageClick(url, idx) : null}
                 aria-label={`Hình ảnh bài đăng ${idx + 1}`}
               />
               {idx === 3 && images.length > 4 && (
@@ -443,6 +453,7 @@ function TweetCard({ tweet, onPostUpdate }) {
                     fontSize: "24px",
                     fontWeight: "bold",
                     borderRadius: "12px",
+                    pointerEvents: "none",
                   }}
                 >
                   +{images.length - 4}
@@ -497,7 +508,6 @@ function TweetCard({ tweet, onPostUpdate }) {
     });
   };
 
-  // Hiển thị lỗi nếu không tải được media
   if (avatarError || mediaError || videoError || commentAvatarError) {
     return (
       <div className="text-danger">
@@ -759,7 +769,7 @@ function TweetCard({ tweet, onPostUpdate }) {
         size="xl"
         contentClassName="bg-dark"
       >
-        <Modal.Body className="p-0">
+        <Modal.Body className="p-0 position-relative">
           <Button
             variant="dark"
             className="position-absolute top-0 end-0 m-2 rounded-circle"
@@ -768,12 +778,34 @@ function TweetCard({ tweet, onPostUpdate }) {
           >
             ✕
           </Button>
+          {imageUrls.length > 1 && (
+            <>
+              <Button
+                variant="dark"
+                style={{ ...arrowButtonStyles, left: "10px" }}
+                onClick={handlePrevImage}
+                disabled={currentImageIndex === 0}
+                aria-label="Ảnh trước đó"
+              >
+                <FaArrowLeft />
+              </Button>
+              <Button
+                variant="dark"
+                style={{ ...arrowButtonStyles, right: "10px" }}
+                onClick={handleNextImage}
+                disabled={currentImageIndex === imageUrls.length - 1}
+                aria-label="Ảnh tiếp theo"
+              >
+                <FaArrowRight />
+              </Button>
+            </>
+          )}
           {selectedImage && (
             <BootstrapImage
               src={selectedImage}
               style={enlargedImageStyles}
               fluid
-              aria-label="Hình ảnh phóng to"
+              aria-label={`Hình ảnh bài đăng ${currentImageIndex + 1}`}
             />
           )}
         </Modal.Body>
