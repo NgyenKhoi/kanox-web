@@ -629,7 +629,7 @@ function TweetCard({ tweet, onPostUpdate }) {
               </div>
             )}
 
-            {renderImages(imageUrls)}
+            {renderImages(imageUrls.map((img) => img.url))}
 
             {Array.isArray(videoUrls) &&
               videoUrls.length > 0 &&
