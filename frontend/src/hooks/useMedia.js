@@ -2,14 +2,7 @@ import { useState, useEffect, useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
 import { toast } from "react-toastify";
 
-const mediaCache = new Map();
-window.mediaCache = mediaCache;
-
-const useMedia = (
-  targetIds,
-  targetTypeCode = "PROFILE",
-  mediaTypeName = "image"
-) => {
+const useMedia = (targetIds, targetTypeCode = "PROFILE", mediaTypeName = "image") => {
   const [mediaData, setMediaData] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -31,9 +24,6 @@ const useMedia = (
       return;
     }
 
-    const cacheKey = `${validIds
-      .sort()
-      .join(",")}:${targetTypeCode}:${mediaTypeName}`;
     const controller = new AbortController();
     let isMounted = true;
 
@@ -41,16 +31,6 @@ const useMedia = (
       console.debug("[useMedia] Fetching media for:", validIds);
       setLoading(true);
       setError(null);
-
-      if (mediaCache.has(cacheKey)) {
-        const cached = mediaCache.get(cacheKey);
-        console.debug("[useMedia] Dữ liệu lấy từ cache:", cached);
-        if (isMounted) {
-          setMediaData(cached);
-          setLoading(false);
-        }
-        return;
-      }
 
       try {
         const query = new URLSearchParams();
@@ -84,7 +64,6 @@ const useMedia = (
           grouped[targetId].push(item);
         }
 
-        mediaCache.set(cacheKey, grouped);
         if (isMounted) setMediaData(grouped);
       } catch (err) {
         console.error("[useMedia] Lỗi:", err);
@@ -98,11 +77,11 @@ const useMedia = (
       }
     };
 
-    const delay = setTimeout(fetchMedia, 100);
+    fetchMedia();
+
     return () => {
       isMounted = false;
       controller.abort();
-      clearTimeout(delay);
     };
   }, [targetIds, targetTypeCode, mediaTypeName, token]);
 
