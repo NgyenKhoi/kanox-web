@@ -67,7 +67,7 @@ const Chat = ({ chatId }) => {
     if (peerRef.current) {
       console.log("Destroying existing PeerConnection...");
       peerRef.current.destroy();
-      peerRef.current = null; // Đảm bảo gán null sau khi destroy
+      peerRef.current = null;
     }
     if (streamRef.current) {
       console.log("Stopping existing media stream...");
@@ -84,7 +84,7 @@ const Chat = ({ chatId }) => {
         return null;
       }
 
-      cleanupPeerConnection(); // Làm sạch trước khi khởi tạo stream mới
+      cleanupPeerConnection();
 
       const streamPromise = navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       const timeoutPromise = new Promise((_, reject) => {
@@ -112,7 +112,7 @@ const Chat = ({ chatId }) => {
       return;
     }
 
-    cleanupPeerConnection(); // Làm sạch khi mount hoặc chatId thay đổi
+    cleanupPeerConnection();
 
     fetch(`${process.env.REACT_APP_API_URL}/chat/${chatId}`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -167,14 +167,14 @@ const Chat = ({ chatId }) => {
           localStorage.removeItem("lastOffer");
           localStorage.setItem("lastOffer", JSON.stringify(data));
           setShowCallModal(true);
-        } else if (data.type === "answer" && peerRef.current && data.userId !== user?.id) {
-          console.log("Received answer signal:", data.sdp, "Signaling state:", peerRef.current._pc.signalingState);
-          if (peerRef.current._pc.signalingState !== "stable") {
+        } else if (data.type === "answer" && peerRef.current) {
+          console.log("Received answer signal:", data.sdp, "Signaling state:", peerRef.current._pc?.signalingState);
+          if (peerRef.current._pc?.signalingState !== "stable") {
             peerRef.current.signal(JSON.parse(data.sdp));
           } else {
-            console.log("Skipping answer signal: connection already stable");
+            console.warn("Skipping answer due to stable state");
           }
-        } else if (data.type === "ice-candidate" && peerRef.current && data.userId !== user?.id) {
+        } else if (data.type === "ice-candidate" && peerRef.current) {
           console.log("Received ICE candidate:", data.candidate);
           peerRef.current.signal({ candidate: data.candidate });
         } else if (data.type === "end") {
@@ -293,7 +293,7 @@ const Chat = ({ chatId }) => {
       return;
     }
 
-    cleanupPeerConnection(); // Làm sạch trước khi khởi tạo
+    cleanupPeerConnection();
     const newStream = await initializeMediaStream();
     if (!newStream) {
       toast.error("Không thể khởi tạo stream media. Vui lòng kiểm tra camera/microphone.");
@@ -321,8 +321,6 @@ const Chat = ({ chatId }) => {
         config: {
           iceServers: [
             { urls: "stun:stun.l.google.com:19302" },
-            // Thêm TURN server nếu cần
-            // { urls: "turn:your-turn-server", username: "username", credential: "password" }
           ],
           iceTransportPolicy: "all",
           bundlePolicy: "balanced",
@@ -407,7 +405,7 @@ const Chat = ({ chatId }) => {
       return;
     }
 
-    cleanupPeerConnection(); // Làm sạch trước khi khởi tạo
+    cleanupPeerConnection();
     const newStream = await initializeMediaStream();
     if (!newStream) {
       toast.error("Không thể khởi tạo stream media. Vui lòng kiểm tra camera/microphone.");
@@ -429,8 +427,6 @@ const Chat = ({ chatId }) => {
       config: {
         iceServers: [
           { urls: "stun:stun.l.google.com:19302" },
-          // Thêm TURN server nếu cần
-          // { urls: "turn:your-turn-server", username: "username", credential: "password" }
         ],
         iceTransportPolicy: "all",
         bundlePolicy: "balanced",
@@ -505,16 +501,18 @@ const Chat = ({ chatId }) => {
       }
     });
 
-    console.log("New Peer signaling state before signal:", newPeer._pc.signalingState);
+    // Khởi tạo lại nếu trạng thái không phù hợp
+    if (!peerRef.current || peerRef.current._pc?.signalingState === "closed") {
+      console.log("Reinitializing PeerConnection for offer...");
+      peerRef.current = newPeer;
+    }
     if (newPeer._pc.signalingState !== "stable") {
       newPeer.signal(JSON.parse(offerData.sdp));
     } else {
-      console.log("Skipping offer signal: connection already stable");
-      setShowCallModal(false);
-      toast.error("Không thể nhận cuộc gọi do trạng thái kết nối không hợp lệ.");
-      return;
+      console.warn("Skipping offer due to stable state, reinitializing...");
+      peerRef.current = newPeer;
+      newPeer.signal(JSON.parse(offerData.sdp));
     }
-    peerRef.current = newPeer;
     setShowCallPanel(true);
   };
 

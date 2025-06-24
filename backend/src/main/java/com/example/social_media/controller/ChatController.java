@@ -103,12 +103,14 @@ public class ChatController {
 
     @MessageMapping("/ping")
     public void handlePing(@Header("simpSessionId") String sessionId) {
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = auth != null && auth.isAuthenticated() ? auth.getName() : null;
         if (username == null) {
             String authToken = webSocketConfig.sessionTokenMap.get(sessionId);
             if (authToken != null && authToken.startsWith("Bearer ")) {
                 username = jwtService.extractUsername(authToken.substring(7));
             } else {
+                System.err.println("No token found in sessionTokenMap for session " + sessionId);
                 throw new UnauthorizedException("Không thể xác thực người dùng.");
             }
         }
