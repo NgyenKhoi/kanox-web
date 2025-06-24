@@ -123,20 +123,9 @@ function TweetCard({ tweet, onPostUpdate }) {
   const postId = id || null;
 
   // Lấy avatar (PROFILE + image)
-  const avatarMedia =
-    ownerId && token && !loading
-      ? useMedia([ownerId], "PROFILE", "image")
-      : { mediaData: {}, error: null };
-
-  const imageMedia =
-    postId && token && !loading
-      ? useMedia([postId], "POST", "image")
-      : { mediaData: {}, error: null };
-
-  const videoMedia =
-    postId && token && !loading
-      ? useMedia([postId], "POST", "video")
-      : { mediaData: {}, error: null };
+  const avatarMedia = useMedia([ownerId], "PROFILE", "image");
+  const imageMedia = useMedia([postId], "POST", "image");
+  const videoMedia = useMedia([postId], "POST", "video");
   // Sau đó dùng thế này:
   const avatarData = !loading && token && ownerId ? avatarMedia.mediaData : {};
   const avatarError = avatarMedia.error;
