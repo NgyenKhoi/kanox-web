@@ -136,9 +136,9 @@ function TweetCard({ tweet, onPostUpdate }) {
   const videoData = !loading && token && postId ? videoMedia.mediaData : {};
   const videoError = videoMedia.error;
 
-  const avatarUrl = avatarData?.[ownerId]?.[0] || null;
-  const imageUrls = imageData?.[postId] || [];
-  const videoUrls = videoData?.[postId] || [];
+  const avatarUrl = avatarData?.[ownerId]?.[0]?.url || null;
+  const imageUrls = imageData?.[postId]?.map((item) => item.url) || [];
+  const videoUrls = videoData?.[postId]?.map((item) => item.url) || [];
 
   const { avatars: commentAvatars, error: commentAvatarError } =
     useCommentAvatars(comments || []);
@@ -463,7 +463,8 @@ function TweetCard({ tweet, onPostUpdate }) {
       return <div className="text-muted">Chưa có bình luận nào.</div>;
 
     return comments.map((comment) => {
-      const avatarUrl = comment?.user?.id && commentAvatars[comment.user.id];
+      const avatarUrl =
+        comment?.user?.id && commentAvatars[comment.user.id]?.url;
 
       return (
         <div key={comment.id} style={commentStyles}>
@@ -473,7 +474,7 @@ function TweetCard({ tweet, onPostUpdate }) {
               style={commentAvatarStyles}
               roundedCircle
               aria-label={`Ảnh đại diện của ${
-                comment?.user?.displayName || "Ẩn danh"
+                comment?.user?.displayName || "Người dùng"
               }`}
             />
           ) : (
