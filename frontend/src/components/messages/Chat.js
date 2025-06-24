@@ -38,15 +38,19 @@ const Chat = ({ chatId }) => {
   const chatContainerRef = useRef(null);
 
   const iceServers = [
+    { urls: "stun:34.143.174.239:3478" },
     {
-      urls: [
-        "stun:34.143.174.239:3478",
-        "turn:34.143.174.239:3478?transport=udp",
-        "turn:34.143.174.239:5349?transport=tcp",
-      ],
+      urls: "turn:34.143.174.239:3478?transport=udp",
       username: "turnuser",
       credential: "eqfleqrd1",
     },
+    {
+      urls: "turns:kanox-turn.duckdns.org:5349?transport=tcp",
+      username: "turnuser",
+      credential: "eqfleqrd1",
+    },
+    { urls: "stun:stun.l.google.com:19302" },
+    { urls: "stun:stun1.l.google.com:19302" },
   ];
   const fetchUnreadMessageCount = async () => {
     try {
