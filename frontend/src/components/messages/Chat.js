@@ -13,6 +13,7 @@ import SockJS from "sockjs-client";
 import { Client } from "@stomp/stompjs";
 import Peer from "simple-peer";
 import { AuthContext } from "../../context/AuthContext";
+import useSingleMedia from "../../hooks/useSingleMedia";
 import {
   FaPaperclip,
   FaMicrophoneSlash,
@@ -23,6 +24,11 @@ import {
 
 const Chat = ({ chatId }) => {
   const { user, token } = useContext(AuthContext);
+  const { mediaUrl: avatarUrl, loading: avatarLoading, error: avatarError } = useSingleMedia(
+    user?.id,
+    "PROFILE",
+    "image"
+  );
   const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState("");
   const [isMuted, setIsMuted] = useState(false);
@@ -547,7 +553,33 @@ const Chat = ({ chatId }) => {
   return (
       <div className="d-flex flex-column h-100 bg-light">
         <div className="p-3 border-bottom bg-white shadow-sm d-flex align-items-center">
+          <div className="d-flex align-items-center flex-grow-1">
+          {/* Avatar display */}
+          {avatarLoading ? (
+            <div
+              className="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center me-2"
+              style={{ width: "40px", height: "40px" }}
+            >
+              <span>Loading...</span>
+            </div>
+          ) : avatarUrl ? (
+            <Image
+              src={avatarUrl}
+              roundedCircle
+              className="me-2"
+              style={{ width: "40px", height: "40px", objectFit: "cover" }}
+              alt="User avatar"
+            />
+          ) : (
+            <div
+              className="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center me-2"
+              style={{ width: "40px", height: "40px" }}
+            >
+              <span>{user?.name?.charAt(0) || "U"}</span>
+            </div>
+          )}
           <h5 className="mb-0 flex-grow-1">{recipientName}</h5>
+          </div>
           <Button
               variant="outline-primary"
               size="sm"

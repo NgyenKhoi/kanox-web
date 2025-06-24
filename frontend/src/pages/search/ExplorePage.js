@@ -18,7 +18,7 @@ import { toast } from "react-toastify";
 import SidebarLeft from "../../components/layout/SidebarLeft/SidebarLeft";
 import SidebarRight from "../../components/layout/SidebarRight/SidebarRight";
 import { AuthContext } from "../../context/AuthContext";
-import useMedia from "../../hooks/useMedia";
+import useSingleMedia from "../../hooks/useSingleMedia";
 import useUserSearch from "../../hooks/useUserSearch";
 
 function ExplorePage() {
@@ -51,22 +51,67 @@ function ExplorePage() {
   }, [searchKeyword, debouncedSearch]);
 
   const trendingTopics = [
-    { id: 1, category: "Chủ đề nổi trội ở Việt Nam", title: "cuội", posts: 587 },
-    { id: 2, category: "Chủ đề nổi trội ở Việt Nam", title: "#khảo_oam", posts: 390 },
-    { id: 3, category: "Chủ đề nổi trội ở Việt Nam", title: "Trung Quốc", posts: 197 },
-    { id: 4, category: "Chủ đề nổi trội ở Việt Nam", title: "Incredible", posts: 197 },
-    { id: 5, category: "Chủ đề nổi trội ở Việt Nam", title: "#QuangHungMasterDxForestival", posts: 2119 },
-    { id: 6, category: "Chủ đề nổi trội ở Việt Nam", title: "#linglingkwong", posts: 84 },
-    { id: 7, category: "Chủ đề nổi trội ở Việt Nam", title: "Movies", posts: 150 },
+    {
+      id: 1,
+      category: "Chủ đề nổi trội ở Việt Nam",
+      title: "cuội",
+      posts: 587,
+    },
+    {
+      id: 2,
+      category: "Chủ đề nổi trội ở Việt Nam",
+      title: "#khảo_oam",
+      posts: 390,
+    },
+    {
+      id: 3,
+      category: "Chủ đề nổi trội ở Việt Nam",
+      title: "Trung Quốc",
+      posts: 197,
+    },
+    {
+      id: 4,
+      category: "Chủ đề nổi trội ở Việt Nam",
+      title: "Incredible",
+      posts: 197,
+    },
+    {
+      id: 5,
+      category: "Chủ đề nổi trội ở Việt Nam",
+      title: "#QuangHungMasterDxForestival",
+      posts: 2119,
+    },
+    {
+      id: 6,
+      category: "Chủ đề nổi trội ở Việt Nam",
+      title: "#linglingkwong",
+      posts: 84,
+    },
+    {
+      id: 7,
+      category: "Chủ đề nổi trội ở Việt Nam",
+      title: "Movies",
+      posts: 150,
+    },
   ];
 
   const suggestedFollows = [
-    { id: 1, name: "Người dùng 1", username: "@user1", avatar: "https://via.placeholder.com/40" },
-    { id: 2, name: "Người dùng 2", username: "@user2", avatar: "https://via.placeholder.com/40" },
+    {
+      id: 1,
+      name: "Người dùng 1",
+      username: "@user1",
+      avatar: "https://via.placeholder.com/40",
+    },
+    {
+      id: 2,
+      name: "Người dùng 2",
+      username: "@user2",
+      avatar: "https://via.placeholder.com/40",
+    },
   ];
 
   const UserSearchItem = ({ item }) => {
-    const { mediaUrl } = useMedia(item.id, "PROFILE", "image");
+    const { mediaUrl } = useSingleMedia(item.id, "PROFILE", "image");
 
     return (
       <ListGroup.Item
@@ -85,14 +130,18 @@ function ExplorePage() {
         />
         <div>
           <strong>{item.displayName || item.username}</strong>
-          {item.username && <p className="text-muted small mb-0">@{item.username}</p>}
-          {item.bio && <p className="text-muted small mb-0">{item.bio.slice(0, 100)}...</p>}
+          {item.username && (
+            <p className="text-muted small mb-0">@{item.username}</p>
+          )}
+          {item.bio && (
+            <p className="text-muted small mb-0">{item.bio.slice(0, 100)}...</p>
+          )}
         </div>
       </ListGroup.Item>
     );
   };
 
-  const renderSearchResults = () => (
+  const renderSearchResults = () =>
     searchKeyword.trim() && (
       <ListGroup
         className="position-absolute w-100 mt-1 shadow-sm"
@@ -106,7 +155,9 @@ function ExplorePage() {
           <>
             {searchResults?.length > 0 ? (
               <>
-                <ListGroup.Item className="bg-light fw-bold">Người dùng</ListGroup.Item>
+                <ListGroup.Item className="bg-light fw-bold">
+                  Người dùng
+                </ListGroup.Item>
                 {searchResults.map((item) => (
                   <UserSearchItem key={item.id} item={item} />
                 ))}
@@ -117,13 +168,14 @@ function ExplorePage() {
           </>
         )}
       </ListGroup>
-    )
-  );
+    );
 
   const renderTabContent = () => (
     <div className="mt-0">
       {trendingTopics.length === 0 ? (
-        <p className="text-muted text-center p-4">Không có chủ đề nào đang phổ biến.</p>
+        <p className="text-muted text-center p-4">
+          Không có chủ đề nào đang phổ biến.
+        </p>
       ) : (
         trendingTopics.map((topic) => (
           <div
@@ -160,7 +212,10 @@ function ExplorePage() {
         <SidebarLeft />
       </div>
       <div className="d-flex flex-column flex-grow-1">
-        <div className="sticky-top bg-white border-bottom py-2" style={{ zIndex: 1020 }}>
+        <div
+          className="sticky-top bg-white border-bottom py-2"
+          style={{ zIndex: 1020 }}
+        >
           <Container fluid>
             <Row>
               <Col xs={12} lg={6} className="mx-auto px-md-0 position-relative">
@@ -182,12 +237,23 @@ function ExplorePage() {
             </Row>
             <Row>
               <Col xs={12} lg={6} className="mx-auto px-md-0">
-                <Nav variant="underline" className="mt-2 profile-tabs nav-justified">
-                  {["for-you", "trending", "news", "sports", "entertainment"].map((tab) => (
+                <Nav
+                  variant="underline"
+                  className="mt-2 profile-tabs nav-justified"
+                >
+                  {[
+                    "for-you",
+                    "trending",
+                    "news",
+                    "sports",
+                    "entertainment",
+                  ].map((tab) => (
                     <Nav.Item key={tab}>
                       <Nav.Link
                         onClick={() => setActiveTab(tab)}
-                        className={`text-dark fw-bold ${activeTab === tab ? "active" : ""}`}
+                        className={`text-dark fw-bold ${
+                          activeTab === tab ? "active" : ""
+                        }`}
                       >
                         {
                           {

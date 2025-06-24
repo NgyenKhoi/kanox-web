@@ -2,7 +2,7 @@ import React from "react";
 import { Button, Spinner, Image } from "react-bootstrap";
 import { FaCheckCircle, FaCircle, FaEllipsisH } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
-import useMedia from "../../hooks/useMedia";
+import useSingleMedia from "../../hooks/useSingleMedia";
 
 function NotificationItem({ notification, handleMarkRead, handleMarkUnread }) {
   const navigate = useNavigate();
@@ -11,7 +11,7 @@ function NotificationItem({ notification, handleMarkRead, handleMarkUnread }) {
     mediaUrl: avatarUrl,
     loading: mediaLoading,
     error: mediaError,
-  } = useMedia(notification.targetId, "PROFILE", "image");
+  } = useSingleMedia(notification.targetId, "PROFILE", "image");
 
   const renderAvatar = () => {
     if (mediaLoading) {
@@ -35,7 +35,6 @@ function NotificationItem({ notification, handleMarkRead, handleMarkUnread }) {
         !notification.isRead ? "bg-light-primary" : "opacity-75"
       }`}
     >
-      {/* Inline style tag chèn trực tiếp CSS cho notif-body */}
       <style>{`
         .notif-body {
           padding-top: 4px;
