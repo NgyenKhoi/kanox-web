@@ -122,10 +122,6 @@ function TweetCard({ tweet, onPostUpdate }) {
   const ownerId = owner?.id || null;
   const postId = id || null;
 
-  console.log("🐛 tweet:", tweet);
-  console.log("🐛 tweet.id:", tweet?.id);
-  console.log("🐛 owner.id:", tweet?.owner?.id);
-
   // Lấy avatar (PROFILE + image)
   const { mediaData: avatarData, error: avatarError } = useMedia(
     [ownerId],
@@ -154,10 +150,6 @@ function TweetCard({ tweet, onPostUpdate }) {
     useCommentAvatars(comments);
   // Fetch comments
   useEffect(() => {
-    console.log("Avatars:", avatars);
-    console.log("MediaData:", mediaData);
-    console.log("Loading:", loading);
-    console.log("Error:", error);
     const fetchComments = async () => {
       try {
         setIsLoadingComments(true);
