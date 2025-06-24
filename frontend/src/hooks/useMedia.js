@@ -8,12 +8,12 @@ const useMedia = (
   mediaTypeName = "image"
 ) => {
   const [mediaData, setMediaData] = useState({});
+  const [mediaUrl, setMediaUrl] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   const { token } = useContext(AuthContext);
 
-  // Tối ưu hóa targetIds để không gây gọi lại liên tục
   const stableTargetIds = useMemo(() => {
     return Array.isArray(targetIds)
       ? [...new Set(targetIds.filter((id) => id !== null && id !== undefined))]
@@ -23,6 +23,7 @@ const useMedia = (
   useEffect(() => {
     if (stableTargetIds.length === 0 || !token) {
       setMediaData({});
+      setMediaUrl(null); // ✅ reset mediaUrl khi không có ID
       console.debug("[useMedia] Không có targetIds hợp lệ hoặc chưa có token.");
       return;
     }
@@ -70,6 +71,15 @@ const useMedia = (
 
         if (isMounted) {
           setMediaData(grouped);
+
+          // ✅ Nếu chỉ có 1 ID → gán mediaUrl đầu tiên
+          if (stableTargetIds.length === 1) {
+            const firstId = stableTargetIds[0];
+            const firstUrl = grouped?.[firstId]?.[0]?.url || null;
+            setMediaUrl(firstUrl);
+          } else {
+            setMediaUrl(null);
+          }
         }
       } catch (err) {
         console.error("[useMedia] Lỗi:", err);
@@ -91,7 +101,7 @@ const useMedia = (
     };
   }, [stableTargetIds, targetTypeCode, mediaTypeName, token]);
 
-  return { mediaData, loading, error };
+  return { mediaData, mediaUrl, loading, error };
 };
 
 export default useMedia;
