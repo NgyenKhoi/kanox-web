@@ -74,6 +74,10 @@ const Chat = ({ chatId }) => {
       streamRef.current.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
     }
+    // SỬA: Đặt lại remoteVideoRef để tránh hiển thị stream cũ
+    if (remoteVideoRef.current) {
+      remoteVideoRef.current.srcObject = null;
+    }
   };
 
   const initializeMediaStream = async () => {
@@ -169,10 +173,14 @@ const Chat = ({ chatId }) => {
           setShowCallModal(true);
         } else if (data.type === "answer" && peerRef.current) {
           console.log("Received answer signal:", data.sdp, "Signaling state:", peerRef.current._pc?.signalingState);
+          // SỬA: Kiểm tra trạng thái trước khi xử lý answer
           if (peerRef.current._pc?.signalingState === "have-local-offer") {
             peerRef.current.signal(JSON.parse(data.sdp));
           } else {
             console.warn("Skipping answer due to unexpected state:", peerRef.current._pc?.signalingState);
+            // Thử khởi động lại kết nối nếu trạng thái không đúng
+            cleanupPeerConnection();
+            toast.error("Lỗi trạng thái signaling. Vui lòng thử lại cuộc gọi.");
           }
         } else if (data.type === "ice-candidate" && peerRef.current) {
           console.log("Received ICE candidate:", data.candidate);
@@ -329,6 +337,12 @@ const Chat = ({ chatId }) => {
         config: {
           iceServers: [
             { urls: "stun:stun.l.google.com:19302" },
+            // SỬA: Thêm TURN server
+            {
+              urls: "turns:kanox-turn.duckdns.org:5349",
+              username: "turnuser",
+              credential: "eqfleqrd1",
+            },
           ],
           iceTransportPolicy: "all",
           bundlePolicy: "balanced",
@@ -337,6 +351,15 @@ const Chat = ({ chatId }) => {
         },
         debug: true,
       });
+
+      // SỬA: Thêm xử lý ICE connection state
+      newPeer._pc.oniceconnectionstatechange = () => {
+        console.log("ICE connection state:", newPeer._pc.iceConnectionState);
+        if (newPeer._pc.iceConnectionState === "failed") {
+          console.error("ICE connection failed. Restarting ICE...");
+          newPeer._pc.restartIce();
+        }
+      };
 
       let hasReceivedAnswer = false;
 
@@ -382,7 +405,7 @@ const Chat = ({ chatId }) => {
       });
 
       newPeer.on("stream", (remoteStream) => {
-        console.log("Received remote stream");
+        console.log("Received remote stream:", remoteStream.id);
         if (remoteVideoRef.current) {
           remoteVideoRef.current.srcObject = remoteStream;
           remoteVideoRef.current.play().catch((err) => console.error("Error playing remote video:", err));
@@ -439,6 +462,12 @@ const Chat = ({ chatId }) => {
       config: {
         iceServers: [
           { urls: "stun:stun.l.google.com:19302" },
+          // SỬA: Thêm TURN server
+          {
+            urls: "turns:kanox-turn.duckdns.org:5349",
+            username: "turnuser",
+            credential: "eqfleqrd1",
+          },
         ],
         iceTransportPolicy: "all",
         bundlePolicy: "balanced",
@@ -447,6 +476,15 @@ const Chat = ({ chatId }) => {
       },
       debug: true,
     });
+
+    // SỬA: Thêm xử lý ICE connection state
+    newPeer._pc.oniceconnectionstatechange = () => {
+      console.log("ICE connection state:", newPeer._pc.iceConnectionState);
+      if (newPeer._pc.iceConnectionState === "failed") {
+        console.error("ICE connection failed. Restarting ICE...");
+        newPeer._pc.restartIce();
+      }
+    };
 
     let hasSentAnswer = false;
 
@@ -493,7 +531,7 @@ const Chat = ({ chatId }) => {
     });
 
     newPeer.on("stream", (remoteStream) => {
-      console.log("Received remote stream in handleOffer");
+      console.log("Received remote stream in handleOffer:", remoteStream.id);
       if (remoteVideoRef.current) {
         remoteVideoRef.current.srcObject = remoteStream;
         remoteVideoRef.current.play().catch((err) => console.error("Error playing remote video:", err));
@@ -517,18 +555,10 @@ const Chat = ({ chatId }) => {
       }
     });
 
-    // Khởi tạo lại nếu trạng thái không phù hợp
-    if (!peerRef.current || peerRef.current._pc?.signalingState === "closed") {
-      console.log("Reinitializing PeerConnection for offer...");
-      peerRef.current = newPeer;
-    }
-    if (newPeer._pc.signalingState !== "stable") {
-      newPeer.signal(JSON.parse(offerData.sdp));
-    } else {
-      console.warn("Skipping offer due to stable state, reinitializing...");
-      peerRef.current = newPeer;
-      newPeer.signal(JSON.parse(offerData.sdp));
-    }
+    // SỬA: Xóa logic kiểm tra trạng thái stable, luôn sử dụng newPeer
+    peerRef.current = newPeer;
+    console.log("Processing offer with signaling state:", newPeer._pc.signalingState);
+    newPeer.signal(JSON.parse(offerData.sdp));
     setShowCallPanel(true);
   };
 
