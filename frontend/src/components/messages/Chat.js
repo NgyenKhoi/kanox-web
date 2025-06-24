@@ -42,7 +42,7 @@ const Chat = ({ chatId }) => {
       urls: [
         "stun:34.143.174.239:3478",
         "turn:34.143.174.239:3478?transport=udp",
-        "turn:34.143.174.239:3478?transport=tcp",
+        "turn:34.143.174.239:5349?transport=tcp",
       ],
       username: "turnuser",
       credential: "eqfleqrd1",
