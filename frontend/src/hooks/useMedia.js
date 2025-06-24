@@ -5,7 +5,11 @@ import { toast } from "react-toastify";
 const mediaCache = new Map();
 window.mediaCache = mediaCache;
 
-const useMedia = (targetIds, targetTypeCode = "PROFILE", mediaTypeName = "image") => {
+const useMedia = (
+  targetIds,
+  targetTypeCode = "PROFILE",
+  mediaTypeName = "image"
+) => {
   const [mediaData, setMediaData] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -27,7 +31,9 @@ const useMedia = (targetIds, targetTypeCode = "PROFILE", mediaTypeName = "image"
       return;
     }
 
-    const cacheKey = `${validIds.sort().join(",")}:${targetTypeCode}:${mediaTypeName}`;
+    const cacheKey = `${validIds
+      .sort()
+      .join(",")}:${targetTypeCode}:${mediaTypeName}`;
     const controller = new AbortController();
     let isMounted = true;
 
@@ -47,12 +53,11 @@ const useMedia = (targetIds, targetTypeCode = "PROFILE", mediaTypeName = "image"
       }
 
       try {
-        const query = new URLSearchParams({
-          targetIds: validIds.join(","),
-          targetTypeCode,
-          mediaTypeName,
-          status: "true",
-        });
+        const query = new URLSearchParams();
+        validIds.forEach((id) => query.append("targetIds", id));
+        query.append("targetTypeCode", targetTypeCode);
+        query.append("mediaTypeName", mediaTypeName);
+        query.append("status", "true");
 
         const apiUrl = `${process.env.REACT_APP_API_URL}/media/targets?${query}`;
         console.debug("[useMedia] API URL:", apiUrl);
