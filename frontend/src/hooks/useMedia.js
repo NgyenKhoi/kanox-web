@@ -18,7 +18,7 @@ const useMedia = (
     return Array.isArray(targetIds)
       ? [...new Set(targetIds.filter((id) => id !== null && id !== undefined))]
       : [];
-  }, [targetIds?.join(",")]); // dùng join để tạo chuỗi ổn định
+  }, [JSON.stringify(targetIds || [])]);
 
   useEffect(() => {
     if (stableTargetIds.length === 0 || !token) {

@@ -44,6 +44,7 @@ public class SecurityConfig {
         configuration.setAllowedOrigins(List.of("https://kanox-web.netlify.app"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
+        configuration.setExposedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
 
@@ -58,7 +59,7 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**", "/ws/**", "/api/ws/info", "/actuator/**", "/oauth2/**", "/login/oauth2/**", "/auth/**", "/favicon.ico", "/api/media/**").permitAll()
+                        .requestMatchers("/api/auth/**", "/ws/**", "/api/ws/info", "/actuator/**", "/oauth2/**", "/login/oauth2/**", "/auth/**", "/favicon.ico").permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
