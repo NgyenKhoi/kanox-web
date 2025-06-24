@@ -44,6 +44,17 @@ const Chat = ({ chatId }) => {
   const remoteVideoRef = useRef(null);
   const chatContainerRef = useRef(null);
 
+  const iceServers = [
+    { urls: "stun:stun.l.google.com:19302" },
+    {
+      urls: [
+        "turn:kanox-turn.duckdns.org:3478?transport=udp", // Thêm UDP
+        "turns:kanox-turn.duckdns.org:5349?transport=tcp", // Giữ TCP/TLS
+      ],
+      username: "turnuser",
+      credential: "eqfleqrd1",
+    },
+  ];
   const fetchUnreadMessageCount = async () => {
     try {
       const response = await fetch(
@@ -96,15 +107,18 @@ const Chat = ({ chatId }) => {
       });
 
       const stream = await Promise.race([streamPromise, timeoutPromise]);
+      if (!stream.getVideoTracks().length || !stream.getAudioTracks().length) {
+        throw new Error("No video or audio track found in stream.");
+      }
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
-        console.log("Local video stream started with stream id:", stream.id);
+        console.log("Local video stream started with stream id:", stream.id, "Tracks:", stream.getTracks().map(t => t.kind));
       }
       return stream;
     } catch (err) {
-      console.error("Error accessing media devices:", err);
+      console.error("Error accessing media devices:", err.name, err.message);
       toast.error("Không thể truy cập camera/microphone: " + err.message);
       return null;
     }
@@ -335,15 +349,7 @@ const Chat = ({ chatId }) => {
         trickle: true,
         stream: newStream,
         config: {
-          iceServers: [
-            { urls: "stun:stun.l.google.com:19302" },
-            // SỬA: Thêm TURN server
-            {
-              urls: "turns:kanox-turn.duckdns.org:5349",
-              username: "turnuser",
-              credential: "eqfleqrd1",
-            },
-          ],
+          iceServers,
           iceTransportPolicy: "all",
           bundlePolicy: "balanced",
           rtcpMuxPolicy: "require",
@@ -353,17 +359,34 @@ const Chat = ({ chatId }) => {
       });
 
       // SỬA: Thêm xử lý ICE connection state
+      let retryCount = 0;
+      const maxRetries = 3;
+
       newPeer._pc.oniceconnectionstatechange = () => {
-        console.log("ICE connection state:", newPeer._pc.iceConnectionState);
-        if (newPeer._pc.iceConnectionState === "failed") {
-          console.error("ICE connection failed. Restarting ICE...");
+        const state = newPeer._pc.iceConnectionState;
+        console.log("ICE connection state:", state);
+        if (state === "failed" && retryCount < maxRetries) {
+          retryCount++;
+          console.error(`ICE connection failed. Retry ${retryCount}/${maxRetries}...`);
           newPeer._pc.restartIce();
+        } else if (state === "failed" && retryCount >= maxRetries) {
+          toast.error("Không thể kết nối cuộc gọi sau nhiều lần thử. Vui lòng kiểm tra mạng.");
+          leaveCall();
+        } else if (state === "connected" || state === "completed") {
+          retryCount = 0; // Reset khi kết nối thành công
         }
       };
 
       let hasReceivedAnswer = false;
 
       newPeer.on("signal", (signalData) => {
+        console.log("Signal data:", {
+          type: signalData.type,
+          sdp: signalData.sdp?.slice(0, 100), // Giới hạn để tránh log quá dài
+          candidate: signalData.candidate,
+          signalingState: newPeer._pc.signalingState,
+          iceConnectionState: newPeer._pc.iceConnectionState,
+        });
         if (hasReceivedAnswer && signalData.type === "answer") {
           console.log("Skipping duplicate answer signal");
           return;
@@ -404,8 +427,20 @@ const Chat = ({ chatId }) => {
         }
       });
 
+      const streamTimeout = setTimeout(() => {
+        if (!remoteVideoRef.current?.srcObject) {
+          console.error("No remote stream received after 30 seconds");
+          toast.error("Không nhận được video từ đối phương. Vui lòng thử lại.");
+          leaveCall();
+        }
+      }, 30000);
+
       newPeer.on("stream", (remoteStream) => {
-        console.log("Received remote stream:", remoteStream.id);
+        clearTimeout(streamTimeout);
+        console.log("Received remote stream:", {
+          id: remoteStream.id,
+          tracks: remoteStream.getTracks().map(t => ({ kind: t.kind, enabled: t.enabled })),
+        });
         if (remoteVideoRef.current) {
           remoteVideoRef.current.srcObject = remoteStream;
           remoteVideoRef.current.play().catch((err) => console.error("Error playing remote video:", err));
@@ -460,15 +495,7 @@ const Chat = ({ chatId }) => {
       trickle: true,
       stream: newStream,
       config: {
-        iceServers: [
-          { urls: "stun:stun.l.google.com:19302" },
-          // SỬA: Thêm TURN server
-          {
-            urls: "turns:kanox-turn.duckdns.org:5349",
-            username: "turnuser",
-            credential: "eqfleqrd1",
-          },
-        ],
+        iceServers,
         iceTransportPolicy: "all",
         bundlePolicy: "balanced",
         rtcpMuxPolicy: "require",
