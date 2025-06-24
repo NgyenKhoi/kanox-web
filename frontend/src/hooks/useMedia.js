@@ -2,7 +2,11 @@ import { useState, useEffect, useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
 import { toast } from "react-toastify";
 
-const useMedia = (targetIds, targetTypeCode = "PROFILE", mediaTypeName = "image") => {
+const useMedia = (
+  targetIds,
+  targetTypeCode = "PROFILE",
+  mediaTypeName = "image"
+) => {
   const [mediaData, setMediaData] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -41,6 +45,8 @@ const useMedia = (targetIds, targetTypeCode = "PROFILE", mediaTypeName = "image"
 
         const apiUrl = `${process.env.REACT_APP_API_URL}/media/targets?${query}`;
         console.debug("[useMedia] API URL:", apiUrl);
+        console.debug("[useMedia] Đang dùng token:", token);
+        console.debug("[useMedia] Từ AuthContext:", authContext);
 
         const response = await fetch(apiUrl, {
           headers: {

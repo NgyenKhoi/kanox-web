@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect, useMemo } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import {
   Card,
   Button,
@@ -94,7 +94,7 @@ const commentContentStyles = {
 };
 
 function TweetCard({ tweet, onPostUpdate }) {
-  const { user } = useContext(AuthContext);
+  const { user, loading, token } = useContext(AuthContext);
   const navigate = useNavigate();
   const {
     id,
@@ -123,24 +123,19 @@ function TweetCard({ tweet, onPostUpdate }) {
   const postId = id || null;
 
   // Lấy avatar (PROFILE + image)
-  const { mediaData: avatarData, error: avatarError } = useMedia(
-    [ownerId],
-    "PROFILE",
-    "image"
-  );
+  const avatarMedia = useMedia([ownerId], "PROFILE", "image");
+  const imageMedia = useMedia([postId], "POST", "image");
+  const videoMedia = useMedia([postId], "POST", "video");
 
-  // Lấy ảnh bài viết (POST + image)
-  const { mediaData: imageData, error: mediaError } = useMedia(
-    [postId],
-    "POST",
-    "image"
-  );
+  // Sau đó dùng thế này:
+  const avatarData = !loading && token && ownerId ? avatarMedia.mediaData : {};
+  const avatarError = avatarMedia.error;
 
-  const { mediaData: videoData, error: videoError } = useMedia(
-    [postId],
-    "POST",
-    "video"
-  );
+  const imageData = !loading && token && postId ? imageMedia.mediaData : {};
+  const mediaError = imageMedia.error;
+
+  const videoData = !loading && token && postId ? videoMedia.mediaData : {};
+  const videoError = videoMedia.error;
 
   const avatarUrl = avatarData?.[ownerId]?.[0] || null;
   const imageUrls = imageData?.[postId] || [];
