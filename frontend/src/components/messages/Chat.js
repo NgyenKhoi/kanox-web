@@ -6,6 +6,7 @@ import {
   Col,
   Modal,
   InputGroup,
+  Image,
 } from "react-bootstrap";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
