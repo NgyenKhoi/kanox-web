@@ -137,8 +137,8 @@ function TweetCard({ tweet, onPostUpdate }) {
   const videoError = videoMedia.error;
 
   const avatarUrl = avatarData?.[ownerId]?.[0]?.url || null;
-  const imageUrls = imageData?.[postId]?.map((item) => item.url) || [];
-  const videoUrls = videoData?.[postId]?.map((item) => item.url) || [];
+  const imageUrls = imageData?.[postId] || [];
+  const videoUrls = videoData?.[postId] || [];
 
   const { avatars: commentAvatars, error: commentAvatarError } =
     useCommentAvatars(comments || []);
@@ -486,7 +486,7 @@ function TweetCard({ tweet, onPostUpdate }) {
           )}
 
           <div style={commentContentStyles}>
-            <strong>{comment?.user?.displayName || "Ẩn danh"}</strong>
+            <strong>{comment?.user?.displayName || "Người dùng"}</strong>
             <p className="mb-1">{comment.content}</p>
             <small className="text-muted">
               {moment(comment.createdAt).fromNow()}
@@ -519,7 +519,7 @@ function TweetCard({ tweet, onPostUpdate }) {
               height={50}
               roundedCircle
               className="me-3 d-none d-md-block"
-              aria-label={`Ảnh đại diện của ${owner?.displayName || "Ẩn danh"}`}
+              aria-label={`Ảnh đại diện của ${owner?.displayName || "Người dùng"}`}
             />
           ) : (
             <FaUserCircle
@@ -536,7 +536,7 @@ function TweetCard({ tweet, onPostUpdate }) {
                   onClick={handleNavigateToProfile}
                   style={{ cursor: "pointer" }}
                 >
-                  {owner?.displayName || "Ẩn danh"}
+                  {owner?.displayName || "Người dùng"}
                 </h6>
                 <span className="text-muted small me-1">
                   @{owner?.username || "unknown"}
