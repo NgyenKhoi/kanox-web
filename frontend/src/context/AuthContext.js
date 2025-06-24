@@ -179,7 +179,7 @@ export const AuthProvider = ({ children }) => {
 
     const interval = setInterval(() => {
       if (token) checkTokenValidity(token);
-    }, 5 * 60 * 1000); // 5 phút
+    }, 30 * 60 * 1000); // 30 phút
 
     return () => clearInterval(interval);
   }, []);

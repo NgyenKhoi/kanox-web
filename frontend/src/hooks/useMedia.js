@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext, useMemo } from "react";
 import { AuthContext } from "../context/AuthContext";
 import { toast } from "react-toastify";
 
@@ -11,20 +11,19 @@ const useMedia = (
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const authContext = useContext(AuthContext);
-  const token =
-    authContext?.token ||
-    sessionStorage.getItem("token") ||
-    localStorage.getItem("token");
+  const { token } = useContext(AuthContext);
 
-  useEffect(() => {
-    const validIds = Array.isArray(targetIds)
+  // Tối ưu hóa targetIds để không gây gọi lại liên tục
+  const stableTargetIds = useMemo(() => {
+    return Array.isArray(targetIds)
       ? [...new Set(targetIds.filter((id) => id !== null && id !== undefined))]
       : [];
+  }, [targetIds?.join(",")]); // dùng join để tạo chuỗi ổn định
 
-    if (validIds.length === 0) {
+  useEffect(() => {
+    if (stableTargetIds.length === 0 || !token) {
       setMediaData({});
-      console.debug("[useMedia] Không có targetIds hợp lệ.");
+      console.debug("[useMedia] Không có targetIds hợp lệ hoặc chưa có token.");
       return;
     }
 
@@ -32,36 +31,35 @@ const useMedia = (
     let isMounted = true;
 
     const fetchMedia = async () => {
-      console.debug("[useMedia] Fetching media for:", validIds);
+      console.debug("[useMedia] Fetching media for:", stableTargetIds);
       setLoading(true);
       setError(null);
 
       try {
         const query = new URLSearchParams();
-        validIds.forEach((id) => query.append("targetIds", id));
+        stableTargetIds.forEach((id) => query.append("targetIds", id));
         query.append("targetTypeCode", targetTypeCode);
         query.append("mediaTypeName", mediaTypeName);
         query.append("status", "true");
 
-        const apiUrl = `${process.env.REACT_APP_API_URL}/media/targets?${query}`;
+        const apiUrl = `https://kanox.duckdns.org/api/media/targets?${query}`;
         console.debug("[useMedia] API URL:", apiUrl);
-        console.debug("[useMedia] Đang dùng token:", token);
-        console.debug("[useMedia] Từ AuthContext:", authContext);
 
         const response = await fetch(apiUrl, {
           headers: {
             "Content-Type": "application/json",
-            ...(token && { Authorization: `Bearer ${token}` }),
+            Authorization: `Bearer ${token}`,
           },
           signal: controller.signal,
         });
 
         if (!response.ok) {
-          throw new Error(`Lỗi fetch media: ${response.status}`);
+          const text = await response.text();
+          throw new Error(`Lỗi fetch media: ${response.status} - ${text}`);
         }
 
         const data = await response.json();
-        console.debug("[useMedia] Data nhận được từ API:", data);
+        console.debug("[useMedia] Dữ liệu media nhận được:", data);
 
         const grouped = {};
         for (const item of data) {
@@ -70,7 +68,9 @@ const useMedia = (
           grouped[targetId].push(item);
         }
 
-        if (isMounted) setMediaData(grouped);
+        if (isMounted) {
+          setMediaData(grouped);
+        }
       } catch (err) {
         console.error("[useMedia] Lỗi:", err);
         if (err.name !== "AbortError" && isMounted) {
@@ -89,7 +89,7 @@ const useMedia = (
       isMounted = false;
       controller.abort();
     };
-  }, [targetIds, targetTypeCode, mediaTypeName, token]);
+  }, [stableTargetIds, targetTypeCode, mediaTypeName, token]);
 
   return { mediaData, loading, error };
 };
