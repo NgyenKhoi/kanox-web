@@ -48,8 +48,8 @@ const Chat = ({ chatId }) => {
     { urls: "stun:stun.l.google.com:19302" },
     {
       urls: [
-        "turn:kanox-turn.duckdns.org:3478?transport=udp", // Thêm UDP
-        "turns:kanox-turn.duckdns.org:5349?transport=tcp", // Giữ TCP/TLS
+        "turn:34.143.174.239:3478", // Thêm UDP
+        "turns:kanox-turn.duckdns.org:5349", // Giữ TCP/TLS
       ],
       username: "turnuser",
       credential: "eqfleqrd1",
