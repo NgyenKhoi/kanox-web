@@ -485,10 +485,8 @@ const Chat = ({ chatId }) => {
               destination: "/app/call/offer",
               body: JSON.stringify({
                 chatId: Number(chatId),
-                type: "offer",
-                sdp: JSON.stringify(signalData),
                 userId: Number(user.id),
-                candidate: null,
+                ...signalData,
               }),
             });
           } else if (signalData.candidate) {
