@@ -253,17 +253,14 @@ const Chat = ({ chatId }) => {
             "Signaling state:",
             peerRef.current._pc?.signalingState
           );
-          peerRef.current.signal(data);
+          peerRef.current.signal({
+            type: "answer",
+            sdp: data.sdp,
+          });
         } else if (data.type === "ice-candidate" && peerRef.current) {
           console.log("Received ICE candidate:", data.candidate);
           if (data.candidate) {
-            peerRef.current.signal({
-              candidate: {
-                candidate: data.candidate.candidate,
-                sdpMid: data.candidate.sdpMid,
-                sdpMLineIndex: data.candidate.sdpMLineIndex,
-              },
-            });
+            peerRef.current.signal({ candidate: data.candidate });
           }
         } else if (data.type === "end") {
           console.log("Call ended by remote user");
