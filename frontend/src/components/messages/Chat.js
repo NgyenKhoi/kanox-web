@@ -247,7 +247,7 @@ const Chat = ({ chatId }) => {
             "Signaling state:",
             peerRef.current._pc?.signalingState
           );
-          handleAnswer(data);
+          peerRef.current.signal(data);
         } else if (data.type === "ice-candidate" && peerRef.current) {
           console.log("Received ICE candidate:", data.candidate);
           if (data.candidate) {
