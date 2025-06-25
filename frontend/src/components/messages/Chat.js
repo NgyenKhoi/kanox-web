@@ -485,8 +485,10 @@ const Chat = ({ chatId }) => {
               destination: "/app/call/offer",
               body: JSON.stringify({
                 chatId: Number(chatId),
+                type: "offer",
+                sdp: signalData,
                 userId: Number(user.id),
-                ...signalData,
+                candidate: null,
               }),
             });
           } else if (signalData.candidate) {
@@ -708,7 +710,7 @@ const Chat = ({ chatId }) => {
       newPeer._pc.signalingState
     );
     try {
-      await newPeer.signal(JSON.parse(offerData.sdp));
+      await newPeer.signal(offerData.sdp);
     } catch (err) {
       console.error("Error processing offer:", err);
       toast.error("Lỗi khi xử lý offer: " + err.message);
