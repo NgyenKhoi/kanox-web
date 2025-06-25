@@ -5,12 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="c6c17ae2-c6cb-4c94-a6b8-91c54839fa5e" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/dto/message/SignalMessageDto.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/dto/message/SignalMessageDto.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/target/social-media-0.0.1-SNAPSHOT.jar.original" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/target/social-media-0.0.1-SNAPSHOT.jar.original" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/target/surefire-reports/TEST-com.example.social_media.SocialMediaApplicationTests.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/target/surefire-reports/TEST-com.example.social_media.SocialMediaApplicationTests.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/target/surefire-reports/com.example.social_media.SocialMediaApplicationTests.txt" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/target/surefire-reports/com.example.social_media.SocialMediaApplicationTests.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/messages/Chat.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/messages/Chat.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -54,7 +49,7 @@
     "Node.js.MessengerPage.js.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "Merging main",
+    "git-widget-placeholder": "main",
     "junie.onboarding.icon.badge.shown": "true",
     "last_opened_file_path": "D:/SWP391/kanox-web/frontend",
     "node.js.detected.package.eslint": "true",
@@ -114,7 +109,7 @@
       <workItem from="1750754780538" duration="6880000" />
       <workItem from="1750831425176" duration="1314000" />
       <workItem from="1750856424695" duration="22000" />
-      <workItem from="1750856458650" duration="1731000" />
+      <workItem from="1750856458650" duration="2848000" />
     </task>
     <servers />
   </component>

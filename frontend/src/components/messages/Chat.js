@@ -460,23 +460,36 @@ const Chat = ({ chatId }) => {
         }
       });
 
-      const handleAnswer = (data) => {
-        if (!peerRef.current || peerRef.current._pc.signalingState === "closed") return;
-        if (peerRef.current._pc.signalingState !== "have-local-offer") {
-          console.warn("Unexpected signaling state:", peerRef.current._pc.signalingState);
+      newPeer.on("connect", () => {
+        console.log("Peer connection established");
+      });
+
+      newPeer.on("error", (err) => {
+        console.error("Peer error:", err);
+      });
+
+      const handleAnswerSignal = (data) => {
+        if (!peerRef.current || peerRef.current._pc.signalingState === "stable") {
+          console.warn("Skipping answer due to stable state or closed connection");
           return;
         }
-        peerRef.current.signal(JSON.parse(data.sdp));
-        pendingCandidates.forEach(candidate => {
-          peerRef.current.signal({
-            candidate: {
-              candidate: candidate.candidate,
-              sdpMid: candidate.sdpMid,
-              sdpMLineIndex: candidate.sdpMLineIndex,
-            },
-          });
-        });
-        pendingCandidates.length = 0;
+        try {
+          peerRef.current.signal(JSON.parse(data.sdp));
+          if (pendingCandidates.length > 0) {
+            pendingCandidates.forEach(candidate => {
+              peerRef.current.signal({
+                candidate: {
+                  candidate: candidate.candidate,
+                  sdpMid: candidate.sdpMid,
+                  sdpMLineIndex: candidate.sdpMLineIndex,
+                },
+              });
+            });
+            pendingCandidates.length = 0;
+          }
+        } catch (err) {
+          console.error("Error setting remote description:", err);
+        }
       };
 
       const callSub = stompRef.current.subscribe(`/topic/call/${chatId}`, (signal) => {
@@ -486,7 +499,7 @@ const Chat = ({ chatId }) => {
           localStorage.setItem("lastOffer", JSON.stringify(data));
           setShowCallModal(true);
         } else if (data.type === "answer") {
-          handleAnswer(data);
+          handleAnswerSignal(data);
         } else if (data.type === "ice-candidate") {
           if (peerRef.current && peerRef.current._pc.remoteDescription) {
             peerRef.current.signal({
@@ -548,6 +561,9 @@ const Chat = ({ chatId }) => {
 
     newPeer._pc.oniceconnectionstatechange = () => {
       console.log("ICE state:", newPeer._pc.iceConnectionState);
+      if (newPeer._pc.iceConnectionState === "failed") {
+        console.error("ICE connection failed, check firewall or TURN configuration");
+      }
     };
     newPeer._pc.onsignalingstatechange = () => {
       console.log("Signaling state:", newPeer._pc.signalingState);
