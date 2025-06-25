@@ -191,6 +191,7 @@ const Chat = ({ chatId }) => {
         toast.error("Lỗi khi xử lý phản hồi cuộc gọi: " + err.message);
         cleanupPeerConnection();
       }
+      console.log('Received answer in handleAnswer:', data.sdp);
     };
 
     client.onConnect = () => {
@@ -248,6 +249,7 @@ const Chat = ({ chatId }) => {
           console.log("Call ended by remote user");
           leaveCall();
         }
+        console.log('Received signal from /topic/call/', data.type, data.candidate ? data.candidate : data.sdp);
       });
 
       const unreadCountSub = client.subscribe(
@@ -277,6 +279,10 @@ const Chat = ({ chatId }) => {
             destination: "/app/ping",
             body: null,
           });
+        }
+        if (!stompRef.current?.connected) {
+          console.error('STOMP not connected, cannot send signal');
+          return;
         }
       }, 30000);
 
@@ -407,12 +413,45 @@ const Chat = ({ chatId }) => {
         initiator: true,
         trickle: true,
         stream: newStream,
-        config: { iceServers, iceTransportPolicy: "relay" },
+        config: { iceServers, iceTransportPolicy: 'all', sdpSemantics: 'unified-plan' },
         debug: true,
+      });
+      peerRef.current = newPeer;
+
+      newPeer.on("signal", (signalData) => {
+        console.log("Signal generated:", signalData.type);
+        if (signalData.type === "offer") {
+          stompRef.current.publish({
+            destination: "/app/call/offer",
+            body: JSON.stringify({
+              chatId: Number(chatId),
+              type: "offer",
+              sdp: JSON.stringify(signalData),
+              userId: Number(user.id),
+              candidate: null,
+            }),
+          });
+          console.log('Sent offer to /app/call/offer:', signalData);
+        } else if (signalData.candidate) {
+          stompRef.current.publish({ destination: "/app/call/ice-candidate", body: JSON.stringify({
+              chatId: Number(chatId), type: "ice-candidate", candidate: signalData.candidate,
+              userId: Number(user.id), sdp: null,
+            }) });
+          console.log('Sent candidate:', signalData.candidate);
+        }
       });
 
       newPeer._pc.oniceconnectionstatechange = () => {
-        console.log("ICE state:", newPeer._pc.iceConnectionState);
+        console.log('ICE state:', newPeer._pc.iceConnectionState);
+        if (newPeer._pc.iceConnectionState === 'failed') {
+          setTimeout(() => {
+            if (newPeer._pc.iceConnectionState === 'failed') {
+              console.error('ICE failed, notifying');
+              toast.error('Kết nối thất bại.');
+              leaveCall();
+            }
+          }, 5000);
+        }
       };
       newPeer._pc.onsignalingstatechange = () => {
         console.log("Signaling state:", newPeer._pc.signalingState);
@@ -468,27 +507,14 @@ const Chat = ({ chatId }) => {
         console.error("Peer error:", err);
       });
 
-      const handleAnswerSignal = (data) => {
-        if (!peerRef.current || peerRef.current._pc.signalingState === "stable") {
-          console.warn("Skipping answer due to stable state or closed connection");
-          return;
-        }
+      const handleAnswerSignal = async (data) => {
+        if (!peerRef.current || peerRef.current._pc.signalingState === "closed") return;
         try {
-          peerRef.current.signal(JSON.parse(data.sdp));
-          if (pendingCandidates.length > 0) {
-            pendingCandidates.forEach(candidate => {
-              peerRef.current.signal({
-                candidate: {
-                  candidate: candidate.candidate,
-                  sdpMid: candidate.sdpMid,
-                  sdpMLineIndex: candidate.sdpMLineIndex,
-                },
-              });
-            });
-            pendingCandidates.length = 0;
-          }
+          await peerRef.current._pc.setRemoteDescription(JSON.parse(data.sdp));
+          console.log('Set remote description:', data.sdp);
+          await new Promise(resolve => setTimeout(resolve, 1000));
         } catch (err) {
-          console.error("Error setting remote description:", err);
+          console.error('Error setting remote description:', err);
         }
       };
 
@@ -567,6 +593,19 @@ const Chat = ({ chatId }) => {
     };
     newPeer._pc.onsignalingstatechange = () => {
       console.log("Signaling state:", newPeer._pc.signalingState);
+    };
+
+    newPeer._pc.onicecandidate = (event) => {
+      console.log('ICE candidate:', event.candidate);
+    };
+    newPeer._pc.onicecandidateerror = (error) => {
+      console.error('ICE candidate error:', error);
+    };
+    newPeer._pc.onicegatheringstatechange = () => {
+      console.log('ICE gathering state:', newPeer._pc.iceGatheringState);
+    };
+    newPeer._pc.ontrack = (event) => {
+      console.log('Received track:', event.track.kind);
     };
 
     newPeer.on("signal", (signalData) => {
