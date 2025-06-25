@@ -190,8 +190,8 @@ public class ChatController {
     public CallSessionDto startCall(@PathVariable Integer chatId) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         CallSession callSession = callSessionService.startCall(chatId, username);
-        messagingTemplate.convertAndSend("/topic/call/" + chatId,
-                new SignalMessageDto(chatId, "start", null, null, callSession.getHost().getId()));
+        // messagingTemplate.convertAndSend("/topic/call/" + chatId,
+        //         new SignalMessageDto(chatId, "start", null, null, callSession.getHost().getId()));
         return new CallSessionDto(callSession.getId(), callSession.getChat().getId(),
                 callSession.getHost().getId(), callSession.getStartTime(),
                 callSession.getEndTime());
