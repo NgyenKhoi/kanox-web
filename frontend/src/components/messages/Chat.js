@@ -486,6 +486,7 @@ const Chat = ({ chatId }) => {
           iceConnectionState: newPeer._pc.iceConnectionState,
         });
         if (stompRef.current?.connected) {
+          console.log("📤 Sending OFFER signal:", signalData);
           if (signalData.type === "offer") {
             stompRef.current.publish({
               destination: "/app/call/offer",
