@@ -2,7 +2,7 @@ import React from "react";
 import Image from "react-bootstrap/Image";
 import { FaUserCircle } from "react-icons/fa";
 import moment from "moment";
-import useCommentAvatar from "../../../hooks/useCommentAvatars";
+import useCommentAvatar from "../../../hooks/useCommentAvatar";
 
 // 💅 Style giống Facebook
 const commentStyles = {

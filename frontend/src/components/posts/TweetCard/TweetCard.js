@@ -34,7 +34,6 @@ import moment from "moment";
 import { AuthContext } from "../../../context/AuthContext";
 import EditPostModal from "../TweetInput/EditPostModal";
 import useMedia from "../../../hooks/useMedia";
-import useCommentAvatars from "../../../hooks/useCommentAvatars";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import CommentItem from "./CommentItem";
@@ -155,8 +154,6 @@ function TweetCard({ tweet, onPostUpdate }) {
   const imageUrls = imageData?.[postId] || [];
   const videoUrls = videoData?.[postId] || [];
 
-  const { avatars: commentAvatars, error: commentAvatarError } =
-    useCommentAvatars(comments || []);
 
   const handleNextImage = () => {
     if (currentImageIndex < imageUrls.length - 1) {
@@ -479,11 +476,11 @@ function TweetCard({ tweet, onPostUpdate }) {
     ));
   };
 
-  if (avatarError || mediaError || videoError || commentAvatarError) {
+  if (avatarError || mediaError || videoError) {
     return (
       <div className="text-danger">
         Lỗi tải media:{" "}
-        {avatarError || mediaError || videoError || commentAvatarError}
+        {avatarError || mediaError || videoError}
       </div>
     );
   }
