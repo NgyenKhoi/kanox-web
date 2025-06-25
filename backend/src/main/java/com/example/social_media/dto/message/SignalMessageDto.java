@@ -1,14 +1,10 @@
 package com.example.social_media.dto.message;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
-@JsonInclude(JsonInclude.Include.NON_NULL)
 public class SignalMessageDto {
     private Integer chatId;
     private String type;
-    @JsonProperty("sdp")
-    private Object sdp;
+    private String sdp;
     private IceCandidateDto candidate;
     private Integer userId;
 
@@ -39,11 +35,11 @@ public class SignalMessageDto {
         this.type = type;
     }
 
-    public Object getSdp() {
+    public String getSdp() {
         return sdp;
     }
 
-    public void setSdp(Object sdp) {
+    public void setSdp(String sdp) {
         this.sdp = sdp;
     }
 
