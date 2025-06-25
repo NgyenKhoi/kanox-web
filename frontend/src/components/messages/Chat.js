@@ -178,25 +178,28 @@ const Chat = ({ chatId }) => {
     });
 
     const handleAnswer = async (data) => {
-      if (!peerRef.current || peerRef.current._pc.signalingState === "closed") {
-        console.warn("PeerConnection is closed or null, creating new one");
+      const pc = peerRef.current?._pc;
+      if (!pc || pc.signalingState === "closed") {
+        console.warn("PeerConnection is closed or null");
         cleanupPeerConnection();
         toast.error("Kết nối bị đóng. Vui lòng thử lại cuộc gọi.");
         return;
       }
 
       try {
+        if (typeof data.sdp !== "string" || data.type !== "answer") {
+          console.error("Invalid SDP data:", data);
+          return;
+        }
+
         const desc = new RTCSessionDescription({
           type: data.type,
           sdp: data.sdp,
         });
 
-        console.log(
-          "Setting remote description, current signaling state:",
-          peerRef.current._pc.signalingState
-        );
+        console.log("Setting remote description, state:", pc.signalingState);
 
-        await peerRef.current._pc.setRemoteDescription(desc);
+        await pc.setRemoteDescription(desc);
         console.log("✅ Remote description set successfully.");
       } catch (err) {
         console.error("❌ Error setting remote description:", err);
