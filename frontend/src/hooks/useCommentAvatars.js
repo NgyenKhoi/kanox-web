@@ -1,19 +1,13 @@
-import useMedia from "./useMedia";
+import useSingleMedia from "./useSingleMedia";
 
-const useCommentAvatars = (comments) => {
-  const userIds =
-    Array.isArray(comments)
-      ? comments.map((c) => c?.user?.id).filter((id) => id !== undefined && id !== null)
-      : [];
+const useCommentAvatar = (userId) => {
+  const { mediaUrl, loading, error } = useSingleMedia(userId, "PROFILE", "image");
 
-  const { mediaData, loading, error } = useMedia(userIds, "PROFILE", "image");
-
-  const avatars = {};
-  for (const userId of userIds) {
-    avatars[userId] = mediaData?.[userId]?.[0]?.url || null;
-  }
-
-  return { avatars, loading, error };
+  return {
+    avatarUrl: mediaUrl,
+    loading,
+    error,
+  };
 };
 
-export default useCommentAvatars;
+export default useCommentAvatar;
