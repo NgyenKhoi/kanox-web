@@ -413,27 +413,105 @@ const Chat = ({ chatId }) => {
       return;
     }
 
-    try {
-      const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/chat/call/start/${chatId}`,
-        {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      if (!response.ok) {
-        throw new Error("Không thể khởi tạo cuộc gọi.");
+    const MAX_ICE_RETRIES = 3;
+    let retryCount = 0;
+    let hasSentAnswer = false;
+    let hasReceivedAnswer = false;
+    let pendingCandidates = [];
+
+    const handleRemoteIceCandidate = (candidateData) => {
+      const candidate = new RTCIceCandidate(candidateData);
+      if (peerRef.current && peerRef.current._pc.remoteDescription?.type) {
+        peerRef.current._pc.addIceCandidate(candidate).catch(console.error);
+      } else {
+        pendingCandidates.push(candidate);
       }
-      const callSession = await response.json();
-      console.log("Call session started:", callSession);
-      setCallSessionId(callSession.id);
+    };
 
+    const tryAddPendingCandidates = () => {
+      if (peerRef.current && peerRef.current._pc.remoteDescription?.type) {
+        pendingCandidates.forEach((c) =>
+          peerRef.current._pc.addIceCandidate(c)
+        );
+        pendingCandidates = [];
+      }
+    };
+    // ========= Start Call =========
+
+    // ========= Start Call =========
+    const startCall = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_API_URL}/chat/call/start/${chatId}`,
+          {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+
+        if (!response.ok) throw new Error("Không thể khởi tạo cuộc gọi.");
+
+        const callSession = await response.json();
+        setCallSessionId(callSession.id);
+        setShowCallPanel(true);
+
+        const newPeer = createPeer(true, newStream);
+        peerRef.current = newPeer;
+      } catch (err) {
+        console.error("Error starting call:", err);
+        toast.error(err.message || "Lỗi khi bắt đầu cuộc gọi.");
+      }
+    };
+
+    // ========= Handle Offer =========
+    const handleOffer = async () => {
+      if (!stompRef.current?.connected) {
+        toast.error(
+          "Không thể nhận cuộc gọi. Vui lòng kiểm tra kết nối WebSocket."
+        );
+        setShowCallModal(false);
+        return;
+      }
+
+      const newStream = await initializeMediaStream();
+      if (!newStream) {
+        toast.error(
+          "Không thể khởi tạo stream media. Vui lòng kiểm tra camera/microphone."
+        );
+        setShowCallModal(false);
+        return;
+      }
+
+      const offerData = JSON.parse(localStorage.getItem("lastOffer") || "{}");
+      if (!offerData?.sdp) {
+        toast.error("Dữ liệu cuộc gọi không hợp lệ.");
+        setShowCallModal(false);
+        return;
+      }
+
+      const newPeer = createPeer(false, newStream);
+      peerRef.current = newPeer;
+      console.log(
+        "Processing offer with signaling state:",
+        newPeer._pc.signalingState
+      );
+
+      try {
+        await newPeer.signal(offerData.sdp);
+        tryAddPendingCandidates();
+      } catch (err) {
+        console.error("Error processing offer:", err);
+        toast.error("Lỗi khi xử lý offer: " + err.message);
+      }
       setShowCallPanel(true);
+    };
 
-      const newPeer = new Peer({
-        initiator: true,
+    // ========= Create Peer =========
+    const createPeer = (initiator, stream) => {
+      const peer = new Peer({
+        initiator,
         trickle: true,
-        stream: newStream,
+        stream,
         config: {
           iceServers,
           iceTransportPolicy: "all",
@@ -444,19 +522,13 @@ const Chat = ({ chatId }) => {
         debug: true,
       });
 
-      let retryCount = 0;
-      const maxRetries = 3;
-
-      newPeer._pc.oniceconnectionstatechange = () => {
-        const state = newPeer._pc.iceConnectionState;
+      peer._pc.oniceconnectionstatechange = () => {
+        const state = peer._pc.iceConnectionState;
         console.log("ICE connection state:", state);
-        if (state === "failed" && retryCount < maxRetries) {
+        if (state === "failed" && retryCount < MAX_ICE_RETRIES) {
           retryCount++;
-          console.error(
-            `ICE connection failed. Retry ${retryCount}/${maxRetries}...`
-          );
-          newPeer._pc.restartIce();
-        } else if (state === "failed" && retryCount >= maxRetries) {
+          peer._pc.restartIce();
+        } else if (state === "failed") {
           toast.error(
             "Không thể kết nối cuộc gọi sau nhiều lần thử. Vui lòng kiểm tra mạng."
           );
@@ -466,292 +538,121 @@ const Chat = ({ chatId }) => {
         }
       };
 
-      newPeer._pc.onicecandidate = (event) => {
-        console.log("ICE candidate generated:", event.candidate);
-      };
-      newPeer._pc.onicegatheringstatechange = () => {
-        console.log("ICE gathering state:", newPeer._pc.iceGatheringState);
-      };
+      peer._pc.onicecandidate = (e) =>
+        console.log("ICE candidate generated:", e.candidate);
+      peer._pc.onicegatheringstatechange = () =>
+        console.log("ICE gathering state:", peer._pc.iceGatheringState);
 
-      let hasReceivedAnswer = false;
+      peer.on("signal", (data) => {
+        if (
+          (data.type === "answer" && hasSentAnswer) ||
+          (data.type === "answer" && hasReceivedAnswer)
+        )
+          return;
 
-      newPeer.on("signal", (signalData) => {
-        if (hasReceivedAnswer && signalData.type === "answer") {
-          console.log("Skipping duplicate answer signal");
+        console.log("📤 Sending signal data:", data);
+
+        if (!stompRef.current?.connected) {
+          toast.error("WebSocket chưa kết nối.");
           return;
         }
 
-        console.log("Sending signal data:", {
-          type: signalData.type,
-          sdp: signalData.sdp?.slice(0, 100),
-          candidate: signalData.candidate,
-          signalingState: newPeer._pc.signalingState,
-          iceConnectionState: newPeer._pc.iceConnectionState,
-        });
-        if (stompRef.current?.connected) {
-          console.log("📤 Sending OFFER signal:", signalData);
-          if (signalData.type === "offer") {
-            stompRef.current.publish({
-              destination: "/app/call/offer",
-              body: JSON.stringify({
-                chatId: Number(chatId),
-                type: "offer",
-                sdp: signalData,
-                userId: Number(user.id),
-                candidate: null,
-              }),
-            });
-          } else if (signalData.candidate) {
-            stompRef.current.publish({
-              destination: "/app/call/ice-candidate",
-              body: JSON.stringify({
-                chatId: Number(chatId),
-                type: "ice-candidate",
-                candidate: {
-                  candidate: signalData.candidate.candidate,
-                  sdpMid: signalData.candidate.sdpMid,
-                  sdpMLineIndex: signalData.candidate.sdpMLineIndex,
-                },
-                userId: Number(user.id),
-                sdp: null,
-              }),
-            });
-          }
-        } else {
-          console.error("WebSocket not connected");
-          toast.error(
-            "Không thể gửi tín hiệu cuộc gọi do mất kết nối WebSocket."
-          );
-        }
-      });
+        const basePayload = {
+          chatId: Number(chatId),
+          userId: Number(user.id),
+        };
 
-      const streamTimeout = setTimeout(() => {
-        if (!remoteVideoRef.current?.srcObject) {
-          console.error("No remote stream received after 60 seconds");
-          toast.error("Không nhận được video từ đối phương. Vui lòng thử lại.");
-          leaveCall();
-        }
-      }, 60000);
-
-      newPeer.on("stream", (remoteStream) => {
-        clearTimeout(streamTimeout);
-        console.log("Received remote stream:", {
-          id: remoteStream.id,
-          tracks: remoteStream
-            .getTracks()
-            .map((t) => ({ kind: t.kind, enabled: t.enabled })),
-        });
-        if (remoteVideoRef.current) {
-          remoteVideoRef.current.srcObject = null;
-          remoteVideoRef.current.srcObject = remoteStream;
-          remoteVideoRef.current.play().catch((err) => {
-            console.error("Error playing remote video:", err);
-            toast.error("Lỗi phát video từ đối phương: " + err.message);
-          });
-        }
-      });
-
-      newPeer.on("connect", () => {
-        console.log("Peer connection established");
-        hasReceivedAnswer = true;
-      });
-
-      newPeer.on("error", (err) => {
-        console.error("Peer error:", err);
-        if (err.message.includes("InvalidStateError")) {
-          console.log("Ignoring InvalidStateError due to state mismatch");
-        } else {
-          toast.error("Lỗi trong quá trình gọi video: " + err.message);
-        }
-      });
-
-      peerRef.current = newPeer;
-    } catch (err) {
-      console.error("Error starting call:", err);
-      toast.error(err.message || "Lỗi khi bắt đầu cuộc gọi.");
-    }
-  };
-
-  const handleOffer = async () => {
-    if (!stompRef.current?.connected) {
-      toast.error(
-        "Không thể nhận cuộc gọi. Vui lòng kiểm tra kết nối WebSocket."
-      );
-      setShowCallModal(false);
-      return;
-    }
-
-    const newStream = await initializeMediaStream();
-    if (!newStream) {
-      toast.error(
-        "Không thể khởi tạo stream media. Vui lòng kiểm tra camera/microphone."
-      );
-      setShowCallModal(false);
-      return;
-    }
-
-    const offerData = JSON.parse(localStorage.getItem("lastOffer") || "{}");
-    if (!offerData.sdp) {
-      toast.error("Dữ liệu cuộc gọi không hợp lệ.");
-      setShowCallModal(false);
-      return;
-    }
-
-    const newPeer = new Peer({
-      initiator: false,
-      trickle: true,
-      stream: newStream,
-      config: {
-        iceServers,
-        iceTransportPolicy: "all",
-        bundlePolicy: "balanced",
-        rtcpMuxPolicy: "require",
-        iceCandidatePoolSize: 0,
-      },
-      debug: true,
-    });
-
-    let retryCount = 0;
-    const maxRetries = 3;
-    let hasSentAnswer = false;
-
-    newPeer._pc.oniceconnectionstatechange = () => {
-      const state = newPeer._pc.iceConnectionState;
-      console.log("ICE connection state:", state);
-      if (state === "failed" && retryCount < maxRetries) {
-        retryCount++;
-        console.error(
-          `ICE connection failed. Retry ${retryCount}/${maxRetries}...`
-        );
-        newPeer._pc.restartIce();
-      } else if (state === "failed" && retryCount >= maxRetries) {
-        toast.error(
-          "Không thể kết nối cuộc gọi sau nhiều lần thử. Vui lòng kiểm tra mạng."
-        );
-        leaveCall();
-      } else if (state === "connected" || state === "completed") {
-        retryCount = 0;
-      }
-    };
-
-    newPeer._pc.onicecandidate = (event) => {
-      console.log("ICE candidate generated:", event.candidate);
-    };
-    newPeer._pc.onicegatheringstatechange = () => {
-      console.log("ICE gathering state:", newPeer._pc.iceGatheringState);
-    };
-
-    newPeer.on("signal", (signalData) => {
-      if (hasSentAnswer && signalData.type === "answer") {
-        console.log("Skipping duplicate answer signal");
-        return;
-      }
-
-      console.log("Sending signal data:", signalData);
-      if (stompRef.current?.connected) {
-        if (signalData.type === "answer") {
+        if (data.type === "offer") {
           stompRef.current.publish({
-            destination: "/app/call/answer",
+            destination: "/app/call/offer",
             body: JSON.stringify({
-              chatId: Number(chatId),
-              type: "answer",
-              sdp: signalData, // ✅ Không JSON.stringify ở đây
-              userId: Number(user.id),
+              ...basePayload,
+              type: "offer",
+              sdp: data,
               candidate: null,
             }),
           });
+        } else if (data.type === "answer") {
           hasSentAnswer = true;
-        } else if (signalData.candidate) {
+          stompRef.current.publish({
+            destination: "/app/call/answer",
+            body: JSON.stringify({
+              ...basePayload,
+              type: "answer",
+              sdp: data,
+              candidate: null,
+            }),
+          });
+        } else if (data.candidate) {
           stompRef.current.publish({
             destination: "/app/call/ice-candidate",
             body: JSON.stringify({
-              chatId: Number(chatId),
+              ...basePayload,
               type: "ice-candidate",
               candidate: {
-                candidate: signalData.candidate.candidate,
-                sdpMid: signalData.candidate.sdpMid,
-                sdpMLineIndex: signalData.candidate.sdpMLineIndex,
+                candidate: data.candidate.candidate,
+                sdpMid: data.candidate.sdpMid,
+                sdpMLineIndex: data.candidate.sdpMLineIndex,
               },
-              userId: Number(user.id),
               sdp: null,
             }),
           });
         }
-      } else {
-        console.error("WebSocket not connected");
-        toast.error(
-          "Không thể gửi tín hiệu cuộc gọi do mất kết nối WebSocket."
-        );
-      }
-    });
+      });
 
-    newPeer.on("stream", (remoteStream) => {
-      console.log("Received remote stream in handleOffer:", remoteStream.id);
-      if (remoteVideoRef.current) {
-        remoteVideoRef.current.srcObject = null;
-        remoteVideoRef.current.srcObject = remoteStream;
-        remoteVideoRef.current.play().catch((err) => {
-          console.error("Error playing remote video:", err);
-          toast.error("Lỗi phát video từ đối phương: " + err.message);
+      peer.on("stream", (remoteStream) => {
+        console.log("Received remote stream:", remoteStream.id);
+        if (remoteVideoRef.current) {
+          remoteVideoRef.current.srcObject = null;
+          remoteVideoRef.current.srcObject = remoteStream;
+          remoteVideoRef.current.play().catch((err) => {
+            toast.error("Lỗi phát video từ đối phương: " + err.message);
+          });
+        }
+        setShowCallModal(false);
+      });
+
+      peer.on("connect", () => {
+        console.log("Peer connection established");
+        hasReceivedAnswer = true;
+        setShowCallModal(false);
+      });
+
+      peer.on("error", (err) => {
+        console.error("Peer error:", err);
+        if (!err.message.includes("InvalidStateError")) {
+          toast.error("Lỗi trong quá trình gọi video: " + err.message);
+        }
+        setShowCallModal(false);
+      });
+
+      return peer;
+    };
+
+    // ========= Leave Call =========
+    const leaveCall = () => {
+      if (peerRef.current) {
+        peerRef.current.destroy();
+        peerRef.current = null;
+      }
+      if (stompRef.current?.connected && callSessionId) {
+        stompRef.current.publish({
+          destination: "/app/call/end",
+          body: JSON.stringify({
+            chatId: Number(chatId),
+            callSessionId: Number(callSessionId),
+            userId: Number(user.id),
+          }),
         });
       }
-      setShowCallModal(false);
-    });
-
-    newPeer.on("connect", () => {
-      console.log("Peer connection established");
-      setShowCallModal(false);
-    });
-
-    newPeer.on("error", (err) => {
-      console.error("Peer error:", err);
-      if (err.message.includes("InvalidStateError")) {
-        console.log("Ignoring InvalidStateError due to state mismatch");
-        setShowCallModal(false);
-      } else {
-        toast.error("Lỗi trong quá trình gọi video: " + err.message);
-        setShowCallModal(false);
+      if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((t) => t.stop());
+        streamRef.current = null;
       }
-    });
-
-    peerRef.current = newPeer;
-    console.log(
-      "Processing offer with signaling state:",
-      newPeer._pc.signalingState
-    );
-    try {
-      await newPeer.signal(offerData.sdp);
-    } catch (err) {
-      console.error("Error processing offer:", err);
-      toast.error("Lỗi khi xử lý offer: " + err.message);
-    }
-    setShowCallPanel(true);
-  };
-
-  const leaveCall = () => {
-    if (peerRef.current) {
-      peerRef.current.destroy();
-      peerRef.current = null;
-    }
-    if (stompRef.current?.connected && callSessionId) {
-      const payload = {
-        chatId: Number(chatId),
-        callSessionId: Number(callSessionId),
-        userId: Number(user.id),
-      };
-      console.log("Sending call end signal:", payload);
-      stompRef.current.publish({
-        destination: "/app/call/end",
-        body: JSON.stringify(payload),
-      });
-    }
-    if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((t) => t.stop());
-      streamRef.current = null;
-    }
-    setShowCallPanel(false);
-    setCallSessionId(null);
+      setShowCallPanel(false);
+      setCallSessionId(null);
+    };
   };
 
   return (
