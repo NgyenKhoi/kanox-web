@@ -159,9 +159,7 @@ const Chat = ({ chatId }) => {
             throw new Error(data.message || "Lỗi khi lấy thông tin chat.");
           }
         })
-        .catch((err) =>
-            toast.error(err.message || "Lỗi khi lấy thông tin chat.")
-        );
+        .catch((err) => toast.error(err.message || "Lỗi khi lấy thông tin chat."));
 
     const socket = new SockJS(`${process.env.REACT_APP_WS_URL}/ws`);
     socketRef.current = socket;
@@ -409,7 +407,7 @@ const Chat = ({ chatId }) => {
         initiator: true,
         trickle: true,
         stream: newStream,
-        config: { iceServers, iceTransportPolicy: "relay" }
+        config: { iceServers, iceTransportPolicy: "relay" },
         debug: true,
       });
 
@@ -462,7 +460,6 @@ const Chat = ({ chatId }) => {
         }
       });
 
-      // Xử lý answer từ STOMP
       const handleAnswer = (data) => {
         if (!peerRef.current || peerRef.current._pc.signalingState === "closed") return;
         if (peerRef.current._pc.signalingState !== "have-local-offer") {
@@ -482,7 +479,7 @@ const Chat = ({ chatId }) => {
         pendingCandidates.length = 0;
       };
 
-      const callSub = client.subscribe(`/topic/call/${chatId}`, (signal) => {
+      const callSub = stompRef.current.subscribe(`/topic/call/${chatId}`, (signal) => {
         const data = JSON.parse(signal.body);
         console.log("Received signal:", data.type, data.candidate);
         if (data.type === "offer" && data.userId !== user.id) {
@@ -545,7 +542,7 @@ const Chat = ({ chatId }) => {
       initiator: false,
       trickle: true,
       stream: newStream,
-      config: { iceServers, iceTransportPolicy: "relay" }
+      config: { iceServers, iceTransportPolicy: "relay" },
       debug: true,
     });
 
@@ -600,6 +597,22 @@ const Chat = ({ chatId }) => {
       setShowCallPanel(true);
     });
 
+    newPeer.on("connect", () => {
+      console.log("Peer connection established");
+      setShowCallModal(false);
+    });
+
+    newPeer.on("error", (err) => {
+      console.error("Peer error:", err);
+      if (err.message.includes("InvalidStateError")) {
+        console.log("Ignoring InvalidStateError due to state mismatch");
+        setShowCallModal(false);
+      } else {
+        toast.error("Lỗi trong quá trình gọi video: " + err.message);
+        setShowCallModal(false);
+      }
+    });
+
     try {
       await newPeer.signal(JSON.parse(offerData.sdp));
       pendingCandidates.forEach(candidate => {
@@ -617,46 +630,6 @@ const Chat = ({ chatId }) => {
     }
 
     peerRef.current = newPeer;
-    setShowCallPanel(true);
-  };
-
-    newPeer.on("stream", (remoteStream) => {
-      console.log("Received remote stream in handleOffer:", remoteStream.id);
-      if (remoteVideoRef.current) {
-        remoteVideoRef.current.srcObject = null;
-        remoteVideoRef.current.srcObject = remoteStream;
-        remoteVideoRef.current.play().catch((err) => {
-          console.error("Error playing remote video:", err);
-          toast.error("Lỗi phát video từ đối phương: " + err.message);
-        });
-      }
-      setShowCallModal(false);
-    });
-
-    newPeer.on("connect", () => {
-      console.log("Peer connection established");
-      setShowCallModal(false);
-    });
-
-    newPeer.on("error", (err) => {
-      console.error("Peer error:", err);
-      if (err.message.includes("InvalidStateError")) {
-        console.log("Ignoring InvalidStateError due to state mismatch");
-        setShowCallModal(false);
-      } else {
-        toast.error("Lỗi trong quá trình gọi video: " + err.message);
-        setShowCallModal(false);
-      }
-    });
-
-    peerRef.current = newPeer;
-    console.log("Processing offer with signaling state:", newPeer._pc.signalingState);
-    try {
-      await newPeer.signal(JSON.parse(offerData.sdp));
-    } catch (err) {
-      console.error("Error processing offer:", err);
-      toast.error("Lỗi khi xử lý offer: " + err.message);
-    }
     setShowCallPanel(true);
   };
 
@@ -775,9 +748,7 @@ const Chat = ({ chatId }) => {
                       ref={videoRef}
                       autoPlay
                       muted
-                      onLoadedMetadata={() =>
-                          console.log("Local video metadata loaded")
-                      }
+                      onLoadedMetadata={() => console.log("Local video metadata loaded")}
                       onError={(e) => console.error("Local video error:", e)}
                       style={{
                         width: "100%",
@@ -819,9 +790,7 @@ const Chat = ({ chatId }) => {
                   <video
                       ref={remoteVideoRef}
                       autoPlay
-                      onLoadedMetadata={() =>
-                          console.log("Remote video metadata loaded")
-                      }
+                      onLoadedMetadata={() => console.log("Remote video metadata loaded")}
                       onError={(e) => console.error("Remote video error:", e)}
                       style={{
                         width: "100%",
