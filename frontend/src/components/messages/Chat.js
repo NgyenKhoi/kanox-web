@@ -186,11 +186,14 @@ const Chat = ({ chatId }) => {
       }
 
       try {
-        const desc = new RTCSessionDescription(data.sdp || data);
-        const currentSignalingState = peerRef.current._pc.signalingState;
+        const desc = new RTCSessionDescription({
+          type: data.type,
+          sdp: data.sdp,
+        });
+
         console.log(
           "Setting remote description, current signaling state:",
-          currentSignalingState
+          peerRef.current._pc.signalingState
         );
 
         await peerRef.current._pc.setRemoteDescription(desc);
