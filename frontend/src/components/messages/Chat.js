@@ -247,16 +247,15 @@ const Chat = ({ chatId }) => {
           );
           setShowCallModal(true);
         } else if (data.type === "answer" && peerRef.current) {
-          console.log(
-            "Received answer signal:",
-            data.sdp,
-            "Signaling state:",
-            peerRef.current._pc?.signalingState
-          );
-          peerRef.current.signal({
-            type: "answer",
-            sdp: data.sdp,
-          });
+          console.log("Received answer signal:", data);
+          if (typeof data.sdp === "string" && data.type === "answer") {
+            peerRef.current.signal({
+              type: "answer",
+              sdp: data.sdp,
+            });
+          } else {
+            console.error("Invalid SDP answer format:", data);
+          }
         } else if (data.type === "ice-candidate" && peerRef.current) {
           console.log("Received ICE candidate:", data.candidate);
           if (data.candidate) {
