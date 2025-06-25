@@ -237,8 +237,14 @@ const Chat = ({ chatId }) => {
         const data = JSON.parse(signal.body);
         console.log("Received signal:", data);
         if (data.type === "offer" && data.userId !== user?.id) {
-          localStorage.removeItem("lastOffer");
-          localStorage.setItem("lastOffer", JSON.stringify(data));
+          localStorage.setItem(
+            "lastOffer",
+            JSON.stringify({
+              type: data.type,
+              userId: data.userId,
+              sdp: data.sdp,
+            })
+          );
           setShowCallModal(true);
         } else if (data.type === "answer" && peerRef.current) {
           console.log(
