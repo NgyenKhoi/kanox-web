@@ -13,6 +13,7 @@ import jakarta.validation.constraints.NotNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
@@ -24,17 +25,21 @@ public class CommentService {
     private final EntityManager entityManager;
     private final CommentRepository commentRepository;
     private final UserRepository userRepository;
-
+    private final PrivacyService privacyService;
     public CommentService(EntityManager entityManager, CommentRepository commentRepository, 
-                         UserRepository userRepository) {
+                         UserRepository userRepository, PrivacyService privacyService) {
         this.entityManager = entityManager;
         this.commentRepository = commentRepository;
         this.userRepository = userRepository;
+        this.privacyService = privacyService;
     }
 
     @Transactional
     public CommentResponseDto createComment(@NotNull Integer userId, @NotNull Integer postId, 
             @NotNull String content, String privacySetting, Integer parentCommentId, Integer customListId) {
+        if (!privacyService.checkContentAccess(userId, postId, "POST")) {
+            throw new UnauthorizedException("Bạn không có quyền bình luận bài viết này");
+        }
         if (userId == null || postId == null) {
             throw new IllegalArgumentException("userId và postId không được để trống");
         }
@@ -72,8 +77,8 @@ public class CommentService {
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new IllegalArgumentException("Người dùng không tồn tại"));
             
-            return new CommentResponseDto(commentId, content, user.getDisplayName(), 
-                    LocalDateTime.now(), "Bình luận được tạo thành công");
+            return new CommentResponseDto(commentId, content, user.getDisplayName(),
+                    Instant.now(), "Bình luận được tạo thành công");
         } catch (Exception e) {
             String message = e.getCause() != null ? e.getCause().getMessage() : e.getMessage();
             if (message.contains("Invalid or inactive user_id")) {
@@ -93,7 +98,7 @@ public class CommentService {
                         comment.getId(),
                         comment.getContent(),
                         comment.getUser().getDisplayName(),
-                        LocalDateTime.ofInstant(comment.getCreatedAt(), ZoneId.of("Asia/Ho_Chi_Minh")), // Chuyển đổi Instant sang LocalDateTime
+                        comment.getCreatedAt(), // Chuyển đổi Instant sang LocalDateTime
                         null
                 ))
                 .collect(Collectors.toList());
