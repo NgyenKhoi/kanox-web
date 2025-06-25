@@ -235,34 +235,41 @@ const Chat = ({ chatId }) => {
 
       const callSub = client.subscribe(`/topic/call/${chatId}`, (signal) => {
         const data = JSON.parse(signal.body);
-        console.log("Received signal:", data);
+        console.log("📩 Received call signal:", data);
+
         if (data.type === "offer" && data.userId !== user?.id) {
-          localStorage.setItem(
-            "lastOffer",
-            JSON.stringify({
-              type: data.type,
-              userId: data.userId,
-              sdp: data.sdp,
-            })
-          );
+          localStorage.setItem("lastOffer", JSON.stringify(data));
           setShowCallModal(true);
-        } else if (data.type === "answer" && peerRef.current) {
-          console.log("Received answer signal:", data);
-          if (typeof data.sdp === "string" && data.type === "answer") {
-            peerRef.current.signal({
-              type: "answer",
-              sdp: data.sdp,
-            });
-          } else {
-            console.error("Invalid SDP answer format:", data);
+          return;
+        }
+
+        if (!peerRef.current || peerRef.current.destroyed) {
+          console.warn("❌ Peer not available or already destroyed");
+          return;
+        }
+
+        const peer = peerRef.current;
+
+        if (data.type === "answer" && data.sdp) {
+          try {
+            console.log("✅ Applying remote answer SDP");
+            peer.signal(JSON.parse(data.sdp)); // 🛠 sửa đúng tại đây
+          } catch (err) {
+            console.error("❌ Failed to apply answer SDP:", err);
           }
-        } else if (data.type === "ice-candidate" && peerRef.current) {
-          console.log("Received ICE candidate:", data.candidate);
-          if (data.candidate) {
-            peerRef.current.signal({ candidate: data.candidate });
+        } else if (data.type === "ice-candidate" && data.candidate) {
+          try {
+            console.log("📡 Adding ICE candidate:", data.candidate);
+            peer.signal({
+              candidate: data.candidate.candidate,
+              sdpMid: data.candidate.sdpMid,
+              sdpMLineIndex: data.candidate.sdpMLineIndex,
+            });
+          } catch (err) {
+            console.error("❌ Failed to add ICE candidate:", err);
           }
         } else if (data.type === "end") {
-          console.log("Call ended by remote user");
+          console.log("🔚 Call ended by remote user");
           leaveCall();
         }
       });
@@ -648,7 +655,7 @@ const Chat = ({ chatId }) => {
             body: JSON.stringify({
               chatId: Number(chatId),
               type: "answer",
-              sdp: JSON.stringify(signalData),
+              sdp: signalData, // ✅ Không JSON.stringify ở đây
               userId: Number(user.id),
               candidate: null,
             }),
