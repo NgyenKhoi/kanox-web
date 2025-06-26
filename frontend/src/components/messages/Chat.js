@@ -224,14 +224,6 @@ const Chat = ({ chatId }) => {
           localStorage.removeItem("lastOffer");
           localStorage.setItem("lastOffer", JSON.stringify(data));
           setShowCallModal(true);
-        } else if (data.type === "answer" && peerRef.current && !isCallHandledRef.current) {
-            try {
-              peerRef.current.signal(JSON.parse(data.sdp)); // Let simple-peer handle it
-              isCallHandledRef.current = true; // ensure it only runs once
-              console.log("Handled answer via peer.signal()");
-            } catch (err) {
-              console.error("Error handling answer signal:", err);
-            }
           } else if (data.type === "ice-candidate" && peerRef.current) {
           console.log("Received ICE candidate:", data.candidate);
           if (data.candidate) {
