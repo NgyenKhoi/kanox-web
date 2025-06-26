@@ -36,6 +36,9 @@ const Chat = ({ chatId }) => {
   const videoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const chatContainerRef = useRef(null);
+  const isCallInitiatorRef = useRef(false);
+  const isCallHandledRef = useRef(false);
+  const pendingCandidatesRef = useRef([]);
 
   const iceServers = [
     {
@@ -171,24 +174,22 @@ const Chat = ({ chatId }) => {
 
     const handleAnswer = async (data) => {
       if (!peerRef.current || peerRef.current._pc.signalingState === "closed") {
-        console.warn("PeerConnection is closed or null, creating new one");
-        cleanupPeerConnection();
-        toast.error("Kết nối bị đóng. Vui lòng thử lại cuộc gọi.");
+        console.warn("PeerConnection is closed, skipping answer");
         return;
       }
+
       if (peerRef.current._pc.signalingState !== "have-local-offer") {
-        console.warn(`Skipping answer due to unexpected signaling state: ${peerRef.current._pc.signalingState}`);
+        console.warn("Not expecting answer, current state:", peerRef.current._pc.signalingState);
         return;
       }
+
       try {
         await peerRef.current._pc.setRemoteDescription(JSON.parse(data.sdp));
-        console.log("Successfully set remote description for answer");
+        console.log("Remote description (answer) set successfully.");
       } catch (err) {
-        console.error("Error setting remote description:", err);
-        toast.error("Lỗi khi xử lý phản hồi cuộc gọi: " + err.message);
-        cleanupPeerConnection();
+        console.error("Failed to set remote description (answer):", err);
+        leaveCall(); // tránh trạng thái xấu
       }
-      console.log('Received answer in handleAnswer:', data.sdp);
     };
 
     client.onConnect = () => {
@@ -223,15 +224,15 @@ const Chat = ({ chatId }) => {
           localStorage.removeItem("lastOffer");
           localStorage.setItem("lastOffer", JSON.stringify(data));
           setShowCallModal(true);
-        } else if (data.type === "answer" && peerRef.current) {
-          console.log(
-              "Received answer signal:",
-              data.sdp,
-              "Signaling state:",
-              peerRef.current._pc?.signalingState
-          );
-          handleAnswer(data);
-        } else if (data.type === "ice-candidate" && peerRef.current) {
+        } else if (data.type === "answer" && peerRef.current && !isCallHandledRef.current) {
+            try {
+              peerRef.current.signal(JSON.parse(data.sdp)); // Let simple-peer handle it
+              isCallHandledRef.current = true; // ensure it only runs once
+              console.log("Handled answer via peer.signal()");
+            } catch (err) {
+              console.error("Error handling answer signal:", err);
+            }
+          } else if (data.type === "ice-candidate" && peerRef.current) {
           console.log("Received ICE candidate:", data.candidate);
           if (data.candidate) {
             peerRef.current.signal({
@@ -382,6 +383,9 @@ const Chat = ({ chatId }) => {
       return;
     }
 
+    isCallInitiatorRef.current = true;
+    isCallHandledRef.current = true;
+
     const newStream = await initializeMediaStream();
     if (!newStream) {
       toast.error("Không thể khởi tạo stream media.");
@@ -405,18 +409,16 @@ const Chat = ({ chatId }) => {
       const callSession = await response.json();
       setCallSessionId(callSession.id);
 
-      const pendingCandidates = [];
+      pendingCandidatesRef.current = [];
       const newPeer = new Peer({
         initiator: true,
         trickle: true,
         stream: newStream,
-        config: { iceServers, iceTransportPolicy: 'relay', sdpSemantics: 'unified-plan' },
-        debug: true,
+        config: { iceServers, iceTransportPolicy: "relay", sdpSemantics: "unified-plan" },
       });
       peerRef.current = newPeer;
 
       newPeer.on("signal", (signalData) => {
-        console.log("Signal generated:", signalData.type);
         if (signalData.type === "offer") {
           stompRef.current.publish({
             destination: "/app/call/offer",
@@ -425,16 +427,18 @@ const Chat = ({ chatId }) => {
               type: "offer",
               sdp: JSON.stringify(signalData),
               userId: Number(user.id),
-              candidate: null,
             }),
           });
-          console.log('Sent offer to /app/call/offer:', signalData);
         } else if (signalData.candidate) {
-          stompRef.current.publish({ destination: "/app/call/ice-candidate", body: JSON.stringify({
-              chatId: Number(chatId), type: "ice-candidate", candidate: signalData.candidate,
-              userId: Number(user.id), sdp: null,
-            }) });
-          console.log('Sent candidate:', signalData.candidate);
+          stompRef.current.publish({
+            destination: "/app/call/ice-candidate",
+            body: JSON.stringify({
+              chatId: Number(chatId),
+              type: "ice-candidate",
+              candidate: signalData.candidate,
+              userId: Number(user.id),
+            }),
+          });
         }
       });
 
@@ -515,30 +519,34 @@ const Chat = ({ chatId }) => {
         }
       };
 
-      const callSub = stompRef.current.subscribe(`/topic/call/${chatId}`, (signal) => {
-        const data = JSON.parse(signal.body);
-        console.log("Received signal:", data.type, data.candidate);
-        if (data.type === "offer" && data.userId !== user.id) {
-          localStorage.setItem("lastOffer", JSON.stringify(data));
-          setShowCallModal(true);
-        } else if (data.type === "answer") {
-          handleAnswerSignal(data);
-        } else if (data.type === "ice-candidate") {
-          if (peerRef.current && peerRef.current._pc.remoteDescription) {
-            peerRef.current.signal({
-              candidate: {
-                candidate: data.candidate.candidate,
-                sdpMid: data.candidate.sdpMid,
-                sdpMLineIndex: data.candidate.sdpMLineIndex,
-              },
-            });
-          } else {
-            pendingCandidates.push(data.candidate);
-          }
-        } else if (data.type === "end") {
-          leaveCall();
-        }
-      });
+      // const callSub = stompRef.current.subscribe(`/topic/call/${chatId}`, (signal) => {
+      //   const data = JSON.parse(signal.body);
+      //   console.log("Received signal:", data.type, data.candidate);
+      //   if (data.type === "offer" && data.userId !== user?.id && !isCallHandledRef.current) {
+      //     isCallInitiatorRef.current = false;
+      //     isCallHandledRef.current = true;
+      //
+      //     localStorage.setItem("lastOffer", JSON.stringify(data));
+      //     setShowCallModal(true);
+      //   } else if (data.type === "answer" && !isCallInitiatorRef.current && peerRef.current) {
+      //       handleAnswer(data); // setRemoteDescription
+      //       isCallHandledRef.current = true;
+      //   } else if (data.type === "ice-candidate" && peerRef.current) {
+      //     if (peerRef.current && peerRef.current._pc.remoteDescription) {
+      //       peerRef.current.signal({
+      //         candidate: {
+      //           candidate: data.candidate.candidate,
+      //           sdpMid: data.candidate.sdpMid,
+      //           sdpMLineIndex: data.candidate.sdpMLineIndex,
+      //         },
+      //       });
+      //     } else {
+      //       pendingCandidatesRef.current.push(data.candidate);
+      //     }
+      //   } else if (data.type === "end") {
+      //     leaveCall();
+      //   }
+      // });
 
       peerRef.current = newPeer;
       setShowCallPanel(true);
@@ -549,16 +557,9 @@ const Chat = ({ chatId }) => {
   };
 
   const handleOffer = async () => {
-    if (!stompRef.current?.connected) {
-      toast.error("Không thể nhận cuộc gọi.");
-      setShowCallModal(false);
-      return;
-    }
-
     const newStream = await initializeMediaStream();
     if (!newStream) {
-      toast.error("Không thể khởi tạo stream media.");
-      setShowCallModal(false);
+      toast.error("Không thể khởi tạo media stream.");
       return;
     }
     console.log("Local stream tracks:", newStream.getTracks().map(t => ({
@@ -568,18 +569,24 @@ const Chat = ({ chatId }) => {
 
     const offerData = JSON.parse(localStorage.getItem("lastOffer") || "{}");
     if (!offerData.sdp) {
-      toast.error("Dữ liệu cuộc gọi không hợp lệ.");
-      setShowCallModal(false);
+      toast.error("Dữ liệu offer không hợp lệ.");
       return;
     }
 
-    const pendingCandidates = [];
+    pendingCandidatesRef.current.forEach(candidate => {
+      newPeer.signal({
+        candidate: {
+          candidate: candidate.candidate,
+          sdpMid: candidate.sdpMid,
+          sdpMLineIndex: candidate.sdpMLineIndex,
+        },
+      });
+    });
     const newPeer = new Peer({
       initiator: false,
       trickle: true,
       stream: newStream,
       config: { iceServers, iceTransportPolicy: "relay" },
-      debug: true,
     });
 
     newPeer._pc.oniceconnectionstatechange = () => {
@@ -645,29 +652,25 @@ const Chat = ({ chatId }) => {
         remoteVideoRef.current.srcObject = remoteStream;
         remoteVideoRef.current.play().catch(err => console.error("Remote video error:", err));
       }
-      setShowCallModal(false);
       setShowCallPanel(true);
     });
 
     newPeer.on("connect", () => {
       console.log("Peer connection established");
-      setShowCallModal(false);
     });
 
     newPeer.on("error", (err) => {
       console.error("Peer error:", err);
       if (err.message.includes("InvalidStateError")) {
         console.log("Ignoring InvalidStateError due to state mismatch");
-        setShowCallModal(false);
       } else {
         toast.error("Lỗi trong quá trình gọi video: " + err.message);
-        setShowCallModal(false);
       }
     });
 
     try {
       await newPeer.signal(JSON.parse(offerData.sdp));
-      pendingCandidates.forEach(candidate => {
+      pendingCandidatesRef.current.forEach(candidate => {
         newPeer.signal({
           candidate: {
             candidate: candidate.candidate,
@@ -679,17 +682,23 @@ const Chat = ({ chatId }) => {
     } catch (err) {
       console.error("Handle offer error:", err);
       toast.error("Lỗi khi xử lý offer: " + err.message);
-    }
+  } finally {
+    setShowCallModal(false); // 💡 chỉ gọi ở đây thôi
+  }
 
     peerRef.current = newPeer;
     setShowCallPanel(true);
+    setShowCallModal(false);
   };
 
   const leaveCall = () => {
+    if (videoRef.current) videoRef.current.srcObject = null;
     if (peerRef.current) {
       peerRef.current.destroy();
       peerRef.current = null;
     }
+    isCallHandledRef.current = false;
+    isCallInitiatorRef.current = false;
     if (stompRef.current?.connected && callSessionId) {
       const payload = {
         chatId: Number(chatId),
@@ -699,7 +708,11 @@ const Chat = ({ chatId }) => {
       console.log("Sending call end signal:", payload);
       stompRef.current.publish({
         destination: "/app/call/end",
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          chatId: Number(chatId),
+          callSessionId: Number(callSessionId),
+          userId: Number(user.id),
+        }),
       });
     }
     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
@@ -709,6 +722,7 @@ const Chat = ({ chatId }) => {
     }
     setShowCallPanel(false);
     setCallSessionId(null);
+    pendingCandidatesRef.current = [];
   };
 
   return (
