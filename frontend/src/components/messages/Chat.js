@@ -41,6 +41,7 @@ const Chat = ({ chatId }) => {
   const pendingCandidatesRef = useRef([]);
 
   const iceServers = [
+    { urls: "stun:stun.l.google.com:19302" },
     {
       urls: "turn:kanox-turn.duckdns.org:5349?transport=tcp", // TCP fallback
       username: "turnuser",
@@ -599,9 +600,19 @@ const Chat = ({ chatId }) => {
     });
 
     try {
-      newPeer.signal(JSON.parse(offerData.sdp));
-      console.log("Remote description (offer) set successfully.");
+      await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error("Timeout waiting for answer")), 5000);
+        newPeer.once("signal", (signalData) => {
+          if (signalData.type === "answer") {
+            clearTimeout(timeout);
+            resolve();
+          }
+        });
 
+        newPeer.signal(JSON.parse(offerData.sdp));
+      });
+
+      console.log("Offer handled, now applying pending ICE candidates");
       console.log("Pending candidates before applying:", pendingCandidatesRef.current);
       if (pendingCandidatesRef.current.length > 0) {
         pendingCandidatesRef.current.forEach(candidate => {
