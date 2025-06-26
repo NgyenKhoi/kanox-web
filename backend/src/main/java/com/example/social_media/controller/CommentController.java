@@ -3,6 +3,7 @@ package com.example.social_media.controller;
 import com.example.social_media.config.URLConfig;
 import com.example.social_media.dto.comment.CommentRequestDto;
 import com.example.social_media.dto.comment.CommentResponseDto;
+import com.example.social_media.exception.UnauthorizedException;
 import com.example.social_media.service.CommentService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
@@ -84,6 +85,51 @@ public class CommentController {
             errorResponse.put("message", "Lỗi hệ thống: " + e.getMessage());
             errorResponse.put("errors", new HashMap<>());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+    @PutMapping("/{commentId}")
+    public ResponseEntity<?> updateComment(@PathVariable Integer commentId,
+                                           @RequestBody Map<String, Object> body) {
+        try {
+            Integer userId = (Integer) body.get("userId");
+            String content = (String) body.get("content");
+
+            CommentResponseDto updated = commentService.updateComment(commentId, userId, content);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", updated.getMessage());
+            response.put("data", updated);
+            return ResponseEntity.ok(response);
+
+        } catch (IllegalArgumentException e) {
+            logger.error("Lỗi cập nhật bình luận: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                    "status", "error",
+                    "message", e.getMessage()
+            ));
+        } catch (UnauthorizedException e) {
+            logger.warn("Không có quyền sửa bình luận: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
+                    "status", "error",
+                    "message", e.getMessage()
+            ));
+        } catch (Exception e) {
+            logger.error("Lỗi hệ thống khi sửa bình luận", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                    "status", "error",
+                    "message", "Lỗi hệ thống: " + e.getMessage()
+            ));
+        }
+    }
+
+    @DeleteMapping("/{commentId}")
+    public ResponseEntity<?> deleteComment(@PathVariable Integer commentId) {
+        try {
+            commentService.deleteComment(commentId);
+            return ResponseEntity.ok(Map.of("message", "Xóa bình luận thành công"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 }

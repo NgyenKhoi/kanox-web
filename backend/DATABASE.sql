@@ -1419,7 +1419,6 @@ GO
         privacy_setting VARCHAR(20) CHECK (privacy_setting IN ('public', 'friends', 'only_me', 'custom', 'default')) DEFAULT 'default',
         status BIT DEFAULT 1
     );
-
     CREATE TABLE tblComment (
         id INT PRIMARY KEY IDENTITY(1, 1),
         parent_comment_id INT NULL,
@@ -1428,8 +1427,9 @@ GO
         content NVARCHAR(1000),
         privacy_setting VARCHAR(20) CHECK (privacy_setting IN ('public', 'friends', 'only_me', 'custom', 'default')) DEFAULT 'default',
         created_at DATETIME DEFAULT GETDATE(),
+		updated_at DATETIME DEFAULT GETDATE(),
         status BIT DEFAULT 1,
-        CONSTRAINT FK_Comment_Parent FOREIGN KEY (parent_comment_id) REFERENCES tblComment(id)
+        CONSTRAINT FK_Comment_Parent FOREIGN KEY (parent_comment_id) REFERENCES tblComment(id),
     );
 
     -----------------------PROC FOR CREATE COMMENT----------------------------
@@ -1546,8 +1546,12 @@ GO
         END
 
         -- Thêm bình luận
-        INSERT INTO tblComment (user_id, post_id, parent_comment_id, content, privacy_setting, created_at, status)
-        VALUES (@user_id, @post_id, @parent_comment_id, @content, @privacy_setting, GETDATE(), 1);
+        INSERT INTO tblComment (
+			parent_comment_id, user_id, post_id, content, privacy_setting, created_at, updated_at, status
+		)
+		VALUES (
+			@parent_comment_id, @user_id, @post_id, @content, @privacy_setting, GETDATE(), GETDATE(), 1
+		);
 
         -- Lấy ID bình luận
         SET @new_comment_id = SCOPE_IDENTITY();
@@ -1566,6 +1570,72 @@ GO
         EXEC sp_LogActivity @user_id, @action_type_id, NULL, NULL, 1, @new_comment_id, 'COMMENT';
     END;
 
+	
+		CREATE PROCEDURE sp_UpdateComment
+		@comment_id INT,
+		@user_id INT,
+		@new_content NVARCHAR(1000)
+	AS
+	BEGIN
+		SET NOCOUNT ON;
+
+		DECLARE @existing_user_id INT;
+
+		-- Kiểm tra comment tồn tại và đang hoạt động
+		IF NOT EXISTS (SELECT 1 FROM tblComment WHERE id = @comment_id AND status = 1)
+		BEGIN
+			RAISERROR('Comment not found or inactive.', 16, 1);
+			RETURN;
+		END
+
+		-- Lấy user_id của comment
+		SELECT @existing_user_id = user_id FROM tblComment WHERE id = @comment_id;
+
+		-- Kiểm tra quyền chỉnh sửa
+		IF @existing_user_id != @user_id
+		BEGIN
+			RAISERROR('You are not authorized to update this comment.', 16, 1);
+			RETURN;
+		END
+
+		-- Kiểm tra content mới
+		IF @new_content IS NULL OR LTRIM(RTRIM(@new_content)) = ''
+		BEGIN
+			RAISERROR('Content cannot be empty.', 16, 1);
+			RETURN;
+		END
+
+		-- Kiểm tra từ khóa bị cấm
+		IF EXISTS (
+			SELECT 1 FROM tblBannedKeyword bk
+			WHERE @new_content LIKE '%' + bk.keyword + '%' AND bk.status = 1
+		)
+		BEGIN
+			RAISERROR('Content contains banned keywords.', 16, 1);
+			RETURN;
+		END
+
+		-- Kiểm tra chính sách nội dung
+		DECLARE @policy_valid BIT;
+		EXEC sp_CheckContentPolicy @new_content, @policy_valid OUTPUT;
+		IF @policy_valid = 0
+		BEGIN
+			RAISERROR('Content violates platform policies.', 16, 1);
+			RETURN;
+		END
+
+		-- Cập nhật comment
+		UPDATE tblComment
+		SET content = @new_content,
+			updated_at = GETDATE()
+		WHERE id = @comment_id;
+
+		-- Ghi log hoạt động
+		DECLARE @action_type_id INT;
+		SELECT @action_type_id = id FROM tblActionType WHERE name = 'COMMENT_EDIT';
+
+		EXEC sp_LogActivity @user_id, @action_type_id, NULL, NULL, 1, @comment_id, 'COMMENT';
+	END;
 
     ---------------------------------------------------------------------
 
