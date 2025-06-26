@@ -635,6 +635,20 @@ const Chat = ({ chatId }) => {
     newPeer._pc.onicecandidate = (event) => {
       if (event.candidate) {
         console.log("Generated ICE candidate in handleOffer:", event.candidate);
+        stompRef.current?.publish({
+          destination: "/app/call/ice-candidate",
+          body: JSON.stringify({
+            chatId: Number(chatId),
+            type: "ice-candidate",
+            candidate: {
+              candidate: event.candidate.candidate || "",
+              sdpMid: event.candidate.sdpMid || "",
+              sdpMLineIndex: event.candidate.sdpMLineIndex || 0,
+            },
+            userId: Number(user.id),
+            sdp: null,
+          }),
+        });
       } else {
         console.log("ICE candidate gathering completed in handleOffer");
       }
