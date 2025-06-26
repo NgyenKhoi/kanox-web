@@ -937,3 +937,4 @@ const Chat = ({ chatId }) => {
 };
 
 export default Chat;
+
