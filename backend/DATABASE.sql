@@ -1572,70 +1572,64 @@ GO
 
 	
 		CREATE PROCEDURE sp_UpdateComment
-		@comment_id INT,
-		@user_id INT,
-		@new_content NVARCHAR(1000)
-	AS
-	BEGIN
-		SET NOCOUNT ON;
-
-		DECLARE @existing_user_id INT;
-
-		-- Kiểm tra comment tồn tại và đang hoạt động
-		IF NOT EXISTS (SELECT 1 FROM tblComment WHERE id = @comment_id AND status = 1)
+			@comment_id INT,
+			@user_id INT,
+			@new_content NVARCHAR(1000)
+		AS
 		BEGIN
-			RAISERROR('Comment not found or inactive.', 16, 1);
-			RETURN;
-		END
+			SET NOCOUNT ON;
 
-		-- Lấy user_id của comment
-		SELECT @existing_user_id = user_id FROM tblComment WHERE id = @comment_id;
+			DECLARE @existing_user_id INT;
 
-		-- Kiểm tra quyền chỉnh sửa
-		IF @existing_user_id != @user_id
-		BEGIN
-			RAISERROR('You are not authorized to update this comment.', 16, 1);
-			RETURN;
-		END
+			-- Kiểm tra comment tồn tại và đang hoạt động
+			IF NOT EXISTS (SELECT 1 FROM tblComment WHERE id = @comment_id AND status = 1)
+			BEGIN
+				RAISERROR('Comment not found or inactive.', 16, 1);
+				RETURN;
+			END
 
-		-- Kiểm tra content mới
-		IF @new_content IS NULL OR LTRIM(RTRIM(@new_content)) = ''
-		BEGIN
-			RAISERROR('Content cannot be empty.', 16, 1);
-			RETURN;
-		END
+			-- Lấy user_id của comment
+			SELECT @existing_user_id = user_id FROM tblComment WHERE id = @comment_id;
 
-		-- Kiểm tra từ khóa bị cấm
-		IF EXISTS (
-			SELECT 1 FROM tblBannedKeyword bk
-			WHERE @new_content LIKE '%' + bk.keyword + '%' AND bk.status = 1
-		)
-		BEGIN
-			RAISERROR('Content contains banned keywords.', 16, 1);
-			RETURN;
-		END
+			-- Kiểm tra quyền chỉnh sửa
+			IF @existing_user_id != @user_id
+			BEGIN
+				RAISERROR('You are not authorized to update this comment.', 16, 1);
+				RETURN;
+			END
 
-		-- Kiểm tra chính sách nội dung
-		DECLARE @policy_valid BIT;
-		EXEC sp_CheckContentPolicy @new_content, @policy_valid OUTPUT;
-		IF @policy_valid = 0
-		BEGIN
-			RAISERROR('Content violates platform policies.', 16, 1);
-			RETURN;
-		END
+			-- Kiểm tra content mới
+			IF @new_content IS NULL OR LTRIM(RTRIM(@new_content)) = ''
+			BEGIN
+				RAISERROR('Content cannot be empty.', 16, 1);
+				RETURN;
+			END
 
-		-- Cập nhật comment
-		UPDATE tblComment
-		SET content = @new_content,
-			updated_at = GETDATE()
-		WHERE id = @comment_id;
+			-- Kiểm tra từ khóa bị cấm
+			IF EXISTS (
+				SELECT 1 FROM tblBannedKeyword bk
+				WHERE @new_content LIKE '%' + bk.keyword + '%' AND bk.status = 1
+			)
+			BEGIN
+				RAISERROR('Content contains banned keywords.', 16, 1);
+				RETURN;
+			END
 
-		-- Ghi log hoạt động
-		DECLARE @action_type_id INT;
-		SELECT @action_type_id = id FROM tblActionType WHERE name = 'COMMENT_EDIT';
+			-- Kiểm tra chính sách nội dung
+			DECLARE @policy_valid BIT;
+			EXEC sp_CheckContentPolicy @new_content, @policy_valid OUTPUT;
+			IF @policy_valid = 0
+			BEGIN
+				RAISERROR('Content violates platform policies.', 16, 1);
+				RETURN;
+			END
 
-		EXEC sp_LogActivity @user_id, @action_type_id, NULL, NULL, 1, @comment_id, 'COMMENT';
-	END;
+			-- Cập nhật comment
+			UPDATE tblComment
+			SET content = @new_content,
+				updated_at = GETDATE()
+			WHERE id = @comment_id;
+		END;
 
     ---------------------------------------------------------------------
 

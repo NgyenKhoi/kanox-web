@@ -38,8 +38,11 @@ public class CommentService {
                                             String privacySetting,
                                             Integer parentCommentId,
                                             Integer customListId) {
-        if (!privacyService.checkContentAccess(userId, postId, "POST")) {
-            throw new UnauthorizedException("Bạn không có quyền bình luận bài viết này");
+        Integer ownerId = privacyService.getContentOwnerId(postId);
+        if (!userId.equals(ownerId)) {
+            if (!privacyService.checkContentAccess(userId, postId, "POST")) {
+                throw new UnauthorizedException("Bạn không có quyền bình luận bài viết này");
+            }
         }
 
         if (userId == null || postId == null) {
