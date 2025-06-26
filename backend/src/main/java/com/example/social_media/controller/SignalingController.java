@@ -1,15 +1,16 @@
 package com.example.social_media.controller;
 
-import com.example.social_media.config.WebSocketConfig;
-import com.example.social_media.dto.message.SignalMessageDto;
-import com.example.social_media.exception.UnauthorizedException;
-import com.example.social_media.jwt.JwtService;
-import com.example.social_media.repository.ChatMemberRepository;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
+
+import com.example.social_media.config.WebSocketConfig;
+import com.example.social_media.dto.message.SignalMessageDto;
+import com.example.social_media.exception.UnauthorizedException;
+import com.example.social_media.jwt.JwtService;
+import com.example.social_media.repository.ChatMemberRepository;
 
 @Controller
 public class SignalingController {
@@ -20,9 +21,9 @@ public class SignalingController {
     private final WebSocketConfig webSocketConfig;
 
     public SignalingController(SimpMessagingTemplate messagingTemplate,
-                               ChatMemberRepository chatMemberRepository,
-                               JwtService jwtService,
-                               WebSocketConfig webSocketConfig) {
+            ChatMemberRepository chatMemberRepository,
+            JwtService jwtService,
+            WebSocketConfig webSocketConfig) {
         this.messagingTemplate = messagingTemplate;
         this.chatMemberRepository = chatMemberRepository;
         this.jwtService = jwtService;

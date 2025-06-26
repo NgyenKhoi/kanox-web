@@ -34,9 +34,9 @@ import moment from "moment";
 import { AuthContext } from "../../../context/AuthContext";
 import EditPostModal from "../TweetInput/EditPostModal";
 import useMedia from "../../../hooks/useMedia";
-import useCommentAvatars from "../../../hooks/useCommentAvatars";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
+import CommentItem from "./CommentItem";
 
 // Inline styles
 const imageContainerStyles = {
@@ -154,8 +154,6 @@ function TweetCard({ tweet, onPostUpdate }) {
   const imageUrls = imageData?.[postId] || [];
   const videoUrls = videoData?.[postId] || [];
 
-  const { avatars: commentAvatars, error: commentAvatarError } =
-    useCommentAvatars(comments || []);
 
   const handleNextImage = () => {
     if (currentImageIndex < imageUrls.length - 1) {
@@ -473,46 +471,16 @@ function TweetCard({ tweet, onPostUpdate }) {
     if (!Array.isArray(comments) || comments.length === 0)
       return <div className="text-muted">Chưa có bình luận nào.</div>;
 
-    return comments.map((comment) => {
-      const avatarUrl =
-        comment?.user?.id && commentAvatars[comment.user.id]?.url;
-
-      return (
-        <div key={comment.id} style={commentStyles}>
-          {avatarUrl ? (
-            <BootstrapImage
-              src={avatarUrl}
-              style={commentAvatarStyles}
-              roundedCircle
-              aria-label={`Ảnh đại diện của ${
-                comment?.user?.displayName || "Người dùng"
-              }`}
-            />
-          ) : (
-            <FaUserCircle
-              size={32}
-              style={{ marginRight: "8px", color: "#6c757d" }}
-              aria-label="Ảnh đại diện mặc định"
-            />
-          )}
-
-          <div style={commentContentStyles}>
-            <strong>{comment?.user?.displayName || "Người dùng"}</strong>
-            <p className="mb-1">{comment.content}</p>
-            <small className="text-muted">
-              {moment(comment.createdAt).fromNow()}
-            </small>
-          </div>
-        </div>
-      );
-    });
+    return comments.map((comment) => (
+        <CommentItem key={comment.id} comment={comment} />
+    ));
   };
 
-  if (avatarError || mediaError || videoError || commentAvatarError) {
+  if (avatarError || mediaError || videoError) {
     return (
       <div className="text-danger">
         Lỗi tải media:{" "}
-        {avatarError || mediaError || videoError || commentAvatarError}
+        {avatarError || mediaError || videoError}
       </div>
     );
   }
@@ -552,7 +520,7 @@ function TweetCard({ tweet, onPostUpdate }) {
                   @{owner?.username || "unknown"}
                 </span>
                 <span className="text-muted small me-1">
-                  · {moment(createdAt).fromNow()}
+                  · {moment(createdAt * 1000).fromNow()}
                 </span>
                 <OverlayTrigger
                   placement="top"

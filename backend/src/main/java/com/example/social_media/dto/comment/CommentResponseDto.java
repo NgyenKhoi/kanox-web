@@ -1,16 +1,16 @@
 package com.example.social_media.dto.comment;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 public class CommentResponseDto {
     private Integer commentId;
     private String content;
     private String userDisplayName;
-    private LocalDateTime createdAt;
+    private Instant createdAt;
     private String message;
 
     public CommentResponseDto(Integer commentId, String content, String userDisplayName,
-            LocalDateTime createdAt, String message) {
+                              Instant createdAt, String message) {
         this.commentId = commentId;
         this.content = content;
         this.userDisplayName = userDisplayName;
@@ -43,11 +43,11 @@ public class CommentResponseDto {
         this.userDisplayName = userDisplayName;
     }
 
-    public LocalDateTime getCreatedAt() {
+    public Instant getCreatedAt() {
         return createdAt;
     }
 
-    public void setCreatedAt(LocalDateTime createdAt) {
+    public void setCreatedAt(Instant createdAt) {
         this.createdAt = createdAt;
     }
 
