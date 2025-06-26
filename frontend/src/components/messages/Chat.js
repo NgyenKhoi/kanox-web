@@ -233,16 +233,24 @@ const Chat = ({ chatId }) => {
           }
 
           if (peerRef.current._pc.signalingState === "have-local-offer" || peerRef.current._pc.signalingState === "stable") {
-            try {
-              peerRef.current.signal({
-                candidate: {
-                  candidate: data.candidate.candidate,
-                  sdpMid: data.candidate.sdpMid,
-                  sdpMLineIndex: data.candidate.sdpMLineIndex,
-                },
-              });
-            } catch (err) {
-              console.error("Error adding ICE candidate:", err);
+            if (
+                peerRef.current &&
+                !peerRef.current.destroyed &&
+                peerRef.current._pc.signalingState !== "closed"
+            ) {
+              try {
+                peerRef.current.signal({
+                  candidate: {
+                    candidate: data.candidate.candidate,
+                    sdpMid: data.candidate.sdpMid,
+                    sdpMLineIndex: data.candidate.sdpMLineIndex,
+                  },
+                });
+              } catch (err) {
+                console.error("Error adding ICE candidate:", err);
+              }
+            } else {
+              console.warn("Peer destroyed or closed, skipping ICE candidate");
             }
           } else {
             console.warn("Signaling state not ready, storing ICE candidate");
@@ -585,13 +593,21 @@ const Chat = ({ chatId }) => {
       config: { iceServers, iceTransportPolicy: "relay" },
     });
     pendingCandidatesRef.current.forEach(candidate => {
-      newPeer.signal({
-        candidate: {
-          candidate: candidate.candidate,
-          sdpMid: candidate.sdpMid,
-          sdpMLineIndex: candidate.sdpMLineIndex,
-        },
-      });
+      if (!newPeer.destroyed && newPeer._pc.signalingState !== "closed") {
+        try {
+          newPeer.signal({
+            candidate: {
+              candidate: candidate.candidate,
+              sdpMid: candidate.sdpMid,
+              sdpMLineIndex: candidate.sdpMLineIndex,
+            },
+          });
+        } catch (err) {
+          console.error("Error applying buffered ICE:", err);
+        }
+      } else {
+        console.warn("Skip ICE signal: peer destroyed or closed");
+      }
     });
 
 
