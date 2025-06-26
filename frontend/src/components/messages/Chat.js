@@ -437,18 +437,23 @@ const Chat = ({ chatId }) => {
       return;
     }
 
+    console.log("🔁 Bắt đầu cuộc gọi: khởi tạo stream cục bộ...");
+
     isCallInitiatorRef.current = true;
     isCallHandledRef.current = true;
 
     const newStream = await initializeMediaStream();
     if (!newStream) {
+      console.error("❌ Không lấy được media stream!");
       toast.error("Không thể khởi tạo stream media.");
       return;
     }
+
     console.log("Local stream tracks in startCall:", newStream.getTracks().map(t => ({
       kind: t.kind,
       enabled: t.enabled,
     })));
+
     if (videoRef.current) {
       console.log("Assigning local stream to videoRef:", newStream);
       videoRef.current.srcObject = newStream;
@@ -465,6 +470,9 @@ const Chat = ({ chatId }) => {
       setCallSessionId(callSession.id);
 
       pendingCandidatesRef.current = [];
+
+      console.log("📡 Tạo peer mới với initiator=true. Trickle ICE: true");
+
       const newPeer = new Peer({
         initiator: true,
         trickle: true,
@@ -473,18 +481,28 @@ const Chat = ({ chatId }) => {
       });
       peerRef.current = newPeer;
 
+      let gotCandidate = false;
+
       newPeer._pc.onicecandidate = (event) => {
         if (event.candidate) {
-          console.log("Generated ICE candidate in startCall:", event.candidate);
+          gotCandidate = true;
+          console.log("📤 Đã tạo ICE candidate:", event.candidate);
         } else {
-          console.log("ICE candidate gathering completed in startCall");
+          console.log("✅ Hoàn tất ICE gathering.");
         }
       };
 
+      setTimeout(() => {
+        if (!gotCandidate) {
+          console.warn("⚠️ Không nhận được ICE candidate nào. TURN server có thể bị chặn.");
+        }
+      }, 5000);
+
       newPeer.on("signal", (signalData) => {
-        console.log("Signal generated in startCall:", signalData.type);
+        console.log("📶 Tín hiệu WebRTC:", signalData);
+
         if (signalData.type === "offer") {
-          console.log("Sending offer:", signalData);
+          console.log("📨 Gửi offer qua STOMP:", signalData);
           stompRef.current.publish({
             destination: "/app/call/offer",
             body: JSON.stringify({
@@ -496,7 +514,7 @@ const Chat = ({ chatId }) => {
             }),
           });
         } else if (signalData.candidate) {
-          console.log("Sending ICE candidate in startCall:", signalData.candidate);
+          console.log("📨 Gửi ICE candidate:", signalData.candidate);
           stompRef.current.publish({
             destination: "/app/call/ice-candidate",
             body: JSON.stringify({
@@ -515,7 +533,7 @@ const Chat = ({ chatId }) => {
       });
 
       newPeer._pc.oniceconnectionstatechange = () => {
-        console.log("ICE state in startCall:", newPeer._pc.iceConnectionState);
+        console.log("🌐 ICE State:", newPeer._pc.iceConnectionState);
         if (newPeer._pc.iceConnectionState === "failed") {
           console.error("ICE connection failed, restarting ICE...");
           newPeer._pc.restartIce();
@@ -530,7 +548,16 @@ const Chat = ({ chatId }) => {
       };
 
       newPeer._pc.onsignalingstatechange = () => {
-        console.log("Signaling state in startCall:", newPeer._pc.signalingState);
+        console.log("🔁 Signaling State:", newPeer._pc.signalingState);
+      };
+
+      // ✅ Thêm ontrack song song với .on("stream")
+      newPeer._pc.ontrack = (event) => {
+        console.log("📺 Nhận được track từ remote:", event.track.kind);
+        if (remoteVideoRef.current) {
+          remoteVideoRef.current.srcObject = event.streams[0];
+          remoteVideoRef.current.play().catch(err => console.error("Remote video play error:", err));
+        }
       };
 
       newPeer.on("stream", (remoteStream) => {
@@ -547,11 +574,11 @@ const Chat = ({ chatId }) => {
       });
 
       newPeer.on("connect", () => {
-        console.log("Peer connection established in startCall");
+        console.log("✅ WebRTC Peer Connected!");
       });
 
       newPeer.on("error", (err) => {
-        console.error("Peer error in startCall:", err);
+        console.error("❌ Peer error in startCall:", err);
         if (err.code === "ERR_ICE_CONNECTION_FAILURE") {
           toast.error("Kết nối ICE thất bại. Vui lòng kiểm tra mạng.");
         } else if (err.code === "ERR_SIGNALING") {
@@ -569,16 +596,21 @@ const Chat = ({ chatId }) => {
     }
   };
 
+
   const handleOffer = async () => {
+    console.log("🔁 Nhận offer, khởi tạo stream cục bộ...");
     const newStream = await initializeMediaStream();
     if (!newStream) {
+      console.error("❌ Không lấy được media stream!");
       toast.error("Không thể khởi tạo media stream.");
       return;
     }
+
     console.log("Local stream tracks in handleOffer:", newStream.getTracks().map(t => ({
       kind: t.kind,
       enabled: t.enabled,
     })));
+
     if (videoRef.current) {
       console.log("Assigning local stream to videoRef in handleOffer:", newStream);
       videoRef.current.srcObject = newStream;
@@ -598,13 +630,18 @@ const Chat = ({ chatId }) => {
       config: { iceServers, iceTransportPolicy: "relay" },
     });
 
+    peerRef.current = newPeer;
+    let gotCandidate = false;
+
     try {
+      console.log("📨 Đang set remote offer SDP...");
       newPeer.signal(JSON.parse(offerData.sdp));
-      console.log("Remote description (offer) set successfully.");
+      console.log("✅ Remote description (offer) set thành công.");
 
       console.log("Pending candidates before applying:", pendingCandidatesRef.current);
       if (pendingCandidatesRef.current.length > 0) {
         pendingCandidatesRef.current.forEach(candidate => {
+          console.log("📨 Áp dụng ICE candidate pending:", candidate);
           newPeer.signal({
             candidate: {
               candidate: candidate.candidate,
@@ -624,7 +661,8 @@ const Chat = ({ chatId }) => {
 
     newPeer._pc.onicecandidate = (event) => {
       if (event.candidate) {
-        console.log("Generated ICE candidate in handleOffer:", event.candidate);
+        gotCandidate = true;
+        console.log("📤 Tạo ICE candidate trong handleOffer:", event.candidate);
         stompRef.current?.publish({
           destination: "/app/call/ice-candidate",
           body: JSON.stringify({
@@ -640,12 +678,18 @@ const Chat = ({ chatId }) => {
           }),
         });
       } else {
-        console.log("ICE candidate gathering completed in handleOffer");
+        console.log("✅ Hoàn tất ICE gathering trong handleOffer.");
       }
     };
 
+    setTimeout(() => {
+      if (!gotCandidate) {
+        console.warn("⚠️ Không nhận được ICE candidate nào. TURN server có thể bị chặn.");
+      }
+    }, 5000);
+
     newPeer._pc.oniceconnectionstatechange = () => {
-      console.log("ICE state in handleOffer:", newPeer._pc.iceConnectionState);
+      console.log("🌐 ICE state in handleOffer:", newPeer._pc.iceConnectionState);
       if (newPeer._pc.iceConnectionState === "failed") {
         console.error("ICE connection failed, restarting ICE...");
         newPeer._pc.restartIce();
@@ -660,13 +704,23 @@ const Chat = ({ chatId }) => {
     };
 
     newPeer._pc.onsignalingstatechange = () => {
-      console.log("Signaling state in handleOffer:", newPeer._pc.signalingState);
+      console.log("🔁 Signaling state in handleOffer:", newPeer._pc.signalingState);
+    };
+
+    // ✅ Thêm ontrack
+    newPeer._pc.ontrack = (event) => {
+      console.log("📺 Nhận track từ remote (handleOffer):", event.track.kind);
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.srcObject = event.streams[0];
+        remoteVideoRef.current.play().catch(err => console.error("Remote video play error:", err));
+      }
     };
 
     newPeer.on("signal", (signalData) => {
-      console.log("Signal generated in handleOffer:", signalData.type);
+      console.log("📶 Tín hiệu WebRTC từ handleOffer:", signalData);
+
       if (signalData.type === "answer") {
-        console.log("Sending answer:", signalData);
+        console.log("📨 Gửi answer:", signalData);
         stompRef.current.publish({
           destination: "/app/call/answer",
           body: JSON.stringify({
@@ -678,7 +732,7 @@ const Chat = ({ chatId }) => {
           }),
         });
       } else if (signalData.candidate) {
-        console.log("Sending ICE candidate in handleOffer:", signalData.candidate);
+        console.log("📨 Gửi ICE candidate trong handleOffer:", signalData.candidate);
         stompRef.current.publish({
           destination: "/app/call/ice-candidate",
           body: JSON.stringify({
@@ -710,22 +764,22 @@ const Chat = ({ chatId }) => {
     });
 
     newPeer.on("connect", () => {
-      console.log("Peer connection established in handleOffer");
+      console.log("✅ WebRTC Peer Connected (handleOffer)!");
     });
 
     newPeer.on("error", (err) => {
-      console.error("Peer error in handleOffer:", err);
+      console.error("❌ Peer error in handleOffer:", err);
       if (err.message.includes("InvalidStateError")) {
-        console.log("Ignoring InvalidStateError due to state mismatch");
+        console.log("Ignoring InvalidStateError do state mismatch");
       } else {
         toast.error("Lỗi trong quá trình gọi video: " + err.message);
       }
     });
 
-    peerRef.current = newPeer;
     setShowCallPanel(true);
     setShowCallModal(false);
   };
+
 
   const leaveCall = () => {
     if (videoRef.current) videoRef.current.srcObject = null;
