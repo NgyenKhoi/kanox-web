@@ -224,16 +224,29 @@ const Chat = ({ chatId }) => {
           localStorage.removeItem("lastOffer");
           localStorage.setItem("lastOffer", JSON.stringify(data));
           setShowCallModal(true);
-          } else if (data.type === "ice-candidate" && peerRef.current) {
+          } else if (data.type === "ice-candidate") {
           console.log("Received ICE candidate:", data.candidate);
-          if (data.candidate) {
-            peerRef.current.signal({
-              candidate: {
-                candidate: data.candidate.candidate,
-                sdpMid: data.candidate.sdpMid,
-                sdpMLineIndex: data.candidate.sdpMLineIndex,
-              },
-            });
+          if (!peerRef.current || peerRef.current._pc.signalingState === "closed") {
+            console.warn("Peer connection not ready yet, storing candidate");
+            pendingCandidatesRef.current.push(data.candidate);
+            return;
+          }
+
+          if (peerRef.current._pc.signalingState === "have-local-offer" || peerRef.current._pc.signalingState === "stable") {
+            try {
+              peerRef.current.signal({
+                candidate: {
+                  candidate: data.candidate.candidate,
+                  sdpMid: data.candidate.sdpMid,
+                  sdpMLineIndex: data.candidate.sdpMLineIndex,
+                },
+              });
+            } catch (err) {
+              console.error("Error adding ICE candidate:", err);
+            }
+          } else {
+            console.warn("Signaling state not ready, storing ICE candidate");
+            pendingCandidatesRef.current.push(data.candidate);
           }
         } else if (data.type === "end") {
           console.log("Call ended by remote user");
@@ -662,15 +675,23 @@ const Chat = ({ chatId }) => {
 
     try {
       await newPeer.signal(JSON.parse(offerData.sdp));
-      pendingCandidatesRef.current.forEach(candidate => {
-        newPeer.signal({
-          candidate: {
-            candidate: candidate.candidate,
-            sdpMid: candidate.sdpMid,
-            sdpMLineIndex: candidate.sdpMLineIndex,
-          },
+
+      setTimeout(() => {
+        pendingCandidatesRef.current.forEach(candidate => {
+          try {
+            newPeer.signal({
+              candidate: {
+                candidate: candidate.candidate,
+                sdpMid: candidate.sdpMid,
+                sdpMLineIndex: candidate.sdpMLineIndex,
+              },
+            });
+          } catch (err) {
+            console.error("Error applying buffered ICE:", err);
+          }
         });
-      });
+        pendingCandidatesRef.current = [];
+      }, 500);
     } catch (err) {
       console.error("Handle offer error:", err);
       toast.error("Lỗi khi xử lý offer: " + err.message);
