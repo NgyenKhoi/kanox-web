@@ -72,6 +72,17 @@ const Chat = ({ chatId }) => {
     }
   };
 
+  const attachStreamToVideo = (ref, stream, label = "video") => {
+    if (ref.current) {
+      ref.current.srcObject = stream;
+      ref.current.onloadedmetadata = () => {
+        ref.current.play().catch(err =>
+            console.error(`${label} play error:`, err)
+        );
+      };
+    }
+  };
+
   const cleanupPeerConnection = () => {
     if (peerRef.current) {
       const state = peerRef.current._pc?.iceConnectionState;
@@ -454,11 +465,7 @@ const Chat = ({ chatId }) => {
       enabled: t.enabled,
     })));
 
-    if (videoRef.current) {
-      console.log("Assigning local stream to videoRef:", newStream);
-      videoRef.current.srcObject = newStream;
-      videoRef.current.play().catch(err => console.error("Local video play error:", err));
-    }
+    attachStreamToVideo(videoRef, newStream, "Local video");
 
     try {
       const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/call/start/${chatId}`, {
@@ -554,10 +561,7 @@ const Chat = ({ chatId }) => {
       // ✅ Thêm ontrack song song với .on("stream")
       newPeer._pc.ontrack = (event) => {
         console.log("📺 Nhận được track từ remote:", event.track.kind);
-        if (remoteVideoRef.current) {
-          remoteVideoRef.current.srcObject = event.streams[0];
-          remoteVideoRef.current.play().catch(err => console.error("Remote video play error:", err));
-        }
+        attachStreamToVideo(remoteVideoRef, event.streams[0], "Remote video (ontrack)");
       };
 
       newPeer.on("stream", (remoteStream) => {
@@ -611,11 +615,7 @@ const Chat = ({ chatId }) => {
       enabled: t.enabled,
     })));
 
-    if (videoRef.current) {
-      console.log("Assigning local stream to videoRef in handleOffer:", newStream);
-      videoRef.current.srcObject = newStream;
-      videoRef.current.play().catch(err => console.error("Local video play error:", err));
-    }
+    attachStreamToVideo(videoRef, newStream, "Local video (handleOffer)");
 
     const offerData = JSON.parse(localStorage.getItem("lastOffer") || "{}");
     if (!offerData.sdp) {
@@ -710,10 +710,7 @@ const Chat = ({ chatId }) => {
     // ✅ Thêm ontrack
     newPeer._pc.ontrack = (event) => {
       console.log("📺 Nhận track từ remote (handleOffer):", event.track.kind);
-      if (remoteVideoRef.current) {
-        remoteVideoRef.current.srcObject = event.streams[0];
-        remoteVideoRef.current.play().catch(err => console.error("Remote video play error:", err));
-      }
+      attachStreamToVideo(remoteVideoRef, event.streams[0], "Remote video (ontrack - handleOffer)");
     };
 
     newPeer.on("signal", (signalData) => {
@@ -755,11 +752,7 @@ const Chat = ({ chatId }) => {
         kind: t.kind,
         enabled: t.enabled,
       })));
-      if (remoteVideoRef.current) {
-        console.log("Assigning remote stream to remoteVideoRef:", remoteStream);
-        remoteVideoRef.current.srcObject = remoteStream;
-        remoteVideoRef.current.play().catch(err => console.error("Remote video play error:", err));
-      }
+      attachStreamToVideo(remoteVideoRef, remoteStream, "Remote video (stream - handleOffer)");
       setShowCallPanel(true);
     });
 
