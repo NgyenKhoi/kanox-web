@@ -75,6 +75,11 @@ const Chat = ({ chatId }) => {
   const attachStreamToVideo = (ref, stream, label = "video") => {
     if (ref.current) {
       ref.current.srcObject = stream;
+      console.log(`[${label}] attached stream:`, stream.getTracks().map(t => ({
+        kind: t.kind,
+        enabled: t.enabled,
+      })));
+      console.log(`[${label}] ref.srcObject`, ref.current.srcObject);
       ref.current.onloadedmetadata = () => {
         ref.current.play().catch(err =>
             console.error(`${label} play error:`, err)
