@@ -232,4 +232,9 @@ public class PrivacyService {
             throw new IllegalArgumentException("Thành viên không có trong danh sách hoặc đã bị xóa");
         }
     }
+
+    public Integer getContentOwnerId(Integer contentId) {
+        return contentPrivacyRepository.findOwnerIdByContentId(contentId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy chủ sở hữu nội dung"));
+    }
 }
