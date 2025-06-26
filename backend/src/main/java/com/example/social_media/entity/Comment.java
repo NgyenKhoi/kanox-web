@@ -46,6 +46,10 @@ public class Comment {
     @Column(name = "created_at")
     private Instant createdAt;
 
+    @ColumnDefault("getdate()")
+    @Column(name = "updated_at")
+    private Instant updatedAt;
+
     @ColumnDefault("1")
     @Column(name = "status")
     private Boolean status;
@@ -125,4 +129,11 @@ public class Comment {
         this.tblComments = tblComments;
     }
 
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(Instant updatedAt) {
+        this.updatedAt = updatedAt;
+    }
 }

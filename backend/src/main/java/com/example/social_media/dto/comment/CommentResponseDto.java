@@ -1,21 +1,28 @@
 package com.example.social_media.dto.comment;
-
+import com.example.social_media.dto.user.UserForCommentDto;
 import java.time.Instant;
+import java.util.List;
 
 public class CommentResponseDto {
     private Integer commentId;
     private String content;
-    private String userDisplayName;
+    private UserForCommentDto user;
     private Instant createdAt;
+    private Instant updatedAt;
     private String message;
+    private Integer userId;
+    private List<CommentResponseDto> replies;
 
-    public CommentResponseDto(Integer commentId, String content, String userDisplayName,
-                              Instant createdAt, String message) {
+    public CommentResponseDto(Integer commentId, String content, UserForCommentDto user,
+                              Instant createdAt, Instant updatedAt, String message, Integer userId, List<CommentResponseDto> replies) {
         this.commentId = commentId;
         this.content = content;
-        this.userDisplayName = userDisplayName;
+        this.user = user;
         this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
         this.message = message;
+        this.userId = userId;
+        this.replies = replies;
     }
 
     // Getters and setters
@@ -35,16 +42,35 @@ public class CommentResponseDto {
         this.content = content;
     }
 
-    public String getUserDisplayName() {
-        return userDisplayName;
-    }
-
-    public void setUserDisplayName(String userDisplayName) {
-        this.userDisplayName = userDisplayName;
-    }
+    public UserForCommentDto getUser() { return user; }
+    public void setUser(UserForCommentDto user) { this.user = user; }
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(Instant updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public Integer getUserId() {
+        return userId;
+    }
+
+    public List<CommentResponseDto> getReplies() {
+        return replies;
+    }
+
+    public void setReplies(List<CommentResponseDto> replies) {
+        this.replies = replies;
+    }
+
+    public void setUserId(Integer userId) {
+        this.userId = userId;
     }
 
     public void setCreatedAt(Instant createdAt) {

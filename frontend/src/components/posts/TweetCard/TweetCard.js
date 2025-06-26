@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from "react";
+import React, { useState, useContext, useCallback, useEffect } from "react";
 import {
   Card,
   Button,
@@ -37,6 +37,7 @@ import useMedia from "../../../hooks/useMedia";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import CommentItem from "./CommentItem";
+import CommentThread from "./CommentThread";
 
 // Inline styles
 const imageContainerStyles = {
@@ -137,6 +138,7 @@ function TweetCard({ tweet, onPostUpdate }) {
   const [showCommentBox, setShowCommentBox] = useState(false);
   const [isLoadingComments, setIsLoadingComments] = useState(true);
 
+  const currentUserId = user?.id;
   const ownerId = owner?.id || null;
   const postId = id || null;
 
@@ -175,43 +177,45 @@ function TweetCard({ tweet, onPostUpdate }) {
     setShowImageModal(true);
   };
 
-  useEffect(() => {
-    const fetchComments = async () => {
-      try {
-        setIsLoadingComments(true);
-        const token = localStorage.getItem("token");
-        if (!token) throw new Error("Vui lòng đăng nhập để tải bình luận!");
-        const response = await fetch(
+  const fetchComments = async () => {
+    try {
+      setIsLoadingComments(true);
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("Vui lòng đăng nhập để tải bình luận!");
+      const response = await fetch(
           `${process.env.REACT_APP_API_URL}/comments?postId=${id}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
             },
           }
-        );
-        if (!response.ok) throw new Error("Không thể lấy bình luận!");
-        const data = await response.json();
-        setComments(Array.isArray(data.data) ? data.data : []);
-      } catch (err) {
-        toast.error("Lỗi khi tải bình luận: " + err.message);
-      } finally {
-        setIsLoadingComments(false);
-      }
-    };
-    if (id) fetchComments();
-  }, [id]);
+      );
+      if (!response.ok) throw new Error("Không thể lấy bình luận!");
+      const data = await response.json();
+      setComments(Array.isArray(data.data) ? data.data : []);
+    } catch (err) {
+      toast.error("Lỗi khi tải bình luận: " + err.message);
+    } finally {
+      setIsLoadingComments(false);
+    }
+  };
 
-  const handleCommentSubmit = async (e) => {
-    e.preventDefault();
-    if (!newComment.trim()) return;
+  useEffect(() => {
+    if (id) {
+      fetchComments();
+    }
+  }, [id, fetchComments]);
 
-    try {
-      setIsCommenting(true);
-      const token = localStorage.getItem("token");
-      if (!token) throw new Error("Vui lòng đăng nhập để bình luận!");
-      const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/comments`,
-        {
+    const handleCommentSubmit = async (e) => {
+      e.preventDefault();
+      if (!newComment.trim()) return;
+
+      try {
+        setIsCommenting(true);
+        const token = localStorage.getItem("token");
+        if (!token) throw new Error("Vui lòng đăng nhập để bình luận!");
+
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/comments`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -225,30 +229,26 @@ function TweetCard({ tweet, onPostUpdate }) {
             parentCommentId: null,
             customListId: null,
           }),
-        }
-      );
-      if (!response.ok) throw new Error("Không thể tạo bình luận!");
-      toast.success("Đã đăng bình luận!");
-      setNewComment("");
+        });
 
-      const commentRes = await fetch(
-        `${process.env.REACT_APP_API_URL}/comments?postId=${id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      const commentData = await commentRes.json();
-      setComments(Array.isArray(commentData.data) ? commentData.data : []);
-    } catch (err) {
-      toast.error("Lỗi khi đăng bình luận: " + err.message);
-    } finally {
-      setIsCommenting(false);
-    }
-  };
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || "Không thể tạo bình luận!");
 
-  const handleEditTweet = () => setShowEditModal(true);
+        toast.success("Đã đăng bình luận!");
+        setNewComment("");
+
+        // 👇 Thêm comment ngay vào danh sách
+        const newCommentObj = data.data; // giả sử backend trả về comment vừa tạo
+        setComments((prev) => [newCommentObj, ...prev]);
+      } catch (err) {
+        toast.error("Lỗi khi đăng bình luận: " + err.message);
+      } finally {
+        setIsCommenting(false);
+      }
+    };
+
+
+    const handleEditTweet = () => setShowEditModal(true);
 
   const handleDeleteTweet = async () => {
     if (window.confirm("Bạn có chắc muốn xóa bài đăng này?")) {
@@ -464,6 +464,111 @@ function TweetCard({ tweet, onPostUpdate }) {
     );
   };
 
+    const handleReplyToComment = async (parentId, replyText) => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) throw new Error("Vui lòng đăng nhập để bình luận!");
+
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/comments`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            userId: user.id,
+            postId: postId,
+            content: replyText,
+            privacySetting: "default",
+            parentCommentId: parentId,
+          }),
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || "Không thể phản hồi");
+
+        toast.success("Phản hồi thành công");
+
+        const newReply = data.data;
+
+        // 👇 Cập nhật đúng comment cha
+        setComments((prevComments) =>
+            prevComments.map((comment) => {
+              if (comment.commentId === parentId) {
+                return {
+                  ...comment,
+                  replies: [...(comment.replies || []), newReply],
+                };
+              }
+              return comment;
+            })
+        );
+      } catch (error) {
+        console.error("Lỗi phản hồi:", error);
+        toast.error("Không thể phản hồi bình luận: " + error.message);
+      }
+    };
+
+  const handleUpdateComment = async (commentId, newText) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("Vui lòng đăng nhập để chỉnh sửa!");
+
+      const response = await fetch(
+          `${process.env.REACT_APP_API_URL}/comments/${commentId}`,
+          {
+            method: "PUT",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              userId: currentUserId,
+              content: newText,
+            }),
+          }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) throw new Error(data.message || "Không thể cập nhật bình luận.");
+
+      toast.success("Đã cập nhật bình luận!");
+      fetchComments();
+    } catch (err) {
+      toast.error("Lỗi khi cập nhật bình luận: " + err.message);
+    }
+  };
+
+  const handleDeleteComment = async (commentId) => {
+    if (!window.confirm("Bạn có chắc muốn xóa bình luận này?")) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("Vui lòng đăng nhập để xóa bình luận!");
+
+      const response = await fetch(
+          `${process.env.REACT_APP_API_URL}/comments/${commentId}`,
+          {
+            method: "DELETE",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Xóa bình luận thất bại.");
+      }
+
+      toast.success("Đã xóa bình luận!");
+      fetchComments();
+    } catch (err) {
+      toast.error("Lỗi khi xóa bình luận: " + err.message);
+    }
+  };
+
   const renderComments = () => {
     if (isLoadingComments)
       return <div className="text-muted">Đang tải bình luận...</div>;
@@ -472,18 +577,16 @@ function TweetCard({ tweet, onPostUpdate }) {
       return <div className="text-muted">Chưa có bình luận nào.</div>;
 
     return comments.map((comment) => (
-        <CommentItem key={comment.id} comment={comment} />
+        <CommentThread
+            key={comment.commentId}
+            comment={comment}
+            currentUserId={currentUserId}
+            onReply={handleReplyToComment}
+            onUpdate={handleUpdateComment}
+            onDelete={handleDeleteComment}
+        />
     ));
   };
-
-  if (avatarError || mediaError || videoError) {
-    return (
-      <div className="text-danger">
-        Lỗi tải media:{" "}
-        {avatarError || mediaError || videoError}
-      </div>
-    );
-  }
 
   return (
     <>
