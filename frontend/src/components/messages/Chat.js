@@ -140,11 +140,7 @@ const Chat = ({ chatId }) => {
         throw new Error("No video or audio track found in stream.");
       }
       streamRef.current = stream;
-      if (videoRef.current) {
-        console.log("Assigning stream to videoRef in initializeMediaStream:", stream);
-        videoRef.current.srcObject = stream;
-        videoRef.current.play().catch(err => console.error("Local video play error:", err));
-      }
+      attachStreamToVideo(videoRef, stream, "Local video");
       return stream;
     } catch (err) {
       console.error("Error accessing media devices:", err.name, err.message);
