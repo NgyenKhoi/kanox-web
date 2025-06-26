@@ -243,57 +243,76 @@ const Chat = ({ chatId }) => {
           localStorage.setItem("lastOffer", JSON.stringify(data));
           isCallHandledRef.current = true;
           setShowCallModal(true);
+
         } else if (data.type === "answer" && isCallInitiatorRef.current) {
           if (!peerRef.current || peerRef.current._pc.signalingState === "closed") {
             console.warn("PeerConnection is closed, skipping answer");
             return;
           }
+
           try {
             await peerRef.current._pc.setRemoteDescription(JSON.parse(data.sdp));
             console.log("Remote description (answer) set successfully.");
 
-            console.log("Pending candidates before applying in answer:", pendingCandidatesRef.current);
+            // ✅ Flush pending ICE candidates
             if (pendingCandidatesRef.current.length > 0) {
               pendingCandidatesRef.current.forEach(candidate => {
-                if (!peerRef.current.destroyed && peerRef.current._pc.signalingState !== "closed") {
-                  try {
-                    peerRef.current.signal({
-                      candidate: {
-                        candidate: candidate.candidate,
-                        sdpMid: candidate.sdpMid,
-                        sdpMLineIndex: candidate.sdpMLineIndex,
-                      },
-                    });
-                    console.log("Applied buffered ICE candidate in answer:", candidate);
-                  } catch (err) {
-                    console.error("Error applying buffered ICE candidate in answer:", err);
-                  }
+                try {
+                  peerRef.current.signal({
+                    candidate: {
+                      candidate: candidate.candidate,
+                      sdpMid: candidate.sdpMid,
+                      sdpMLineIndex: candidate.sdpMLineIndex,
+                    },
+                  });
+                  console.log("Flushed buffered ICE candidate in answer:", candidate);
+                } catch (err) {
+                  console.error("Error applying buffered ICE candidate in answer:", err);
                 }
               });
               pendingCandidatesRef.current = [];
             }
+
           } catch (err) {
             console.error("Failed to set remote description (answer):", err);
             leaveCall();
           }
+
         } else if (data.type === "ice-candidate") {
-          if (!peerRef.current || peerRef.current._pc.signalingState === "closed") {
-            console.warn("Peer connection not ready or closed, storing candidate:", data.candidate);
-            pendingCandidatesRef.current.push(data.candidate);
+          const candidate = data.candidate;
+          const peer = peerRef.current;
+
+          if (!peer || peer._pc.signalingState === "closed") {
+            console.warn("Peer connection not ready or closed, storing candidate:", candidate);
+            pendingCandidatesRef.current.push(candidate);
             return;
           }
-          peerRef.current.signal({
-            candidate: {
-              candidate: data.candidate.candidate,
-              sdpMid: data.candidate.sdpMid,
-              sdpMLineIndex: data.candidate.sdpMLineIndex,
-            },
-          });
+
+          if (!peer._pc.remoteDescription || peer._pc.remoteDescription.type === "") {
+            console.warn("Remote description not set yet, buffering ICE candidate");
+            pendingCandidatesRef.current.push(candidate);
+            return;
+          }
+
+          try {
+            peer.signal({
+              candidate: {
+                candidate: candidate.candidate,
+                sdpMid: candidate.sdpMid,
+                sdpMLineIndex: candidate.sdpMLineIndex,
+              },
+            });
+            console.log("Added ICE candidate:", candidate);
+          } catch (err) {
+            console.error("Error adding ICE candidate:", err);
+          }
+
         } else if (data.type === "end") {
           console.log("Call ended by remote user");
           leaveCall();
         }
       });
+
 
       const unreadCountSub = client.subscribe(
           `/topic/unread-count/${user.id}`,
