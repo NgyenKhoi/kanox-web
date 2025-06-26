@@ -83,13 +83,6 @@ const commentSectionStyles = {
   borderTop: "1px solid #e6ecf0",
 };
 
-const commentInputStyles = {
-  backgroundColor: "#f0f2f5",
-  borderRadius: "20px",
-  padding: "8px 12px",
-  border: "none",
-  width: "100%",
-};
 
 const commentStyles = {
   display: "flex",
@@ -97,12 +90,6 @@ const commentStyles = {
   marginBottom: "10px",
 };
 
-const commentAvatarStyles = {
-  width: "32px",
-  height: "32px",
-  borderRadius: "50%",
-  marginRight: "8px",
-};
 
 const commentContentStyles = {
   backgroundColor: "#f0f2f5",
@@ -786,36 +773,47 @@ function TweetCard({ tweet, onPostUpdate }) {
             </div>
 
             {showCommentBox && (
-              <div style={commentSectionStyles}>
-                {renderComments()}
-                <Form onSubmit={handleCommentSubmit} className="mt-2">
-                  <InputGroup>
-                    {user?.avatarUrl ? (
-                      <BootstrapImage
-                        src={user.avatarUrl}
-                        style={commentAvatarStyles}
-                        roundedCircle
-                        aria-label={`Ảnh đại diện của ${user.displayName}`}
-                      />
-                    ) : (
-                      <FaUserCircle
-                        size={32}
-                        style={{ marginRight: "8px", color: "#6c757d" }}
-                        aria-label="Ảnh đại diện mặc định"
-                      />
-                    )}
-                    <Form.Control
-                      type="text"
-                      placeholder="Viết bình luận..."
-                      value={newComment}
-                      onChange={(e) => setNewComment(e.target.value)}
-                      style={commentInputStyles}
-                      disabled={isCommenting}
-                      aria-label="Viết bình luận"
-                    />
-                  </InputGroup>
-                </Form>
-              </div>
+                <div style={commentSectionStyles}>
+                  {renderComments()}
+                  <Form onSubmit={handleCommentSubmit} className="mt-2">
+                    <div className="d-flex align-items-center">
+                      {user?.avatarUrl ? (
+                          <BootstrapImage
+                              src={user.avatarUrl}
+                              style={{ width: 32, height: 32, objectFit: "cover", marginRight: 8 }}
+                              roundedCircle
+                              aria-label={`Ảnh đại diện của ${user.displayName}`}
+                          />
+                      ) : (
+                          <FaUserCircle
+                              size={32}
+                              className="me-2 text-secondary"
+                              aria-label="Ảnh đại diện mặc định"
+                          />
+                      )}
+                      <InputGroup>
+                        <Form.Control
+                            type="text"
+                            placeholder="Viết bình luận..."
+                            value={newComment}
+                            onChange={(e) => setNewComment(e.target.value)}
+                            style={{ borderRadius: "20px" }}
+                            disabled={isCommenting}
+                            aria-label="Viết bình luận"
+                        />
+                        <Button
+                            type="submit"
+                            size="sm"
+                            variant="primary"
+                            style={{ borderRadius: "20px" }}
+                            disabled={isCommenting}
+                        >
+                          Gửi
+                        </Button>
+                      </InputGroup>
+                    </div>
+                  </Form>
+                </div>
             )}
           </div>
         </Card.Body>

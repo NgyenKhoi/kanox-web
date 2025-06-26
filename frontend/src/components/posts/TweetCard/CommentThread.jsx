@@ -67,6 +67,7 @@ function CommentThread({ comment, onReply, onUpdate, onDelete, currentUserId }) 
                                 </Dropdown>
                             )}
                         </div>
+
                         {isEditing ? (
                             <Form onSubmit={handleEditSubmit} className="mt-2">
                                 <InputGroup>
@@ -96,7 +97,7 @@ function CommentThread({ comment, onReply, onUpdate, onDelete, currentUserId }) 
                         <div className="d-flex align-items-center gap-3 mt-2">
                             <Button
                                 variant="link"
-                                className="text-primary px-1 py-0"
+                                className="px-1 py-0 text-dark text-decoration-none"
                                 size="sm"
                                 onClick={() => setShowReplyBox(!showReplyBox)}
                                 style={{ fontWeight: "normal" }}
@@ -117,20 +118,39 @@ function CommentThread({ comment, onReply, onUpdate, onDelete, currentUserId }) 
 
                         {showReplyBox && (
                             <Form onSubmit={handleReplySubmit} className="mt-2">
-                                <InputGroup>
-                                    <Form.Control
-                                        type="text"
-                                        placeholder="Viết phản hồi..."
-                                        value={replyText}
-                                        onChange={(e) => setReplyText(e.target.value)}
-                                        style={{ borderRadius: "20px" }}
-                                        size="sm"
-                                        aria-label="Viết phản hồi"
-                                    />
-                                    <Button type="submit" size="sm" variant="primary" style={{ borderRadius: "20px" }}>
-                                        Gửi
-                                    </Button>
-                                </InputGroup>
+                                <div className="d-flex align-items-center">
+                                    {avatarUrl ? (
+                                        <Image
+                                            src={avatarUrl}
+                                            alt="avatar"
+                                            roundedCircle
+                                            width={32}
+                                            height={32}
+                                            className="me-2"
+                                        />
+                                    ) : (
+                                        <FaUserCircle size={32} className="me-2 text-secondary" />
+                                    )}
+                                    <InputGroup>
+                                        <Form.Control
+                                            type="text"
+                                            placeholder="Viết phản hồi..."
+                                            value={replyText}
+                                            onChange={(e) => setReplyText(e.target.value)}
+                                            style={{ borderRadius: "20px" }}
+                                            size="sm"
+                                            aria-label="Viết phản hồi"
+                                        />
+                                        <Button
+                                            type="submit"
+                                            size="sm"
+                                            variant="primary"
+                                            style={{ borderRadius: "20px" }}
+                                        >
+                                            Gửi
+                                        </Button>
+                                    </InputGroup>
+                                </div>
                             </Form>
                         )}
                     </div>
