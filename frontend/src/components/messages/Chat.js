@@ -700,7 +700,20 @@ const Chat = ({ chatId }) => {
         console.warn("ICE connection disconnected, attempting to reconnect...");
       }
       if (newPeer._pc.iceConnectionState === "connected") {
-        console.log("ICE connection established successfully");
+        console.log("✅ ICE connection established successfully");
+        newPeer._pc.getStats(null).then((stats) => {
+          stats.forEach((report) => {
+            if (report.type === "candidate-pair" && report.state === "succeeded" && report.nominated) {
+              console.log("🎯 Candidate pair selected:", report);
+            }
+            if (report.type === "local-candidate") {
+              console.log("💻 Local candidate:", report);
+            }
+            if (report.type === "remote-candidate") {
+              console.log("🌐 Remote candidate:", report);
+            }
+          });
+        });
       }
     };
 
