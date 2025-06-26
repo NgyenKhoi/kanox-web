@@ -42,22 +42,12 @@ const Chat = ({ chatId }) => {
 
   const iceServers = [
     {
-      urls: "turn:kanox-turn.duckdns.org:3478?transport=udp",
-      username: "turnuser",
-      credential: "eqfleqrd1",
-    },
-    {
       urls: "turn:kanox-turn.duckdns.org:5349?transport=tcp", // TCP fallback
       username: "turnuser",
       credential: "eqfleqrd1",
     },
     {
       urls: "turn:34.143.174.239:3478?transport=udp",
-      username: "turnuser",
-      credential: "eqfleqrd1",
-    },
-    {
-      urls: "turn:34.143.174.239:5349?transport=tcp", // TCP fallback
       username: "turnuser",
       credential: "eqfleqrd1",
     },
@@ -479,7 +469,7 @@ const Chat = ({ chatId }) => {
         initiator: true,
         trickle: true,
         stream: newStream,
-        config: { iceServers, iceTransportPolicy: "all" },
+        config: { iceServers, iceTransportPolicy: "relay" },
       });
       peerRef.current = newPeer;
 
@@ -605,7 +595,7 @@ const Chat = ({ chatId }) => {
       initiator: false,
       trickle: true,
       stream: newStream,
-      config: { iceServers, iceTransportPolicy: "all" },
+      config: { iceServers, iceTransportPolicy: "relay" },
     });
 
     try {
