@@ -76,12 +76,18 @@ const Chat = ({ chatId }) => {
     if (peerRef.current) {
       const state = peerRef.current._pc?.iceConnectionState;
       console.log("Cleaning up PeerConnection, current ICE state:", state);
-      if (state !== "connected" && state !== "completed") {
+      if (
+          peerRef.current._pc &&
+          !peerRef.current.destroyed &&
+          peerRef.current._pc.signalingState !== "closed" &&
+          state !== "connected" &&
+          state !== "completed"
+      ) {
         console.log("Destroying existing PeerConnection...");
         peerRef.current.destroy();
         peerRef.current = null;
       } else {
-        console.log("Skipping cleanup: PeerConnection is connected or completed");
+        console.log("Skipping cleanup: PeerConnection is connected, completed, or already closed");
       }
     }
     if (streamRef.current) {
@@ -92,6 +98,7 @@ const Chat = ({ chatId }) => {
     if (remoteVideoRef.current) {
       remoteVideoRef.current.srcObject = null;
     }
+    pendingCandidatesRef.current = []; // Xóa danh sách ICE candidate
   };
 
   const initializeMediaStream = async () => {
@@ -217,50 +224,78 @@ const Chat = ({ chatId }) => {
           }
       );
 
-      const callSub = client.subscribe(`/topic/call/${chatId}`, (signal) => {
+      const callSub = client.subscribe(`/topic/call/${chatId}`, async (signal) => {
         const data = JSON.parse(signal.body);
         console.log("Received signal:", data);
-        if (data.type === "offer" && data.userId !== user?.id) {
+
+        if (data.userId === user?.id) {
+          console.log("Ignoring signal from self");
+          return;
+        }
+
+        if (data.type === "offer" && !isCallHandledRef.current) {
           localStorage.removeItem("lastOffer");
           localStorage.setItem("lastOffer", JSON.stringify(data));
+          isCallHandledRef.current = true;
           setShowCallModal(true);
-          } else if (data.type === "ice-candidate") {
-          console.log("Received ICE candidate:", data.candidate);
+        } else if (data.type === "answer" && isCallInitiatorRef.current) {
           if (!peerRef.current || peerRef.current._pc.signalingState === "closed") {
-            console.warn("Peer connection not ready yet, storing candidate");
+            console.warn("PeerConnection is closed, skipping answer");
+            return;
+          }
+          try {
+            await peerRef.current._pc.setRemoteDescription(JSON.parse(data.sdp));
+            console.log("Remote description (answer) set successfully.");
+
+            // Áp dụng các ICE candidate đã lưu trữ
+            pendingCandidatesRef.current.forEach(candidate => {
+              if (!peerRef.current.destroyed && peerRef.current._pc.signalingState !== "closed") {
+                try {
+                  peerRef.current.signal({
+                    candidate: {
+                      candidate: candidate.candidate,
+                      sdpMid: candidate.sdpMid,
+                      sdpMLineIndex: candidate.sdpMLineIndex,
+                    },
+                  });
+                  console.log("Applied buffered ICE candidate:", candidate);
+                } catch (err) {
+                  console.error("Error applying buffered ICE candidate:", err);
+                }
+              }
+            });
+            pendingCandidatesRef.current = []; // Xóa danh sách sau khi áp dụng
+          } catch (err) {
+            console.error("Failed to set remote description (answer):", err);
+            leaveCall();
+          }
+        } else if (data.type === "ice-candidate") {
+          if (!peerRef.current || peerRef.current._pc.signalingState === "closed") {
+            console.warn("Peer connection not ready or closed, storing candidate");
             pendingCandidatesRef.current.push(data.candidate);
             return;
           }
-
-          if (peerRef.current._pc.signalingState === "have-local-offer" || peerRef.current._pc.signalingState === "stable") {
-            if (
-                peerRef.current &&
-                !peerRef.current.destroyed &&
-                peerRef.current._pc.signalingState !== "closed"
-            ) {
-              try {
-                peerRef.current.signal({
-                  candidate: {
-                    candidate: data.candidate.candidate,
-                    sdpMid: data.candidate.sdpMid,
-                    sdpMLineIndex: data.candidate.sdpMLineIndex,
-                  },
-                });
-              } catch (err) {
-                console.error("Error adding ICE candidate:", err);
-              }
-            } else {
-              console.warn("Peer destroyed or closed, skipping ICE candidate");
+          if (peerRef.current._pc.remoteDescription) {
+            try {
+              peerRef.current.signal({
+                candidate: {
+                  candidate: data.candidate.candidate,
+                  sdpMid: data.candidate.sdpMid,
+                  sdpMLineIndex: data.candidate.sdpMLineIndex,
+                },
+              });
+              console.log("Applied ICE candidate:", data.candidate);
+            } catch (err) {
+              console.error("Error adding ICE candidate:", err);
             }
           } else {
-            console.warn("Signaling state not ready, storing ICE candidate");
+            console.warn("Remote description not set, storing ICE candidate");
             pendingCandidatesRef.current.push(data.candidate);
           }
         } else if (data.type === "end") {
           console.log("Call ended by remote user");
           leaveCall();
         }
-        console.log('Received signal from /topic/call/', data.type, data.candidate ? data.candidate : data.sdp);
       });
 
       const unreadCountSub = client.subscribe(
@@ -519,6 +554,13 @@ const Chat = ({ chatId }) => {
 
       newPeer.on("error", (err) => {
         console.error("Peer error:", err);
+        if (err.code === "ERR_ICE_CONNECTION_FAILURE") {
+          toast.error("Kết nối ICE thất bại. Vui lòng kiểm tra mạng hoặc TURN server.");
+        } else if (err.code === "ERR_SIGNALING") {
+          toast.error("Lỗi tín hiệu WebRTC. Vui lòng thử lại.");
+        } else {
+          toast.error("Lỗi trong quá trình gọi video: " + err.message);
+        }
       });
 
       const handleAnswerSignal = async (data) => {
@@ -592,46 +634,54 @@ const Chat = ({ chatId }) => {
       stream: newStream,
       config: { iceServers, iceTransportPolicy: "relay" },
     });
-    pendingCandidatesRef.current.forEach(candidate => {
-      if (!newPeer.destroyed && newPeer._pc.signalingState !== "closed") {
-        try {
-          newPeer.signal({
-            candidate: {
-              candidate: candidate.candidate,
-              sdpMid: candidate.sdpMid,
-              sdpMLineIndex: candidate.sdpMLineIndex,
-            },
-          });
-        } catch (err) {
-          console.error("Error applying buffered ICE:", err);
-        }
-      } else {
-        console.warn("Skip ICE signal: peer destroyed or closed");
+
+    try {
+      // Thiết lập remoteDescription
+      await newPeer._pc.setRemoteDescription(JSON.parse(offerData.sdp));
+      console.log("Remote description (offer) set successfully.");
+
+      // Áp dụng các ICE candidate đã lưu trữ
+      if (pendingCandidatesRef.current.length > 0) {
+        pendingCandidatesRef.current.forEach(candidate => {
+          if (!newPeer.destroyed && newPeer._pc.signalingState !== "closed") {
+            try {
+              newPeer.signal({
+                candidate: {
+                  candidate: candidate.candidate,
+                  sdpMid: candidate.sdpMid,
+                  sdpMLineIndex: candidate.sdpMLineIndex,
+                },
+              });
+              console.log("Applied buffered ICE candidate:", candidate);
+            } catch (err) {
+              console.error("Error applying buffered ICE candidate:", err);
+            }
+          }
+        });
+        pendingCandidatesRef.current = []; // Xóa danh sách sau khi áp dụng
       }
-    });
+    } catch (err) {
+      console.error("Handle offer error:", err);
+      toast.error("Lỗi khi xử lý offer: " + err.message);
+      setShowCallModal(false);
+      return;
+    }
 
-
+    // Cấu hình các sự kiện cho PeerConnection
     newPeer._pc.oniceconnectionstatechange = () => {
       console.log("ICE state:", newPeer._pc.iceConnectionState);
       if (newPeer._pc.iceConnectionState === "failed") {
-        console.error("ICE connection failed, check firewall or TURN configuration");
+        console.error("ICE connection failed, restarting ICE...");
+        newPeer._pc.restartIce(); // Thử khởi động lại ICE
+        toast.error("Kết nối thất bại, đang thử lại...");
+      }
+      if (newPeer._pc.iceConnectionState === "disconnected") {
+        console.warn("ICE connection disconnected, attempting to reconnect...");
       }
     };
+
     newPeer._pc.onsignalingstatechange = () => {
       console.log("Signaling state:", newPeer._pc.signalingState);
-    };
-
-    newPeer._pc.onicecandidate = (event) => {
-      console.log('ICE candidate:', event.candidate);
-    };
-    newPeer._pc.onicecandidateerror = (error) => {
-      console.error('ICE candidate error:', error);
-    };
-    newPeer._pc.onicegatheringstatechange = () => {
-      console.log('ICE gathering state:', newPeer._pc.iceGatheringState);
-    };
-    newPeer._pc.ontrack = (event) => {
-      console.log('Received track:', event.track.kind);
     };
 
     newPeer.on("signal", (signalData) => {
@@ -689,32 +739,6 @@ const Chat = ({ chatId }) => {
         toast.error("Lỗi trong quá trình gọi video: " + err.message);
       }
     });
-
-    try {
-      await newPeer.signal(JSON.parse(offerData.sdp));
-
-      setTimeout(() => {
-        pendingCandidatesRef.current.forEach(candidate => {
-          try {
-            newPeer.signal({
-              candidate: {
-                candidate: candidate.candidate,
-                sdpMid: candidate.sdpMid,
-                sdpMLineIndex: candidate.sdpMLineIndex,
-              },
-            });
-          } catch (err) {
-            console.error("Error applying buffered ICE:", err);
-          }
-        });
-        pendingCandidatesRef.current = [];
-      }, 500);
-    } catch (err) {
-      console.error("Handle offer error:", err);
-      toast.error("Lỗi khi xử lý offer: " + err.message);
-  } finally {
-    setShowCallModal(false); // 💡 chỉ gọi ở đây thôi
-  }
 
     peerRef.current = newPeer;
     setShowCallPanel(true);
