@@ -486,6 +486,7 @@ const Chat = ({ chatId }) => {
         trickle: true,
         stream: newStream,
         config: { iceServers, iceTransportPolicy: "relay" },
+        iceCandidatePoolSize: 2,
       });
       peerRef.current = newPeer;
 
@@ -549,6 +550,13 @@ const Chat = ({ chatId }) => {
         }
         if (newPeer._pc.iceConnectionState === "disconnected") {
           console.warn("ICE connection disconnected, attempting to reconnect...");
+
+          setTimeout(() => {
+            if (newPeer && !newPeer.destroyed) {
+              console.log("🔁 Đang thử restart ICE...");
+              newPeer._pc.restartIce();
+            }
+          }, 3000); // 👈 Delay 3s rồi gọi restartIce
         }
         if (newPeer._pc.iceConnectionState === "connected") {
           console.log("ICE connection established successfully");
@@ -629,30 +637,33 @@ const Chat = ({ chatId }) => {
       trickle: true,
       stream: newStream,
       config: { iceServers, iceTransportPolicy: "relay" },
+      iceCandidatePoolSize: 2,
     });
 
     peerRef.current = newPeer;
     let gotCandidate = false;
 
     try {
-      console.log("📨 Đang set remote offer SDP...");
-      newPeer.signal(JSON.parse(offerData.sdp));
-      console.log("✅ Remote description (offer) set thành công.");
+      setTimeout(() => {
+        console.log("📨 Đang set remote offer SDP (có delay 300ms)...");
+        newPeer.signal(JSON.parse(offerData.sdp));
 
-      console.log("Pending candidates before applying:", pendingCandidatesRef.current);
-      if (pendingCandidatesRef.current.length > 0) {
-        pendingCandidatesRef.current.forEach(candidate => {
-          console.log("📨 Áp dụng ICE candidate pending:", candidate);
-          newPeer.signal({
-            candidate: {
-              candidate: candidate.candidate,
-              sdpMid: candidate.sdpMid,
-              sdpMLineIndex: candidate.sdpMLineIndex,
-            },
+        console.log("✅ Remote description (offer) set thành công.");
+        // Áp dụng ICE pending
+        if (pendingCandidatesRef.current.length > 0) {
+          pendingCandidatesRef.current.forEach(candidate => {
+            console.log("📨 Áp dụng ICE candidate pending:", candidate);
+            newPeer.signal({
+              candidate: {
+                candidate: candidate.candidate,
+                sdpMid: candidate.sdpMid,
+                sdpMLineIndex: candidate.sdpMLineIndex,
+              },
+            });
           });
-        });
-        pendingCandidatesRef.current = [];
-      }
+          pendingCandidatesRef.current = [];
+        }
+      }, 300);
     } catch (err) {
       console.error("Handle offer error:", err);
       toast.error("Lỗi khi xử lý offer: " + err.message);
@@ -687,7 +698,7 @@ const Chat = ({ chatId }) => {
       if (!gotCandidate) {
         console.warn("⚠️ Không nhận được ICE candidate nào. TURN server có thể bị chặn.");
       }
-    }, 5000);
+    }, 10000);
 
     newPeer._pc.oniceconnectionstatechange = () => {
       console.log("🌐 ICE state in handleOffer:", newPeer._pc.iceConnectionState);
