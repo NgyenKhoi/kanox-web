@@ -42,7 +42,7 @@ const Chat = ({ chatId }) => {
 
   const iceServers = [
     {
-      urls: "turn:kanox-turn.duckdns.org:5349?transport=tcp", // TCP fallback
+      urls: "turns:kanox-turn.duckdns.org:5349?transport=tcp", // TCP fallback
       username: "turnuser",
       credential: "eqfleqrd1",
     },
