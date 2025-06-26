@@ -578,6 +578,12 @@ const Chat = ({ chatId }) => {
       return;
     }
 
+    const newPeer = new Peer({
+      initiator: false,
+      trickle: true,
+      stream: newStream,
+      config: { iceServers, iceTransportPolicy: "relay" },
+    });
     pendingCandidatesRef.current.forEach(candidate => {
       newPeer.signal({
         candidate: {
@@ -587,12 +593,7 @@ const Chat = ({ chatId }) => {
         },
       });
     });
-    const newPeer = new Peer({
-      initiator: false,
-      trickle: true,
-      stream: newStream,
-      config: { iceServers, iceTransportPolicy: "relay" },
-    });
+
 
     newPeer._pc.oniceconnectionstatechange = () => {
       console.log("ICE state:", newPeer._pc.iceConnectionState);
