@@ -204,7 +204,7 @@ function TweetCard({ tweet, onPostUpdate }) {
     if (id) {
       fetchComments();
     }
-  }, [id, fetchComments]);
+  }, [id]);
 
     const handleCommentSubmit = async (e) => {
       e.preventDefault();
