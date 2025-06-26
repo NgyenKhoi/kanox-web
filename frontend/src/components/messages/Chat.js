@@ -42,12 +42,22 @@ const Chat = ({ chatId }) => {
 
   const iceServers = [
     {
-      urls: "turn:kanox-turn.duckdns.org:5349?transport=tcp",
+      urls: "turn:kanox-turn.duckdns.org:3478?transport=udp",
+      username: "turnuser",
+      credential: "eqfleqrd1",
+    },
+    {
+      urls: "turn:kanox-turn.duckdns.org:5349?transport=tcp", // TCP fallback
       username: "turnuser",
       credential: "eqfleqrd1",
     },
     {
       urls: "turn:34.143.174.239:3478?transport=udp",
+      username: "turnuser",
+      credential: "eqfleqrd1",
+    },
+    {
+      urls: "turn:34.143.174.239:5349?transport=tcp", // TCP fallback
       username: "turnuser",
       credential: "eqfleqrd1",
     },
@@ -272,23 +282,13 @@ const Chat = ({ chatId }) => {
             pendingCandidatesRef.current.push(data.candidate);
             return;
           }
-          if (peerRef.current._pc.remoteDescription) {
-            try {
-              await peerRef.current.signal({
-                candidate: {
-                  candidate: data.candidate.candidate,
-                  sdpMid: data.candidate.sdpMid,
-                  sdpMLineIndex: data.candidate.sdpMLineIndex,
-                },
-              });
-              console.log("Applied ICE candidate:", data.candidate);
-            } catch (err) {
-              console.error("Error adding ICE candidate:", err);
-            }
-          } else {
-            console.warn("Remote description not set, storing ICE candidate:", data.candidate);
-            pendingCandidatesRef.current.push(data.candidate);
-          }
+          peerRef.current.signal({
+            candidate: {
+              candidate: data.candidate.candidate,
+              sdpMid: data.candidate.sdpMid,
+              sdpMLineIndex: data.candidate.sdpMLineIndex,
+            },
+          });
         } else if (data.type === "end") {
           console.log("Call ended by remote user");
           leaveCall();
@@ -590,26 +590,19 @@ const Chat = ({ chatId }) => {
     });
 
     try {
-      await newPeer._pc.setRemoteDescription(JSON.parse(offerData.sdp));
+      newPeer.signal(JSON.parse(offerData.sdp));
       console.log("Remote description (offer) set successfully.");
 
       console.log("Pending candidates before applying:", pendingCandidatesRef.current);
       if (pendingCandidatesRef.current.length > 0) {
         pendingCandidatesRef.current.forEach(candidate => {
-          if (!newPeer.destroyed && newPeer._pc.signalingState !== "closed") {
-            try {
-              newPeer.signal({
-                candidate: {
-                  candidate: candidate.candidate,
-                  sdpMid: candidate.sdpMid,
-                  sdpMLineIndex: candidate.sdpMLineIndex,
-                },
-              });
-              console.log("Applied buffered ICE candidate:", candidate);
-            } catch (err) {
-              console.error("Error applying buffered ICE candidate:", err);
-            }
-          }
+          newPeer.signal({
+            candidate: {
+              candidate: candidate.candidate,
+              sdpMid: candidate.sdpMid,
+              sdpMLineIndex: candidate.sdpMLineIndex,
+            },
+          });
         });
         pendingCandidatesRef.current = [];
       }
