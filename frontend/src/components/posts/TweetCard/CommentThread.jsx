@@ -46,14 +46,14 @@ function CommentThread({ comment, onReply, onUpdate, onDelete, currentUserId }) 
                     <FaUserCircle size={40} className="me-2 text-secondary" />
                 )}
                 <div className="flex-grow-1">
-                    <div className="bg-light rounded-4 p-3 border border-secondary-subtle" style={{ fontSize: "15px" }}>
+                    <div className="rounded-4 p-3" style={{ backgroundColor: "#f8f9fa", fontSize: "15px" }}>
                         <div className="d-flex justify-content-between align-items-start">
                             <div>
                                 <strong>{comment.user?.displayName}</strong>{" "}
                                 <span className="text-muted">@{comment.user?.username}</span>{" "}
                                 <span className="text-muted ms-2" style={{ fontSize: "12px" }}>
-                  {moment(comment.createdAt * 1000).fromNow()}
-                </span>
+                                    {moment(comment.createdAt * 1000).fromNow()}
+                                </span>
                             </div>
                             {currentUserId === comment.userId && (
                                 <Dropdown align="end">
@@ -74,36 +74,39 @@ function CommentThread({ comment, onReply, onUpdate, onDelete, currentUserId }) 
                                         value={editedText}
                                         onChange={(e) => setEditedText(e.target.value)}
                                         size="sm"
+                                        style={{ borderRadius: "20px" }}
                                     />
-                                    <Button variant="primary" size="sm" type="submit">
+                                    <Button variant="primary" size="sm" type="submit" style={{ borderRadius: "20px" }}>
                                         Lưu
                                     </Button>
                                     <Button
                                         variant="secondary"
                                         size="sm"
                                         onClick={() => setIsEditing(false)}
+                                        style={{ borderRadius: "20px" }}
                                     >
                                         Hủy
                                     </Button>
                                 </InputGroup>
                             </Form>
                         ) : (
-                            <p className="mb-1 mt-2 text-dark fw-medium">{comment.content}</p>
+                            <p className="mb-1 mt-2 text-dark">{comment.content}</p>
                         )}
 
                         <div className="d-flex align-items-center gap-3 mt-2">
                             <Button
                                 variant="link"
-                                className="text-muted p-0"
+                                className="text-primary px-1 py-0"
                                 size="sm"
                                 onClick={() => setShowReplyBox(!showReplyBox)}
+                                style={{ fontWeight: "normal" }}
                             >
                                 <FaReply className="me-1" /> Phản hồi
                             </Button>
                             {comment.replies?.length > 0 && (
                                 <Button
                                     variant="link"
-                                    className="text-muted p-0"
+                                    className="text-muted px-1 py-0"
                                     size="sm"
                                     onClick={() => setShowReplies(!showReplies)}
                                 >
@@ -116,12 +119,15 @@ function CommentThread({ comment, onReply, onUpdate, onDelete, currentUserId }) 
                             <Form onSubmit={handleReplySubmit} className="mt-2">
                                 <InputGroup>
                                     <Form.Control
-                                        size="sm"
+                                        type="text"
                                         placeholder="Viết phản hồi..."
                                         value={replyText}
                                         onChange={(e) => setReplyText(e.target.value)}
+                                        style={{ borderRadius: "20px" }}
+                                        size="sm"
+                                        aria-label="Viết phản hồi"
                                     />
-                                    <Button type="submit" size="sm">
+                                    <Button type="submit" size="sm" variant="primary" style={{ borderRadius: "20px" }}>
                                         Gửi
                                     </Button>
                                 </InputGroup>
