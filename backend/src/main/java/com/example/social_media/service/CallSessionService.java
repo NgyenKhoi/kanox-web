@@ -1,6 +1,5 @@
 package com.example.social_media.service;
 
-import com.example.social_media.dto.message.SignalMessageDto;
 import com.example.social_media.entity.CallSession;
 import com.example.social_media.entity.Chat;
 import com.example.social_media.entity.User;
@@ -9,7 +8,6 @@ import com.example.social_media.repository.CallSessionRepository;
 import com.example.social_media.repository.ChatRepository;
 import com.example.social_media.repository.UserRepository;
 import org.springframework.data.elasticsearch.ResourceNotFoundException;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,20 +15,16 @@ import java.time.Instant;
 
 @Service
 public class CallSessionService {
-
     private final CallSessionRepository callSessionRepository;
     private final ChatRepository chatRepository;
     private final UserRepository userRepository;
-    private final SimpMessagingTemplate messagingTemplate;
     private final ChatService chatService;
 
     public CallSessionService(CallSessionRepository callSessionRepository, ChatRepository chatRepository,
-                              UserRepository userRepository, SimpMessagingTemplate messagingTemplate,
-                              ChatService chatService) {
+                              UserRepository userRepository, ChatService chatService) {
         this.callSessionRepository = callSessionRepository;
         this.chatRepository = chatRepository;
         this.userRepository = userRepository;
-        this.messagingTemplate = messagingTemplate;
         this.chatService = chatService;
     }
 
@@ -65,24 +59,6 @@ public class CallSessionService {
         callSession.setEndTime(Instant.now());
         callSession.setStatus(false);
         callSessionRepository.save(callSession);
-        messagingTemplate.convertAndSend(
-                "/topic/call/" + callSession.getChat().getId(),
-                new SignalMessageDto(
-                        callSession.getChat().getId(),
-                        "end",
-                        null,
-                        null,
-                        callSession.getHost().getId()
-                )
-        );
         System.out.println("Call ended for chatId: " + callSession.getChat().getId());
-    }
-
-    @Transactional
-    public void handleSignal(SignalMessageDto signalMessage, String username) {
-        System.out.println("Handling signal: " + signalMessage.getType() + " for chatId: " + signalMessage.getChatId());
-        chatService.checkChatAccess(signalMessage.getChatId(), username);
-        messagingTemplate.convertAndSend("/topic/call/" + signalMessage.getChatId(), signalMessage);
-        System.out.println("Signal successfully sent to /topic/call/" + signalMessage.getChatId());
     }
 }

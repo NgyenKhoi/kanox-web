@@ -5,12 +5,13 @@ import { AuthContext } from "../context/AuthContext";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-export const useWebSocket = (onMessage, setUnreadCount, topicPrefix = "/topic/notifications/") => {
+export const useWebSocket = (onMessage, setUnreadCount, topicPrefix = "/topic/notifications/", chatIds = []) => {
     const { user, token } = useContext(AuthContext);
     const clientRef = useRef(null);
     const isConnecting = useRef(false);
     const reconnectAttempts = useRef(0);
     const maxReconnectAttempts = 10;
+    const subscriptionsRef = useRef([]);
 
     const initializeWebSocket = useCallback(() => {
         if (!token || !user) {
@@ -27,10 +28,9 @@ export const useWebSocket = (onMessage, setUnreadCount, topicPrefix = "/topic/no
         console.log("Initializing WebSocket for user:", user.id);
 
         const client = new Client({
-            webSocketFactory: () => new SockJS(`${process.env.REACT_APP_WS_URL}/ws` || "https://kanox.duckdns.org/ws"),
+            webSocketFactory: () => new SockJS(`${process.env.REACT_APP_WS_URL}/ws`),
             connectHeaders: { Authorization: `Bearer ${token}` },
             reconnectDelay: 5000,
-            reconnectAttempts: maxReconnectAttempts,
             heartbeatIncoming: 4000,
             heartbeatOutgoing: 4000,
             onConnect: (frame) => {
@@ -38,7 +38,8 @@ export const useWebSocket = (onMessage, setUnreadCount, topicPrefix = "/topic/no
                 isConnecting.current = false;
                 reconnectAttempts.current = 0;
 
-                client.subscribe(`${topicPrefix}${user.id}`, (message) => {
+                // Subscribe vào thông báo chung
+                const notificationSub = client.subscribe(`${topicPrefix}${user.id}`, (message) => {
                     try {
                         const data = JSON.parse(message.body);
                         console.log("Received notification:", data);
@@ -49,7 +50,8 @@ export const useWebSocket = (onMessage, setUnreadCount, topicPrefix = "/topic/no
                     }
                 });
 
-                client.subscribe(`/topic/messages/${user.id}`, (message) => {
+                // Subscribe vào tin nhắn
+                const messageSub = client.subscribe(`/topic/messages/${user.id}`, (message) => {
                     try {
                         const msg = JSON.parse(message.body);
                         console.log("Received new message:", msg);
@@ -59,6 +61,21 @@ export const useWebSocket = (onMessage, setUnreadCount, topicPrefix = "/topic/no
                         console.error("Error parsing WebSocket message:", error);
                     }
                 });
+
+                // Subscribe vào thông báo cuộc gọi cho mỗi chatId
+                const callSubs = chatIds.map((chatId) =>
+                    client.subscribe(`/topic/call/${chatId}`, (message) => {
+                        try {
+                            const callData = JSON.parse(message.body);
+                            console.log("Received incoming call:", callData);
+                            onMessage({ type: "CALL", data: callData });
+                        } catch (error) {
+                            console.error("Error parsing call message:", error);
+                        }
+                    })
+                );
+
+                subscriptionsRef.current = [notificationSub, messageSub, ...callSubs];
             },
             onWebSocketError: (error) => {
                 console.error("WebSocket error:", error);
@@ -86,11 +103,13 @@ export const useWebSocket = (onMessage, setUnreadCount, topicPrefix = "/topic/no
         client.activate();
 
         return () => {
+            subscriptionsRef.current.forEach((sub) => sub.unsubscribe());
             if (clientRef.current?.active) {
                 clientRef.current.deactivate();
+                console.log("Deactivated WebSocket client");
             }
         };
-    }, [token, user, onMessage, setUnreadCount, topicPrefix]);
+    }, [token, user, onMessage, setUnreadCount, topicPrefix, chatIds]);
 
     useEffect(() => {
         if (!user || !token) {
@@ -105,12 +124,28 @@ export const useWebSocket = (onMessage, setUnreadCount, topicPrefix = "/topic/no
 
         return () => {
             if (typeof cleanup === "function") cleanup();
-            if (clientRef.current?.active) {
-                console.log("Deactivating WebSocket client on cleanup");
-                clientRef.current.deactivate();
-            }
         };
     }, [initializeWebSocket]);
 
-    return clientRef.current;
+    const publish = (destination, body) => {
+        if (!clientRef.current?.active) {
+            console.error("Cannot publish: WebSocket is not connected");
+            toast.error("Không thể gửi tin nhắn: WebSocket chưa kết nối");
+            return false;
+        }
+        try {
+            clientRef.current.publish({
+                destination,
+                body: typeof body === "string" ? body : JSON.stringify(body),
+            });
+            console.log(`Published to ${destination}:`, body);
+            return true;
+        } catch (error) {
+            console.error("Error publishing message:", error);
+            toast.error("Lỗi khi gửi tin nhắn qua WebSocket");
+            return false;
+        }
+    };
+
+    return { client: clientRef.current, publish };
 };

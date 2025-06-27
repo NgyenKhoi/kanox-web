@@ -28,6 +28,7 @@
     "simple-peer": "^9.11.1",
     "sockjs-client": "^1.6.1",
     "stompjs": "^2.3.3",
+    "stringee": "^2.9.3",
     "web-vitals": "^2.1.4"
   },
   "scripts": {

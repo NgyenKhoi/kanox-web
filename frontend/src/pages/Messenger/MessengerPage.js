@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useRef } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import {
   Container,
   Row,
@@ -12,25 +12,24 @@ import {
 import { FaSearch, FaPenSquare, FaTrash } from "react-icons/fa";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import SockJS from "sockjs-client";
-import { Client } from "@stomp/stompjs";
 import SidebarLeft from "../../components/layout/SidebarLeft/SidebarLeft";
 import Chat from "../../components/messages/Chat";
 import { AuthContext } from "../../context/AuthContext";
 import UserSelectionModal from "../../components/messages/UserSelectionModal";
+import { useWebSocket } from "../../hooks/useWebSocket";
 import useUserSearch from "../../hooks/useUserSearch";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
-function MessengerPage() {
+function MessengerPage({ publish }) {
   const { token, user } = useContext(AuthContext);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [chats, setChats] = useState([]);
   const [selectedChatId, setSelectedChatId] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [unreadChats, setUnreadChats] = useState(new Set());
   const [showUserSelectionModal, setShowUserSelectionModal] = useState(false);
-  const stompRef = useRef(null);
 
   const {
     searchKeyword,
@@ -39,6 +38,71 @@ function MessengerPage() {
     isSearching,
     debouncedSearch,
   } = useUserSearch(token, navigate);
+
+  // Xử lý thông báo WebSocket
+  const handleWebSocketMessage = (message) => {
+    if (message.action === "delete") {
+      setChats((prev) => prev.filter((chat) => chat.id !== message.chatId));
+      setUnreadChats((prev) => {
+        const newUnread = new Set(prev);
+        newUnread.delete(message.chatId);
+        return newUnread;
+      });
+      if (selectedChatId === message.chatId) {
+        setSelectedChatId(null);
+        navigate("/messages");
+      }
+      toast.success("Chat đã được xóa.");
+    } else if (message.chatId) {
+      setChats((prev) => {
+        const existingChat = prev.find((chat) => chat.id === message.chatId);
+        if (existingChat) {
+          return prev.map((chat) =>
+              chat.id === message.chatId ? { ...chat, ...message } : chat
+          );
+        }
+        return [...prev, message];
+      });
+      setUnreadChats((prev) => {
+        const newUnread = new Set(prev);
+        if (message.unreadMessagesCount > 0) {
+          newUnread.add(message.chatId);
+        } else {
+          newUnread.delete(message.chatId);
+        }
+        return newUnread;
+      });
+    } else if (message.type === "MESSAGE") {
+      setChats((prev) => {
+        const updatedChats = prev.map((chat) =>
+            chat.id === message.chatId
+                ? { ...chat, lastMessage: message.content, unreadMessagesCount: (chat.unreadMessagesCount || 0) + 1 }
+                : chat
+        );
+        return updatedChats;
+      });
+      setUnreadChats((prev) => {
+        const newUnread = new Set(prev);
+        newUnread.add(message.chatId);
+        return newUnread;
+      });
+      if (selectedChatId === message.chatId) {
+        window.dispatchEvent(new Event("messageUpdate"));
+      }
+    }
+  };
+
+  // Khởi tạo WebSocket và truyền danh sách chatIds
+  const { publish: wsPublish } = useWebSocket(
+      handleWebSocketMessage,
+      (count) => {
+        window.dispatchEvent(
+            new CustomEvent("updateUnreadCount", { detail: { unreadCount: count } })
+        );
+      },
+      "/topic/chats/",
+      [user?.id].filter(Boolean)
+  );
 
   useEffect(() => {
     if (showUserSelectionModal) {
@@ -92,7 +156,7 @@ function MessengerPage() {
         if (!prev.some((chat) => chat.id === data.id)) {
           return [...prev, data];
         }
-        return prev.map((chat) => chat.id === data.id ? data : chat);
+        return prev.map((chat) => (chat.id === data.id ? data : chat));
       });
       setSelectedChatId(data.id);
       navigate(`/messages?chatId=${data.id}`);
@@ -153,11 +217,9 @@ function MessengerPage() {
     navigate(`/messages?chatId=${chatId}`);
     try {
       const token = sessionStorage.getItem("token") || localStorage.getItem("token");
-      // Gọi API để lấy tin nhắn và đánh dấu là đã đọc
       await fetch(`${process.env.REACT_APP_API_URL}/chat/messages/${chatId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      // Cập nhật unread count
       const response = await fetch(
           `${process.env.REACT_APP_API_URL}/chat/messages/unread-count`,
           { headers: { Authorization: `Bearer ${token}` } }
@@ -175,7 +237,6 @@ function MessengerPage() {
             })
         );
       }
-      // Gửi sự kiện làm sạch Chat component
       window.dispatchEvent(new CustomEvent("chatSwitch", { detail: { chatId } }));
     } catch (error) {
       console.error("Error fetching messages or unread count:", error);
@@ -188,83 +249,6 @@ function MessengerPage() {
       setLoading(false);
       return;
     }
-
-    const socket = new SockJS(`${process.env.REACT_APP_WS_URL}/ws`);
-    const client = new Client({
-      webSocketFactory: () => socket,
-      connectHeaders: { Authorization: `Bearer ${token}` },
-      debug: (str) => console.log("STOMP Debug:", str),
-      reconnectDelay: 5000,
-      heartbeatIncoming: 4000,
-      heartbeatOutgoing: 4000,
-    });
-
-    client.onConnect = () => {
-      console.log("WebSocket connected for chats and messages");
-      client.subscribe("/topic/chats/" + user.id, (msg) => {
-        const data = JSON.parse(msg.body);
-        console.log("WebSocket message received (chats):", data);
-        if (data.action === "delete") {
-          setChats((prev) => prev.filter((chat) => chat.id !== data.chatId));
-          setUnreadChats((prev) => {
-            const newUnread = new Set(prev);
-            newUnread.delete(data.chatId);
-            return newUnread;
-          });
-          if (selectedChatId === data.chatId) {
-            setSelectedChatId(null);
-            navigate("/messages");
-          }
-          toast.success("Chat đã được xóa.");
-        } else {
-          console.log("New chat received: ID=" + data.id + ", Name=" + data.name);
-          setChats((prev) => {
-            const existingChat = prev.find((chat) => chat.id === data.id);
-            if (existingChat) {
-              return prev.map((chat) =>
-                  chat.id === data.id ? { ...chat, ...data } : chat
-              );
-            }
-            return [...prev, data];
-          });
-          setUnreadChats((prev) => {
-            const newUnread = new Set(prev);
-            if (data.unreadMessagesCount > 0) {
-              newUnread.add(data.id);
-            } else {
-              newUnread.delete(data.id);
-            }
-            return newUnread;
-          });
-        }
-      });
-
-      client.subscribe("/topic/messages/" + user.id, (msg) => {
-        const message = JSON.parse(msg.body);
-        console.log("New message received: ", message);
-        setChats((prev) => {
-          const updatedChats = prev.map((chat) =>
-              chat.id === message.chatId ? { ...chat, lastMessage: message.content, unreadMessagesCount: (chat.unreadMessagesCount || 0) + 1 } : chat
-          );
-          return updatedChats;
-        });
-        setUnreadChats((prev) => {
-          const newUnread = new Set(prev);
-          newUnread.add(message.chatId);
-          return newUnread;
-        });
-        if (selectedChatId === message.chatId) {
-          window.dispatchEvent(new Event("messageUpdate"));
-        }
-      });
-    };
-
-    client.onWebSocketClose = () => {
-      console.log("WebSocket disconnected, retrying...");
-    };
-
-    client.activate();
-    stompRef.current = client;
 
     const fetchChats = async () => {
       try {
@@ -295,16 +279,16 @@ function MessengerPage() {
 
     fetchChats();
 
-    return () => {
-      stompRef.current?.deactivate();
-    };
-  }, [token, user, navigate, selectedChatId]);
+    // Lấy chatId từ query params
+    const chatId = searchParams.get("chatId");
+    if (chatId) {
+      setSelectedChatId(Number(chatId));
+    }
+  }, [token, user, navigate, searchParams]);
 
   useEffect(() => {
     const handleChatSwitch = () => {
-      // Logic làm sạch nếu cần, hiện tại chỉ log để debug
       console.log("Switching chat, cleaning up previous state if any...");
-      // Có thể gọi API hoặc gửi tín hiệu để hủy cuộc gọi cũ nếu cần
     };
     window.addEventListener("chatSwitch", handleChatSwitch);
     return () => window.removeEventListener("chatSwitch", handleChatSwitch);
@@ -411,7 +395,7 @@ function MessengerPage() {
             </div>
             <div className="flex-grow-1">
               {selectedChatId ? (
-                  <Chat chatId={selectedChatId} />
+                  <Chat chatId={selectedChatId} publish={publish || wsPublish} />
               ) : (
                   <div className="d-flex justify-content-center align-items-center h-100">
                     <p className="text-muted">Chọn một cuộc trò chuyện</p>

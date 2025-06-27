@@ -15,6 +15,8 @@ import com.example.social_media.service.CallSessionService;
 import com.example.social_media.service.ChatService;
 import com.example.social_media.service.MessageQueueService;
 import com.example.social_media.service.MessageService;
+import org.apache.commons.codec.binary.Hex;
+import org.springframework.data.elasticsearch.ResourceNotFoundException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -24,8 +26,13 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import java.util.Base64;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping(URLConfig.CHAT_BASE)
@@ -101,39 +108,39 @@ public class ChatController {
         messagingTemplate.convertAndSend("/topic/typing/" + chatId, typingData);
     }
 
-    @MessageMapping("/ping")
-    public void handlePing(@Header("simpSessionId") String sessionId) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String username = auth != null && auth.isAuthenticated() ? auth.getName() : null;
-        if (username == null) {
-            String authToken = webSocketConfig.sessionTokenMap.get(sessionId);
-            if (authToken != null && authToken.startsWith("Bearer ")) {
-                username = jwtService.extractUsername(authToken.substring(7));
-            } else {
-                System.err.println("No token found in sessionTokenMap for session " + sessionId);
-                throw new UnauthorizedException("Không thể xác thực người dùng.");
-            }
-        }
-        messagingTemplate.convertAndSendToUser(sessionId, "/topic/ping", Map.of("status", "pong"));
-    }
+//    @MessageMapping("/ping")
+//    public void handlePing(@Header("simpSessionId") String sessionId) {
+//        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+//        String username = auth != null && auth.isAuthenticated() ? auth.getName() : null;
+//        if (username == null) {
+//            String authToken = webSocketConfig.sessionTokenMap.get(sessionId);
+//            if (authToken != null && authToken.startsWith("Bearer ")) {
+//                username = jwtService.extractUsername(authToken.substring(7));
+//            } else {
+//                System.err.println("No token found in sessionTokenMap for session " + sessionId);
+//                throw new UnauthorizedException("Không thể xác thực người dùng.");
+//            }
+//        }
+//        messagingTemplate.convertAndSendToUser(sessionId, "/topic/ping", Map.of("status", "pong"));
+//    }
 
-    @MessageMapping("/call/end")
-    public void handleCallEnd(@Payload Map<String, Integer> payload, @Header("simpSessionId") String sessionId) {
-        Integer callSessionId = payload.get("callSessionId");
-        Integer chatId = payload.get("chatId");
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        if (username == null) {
-            String authToken = webSocketConfig.sessionTokenMap.get(sessionId);
-            if (authToken != null && authToken.startsWith("Bearer ")) {
-                username = jwtService.extractUsername(authToken.substring(7));
-            } else {
-                throw new UnauthorizedException("Không thể xác thực người dùng.");
-            }
-        }
-        callSessionService.endCall(callSessionId, username);
-        messagingTemplate.convertAndSend("/topic/call/" + chatId,
-                new SignalMessageDto(chatId, "end", null, null, null));
-    }
+//    @MessageMapping("/call/end")
+//    public void handleCallEnd(@Payload Map<String, Integer> payload, @Header("simpSessionId") String sessionId) {
+//        Integer callSessionId = payload.get("callSessionId");
+//        Integer chatId = payload.get("chatId");
+//        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+//        if (username == null) {
+//            String authToken = webSocketConfig.sessionTokenMap.get(sessionId);
+//            if (authToken != null && authToken.startsWith("Bearer ")) {
+//                username = jwtService.extractUsername(authToken.substring(7));
+//            } else {
+//                throw new UnauthorizedException("Không thể xác thực người dùng.");
+//            }
+//        }
+//        callSessionService.endCall(callSessionId, username);
+//        messagingTemplate.convertAndSend("/topic/call/" + chatId,
+//                new SignalMessageDto(chatId, "end", null, null, null));
+//    }
 
     @GetMapping(URLConfig.GET_CHAT_MESSAGES)
     public List<MessageDto> getChatMessages(@PathVariable Integer chatId) {
@@ -185,17 +192,17 @@ public class ChatController {
                         .orElseThrow(() -> new IllegalArgumentException("User not found")).getId(),
                 Map.of("action", "delete", "chatId", chatId));
     }
-
-    @PostMapping(URLConfig.CALL_START)
-    public CallSessionDto startCall(@PathVariable Integer chatId) {
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        CallSession callSession = callSessionService.startCall(chatId, username);
-        messagingTemplate.convertAndSend("/topic/call/" + chatId,
-                new SignalMessageDto(chatId, "start", null, null, callSession.getHost().getId()));
-        return new CallSessionDto(callSession.getId(), callSession.getChat().getId(),
-                callSession.getHost().getId(), callSession.getStartTime(),
-                callSession.getEndTime());
-    }
+//
+//    @PostMapping(URLConfig.CALL_START)
+//    public CallSessionDto startCall(@PathVariable Integer chatId) {
+//        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+//        CallSession callSession = callSessionService.startCall(chatId, username);
+//        messagingTemplate.convertAndSend("/topic/call/" + chatId,
+//                new SignalMessageDto(chatId, "start", null, null, callSession.getHost().getId()));
+//        return new CallSessionDto(callSession.getId(), callSession.getChat().getId(),
+//                callSession.getHost().getId(), callSession.getStartTime(),
+//                callSession.getEndTime());
+//    }
 
     @PostMapping(URLConfig.MESSAGE_DELETE)
     public void deleteMessage(@RequestBody Map<String, Integer> request) {
@@ -205,12 +212,12 @@ public class ChatController {
         messageService.deleteMessage(chatId, messageId, username);
         redisTemplate.opsForList().remove("chat:" + chatId + ":messages", 1, messageId);
     }
-
-    @PostMapping(URLConfig.CALL_END)
-    public void endCall(@PathVariable Integer callSessionId) {
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        callSessionService.endCall(callSessionId, username);
-    }
+//
+//    @PostMapping(URLConfig.CALL_END)
+//    public void endCall(@PathVariable Integer callSessionId) {
+//        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+//        callSessionService.endCall(callSessionId, username);
+//    }
 
     @GetMapping(URLConfig.UNREAD_MESSAGE_COUNT)
     public Map<String, Integer> getUnreadMessageCount() {
@@ -225,5 +232,72 @@ public class ChatController {
     public void resendMessages(@Payload Map<String, Object> payload, @Header("simpSessionId") String sessionId) {
         String chatId = payload.get("chatId").toString();
         System.out.println("Resend requested for chatId: " + chatId);
+    }
+
+    @PostMapping("/generate-token")
+    public Map<String, String> generateToken(@RequestBody Map<String, String> request) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        String apiKeySid = "SK.0.cD3dzmsSFfdCW2YapNpszcVLnWb7bqL"; // Thay bằng API Key SID của bạn
+        String apiKeySecret = "VlkxRElmWk15N2FpRXJ0cVFhSkhGNzA2YzJxRE9xME8="; // Thay bằng API Key Secret
+        long expirationTime = System.currentTimeMillis() / 1000 + 3600; // Token hết hạn sau 1 giờ
+
+        String token = generateStringeeAccessToken(apiKeySid, apiKeySecret, username, expirationTime);
+        return Map.of("accessToken", token);
+    }
+
+    private String generateStringeeAccessToken(String apiKeySid, String apiKeySecret, String userId, long expirationTime) {
+        String header = Base64.getEncoder().encodeToString("{\"alg\":\"HS256\",\"typ\":\"JWT\",\"cty\":\"stringee-api;v=1\"}".getBytes());
+        String payload = Base64.getEncoder().encodeToString(
+                String.format("{\"jti\":\"%s-%d\",\"iss\":\"%s\",\"exp\":%d,\"userId\":\"%s\"}",
+                        apiKeySid, System.currentTimeMillis(), apiKeySid, expirationTime, userId).getBytes()
+        );
+        String signatureInput = header + "." + payload;
+        String signature = Base64.getEncoder().encodeToString(
+                hmacSha256(signatureInput, apiKeySecret).getBytes()
+        );
+        return signatureInput + "." + signature;
+    }
+
+    private String hmacSha256(String data, String key) {
+        try {
+            Mac mac = Mac.getInstance("HmacSHA256");
+            SecretKeySpec secretKeySpec = new SecretKeySpec(key.getBytes(), "HmacSHA256");
+            mac.init(secretKeySpec);
+            byte[] hmacData = mac.doFinal(data.getBytes());
+            return new String(Hex.encodeHex(hmacData));
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to generate HMAC SHA256", e);
+        }
+    }
+    @GetMapping("/{chatId}/members")
+    public List<Map<String, Object>> getChatMembers(@PathVariable Integer chatId) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        chatService.checkChatAccess(chatId, username); // Kiểm tra quyền truy cập
+        List<ChatMember> members = chatMemberRepository.findByChatId(chatId);
+        return members.stream()
+                .map(member -> {
+                    Map<String, Object> memberMap = new HashMap<>();
+                    memberMap.put("userId", member.getUser().getId());
+                    memberMap.put("username", member.getUser().getUsername());
+                    return memberMap;
+                })
+                .collect(Collectors.toList());
+    }
+    @GetMapping("/user/{userId}")
+    public List<Map<String, Object>> getUserChats(@PathVariable Integer userId) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        if (!user.getId().equals(userId)) {
+            throw new UnauthorizedException("Unauthorized access to chat list");
+        }
+        List<ChatMember> members = chatMemberRepository.findByUserId(userId);
+        return members.stream()
+                .map(member -> {
+                    Map<String, Object> chatMap = new HashMap<>();
+                    chatMap.put("id", member.getChat().getId());
+                    return chatMap;
+                })
+                .collect(Collectors.toList());
     }
 }
