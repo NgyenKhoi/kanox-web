@@ -21,8 +21,8 @@ import useUserSearch from "../../hooks/useUserSearch";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 function MessengerPage() {
-  const { token, user } = useContext(AuthContext);
-  const { subscribe, unsubscribe } = useContext(WebSocketContext);
+  const { token, user, logout } = useContext(AuthContext);
+  const { subscribe, unsubscribe, publish } = useContext(WebSocketContext) || {};
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [chats, setChats] = useState([]);
@@ -43,6 +43,14 @@ function MessengerPage() {
   useEffect(() => {
     if (!token || !user) {
       toast.error("Vui lòng đăng nhập để xem tin nhắn.");
+      navigate("/login");
+      setLoading(false);
+      return;
+    }
+
+    if (!subscribe || !unsubscribe || !publish) {
+      console.error("WebSocketContext is not available");
+      toast.error("Lỗi kết nối WebSocket. Vui lòng thử lại sau.");
       setLoading(false);
       return;
     }
@@ -278,6 +286,14 @@ function MessengerPage() {
       (chat.name || "").toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  if (loading) {
+    return (
+        <div className="d-flex justify-content-center align-items-center h-100">
+          <Spinner animation="border" />
+        </div>
+    );
+  }
+
   return (
       <div className="d-flex h-100 bg-light">
         <style>
@@ -326,49 +342,43 @@ function MessengerPage() {
           </div>
           <div className="d-flex flex-grow-1">
             <div className="border-end bg-white" style={{ width: "350px" }}>
-              {loading ? (
-                  <div className="d-flex justify-content-center py-4">
-                    <Spinner animation="border" />
-                  </div>
-              ) : (
-                  <ListGroup variant="flush">
-                    {filteredChats.map((chat) => (
-                        <ListGroup.Item
-                            key={chat.id}
-                            action
-                            active={selectedChatId === chat.id}
-                            className={`d-flex align-items-center p-3 ${
-                                chat.unreadMessagesCount > 0 ? "fw-bold" : ""
-                            }`}
-                        >
-                          <img
-                              src="/assets/default-avatar.png"
-                              alt="Avatar"
-                              className="rounded-circle me-2"
-                              style={{ width: "40px", height: "40px" }}
-                          />
-                          <div
-                              className="flex-grow-1"
-                              onClick={() => handleSelectChat(chat.id)}
-                          >
-                            <p className="fw-bold mb-0">{chat.name || "Unknown User"}</p>
-                            <p className="text-muted small mb-0">{chat.lastMessage}</p>
-                          </div>
-                          <Button
-                              variant="link"
-                              className="p-0"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteChat(chat.id);
-                              }}
-                              title="Delete chat"
-                          >
-                            <FaTrash className="text-danger" />
-                          </Button>
-                        </ListGroup.Item>
-                    ))}
-                  </ListGroup>
-              )}
+              <ListGroup variant="flush">
+                {filteredChats.map((chat) => (
+                    <ListGroup.Item
+                        key={chat.id}
+                        action
+                        active={selectedChatId === chat.id}
+                        className={`d-flex align-items-center p-3 ${
+                            chat.unreadMessagesCount > 0 ? "fw-bold" : ""
+                        }`}
+                    >
+                      <img
+                          src="/assets/default-avatar.png"
+                          alt="Avatar"
+                          className="rounded-circle me-2"
+                          style={{ width: "40px", height: "40px" }}
+                      />
+                      <div
+                          className="flex-grow-1"
+                          onClick={() => handleSelectChat(chat.id)}
+                      >
+                        <p className="fw-bold mb-0">{chat.name || "Unknown User"}</p>
+                        <p className="text-muted small mb-0">{chat.lastMessage}</p>
+                      </div>
+                      <Button
+                          variant="link"
+                          className="p-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteChat(chat.id);
+                          }}
+                          title="Delete chat"
+                      >
+                        <FaTrash className="text-danger" />
+                      </Button>
+                    </ListGroup.Item>
+                ))}
+              </ListGroup>
             </div>
             <div className="flex-grow-1">
               {selectedChatId ? (

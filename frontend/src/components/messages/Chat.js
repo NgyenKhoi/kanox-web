@@ -8,12 +8,13 @@ import { FaPaperclip, FaPaperPlane } from "react-icons/fa";
 
 const Chat = ({ chatId }) => {
     const { user, token, logout } = useContext(AuthContext);
-    const { publish, subscribe, unsubscribe } = useContext(WebSocketContext);
+    const { publish, subscribe, unsubscribe } = useContext(WebSocketContext) || {};
     const [messages, setMessages] = useState([]);
     const [message, setMessage] = useState("");
     const [isTyping, setIsTyping] = useState(false);
     const [recipientName, setRecipientName] = useState("");
     const chatContainerRef = useRef(null);
+    const isConnectedRef = useRef(false); // Theo dõi trạng thái kết nối
 
     const fetchUnreadMessageCount = async () => {
         try {
@@ -38,6 +39,12 @@ const Chat = ({ chatId }) => {
         if (!token || !user || !chatId) {
             toast.error("Vui lòng đăng nhập để sử dụng chat.");
             logout();
+            return;
+        }
+
+        if (!subscribe || !unsubscribe || !publish) {
+            console.error("WebSocketContext is not available");
+            toast.error("Lỗi kết nối WebSocket. Vui lòng thử lại sau.");
             return;
         }
 
@@ -67,13 +74,20 @@ const Chat = ({ chatId }) => {
             }
         };
 
+        // Thêm subscriptions
         subscriptions.push(subscribe(`/topic/chat/${chatId}`, handleMessage, `chat-${chatId}`));
         subscriptions.push(subscribe(`/topic/typing/${chatId}`, handleMessage, `typing-${chatId}`));
         subscriptions.push(subscribe(`/topic/messages/${user.id}`, handleMessage, `messages-${user.id}`));
         subscriptions.push(subscribe(`/topic/unread-count/${user.id}`, handleMessage, `unread-count-${user.id}`));
 
-        // Send resend request
-        publish("/app/resend", { chatId: Number(chatId) });
+        // Kiểm tra trạng thái kết nối
+        const checkConnection = setInterval(() => {
+            if (publish && !isConnectedRef.current) {
+                isConnectedRef.current = true;
+                publish("/app/resend", { chatId: Number(chatId) });
+                console.log(`Sent /app/resend for chatId: ${chatId}`);
+            }
+        }, 100);
 
         // Fetch initial chat data
         fetch(`${process.env.REACT_APP_API_URL}/chat/${chatId}`, {
@@ -107,6 +121,8 @@ const Chat = ({ chatId }) => {
 
         return () => {
             subscriptions.forEach((_, index) => unsubscribe(`chat-${chatId}-${index}`));
+            clearInterval(checkConnection);
+            isConnectedRef.current = false;
         };
     }, [chatId, user, token, logout, publish, subscribe, unsubscribe]);
 

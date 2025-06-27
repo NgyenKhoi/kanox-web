@@ -24,7 +24,7 @@ import Call from "./components/messages/Call";
 // Router & Context
 import { BrowserRouter as Router, Routes, Route, useNavigate } from "react-router-dom";
 import { AuthContext, AuthProvider } from "./context/AuthContext";
-import { WebSocketProvider, WebSocketContext } from "./context/WebSocketContext";
+import { WebSocketContext, WebSocketProvider } from "./context/WebSocketContext";
 
 function AppContent() {
   const [isLoading, setIsLoading] = useState(true);
@@ -61,8 +61,8 @@ function AppContent() {
   }, [user, token]);
 
   useEffect(() => {
-    if (!subscribe || !unsubscribe || !publish) {
-      console.error("WebSocketContext is not available");
+    if (!subscribe || !unsubscribe || !publish || !chatIds.length) {
+      console.log("Skipping subscriptions: Missing WebSocket context or chatIds");
       return;
     }
 

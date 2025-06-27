@@ -13,6 +13,7 @@ export const WebSocketProvider = ({ children }) => {
     const isConnectedRef = useRef(false);
     const reconnectAttemptsRef = useRef(0);
     const maxReconnectAttempts = 10;
+    const pendingSubscriptionsRef = useRef([]); // Lưu trữ các subscription chờ
 
     const connect = () => {
         if (isConnectedRef.current || reconnectAttemptsRef.current >= maxReconnectAttempts) {
@@ -43,6 +44,22 @@ export const WebSocketProvider = ({ children }) => {
             console.log(`WebSocket connected successfully at ${new Date().toISOString()} for user: ${userId}`);
             isConnectedRef.current = true;
             reconnectAttemptsRef.current = 0;
+
+            // Thực hiện các subscription đang chờ
+            pendingSubscriptionsRef.current.forEach(({ topic, callback, subId }) => {
+                try {
+                    const subscription = clientRef.current.subscribe(topic, (message) => {
+                        const data = JSON.parse(message.body);
+                        console.log(`Received notification at ${new Date().toISOString()} for topic ${topic}:`, data);
+                        callback(data);
+                    }, { id: subId });
+                    subscriptionsRef.current[subId] = subscription;
+                    console.log(`Subscribed to ${topic} with subId ${subId}`);
+                } catch (error) {
+                    console.error(`Failed to subscribe to ${topic}:`, error);
+                }
+            });
+            pendingSubscriptionsRef.current = []; // Xóa danh sách chờ
         };
 
         clientRef.current.onDisconnect = () => {
@@ -82,6 +99,7 @@ export const WebSocketProvider = ({ children }) => {
                 }
             });
             subscriptionsRef.current = {};
+            pendingSubscriptionsRef.current = [];
             clientRef.current.deactivate();
             console.log(`Deactivated WebSocket client at ${new Date().toISOString()}`);
             isConnectedRef.current = false;
@@ -103,7 +121,8 @@ export const WebSocketProvider = ({ children }) => {
                 console.error(`Failed to subscribe to ${topic}:`, error);
             }
         } else {
-            console.warn(`Cannot subscribe to ${topic}: WebSocket not connected`);
+            console.warn(`Cannot subscribe to ${topic}: WebSocket not connected. Adding to pending subscriptions.`);
+            pendingSubscriptionsRef.current.push({ topic, callback, subId });
         }
         return null;
     };
@@ -118,6 +137,10 @@ export const WebSocketProvider = ({ children }) => {
                 console.error(`Failed to unsubscribe from ${subId}:`, error);
             }
         }
+        // Xóa subscription khỏi danh sách chờ nếu có
+        pendingSubscriptionsRef.current = pendingSubscriptionsRef.current.filter(
+            (sub) => sub.subId !== subId
+        );
     };
 
     const publish = (destination, body) => {
