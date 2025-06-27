@@ -3,7 +3,7 @@ import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import { AuthContext } from "../context/AuthContext";
 
-export const useWebSocket = (onMessage, setUnreadCount, topicPrefix, subscriptionIds = []) => {
+export const useWebSocket = (onMessage, setUnreadCount, topicPrefix, subscriptionIds = [], resendDestination = null) => {
     const { user, token, logout } = useContext(AuthContext);
     const userId = user?.id;
     const clientRef = useRef(null);
@@ -22,7 +22,7 @@ export const useWebSocket = (onMessage, setUnreadCount, topicPrefix, subscriptio
 
         if (!userId || !token) {
             console.warn("No userId or token available. Cannot connect to WebSocket.");
-            logout(); // Gọi logout nếu không có thông tin xác thực
+            logout();
             return;
         }
 
@@ -63,6 +63,15 @@ export const useWebSocket = (onMessage, setUnreadCount, topicPrefix, subscriptio
             });
 
             console.log(`Subscribed to topics: ${topics.join(",")}`);
+
+            // Gửi yêu cầu resend nếu có
+            if (resendDestination && subscriptionIds.length > 0) {
+                clientRef.current.publish({
+                    destination: resendDestination,
+                    body: JSON.stringify({ chatId: Number(subscriptionIds[0]) }),
+                });
+                console.log(`Sent resend request to ${resendDestination} for chatId: ${subscriptionIds[0]}`);
+            }
         };
 
         clientRef.current.onDisconnect = () => {
@@ -78,7 +87,7 @@ export const useWebSocket = (onMessage, setUnreadCount, topicPrefix, subscriptio
             console.error(`STOMP error: ${frame}`);
             if (frame.headers?.message?.includes("401")) {
                 console.warn("WebSocket authentication failed. Logging out...");
-                logout(); // Gọi logout từ AuthContext khi token không hợp lệ
+                logout();
             }
         };
 
@@ -120,7 +129,7 @@ export const useWebSocket = (onMessage, setUnreadCount, topicPrefix, subscriptio
         } else {
             console.warn("Cannot connect WebSocket: Missing userId or token");
         }
-    }, [subscriptionIds, userId, token, logout]);
+    }, [subscriptionIds, userId, token, logout, resendDestination]);
 
     const publish = (destination, body) => {
         if (clientRef.current && isConnectedRef.current) {
