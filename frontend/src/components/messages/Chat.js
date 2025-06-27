@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useRef, useContext } from "react";
-import { Form, Button, InputGroup } from "react-bootstrap";
+import { useNavigate } from "react-router-dom"; // Thêm useNavigate
+import { Form, Button, InputGroup, OverlayTrigger, Tooltip } from "react-bootstrap";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { AuthContext } from "../../context/AuthContext";
 import { WebSocketContext } from "../../context/WebSocketContext";
-import { FaPaperclip, FaPaperPlane } from "react-icons/fa";
+import { FaPaperclip, FaPaperPlane, FaPhone } from "react-icons/fa";
 
 const Chat = ({ chatId }) => {
     const { user, token } = useContext(AuthContext);
     const { publish, subscribe, unsubscribe } = useContext(WebSocketContext) || {};
+    const navigate = useNavigate(); // Khởi tạo useNavigate
     const [messages, setMessages] = useState([]);
     const [message, setMessage] = useState("");
     const [typingUsers, setTypingUsers] = useState([]);
@@ -211,10 +213,28 @@ const Chat = ({ chatId }) => {
         }
     };
 
+    // Hàm điều hướng đến trang Call
+    const handleStartCall = () => {
+        navigate(`/call/${chatId}`);
+    };
+
     return (
         <div className="d-flex flex-column h-100 bg-light">
             <div className="p-3 border-bottom bg-white shadow-sm d-flex align-items-center">
                 <h5 className="mb-0 flex-grow-1">{recipientName}</h5>
+                <OverlayTrigger
+                    placement="left"
+                    overlay={<Tooltip id="call-tooltip">Gọi video</Tooltip>}
+                >
+                    <Button
+                        variant="outline-primary"
+                        size="sm"
+                        onClick={handleStartCall}
+                        className="ms-2"
+                    >
+                        <FaPhone />
+                    </Button>
+                </OverlayTrigger>
             </div>
 
             <div
