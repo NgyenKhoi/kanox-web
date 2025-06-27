@@ -130,6 +130,12 @@ function MessengerPage() {
 
     fetchChats();
 
+    return () => {
+      unsubscribe(`chats-${user.id}`);
+    };
+  }, [token, user, subscribe, unsubscribe, publish]);
+
+  useEffect(() => {
     const chatId = searchParams.get("chatId");
     if (chatId) {
       setSelectedChatId(Number(chatId));
@@ -138,11 +144,7 @@ function MessengerPage() {
         console.log(`Sent /app/resend for chatId: ${chatId}`);
       }
     }
-
-    return () => {
-      unsubscribe(`chats-${user.id}`);
-    };
-  }, [token, user, subscribe, unsubscribe, publish]);
+  }, [searchParams, publish]);
 
   const handleOpenUserSelectionModal = () => {
     setSearchKeyword("");

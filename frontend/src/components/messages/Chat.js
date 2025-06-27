@@ -11,11 +11,12 @@ const Chat = ({ chatId }) => {
     const { publish, subscribe, unsubscribe } = useContext(WebSocketContext) || {};
     const [messages, setMessages] = useState([]);
     const [message, setMessage] = useState("");
-    const [isTyping, setIsTyping] = useState(false);
+    const [typingUsers, setTypingUsers] = useState([]);
     const [recipientName, setRecipientName] = useState("");
     const chatContainerRef = useRef(null);
     const isConnectedRef = useRef(false);
     const lastMessageIdRef = useRef(null);
+    const typingTimeoutRef = useRef(null);
 
     const fetchUnreadMessageCount = async () => {
         try {
@@ -72,7 +73,7 @@ const Chat = ({ chatId }) => {
         const subscriptions = [];
         const handleMessage = (data) => {
             console.log("Received WebSocket message:", data);
-            if (data.type === "MESSAGE") {
+            if (data.id && data.content) { // Tin nhắn
                 setMessages((prev) => {
                     if (!prev.some((m) => m.id === data.id)) {
                         lastMessageIdRef.current = data.id;
@@ -82,11 +83,23 @@ const Chat = ({ chatId }) => {
                     }
                     return prev;
                 });
-                setIsTyping(false);
                 fetchUnreadMessageCount();
-            } else if (data.type === "TYPING") {
-                if (data.userId !== user?.id) setIsTyping(data.isTyping);
-            } else if (data.unreadCount !== undefined) {
+            } else if (data.isTyping !== undefined && data.userId !== user?.id) { // Typing
+                setTypingUsers((prev) => {
+                    if (data.isTyping && !prev.includes(data.username)) {
+                        return [...prev, data.username];
+                    } else if (!data.isTyping) {
+                        return prev.filter((u) => u !== data.username);
+                    }
+                    return prev;
+                });
+                if (data.isTyping) {
+                    clearTimeout(typingTimeoutRef.current);
+                    typingTimeoutRef.current = setTimeout(() => {
+                        setTypingUsers((prev) => prev.filter((u) => u !== data.username));
+                    }, 3000);
+                }
+            } else if (data.unreadCount !== undefined) { // Unread count
                 window.dispatchEvent(
                     new CustomEvent("updateUnreadCount", {
                         detail: { unreadCount: data.unreadCount || 0 },
@@ -142,6 +155,7 @@ const Chat = ({ chatId }) => {
             subscriptions.forEach((_, index) => unsubscribe(`chat-${chatId}-${index}`));
             clearInterval(checkConnection);
             clearInterval(pollInterval);
+            clearTimeout(typingTimeoutRef.current);
             isConnectedRef.current = false;
         };
     }, [chatId, user, token, publish, subscribe, unsubscribe]);
@@ -150,7 +164,7 @@ const Chat = ({ chatId }) => {
         if (chatContainerRef.current) {
             chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
         }
-    }, [messages]);
+    }, [messages, typingUsers]);
 
     const sendMessage = () => {
         if (!message.trim()) return;
@@ -165,6 +179,7 @@ const Chat = ({ chatId }) => {
         publish("/app/typing", {
             chatId: Number(chatId),
             userId: user.id,
+            username: user.username,
             isTyping: false,
         });
         console.log("Sent message:", msg);
@@ -182,9 +197,17 @@ const Chat = ({ chatId }) => {
             publish("/app/typing", {
                 chatId: Number(chatId),
                 userId: user.id,
+                username: user.username,
                 isTyping: true,
             });
             console.log("Sent typing status");
+        } else {
+            publish("/app/typing", {
+                chatId: Number(chatId),
+                userId: user.id,
+                username: user.username,
+                isTyping: false,
+            });
         }
     };
 
@@ -230,7 +253,9 @@ const Chat = ({ chatId }) => {
                         </div>
                     </div>
                 ))}
-                {isTyping && <div className="text-muted">Đang nhập...</div>}
+                {typingUsers.length > 0 && (
+                    <div className="text-muted">{typingUsers.join(", ")} đang nhập...</div>
+                )}
             </div>
 
             <div className="p-3 border-top bg-white">
