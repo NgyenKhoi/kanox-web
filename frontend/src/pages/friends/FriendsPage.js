@@ -3,7 +3,6 @@ import { Container, Row, Col, Nav, Button, Spinner, Alert } from "react-bootstra
 import { FaArrowLeft } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
-import { useWebSocket } from "../../hooks/useWebSocket";
 import SidebarLeft from "../../components/layout/SidebarLeft/SidebarLeft";
 import SidebarRight from "../../components/layout/SidebarRight/SidebarRight";
 import FriendList from "../../components/friends/FriendList";
@@ -26,10 +25,10 @@ function FriendsPage() {
     const [isDarkMode, setIsDarkMode] = useState(false);
     const [friendshipStatus, setFriendshipStatus] = useState({});
 
-    useWebSocket((notification) => {
-        setNotifications((prev) => [notification, ...prev]);
-        toast.info(notification.message || "Bạn có thông báo mới!");
-    });
+    // useWebSocket((notification) => {
+    //     setNotifications((prev) => [notification, ...prev]);
+    //     toast.info(notification.message || "Bạn có thông báo mới!");
+    // });
 
     const handleToggleDarkMode = () => {
         setIsDarkMode((prev) => !prev);

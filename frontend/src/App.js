@@ -24,7 +24,7 @@ import Call from "./components/messages/Call";
 // Router & Context
 import { BrowserRouter as Router, Routes, Route, useNavigate } from "react-router-dom";
 import { AuthContext, AuthProvider } from "./context/AuthContext";
-import { useWebSocket } from "./hooks/useWebSocket";
+import { WebSocketProvider, WebSocketContext } from "./context/WebSocketContext";
 
 function AppContent() {
   const [isLoading, setIsLoading] = useState(true);
@@ -32,6 +32,7 @@ function AppContent() {
   const [incomingCall, setIncomingCall] = useState(null);
   const [chatIds, setChatIds] = useState([]);
   const { user, token } = useContext(AuthContext);
+  const { subscribe, unsubscribe, publish } = useContext(WebSocketContext) || {};
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -59,15 +60,29 @@ function AppContent() {
     fetchChatIds();
   }, [user, token]);
 
-  const handleWebSocketMessage = (message) => {
-    if (message.type === "CALL") {
-      setIncomingCall(message.data);
-      setShowCallModal(true);
+  useEffect(() => {
+    if (!subscribe || !unsubscribe || !publish) {
+      console.error("WebSocketContext is not available");
+      return;
     }
-  };
 
-  // Khởi tạo WebSocket
-  const { publish } = useWebSocket(handleWebSocketMessage, () => {}, "/topic/notifications/", chatIds);
+    const subscriptions = [];
+    chatIds.forEach((chatId) => {
+      subscriptions.push(
+          subscribe(`/topic/notifications/${chatId}`, (message) => {
+            console.log("Received WebSocket message:", message);
+            if (message.type === "CALL") {
+              setIncomingCall(message.data);
+              setShowCallModal(true);
+            }
+          }, `notifications-${chatId}`)
+      );
+    });
+
+    return () => {
+      subscriptions.forEach((_, index) => unsubscribe(`notifications-${chatIds[index]}`));
+    };
+  }, [chatIds, subscribe, unsubscribe]);
 
   const acceptCall = () => {
     setShowCallModal(false);
@@ -102,7 +117,7 @@ function AppContent() {
                   <Route path="/profile/me" element={<ProfilePage />} />
                   <Route path="/explore" element={<ExplorePage />} />
                   <Route path="/notifications" element={<NotificationPage />} />
-                  <Route path="/messages" element={<MessengerPage publish={publish} />} />
+                  <Route path="/messages" element={<MessengerPage />} />
                   <Route path="/communities" element={<CommunityPage />} />
                   <Route path="/community/:communityId" element={<CommunityDetail />} />
                   <Route path="/privacy/lists" element={<CustomPrivacyListPage />} />
@@ -138,7 +153,9 @@ function App() {
   return (
       <Router>
         <AuthProvider>
-          <AppContent />
+          <WebSocketProvider>
+            <AppContent />
+          </WebSocketProvider>
         </AuthProvider>
       </Router>
   );
