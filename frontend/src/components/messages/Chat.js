@@ -1,3 +1,4 @@
+// Chat.js
 import React, { useState, useEffect, useRef, useContext } from "react";
 import { Form, Button, InputGroup } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
@@ -16,10 +17,10 @@ const Chat = ({ chatId, publish }) => {
     const chatContainerRef = useRef(null);
     const navigate = useNavigate();
 
-    // Khởi tạo WebSocket
     useWebSocket(
         (data) => {
-            console.log("Chat WebSocket message received:", data); // Log để debug
+            console.log("Chat WebSocket message received:", data);
+            if (!data) return;
             if (data.type === "MESSAGE") {
                 setMessages((prev) => {
                     if (!prev.some((msg) => msg.id === data.id)) {
@@ -31,8 +32,8 @@ const Chat = ({ chatId, publish }) => {
                 setIsTyping(data.isTyping);
             }
         },
-        () => {}, // Không cần setUnreadCount trong Chat
-        "/topic/chat/", // Topic khớp với backend
+        () => {},
+        "/topic/chat/",
         [chatId]
     );
 
@@ -42,7 +43,6 @@ const Chat = ({ chatId, publish }) => {
             return;
         }
 
-        // Lấy thông tin chat
         fetch(`${process.env.REACT_APP_API_URL}/chat/${chatId}`, {
             headers: { Authorization: `Bearer ${token}` },
         })
@@ -56,7 +56,6 @@ const Chat = ({ chatId, publish }) => {
             })
             .catch((err) => toast.error(err.message || "Lỗi khi lấy thông tin chat."));
 
-        // Lấy danh sách tin nhắn
         fetch(`${process.env.REACT_APP_API_URL}/chat/${chatId}/messages`, {
             headers: { Authorization: `Bearer ${token}` },
         })
@@ -75,7 +74,6 @@ const Chat = ({ chatId, publish }) => {
         if (chatContainerRef.current) {
             chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
         }
-        // Gửi sự kiện để cập nhật unread count khi chat được mở
         window.dispatchEvent(
             new CustomEvent("updateUnreadCount", {
                 detail: { chatId, unreadCount: 0 },
@@ -91,6 +89,7 @@ const Chat = ({ chatId, publish }) => {
             content: message,
             typeId: 1,
         };
+        console.log("Sending message:", msg);
         publish("/app/sendMessage", msg);
         setMessage("");
         publish("/app/typing", {
