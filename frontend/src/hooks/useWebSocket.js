@@ -12,18 +12,19 @@ export const useWebSocket = (onMessage, setUnreadCount, topicPrefix = "/topic/no
     const reconnectAttempts = useRef(0);
     const maxReconnectAttempts = 10;
     const subscriptionsRef = useRef([]);
-    const lastConnectionAttempt = useRef(0); // Theo dõi thời gian thử kết nối cuối cùng
+    const lastConnectionAttempt = useRef(0);
+    const pingIntervalRef = useRef(null);
 
     const initializeWebSocket = useCallback(() => {
         if (!token || !user) {
             console.log("No token or user available, skipping WebSocket initialization");
-            return;
+            return () => {};
         }
 
         const now = Date.now();
-        if (clientRef.current?.active || isConnecting.current || (now - lastConnectionAttempt.current < 2000)) {
-            console.log("WebSocket already active, connecting, or too soon since last attempt");
-            return;
+        if (clientRef.current?.connected || isConnecting.current || (now - lastConnectionAttempt.current < 2000)) {
+            console.log(`WebSocket already connected, connecting, or too soon since last attempt at ${new Date(now).toISOString()}`);
+            return () => {};
         }
 
         isConnecting.current = true;
@@ -78,6 +79,15 @@ export const useWebSocket = (onMessage, setUnreadCount, topicPrefix = "/topic/no
 
                 subscriptionsRef.current = [notificationSub, messageSub, ...callSubs];
                 console.log(`Subscribed to topics: ${[topicPrefix + user.id, `/topic/messages/${user.id}`, ...chatIds.map(id => `/topic/call/${id}`)]}`);
+
+                // Bắt đầu ping để giữ kết nối
+                if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
+                pingIntervalRef.current = setInterval(() => {
+                    if (client.connected) {
+                        console.log(`Sending ping at ${new Date().toISOString()}`);
+                        client.publish({ destination: "/app/ping", body: null });
+                    }
+                }, 30000);
             },
             onWebSocketError: (error) => {
                 console.error(`WebSocket error at ${new Date().toISOString()}:`, error);
@@ -92,9 +102,11 @@ export const useWebSocket = (onMessage, setUnreadCount, topicPrefix = "/topic/no
             onDisconnect: () => {
                 console.log(`WebSocket disconnected at ${new Date().toISOString()}`);
                 isConnecting.current = false;
+                if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
                 if (reconnectAttempts.current < maxReconnectAttempts) {
                     reconnectAttempts.current += 1;
                     console.log(`Reconnect attempt ${reconnectAttempts.current}/${maxReconnectAttempts} scheduled`);
+                    setTimeout(initializeWebSocket, 2000); // Thử lại sau 2 giây
                 } else {
                     console.log("Max reconnect attempts reached, stopping reconnection");
                 }
@@ -108,19 +120,20 @@ export const useWebSocket = (onMessage, setUnreadCount, topicPrefix = "/topic/no
 
         return () => {
             subscriptionsRef.current.forEach((sub) => {
-                console.log(`Unsubscribing from ${sub.id}`);
+                console.log(`Unsubscribing from ${sub.id} at ${new Date().toISOString()}`);
                 sub.unsubscribe();
             });
-            if (clientRef.current?.active) {
+            if (clientRef.current?.connected) {
                 clientRef.current.deactivate();
                 console.log("Deactivated WebSocket client at", new Date().toISOString());
             }
+            if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
         };
     }, [token, user, onMessage, setUnreadCount, topicPrefix, chatIds]);
 
     useEffect(() => {
         if (!user || !token) {
-            if (clientRef.current?.active) {
+            if (clientRef.current?.connected) {
                 console.log("Deactivating WebSocket due to missing user or token at", new Date().toISOString());
                 clientRef.current.deactivate();
             }

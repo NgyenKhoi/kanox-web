@@ -192,17 +192,17 @@ public class ChatController {
                         .orElseThrow(() -> new IllegalArgumentException("User not found")).getId(),
                 Map.of("action", "delete", "chatId", chatId));
     }
-//
-//    @PostMapping(URLConfig.CALL_START)
-//    public CallSessionDto startCall(@PathVariable Integer chatId) {
-//        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-//        CallSession callSession = callSessionService.startCall(chatId, username);
-//        messagingTemplate.convertAndSend("/topic/call/" + chatId,
-//                new SignalMessageDto(chatId, "start", null, null, callSession.getHost().getId()));
-//        return new CallSessionDto(callSession.getId(), callSession.getChat().getId(),
-//                callSession.getHost().getId(), callSession.getStartTime(),
-//                callSession.getEndTime());
-//    }
+
+    @PostMapping(URLConfig.CALL_START)
+    public CallSessionDto startCall(@PathVariable Integer chatId) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        CallSession callSession = callSessionService.startCall(chatId, username);
+        messagingTemplate.convertAndSend("/topic/call/" + chatId,
+                new SignalMessageDto(chatId, "start", null, null, callSession.getHost().getId()));
+        return new CallSessionDto(callSession.getId(), callSession.getChat().getId(),
+                callSession.getHost().getId(), callSession.getStartTime(),
+                callSession.getEndTime());
+    }
 
     @PostMapping(URLConfig.MESSAGE_DELETE)
     public void deleteMessage(@RequestBody Map<String, Integer> request) {
@@ -212,12 +212,12 @@ public class ChatController {
         messageService.deleteMessage(chatId, messageId, username);
         redisTemplate.opsForList().remove("chat:" + chatId + ":messages", 1, messageId);
     }
-//
-//    @PostMapping(URLConfig.CALL_END)
-//    public void endCall(@PathVariable Integer callSessionId) {
-//        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-//        callSessionService.endCall(callSessionId, username);
-//    }
+
+    @PostMapping(URLConfig.CALL_END)
+    public void endCall(@PathVariable Integer callSessionId) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        callSessionService.endCall(callSessionId, username);
+    }
 
     @GetMapping(URLConfig.UNREAD_MESSAGE_COUNT)
     public Map<String, Integer> getUnreadMessageCount() {
