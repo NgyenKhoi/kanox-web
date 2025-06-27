@@ -21,7 +21,7 @@ import useUserSearch from "../../hooks/useUserSearch";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 function MessengerPage() {
-  const { token, user, logout } = useContext(AuthContext);
+  const { token, user } = useContext(AuthContext);
   const { subscribe, unsubscribe, publish } = useContext(WebSocketContext) || {};
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -55,7 +55,6 @@ function MessengerPage() {
       return;
     }
 
-    // Subscribe to chats topic
     const subscription = subscribe(`/topic/chats/${user.id}`, (message) => {
       console.log("MessengerPage WebSocket message:", message);
       if (!message) return;
@@ -102,7 +101,6 @@ function MessengerPage() {
       }
     }, `chats-${user.id}`);
 
-    // Fetch initial chats
     const fetchChats = async () => {
       try {
         const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/chats`, {
@@ -135,14 +133,20 @@ function MessengerPage() {
     const chatId = searchParams.get("chatId");
     if (chatId) {
       setSelectedChatId(Number(chatId));
+      if (publish) {
+        publish("/app/resend", { chatId: Number(chatId) });
+        console.log(`Sent /app/resend for chatId: ${chatId}`);
+      }
     }
 
     return () => {
       unsubscribe(`chats-${user.id}`);
     };
-  }, [token, user, navigate, searchParams, subscribe, unsubscribe]);
+  }, [token, user, subscribe, unsubscribe, publish]);
 
   const handleOpenUserSelectionModal = () => {
+    setSearchKeyword("");
+    setSearchQuery("");
     setShowUserSelectionModal(true);
   };
 
@@ -192,6 +196,10 @@ function MessengerPage() {
       setSelectedChatId(data.id);
       navigate(`/messages?chatId=${data.id}`);
       handleCloseUserSelectionModal();
+      if (publish) {
+        publish("/app/resend", { chatId: data.id });
+        console.log(`Sent /app/resend for chatId: ${data.id}`);
+      }
     } catch (error) {
       toast.error("Không thể tạo chat: " + error.message);
       console.error("Create chat error:", error);
@@ -246,6 +254,10 @@ function MessengerPage() {
   const handleSelectChat = async (chatId) => {
     setSelectedChatId(chatId);
     navigate(`/messages?chatId=${chatId}`);
+    if (publish) {
+      publish("/app/resend", { chatId: Number(chatId) });
+      console.log(`Sent /app/resend for chatId: ${chatId}`);
+    }
     try {
       const token = sessionStorage.getItem("token") || localStorage.getItem("token");
       const messagesResponse = await fetch(`${process.env.REACT_APP_API_URL}/chat/${chatId}/messages`, {

@@ -17,11 +17,14 @@ const Call = ({ chatId, onEndCall }) => {
     const remoteVideoRef = useRef(null);
 
     useEffect(() => {
+        let isMounted = true;
+
         const fetchChatMembers = async () => {
             try {
                 const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/${chatId}/members`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
+                if (!isMounted) return;
                 if (response.ok) {
                     const members = await response.json();
                     const recipient = members.find((member) => member.userId !== user.id);
@@ -34,8 +37,10 @@ const Call = ({ chatId, onEndCall }) => {
                     throw new Error("Lỗi khi lấy danh sách thành viên.");
                 }
             } catch (err) {
-                console.error("Error fetching chat members:", err);
-                toast.error("Lỗi khi lấy thông tin cuộc trò chuyện.");
+                if (isMounted) {
+                    console.error("Error fetching chat members:", err);
+                    toast.error("Lỗi khi lấy thông tin cuộc trò chuyện.");
+                }
             }
         };
 
@@ -49,19 +54,22 @@ const Call = ({ chatId, onEndCall }) => {
                     },
                     body: JSON.stringify({ username: user.username }),
                 });
+                if (!isMounted) return;
                 if (!response.ok) {
                     throw new Error("Lỗi khi lấy access token.");
                 }
                 const data = await response.json();
                 initializeStringee(data.accessToken);
             } catch (err) {
-                console.error("Error fetching access token:", err);
-                toast.error("Lỗi kết nối server.");
+                if (isMounted) {
+                    console.error("Error fetching access token:", err);
+                    toast.error("Lỗi kết nối server.");
+                }
             }
         };
 
         const initializeStringee = (accessToken) => {
-            if (!accessToken) {
+            if (!accessToken || !isMounted) {
                 toast.error("Access token không hợp lệ.");
                 return;
             }
@@ -69,11 +77,14 @@ const Call = ({ chatId, onEndCall }) => {
             stringeeClientRef.current.connect(accessToken);
 
             stringeeClientRef.current.on("connect", () => {
-                console.log("Stringee connected");
-                toast.success("Đã kết nối với Stringee.");
+                if (isMounted) {
+                    console.log("Stringee connected");
+                    toast.success("Đã kết nối với Stringee.");
+                }
             });
 
             stringeeClientRef.current.on("incomingcall", (incomingCall) => {
+                if (!isMounted) return;
                 stringeeCallRef.current = incomingCall;
                 handleIncomingCall(incomingCall);
             });
@@ -81,24 +92,24 @@ const Call = ({ chatId, onEndCall }) => {
 
         const handleIncomingCall = (incomingCall) => {
             incomingCall.on("addlocalstream", (stream) => {
-                if (localVideoRef.current) {
+                if (localVideoRef.current && isMounted) {
                     localVideoRef.current.srcObject = stream;
                     localVideoRef.current.play().catch((err) => console.error("Local video play error:", err));
                 }
             });
 
             incomingCall.on("addremotestream", (stream) => {
-                if (remoteVideoRef.current) {
+                if (remoteVideoRef.current && isMounted) {
                     remoteVideoRef.current.srcObject = stream;
                     remoteVideoRef.current.play().catch((err) => console.error("Remote video play error:", err));
                 }
             });
 
             incomingCall.on("end", () => {
-                endCall();
+                if (isMounted) endCall();
             });
 
-            if (window.confirm("Có cuộc gọi đến. Chấp nhận?")) {
+            if (isMounted && window.confirm("Có cuộc gọi đến. Chấp nhận?")) {
                 incomingCall.accept();
                 setCallStarted(true);
             } else {
@@ -110,8 +121,21 @@ const Call = ({ chatId, onEndCall }) => {
         fetchAccessToken();
 
         return () => {
-            if (stringeeClientRef.current) stringeeClientRef.current.disconnect();
-            if (stringeeCallRef.current) stringeeCallRef.current.hangup();
+            isMounted = false;
+            if (stringeeClientRef.current) {
+                try {
+                    stringeeClientRef.current.disconnect();
+                } catch (error) {
+                    console.error("Error disconnecting Stringee:", error);
+                }
+            }
+            if (stringeeCallRef.current) {
+                try {
+                    stringeeCallRef.current.hangup();
+                } catch (error) {
+                    console.error("Error hanging up Stringee call:", error);
+                }
+            }
         };
     }, [chatId, token, user]);
 
@@ -173,7 +197,13 @@ const Call = ({ chatId, onEndCall }) => {
     };
 
     const endCall = () => {
-        if (stringeeCallRef.current) stringeeCallRef.current.hangup();
+        if (stringeeCallRef.current) {
+            try {
+                stringeeCallRef.current.hangup();
+            } catch (error) {
+                console.error("Error hanging up Stringee call:", error);
+            }
+        }
         if (localVideoRef.current) localVideoRef.current.srcObject = null;
         if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
         setCallStarted(false);

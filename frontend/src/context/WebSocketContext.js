@@ -6,14 +6,15 @@ import { AuthContext } from "./AuthContext";
 export const WebSocketContext = createContext();
 
 export const WebSocketProvider = ({ children }) => {
-    const { user, token, logout } = useContext(AuthContext);
+    const { user, token } = useContext(AuthContext);
     const userId = user?.id;
     const clientRef = useRef(null);
     const subscriptionsRef = useRef({});
     const isConnectedRef = useRef(false);
     const reconnectAttemptsRef = useRef(0);
     const maxReconnectAttempts = 10;
-    const pendingSubscriptionsRef = useRef([]); // Lưu trữ các subscription chờ
+    const pendingSubscriptionsRef = useRef([]);
+    const pendingMessagesRef = useRef([]);
 
     const connect = () => {
         if (isConnectedRef.current || reconnectAttemptsRef.current >= maxReconnectAttempts) {
@@ -23,7 +24,6 @@ export const WebSocketProvider = ({ children }) => {
 
         if (!userId || !token) {
             console.warn("No userId or token available. Cannot connect to WebSocket.");
-            logout();
             return;
         }
 
@@ -40,26 +40,49 @@ export const WebSocketProvider = ({ children }) => {
             heartbeatOutgoing: 4000,
         });
 
-        clientRef.current.onConnect = () => {
+        clientRef.current.onConnect = (frame) => {
             console.log(`WebSocket connected successfully at ${new Date().toISOString()} for user: ${userId}`);
             isConnectedRef.current = true;
             reconnectAttemptsRef.current = 0;
 
-            // Thực hiện các subscription đang chờ
-            pendingSubscriptionsRef.current.forEach(({ topic, callback, subId }) => {
-                try {
-                    const subscription = clientRef.current.subscribe(topic, (message) => {
-                        const data = JSON.parse(message.body);
-                        console.log(`Received notification at ${new Date().toISOString()} for topic ${topic}:`, data);
-                        callback(data);
-                    }, { id: subId });
-                    subscriptionsRef.current[subId] = subscription;
-                    console.log(`Subscribed to ${topic} with subId ${subId}`);
-                } catch (error) {
-                    console.error(`Failed to subscribe to ${topic}:`, error);
+            const subscribeWithRetry = () => {
+                if (!clientRef.current?.connected) {
+                    console.warn("STOMP not ready, retrying subscriptions...");
+                    setTimeout(subscribeWithRetry, 100);
+                    return;
                 }
-            });
-            pendingSubscriptionsRef.current = []; // Xóa danh sách chờ
+
+                pendingSubscriptionsRef.current.forEach(({ topic, callback, subId }) => {
+                    try {
+                        const subscription = clientRef.current.subscribe(topic, (message) => {
+                            const data = JSON.parse(message.body);
+                            console.log(`Received notification at ${new Date().toISOString()} for topic ${topic}:`, data);
+                            callback(data);
+                        }, { id: subId });
+                        subscriptionsRef.current[subId] = subscription;
+                        console.log(`Subscribed to ${topic} with subId ${subId}`);
+                    } catch (error) {
+                        console.error(`Failed to subscribe to ${topic}:`, error);
+                        setTimeout(() => {
+                            pendingSubscriptionsRef.current.push({ topic, callback, subId });
+                            subscribeWithRetry();
+                        }, 100);
+                    }
+                });
+                pendingSubscriptionsRef.current = [];
+
+                pendingMessagesRef.current.forEach(({ destination, body }) => {
+                    try {
+                        clientRef.current.publish({ destination, body: JSON.stringify(body) });
+                        console.log(`Published pending message to ${destination}:`, body);
+                    } catch (error) {
+                        console.error(`Failed to publish pending message to ${destination}:`, error);
+                    }
+                });
+                pendingMessagesRef.current = [];
+            };
+
+            setTimeout(subscribeWithRetry, 100);
         };
 
         clientRef.current.onDisconnect = () => {
@@ -73,10 +96,7 @@ export const WebSocketProvider = ({ children }) => {
 
         clientRef.current.onStompError = (frame) => {
             console.error(`STOMP error: ${frame}`);
-            if (frame.headers?.message?.includes("401")) {
-                console.warn("WebSocket authentication failed. Logging out...");
-                logout();
-            }
+            isConnectedRef.current = false;
         };
 
         clientRef.current.onWebSocketClose = () => {
@@ -107,7 +127,7 @@ export const WebSocketProvider = ({ children }) => {
     };
 
     const subscribe = (topic, callback, subId) => {
-        if (clientRef.current && isConnectedRef.current) {
+        if (clientRef.current && isConnectedRef.current && clientRef.current.connected) {
             try {
                 const subscription = clientRef.current.subscribe(topic, (message) => {
                     const data = JSON.parse(message.body);
@@ -137,14 +157,13 @@ export const WebSocketProvider = ({ children }) => {
                 console.error(`Failed to unsubscribe from ${subId}:`, error);
             }
         }
-        // Xóa subscription khỏi danh sách chờ nếu có
         pendingSubscriptionsRef.current = pendingSubscriptionsRef.current.filter(
             (sub) => sub.subId !== subId
         );
     };
 
     const publish = (destination, body) => {
-        if (clientRef.current && isConnectedRef.current) {
+        if (clientRef.current && isConnectedRef.current && clientRef.current.connected) {
             try {
                 clientRef.current.publish({
                     destination,
@@ -153,9 +172,11 @@ export const WebSocketProvider = ({ children }) => {
                 console.log(`Published to ${destination} at ${new Date().toISOString()} with body:`, body);
             } catch (error) {
                 console.error(`Failed to publish to ${destination}:`, error);
+                pendingMessagesRef.current.push({ destination, body });
             }
         } else {
-            console.warn(`Cannot publish to ${destination}: WebSocket not connected`);
+            console.warn(`Cannot publish to ${destination}: WebSocket not connected. Adding to pending messages.`);
+            pendingMessagesRef.current.push({ destination, body });
         }
     };
 
@@ -163,7 +184,7 @@ export const WebSocketProvider = ({ children }) => {
         if (userId && token) {
             connect();
             const pingInterval = setInterval(() => {
-                if (clientRef.current && isConnectedRef.current) {
+                if (clientRef.current && isConnectedRef.current && clientRef.current.connected) {
                     console.log(`Sending ping at ${new Date().toISOString()}`);
                     try {
                         clientRef.current.publish({ destination: "/app/ping" });
@@ -174,13 +195,12 @@ export const WebSocketProvider = ({ children }) => {
             }, 30000);
 
             return () => {
-                disconnect();
                 clearInterval(pingInterval);
             };
         } else {
             console.warn("Cannot connect WebSocket: Missing userId or token");
         }
-    }, [userId, token, logout]);
+    }, [userId, token]);
 
     return (
         <WebSocketContext.Provider value={{ publish, subscribe, unsubscribe }}>

@@ -7,14 +7,15 @@ import { WebSocketContext } from "../../context/WebSocketContext";
 import { FaPaperclip, FaPaperPlane } from "react-icons/fa";
 
 const Chat = ({ chatId }) => {
-    const { user, token, logout } = useContext(AuthContext);
+    const { user, token } = useContext(AuthContext);
     const { publish, subscribe, unsubscribe } = useContext(WebSocketContext) || {};
     const [messages, setMessages] = useState([]);
     const [message, setMessage] = useState("");
     const [isTyping, setIsTyping] = useState(false);
     const [recipientName, setRecipientName] = useState("");
     const chatContainerRef = useRef(null);
-    const isConnectedRef = useRef(false); // Theo dõi trạng thái kết nối
+    const isConnectedRef = useRef(false);
+    const lastMessageIdRef = useRef(null);
 
     const fetchUnreadMessageCount = async () => {
         try {
@@ -35,26 +36,46 @@ const Chat = ({ chatId }) => {
         }
     };
 
+    const fetchMessages = async () => {
+        try {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/${chatId}/messages`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            const data = await response.json();
+            if (response.ok) {
+                setMessages(
+                    data.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+                );
+                lastMessageIdRef.current = data.length > 0 ? data[data.length - 1].id : null;
+                fetchUnreadMessageCount();
+            } else {
+                throw new Error(data.message || "Lỗi khi tải tin nhắn.");
+            }
+        } catch (err) {
+            toast.error(err.message || "Lỗi khi tải tin nhắn.");
+        }
+    };
+
     useEffect(() => {
         if (!token || !user || !chatId) {
             toast.error("Vui lòng đăng nhập để sử dụng chat.");
-            logout();
             return;
         }
 
         if (!subscribe || !unsubscribe || !publish) {
             console.error("WebSocketContext is not available");
             toast.error("Lỗi kết nối WebSocket. Vui lòng thử lại sau.");
+            fetchMessages();
             return;
         }
 
-        // Subscribe to WebSocket topics
         const subscriptions = [];
         const handleMessage = (data) => {
             console.log("Received WebSocket message:", data);
             if (data.type === "MESSAGE") {
                 setMessages((prev) => {
                     if (!prev.some((m) => m.id === data.id)) {
+                        lastMessageIdRef.current = data.id;
                         return [...prev, data].sort(
                             (a, b) => new Date(a.createdAt) - new Date(b.createdAt)
                         );
@@ -74,22 +95,28 @@ const Chat = ({ chatId }) => {
             }
         };
 
-        // Thêm subscriptions
         subscriptions.push(subscribe(`/topic/chat/${chatId}`, handleMessage, `chat-${chatId}`));
         subscriptions.push(subscribe(`/topic/typing/${chatId}`, handleMessage, `typing-${chatId}`));
         subscriptions.push(subscribe(`/topic/messages/${user.id}`, handleMessage, `messages-${user.id}`));
         subscriptions.push(subscribe(`/topic/unread-count/${user.id}`, handleMessage, `unread-count-${user.id}`));
 
-        // Kiểm tra trạng thái kết nối
+        const sendResend = () => {
+            if (publish && isConnectedRef.current) {
+                publish("/app/resend", { chatId: Number(chatId) });
+                console.log(`Sent /app/resend for chatId: ${chatId}`);
+            } else {
+                console.warn(`Retrying /app/resend for chatId: ${chatId}`);
+                setTimeout(sendResend, 100);
+            }
+        };
+
         const checkConnection = setInterval(() => {
             if (publish && !isConnectedRef.current) {
                 isConnectedRef.current = true;
-                publish("/app/resend", { chatId: Number(chatId) });
-                console.log(`Sent /app/resend for chatId: ${chatId}`);
+                sendResend();
             }
         }, 100);
 
-        // Fetch initial chat data
         fetch(`${process.env.REACT_APP_API_URL}/chat/${chatId}`, {
             headers: { Authorization: `Bearer ${token}` },
         })
@@ -103,28 +130,21 @@ const Chat = ({ chatId }) => {
             })
             .catch((err) => toast.error(err.message || "Lỗi khi lấy thông tin chat."));
 
-        fetch(`${process.env.REACT_APP_API_URL}/chat/${chatId}/messages`, {
-            headers: { Authorization: `Bearer ${token}` },
-        })
-            .then(async (response) => {
-                const data = await response.json();
-                if (response.ok) {
-                    setMessages(
-                        data.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
-                    );
-                    fetchUnreadMessageCount();
-                } else {
-                    throw new Error(data.message || "Lỗi khi tải tin nhắn.");
-                }
-            })
-            .catch((err) => toast.error(err.message || "Lỗi khi tải tin nhắn."));
+        fetchMessages();
+
+        const pollInterval = setInterval(() => {
+            if (!isConnectedRef.current) {
+                fetchMessages();
+            }
+        }, 5000);
 
         return () => {
             subscriptions.forEach((_, index) => unsubscribe(`chat-${chatId}-${index}`));
             clearInterval(checkConnection);
+            clearInterval(pollInterval);
             isConnectedRef.current = false;
         };
-    }, [chatId, user, token, logout, publish, subscribe, unsubscribe]);
+    }, [chatId, user, token, publish, subscribe, unsubscribe]);
 
     useEffect(() => {
         if (chatContainerRef.current) {
