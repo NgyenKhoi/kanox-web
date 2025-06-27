@@ -11,6 +11,7 @@ export const useWebSocket = (onMessage, setUnreadCount, topicPrefix, subscriptio
     const isConnectedRef = useRef(false);
     const reconnectAttemptsRef = useRef(0);
     const maxReconnectAttempts = 10;
+    const connectTimeoutRef = useRef(null);
 
     const connect = () => {
         if (isConnectedRef.current || reconnectAttemptsRef.current >= maxReconnectAttempts) {
@@ -54,23 +55,31 @@ export const useWebSocket = (onMessage, setUnreadCount, topicPrefix, subscriptio
             const topics = subscriptionIds.map((id) => `${topicPrefix}${id}`);
             topics.forEach((topic, index) => {
                 const subId = `sub-${index}`;
-                const subscription = clientRef.current.subscribe(topic, (message) => {
-                    const data = JSON.parse(message.body);
-                    console.log(`Received notification at ${new Date().toISOString()} for topic ${topic}:`, data);
-                    onMessage(data);
-                }, { id: subId });
-                subscriptionsRef.current.push(subId);
+                try {
+                    const subscription = clientRef.current.subscribe(topic, (message) => {
+                        const data = JSON.parse(message.body);
+                        console.log(`Received notification at ${new Date().toISOString()} for topic ${topic}:`, data);
+                        onMessage(data);
+                    }, { id: subId });
+                    subscriptionsRef.current.push(subId);
+                } catch (error) {
+                    console.error(`Failed to subscribe to ${topic}:`, error);
+                }
             });
 
             console.log(`Subscribed to topics: ${topics.join(",")}`);
 
             // Gửi yêu cầu resend nếu có
             if (resendDestination && subscriptionIds.length > 0) {
-                clientRef.current.publish({
-                    destination: resendDestination,
-                    body: JSON.stringify({ chatId: Number(subscriptionIds[0]) }),
-                });
-                console.log(`Sent resend request to ${resendDestination} for chatId: ${subscriptionIds[0]}`);
+                try {
+                    clientRef.current.publish({
+                        destination: resendDestination,
+                        body: JSON.stringify({ chatId: Number(subscriptionIds[0]) }),
+                    });
+                    console.log(`Sent resend request to ${resendDestination} for chatId: ${subscriptionIds[0]}`);
+                } catch (error) {
+                    console.error(`Failed to send resend to ${resendDestination}:`, error);
+                }
             }
         };
 
@@ -93,6 +102,7 @@ export const useWebSocket = (onMessage, setUnreadCount, topicPrefix, subscriptio
 
         clientRef.current.onWebSocketClose = () => {
             console.log(`Connection closed to ${process.env.REACT_APP_WS_URL}/ws`);
+            isConnectedRef.current = false;
         };
 
         clientRef.current.activate();
@@ -103,7 +113,11 @@ export const useWebSocket = (onMessage, setUnreadCount, topicPrefix, subscriptio
         if (clientRef.current && isConnectedRef.current) {
             subscriptionsRef.current.forEach((subId) => {
                 console.log(`Unsubscribing from ${subId} at ${new Date().toISOString()}`);
-                clientRef.current.unsubscribe(subId);
+                try {
+                    clientRef.current.unsubscribe(subId);
+                } catch (error) {
+                    console.error(`Failed to unsubscribe from ${subId}:`, error);
+                }
             });
             subscriptionsRef.current = [];
             clientRef.current.deactivate();
@@ -118,13 +132,20 @@ export const useWebSocket = (onMessage, setUnreadCount, topicPrefix, subscriptio
             const pingInterval = setInterval(() => {
                 if (clientRef.current && isConnectedRef.current) {
                     console.log(`Sending ping at ${new Date().toISOString()}`);
-                    clientRef.current.publish({ destination: "/app/ping" });
+                    try {
+                        clientRef.current.publish({ destination: "/app.ping" });
+                    } catch (error) {
+                        console.error("Failed to send ping:", error);
+                    }
                 }
             }, 30000);
 
             return () => {
                 disconnect();
                 clearInterval(pingInterval);
+                if (connectTimeoutRef.current) {
+                    clearTimeout(connectTimeoutRef.current);
+                }
             };
         } else {
             console.warn("Cannot connect WebSocket: Missing userId or token");
@@ -133,11 +154,15 @@ export const useWebSocket = (onMessage, setUnreadCount, topicPrefix, subscriptio
 
     const publish = (destination, body) => {
         if (clientRef.current && isConnectedRef.current) {
-            clientRef.current.publish({
-                destination,
-                body: JSON.stringify(body),
-            });
-            console.log(`Published to ${destination} at ${new Date().toISOString()} with body:`, body);
+            try {
+                clientRef.current.publish({
+                    destination,
+                    body: JSON.stringify(body),
+                });
+                console.log(`Published to ${destination} at ${new Date().toISOString()} with body:`, body);
+            } catch (error) {
+                console.error(`Failed to publish to ${destination}:`, error);
+            }
         } else {
             console.warn(`Cannot publish to ${destination}: WebSocket not connected`);
         }

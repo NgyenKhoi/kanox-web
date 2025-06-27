@@ -64,7 +64,7 @@ const Chat = ({ chatId }) => {
                 })
             );
         },
-        "/topic/",
+        "/topic/chat/",
         [chatId, `typing/${chatId}`, `unread-count/${user?.id}`],
         "/app/resend"
     );
@@ -203,6 +203,7 @@ const Chat = ({ chatId }) => {
                     </Button>
                     <Form.Control
                         placeholder="Nhập tin nhắn..."
+
                         value={message}
                         onChange={(e) => {
                             setMessage(e.target.value);
