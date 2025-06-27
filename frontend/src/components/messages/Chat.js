@@ -3,11 +3,12 @@ import { Form, Button, InputGroup } from "react-bootstrap";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { AuthContext } from "../../context/AuthContext";
-import { useWebSocket } from "../../hooks/useWebSocket";
+import { WebSocketContext } from "../../context/WebSocketContext";
 import { FaPaperclip, FaPaperPlane } from "react-icons/fa";
 
 const Chat = ({ chatId }) => {
     const { user, token, logout } = useContext(AuthContext);
+    const { publish, subscribe, unsubscribe } = useContext(WebSocketContext);
     const [messages, setMessages] = useState([]);
     const [message, setMessage] = useState("");
     const [isTyping, setIsTyping] = useState(false);
@@ -33,8 +34,16 @@ const Chat = ({ chatId }) => {
         }
     };
 
-    const { publish } = useWebSocket(
-        (data) => {
+    useEffect(() => {
+        if (!token || !user || !chatId) {
+            toast.error("Vui lòng đăng nhập để sử dụng chat.");
+            logout();
+            return;
+        }
+
+        // Subscribe to WebSocket topics
+        const subscriptions = [];
+        const handleMessage = (data) => {
             console.log("Received WebSocket message:", data);
             if (data.type === "MESSAGE") {
                 setMessages((prev) => {
@@ -56,26 +65,17 @@ const Chat = ({ chatId }) => {
                     })
                 );
             }
-        },
-        (count) => {
-            window.dispatchEvent(
-                new CustomEvent("updateUnreadCount", {
-                    detail: { unreadCount: count || 0 },
-                })
-            );
-        },
-        "/topic/chat/",
-        [chatId, `typing/${chatId}`, `unread-count/${user?.id}`],
-        "/app/resend"
-    );
+        };
 
-    useEffect(() => {
-        if (!token || !user || !chatId) {
-            toast.error("Vui lòng đăng nhập để sử dụng chat.");
-            logout();
-            return;
-        }
+        subscriptions.push(subscribe(`/topic/chat/${chatId}`, handleMessage, `chat-${chatId}`));
+        subscriptions.push(subscribe(`/topic/typing/${chatId}`, handleMessage, `typing-${chatId}`));
+        subscriptions.push(subscribe(`/topic/messages/${user.id}`, handleMessage, `messages-${user.id}`));
+        subscriptions.push(subscribe(`/topic/unread-count/${user.id}`, handleMessage, `unread-count-${user.id}`));
 
+        // Send resend request
+        publish("/app/resend", { chatId: Number(chatId) });
+
+        // Fetch initial chat data
         fetch(`${process.env.REACT_APP_API_URL}/chat/${chatId}`, {
             headers: { Authorization: `Bearer ${token}` },
         })
@@ -104,7 +104,11 @@ const Chat = ({ chatId }) => {
                 }
             })
             .catch((err) => toast.error(err.message || "Lỗi khi tải tin nhắn."));
-    }, [chatId, user, token, logout]);
+
+        return () => {
+            subscriptions.forEach((_, index) => unsubscribe(`chat-${chatId}-${index}`));
+        };
+    }, [chatId, user, token, logout, publish, subscribe, unsubscribe]);
 
     useEffect(() => {
         if (chatContainerRef.current) {
@@ -203,7 +207,6 @@ const Chat = ({ chatId }) => {
                     </Button>
                     <Form.Control
                         placeholder="Nhập tin nhắn..."
-
                         value={message}
                         onChange={(e) => {
                             setMessage(e.target.value);

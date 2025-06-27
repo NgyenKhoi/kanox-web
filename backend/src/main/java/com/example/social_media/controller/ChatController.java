@@ -108,21 +108,21 @@ public class ChatController {
         messagingTemplate.convertAndSend("/topic/typing/" + chatId, typingData);
     }
 
-//    @MessageMapping("/ping")
-//    public void handlePing(@Header("simpSessionId") String sessionId) {
-//        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-//        String username = auth != null && auth.isAuthenticated() ? auth.getName() : null;
-//        if (username == null) {
-//            String authToken = webSocketConfig.sessionTokenMap.get(sessionId);
-//            if (authToken != null && authToken.startsWith("Bearer ")) {
-//                username = jwtService.extractUsername(authToken.substring(7));
-//            } else {
-//                System.err.println("No token found in sessionTokenMap for session " + sessionId);
-//                throw new UnauthorizedException("Không thể xác thực người dùng.");
-//            }
-//        }
-//        messagingTemplate.convertAndSendToUser(sessionId, "/topic/ping", Map.of("status", "pong"));
-//    }
+    @MessageMapping("/ping")
+    public void handlePing(@Header("simpSessionId") String sessionId) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = auth != null && auth.isAuthenticated() ? auth.getName() : null;
+        if (username == null) {
+            String authToken = webSocketConfig.sessionTokenMap.get(sessionId);
+            if (authToken != null && authToken.startsWith("Bearer ")) {
+                username = jwtService.extractUsername(authToken.substring(7));
+            } else {
+                System.err.println("No token found in sessionTokenMap for session " + sessionId);
+                throw new UnauthorizedException("Không thể xác thực người dùng.");
+            }
+        }
+        messagingTemplate.convertAndSendToUser(sessionId, "/topic/ping", Map.of("status", "pong"));
+    }
 
 //    @MessageMapping("/call/end")
 //    public void handleCallEnd(@Payload Map<String, Integer> payload, @Header("simpSessionId") String sessionId) {
@@ -232,6 +232,7 @@ public class ChatController {
     public void resendMessages(@Payload Map<String, Object> payload, @Header("simpSessionId") String sessionId) {
         String chatId = payload.get("chatId").toString();
         System.out.println("Resend requested for chatId: " + chatId);
+        messageQueueService.resendQueuedMessages(chatId, sessionId);
     }
 
     @PostMapping("/generate-token")
