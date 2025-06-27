@@ -2,7 +2,7 @@ import React, { useState, useEffect, useContext } from "react";
 import { Modal, Button } from "react-bootstrap";
 import "./App.css";
 
-// Import all necessary page components
+//import important page
 import SignupPage from "./pages/auth/signup/signupPage";
 import HomePage from "./pages/home/HomePage";
 import ProfilePage from "./pages/profile/ProfilePage";
@@ -21,7 +21,7 @@ import FriendsPage from "./pages/friends/FriendsPage";
 import AdminPage from "./pages/admin/adminpage";
 import Call from "./components/messages/Call";
 
-// Router & Context
+//context & router
 import { BrowserRouter as Router, Routes, Route, useNavigate } from "react-router-dom";
 import { AuthContext, AuthProvider } from "./context/AuthContext";
 import { WebSocketContext, WebSocketProvider } from "./context/WebSocketContext";
@@ -69,18 +69,25 @@ function AppContent() {
     const subscriptions = [];
     chatIds.forEach((chatId) => {
       subscriptions.push(
-          subscribe(`/topic/notifications/${chatId}`, (message) => {
-            console.log("Received WebSocket message:", message);
-            if (message.type === "CALL") {
-              setIncomingCall(message.data);
+          subscribe(`/topic/call/${chatId}`, (message) => {
+            console.log("Received call signal:", message);
+            if (message.type === "start") {
+              setIncomingCall({ chatId: message.chatId, sessionId: message.sessionId });
               setShowCallModal(true);
             }
-          }, `notifications-${chatId}`)
+          }, `call-${chatId}`)
       );
     });
 
+    const handleIncomingCall = (event) => {
+      setIncomingCall({ chatId: event.detail.chatId, sessionId: event.detail.sessionId });
+      setShowCallModal(true);
+    };
+    window.addEventListener("incomingCall", handleIncomingCall);
+
     return () => {
-      subscriptions.forEach((_, index) => unsubscribe(`notifications-${chatIds[index]}`));
+      subscriptions.forEach((_, index) => unsubscribe(`call-${chatIds[index]}`));
+      window.removeEventListener("incomingCall", handleIncomingCall);
     };
   }, [chatIds, subscribe, unsubscribe]);
 
@@ -91,14 +98,14 @@ function AppContent() {
 
   const rejectCall = () => {
     setShowCallModal(false);
-    setIncomingCall(null);
-    if (publish) {
+    if (publish && incomingCall) {
       publish("/app/call/end", {
         chatId: incomingCall.chatId,
         callSessionId: incomingCall.sessionId,
         userId: user?.id,
       });
     }
+    setIncomingCall(null);
   };
 
   return (

@@ -15,6 +15,7 @@ import com.example.social_media.service.CallSessionService;
 import com.example.social_media.service.ChatService;
 import com.example.social_media.service.MessageQueueService;
 import com.example.social_media.service.MessageService;
+import org.springframework.beans.factory.annotation.Value;
 import org.apache.commons.codec.binary.Hex;
 import org.springframework.data.elasticsearch.ResourceNotFoundException;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -37,6 +38,12 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping(URLConfig.CHAT_BASE)
 public class ChatController {
+
+    @Value("${stringee.api-key-sid}")
+    private String apiKeySid;
+
+    @Value("${stringee.api-key-secret}")
+    private String apiKeySecret;
 
     private final ChatService chatService;
     private final MessageService messageService;
@@ -124,23 +131,33 @@ public class ChatController {
         messagingTemplate.convertAndSendToUser(sessionId, "/topic/ping", Map.of("status", "pong"));
     }
 
-//    @MessageMapping("/call/end")
-//    public void handleCallEnd(@Payload Map<String, Integer> payload, @Header("simpSessionId") String sessionId) {
-//        Integer callSessionId = payload.get("callSessionId");
-//        Integer chatId = payload.get("chatId");
-//        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-//        if (username == null) {
-//            String authToken = webSocketConfig.sessionTokenMap.get(sessionId);
-//            if (authToken != null && authToken.startsWith("Bearer ")) {
-//                username = jwtService.extractUsername(authToken.substring(7));
-//            } else {
-//                throw new UnauthorizedException("Không thể xác thực người dùng.");
-//            }
-//        }
-//        callSessionService.endCall(callSessionId, username);
-//        messagingTemplate.convertAndSend("/topic/call/" + chatId,
-//                new SignalMessageDto(chatId, "end", null, null, null));
-//    }
+    @MessageMapping(URLConfig.CALL_END)
+    public void handleCallEnd(@Payload Map<String, Integer> payload, @Header("simpSessionId") String sessionId) {
+        Integer callSessionId = payload.get("callSessionId");
+        Integer chatId = payload.get("chatId");
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        if (username == null) {
+            String authToken = webSocketConfig.sessionTokenMap.get(sessionId);
+            if (authToken != null && authToken.startsWith("Bearer ")) {
+                username = jwtService.extractUsername(authToken.substring(7));
+            } else {
+                throw new UnauthorizedException("Không thể xác thực người dùng.");
+            }
+        }
+        callSessionService.endCall(callSessionId, username);
+        messagingTemplate.convertAndSend("/topic/call/" + chatId,
+                new SignalMessageDto(chatId, "end", null, null, null));
+    }
+
+    @MessageMapping(URLConfig.WEBSOCKET_CALL_OFFER)
+    public void handleCallOffer(@Payload SignalMessageDto signal, @Header("simpSessionId") String sessionId) {
+        messagingTemplate.convertAndSend("/topic/call/" + signal.getChatId(), signal);
+    }
+
+    @MessageMapping(URLConfig.WEBSOCKET_CALL_ANSWER)
+    public void handleCallAnswer(@Payload SignalMessageDto signal, @Header("simpSessionId") String sessionId) {
+        messagingTemplate.convertAndSend("/topic/call/" + signal.getChatId(), signal);
+    }
 
     @GetMapping(URLConfig.GET_CHAT_MESSAGES)
     public List<MessageDto> getChatMessages(@PathVariable Integer chatId) {
@@ -198,10 +215,16 @@ public class ChatController {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         CallSession callSession = callSessionService.startCall(chatId, username);
         messagingTemplate.convertAndSend("/topic/call/" + chatId,
-                new SignalMessageDto(chatId, "start", null, null, callSession.getHost().getId()));
+                new SignalMessageDto(chatId, "start", null, null, callSession.getId()));
         return new CallSessionDto(callSession.getId(), callSession.getChat().getId(),
                 callSession.getHost().getId(), callSession.getStartTime(),
                 callSession.getEndTime());
+    }
+
+    @PostMapping(URLConfig.CALL_END)
+    public void endCall(@PathVariable Integer callSessionId) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        callSessionService.endCall(callSessionId, username);
     }
 
     @PostMapping(URLConfig.MESSAGE_DELETE)
@@ -211,12 +234,6 @@ public class ChatController {
         Integer messageId = request.get("messageId");
         messageService.deleteMessage(chatId, messageId, username);
         redisTemplate.opsForList().remove("chat:" + chatId + ":messages", 1, messageId);
-    }
-
-    @PostMapping(URLConfig.CALL_END)
-    public void endCall(@PathVariable Integer callSessionId) {
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        callSessionService.endCall(callSessionId, username);
     }
 
     @GetMapping(URLConfig.UNREAD_MESSAGE_COUNT)
@@ -238,15 +255,15 @@ public class ChatController {
     @PostMapping("/generate-token")
     public Map<String, String> generateToken(@RequestBody Map<String, String> request) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        String apiKeySid = "SK.0.cD3dzmsSFfdCW2YapNpszcVLnWb7bqL"; // Thay bằng API Key SID của bạn
-        String apiKeySecret = "VlkxRElmWk15N2FpRXJ0cVFhSkhGNzA2YzJxRE9xME8="; // Thay bằng API Key Secret
         long expirationTime = System.currentTimeMillis() / 1000 + 3600; // Token hết hạn sau 1 giờ
-
         String token = generateStringeeAccessToken(apiKeySid, apiKeySecret, username, expirationTime);
         return Map.of("accessToken", token);
     }
 
     private String generateStringeeAccessToken(String apiKeySid, String apiKeySecret, String userId, long expirationTime) {
+        if (apiKeySid == null || apiKeySecret == null || userId == null) {
+            throw new IllegalArgumentException("apiKeySid, apiKeySecret, or userId cannot be null");
+        }
         String header = Base64.getEncoder().encodeToString("{\"alg\":\"HS256\",\"typ\":\"JWT\",\"cty\":\"stringee-api;v=1\"}".getBytes());
         String payload = Base64.getEncoder().encodeToString(
                 String.format("{\"jti\":\"%s-%d\",\"iss\":\"%s\",\"exp\":%d,\"userId\":\"%s\"}",
@@ -262,28 +279,31 @@ public class ChatController {
     private String hmacSha256(String data, String key) {
         try {
             Mac mac = Mac.getInstance("HmacSHA256");
-            SecretKeySpec secretKeySpec = new SecretKeySpec(key.getBytes(), "HmacSHA256");
+            SecretKeySpec secretKeySpec = new SecretKeySpec(Base64.getDecoder().decode(key), "HmacSHA256");
             mac.init(secretKeySpec);
             byte[] hmacData = mac.doFinal(data.getBytes());
-            return new String(Hex.encodeHex(hmacData));
+            return Hex.encodeHexString(hmacData);
         } catch (Exception e) {
             throw new RuntimeException("Failed to generate HMAC SHA256", e);
         }
     }
+
     @GetMapping("/{chatId}/members")
     public List<Map<String, Object>> getChatMembers(@PathVariable Integer chatId) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        chatService.checkChatAccess(chatId, username); // Kiểm tra quyền truy cập
+        chatService.checkChatAccess(chatId, username);
         List<ChatMember> members = chatMemberRepository.findByChatId(chatId);
         return members.stream()
                 .map(member -> {
                     Map<String, Object> memberMap = new HashMap<>();
                     memberMap.put("userId", member.getUser().getId());
                     memberMap.put("username", member.getUser().getUsername());
+                    memberMap.put("stringeeUserId", member.getUser().getUsername());
                     return memberMap;
                 })
                 .collect(Collectors.toList());
     }
+
     @GetMapping("/user/{userId}")
     public List<Map<String, Object>> getUserChats(@PathVariable Integer userId) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
