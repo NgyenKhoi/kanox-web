@@ -20,7 +20,7 @@ import { useWebSocket } from "../../hooks/useWebSocket";
 import useUserSearch from "../../hooks/useUserSearch";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
-function MessengerPage({ publish }) {
+function MessengerPage() {
   const { token, user } = useContext(AuthContext);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -29,7 +29,7 @@ function MessengerPage({ publish }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [unreadChats, setUnreadChats] = useState(new Set());
-  const [showUserSelectionModal, setShowUserSelectionModal] = useState(false);
+  const [showUserSelectionModal, setShowUserSelectionModal] = useState(false); // Thêm biến trạng thái bị thiếu
 
   const {
     searchKeyword,
@@ -39,69 +39,56 @@ function MessengerPage({ publish }) {
     debouncedSearch,
   } = useUserSearch(token, navigate);
 
-  // Xử lý thông báo WebSocket
-  const handleWebSocketMessage = (message) => {
-    if (message.action === "delete") {
-      setChats((prev) => prev.filter((chat) => chat.id !== message.chatId));
-      setUnreadChats((prev) => {
-        const newUnread = new Set(prev);
-        newUnread.delete(message.chatId);
-        return newUnread;
-      });
-      if (selectedChatId === message.chatId) {
-        setSelectedChatId(null);
-        navigate("/messages");
-      }
-      toast.success("Chat đã được xóa.");
-    } else if (message.chatId) {
-      setChats((prev) => {
-        const existingChat = prev.find((chat) => chat.id === message.chatId);
-        if (existingChat) {
-          return prev.map((chat) =>
-              chat.id === message.chatId ? { ...chat, ...message } : chat
+  // Khởi tạo WebSocket
+  const { publish } = useWebSocket(
+      (message) => {
+        console.log("MessengerPage WebSocket message:", message);
+        if (message.action === "delete") {
+          setChats((prev) => prev.filter((chat) => chat.id !== message.chatId));
+          setUnreadChats((prev) => {
+            const newUnread = new Set(prev);
+            newUnread.delete(message.chatId);
+            return newUnread;
+          });
+          if (selectedChatId === message.chatId) {
+            setSelectedChatId(null);
+            navigate("/messages");
+          }
+          toast.success("Chat đã được xóa.");
+        } else if (message.chatId) {
+          setChats((prev) => {
+            const existingChat = prev.find((chat) => chat.id === message.chatId);
+            if (existingChat) {
+              return prev.map((chat) =>
+                  chat.id === message.chatId ? { ...chat, ...message } : chat
+              );
+            }
+            return [...prev, message];
+          });
+          setUnreadChats((prev) => {
+            const newUnread = new Set(prev);
+            if (message.unreadMessagesCount > 0) {
+              newUnread.add(message.chatId);
+            } else {
+              newUnread.delete(message.chatId);
+            }
+            return newUnread;
+          });
+          // Gửi sự kiện để cập nhật unread count
+          window.dispatchEvent(
+              new CustomEvent("updateUnreadCount", {
+                detail: { unreadCount: message.unreadMessagesCount || 0 },
+              })
           );
         }
-        return [...prev, message];
-      });
-      setUnreadChats((prev) => {
-        const newUnread = new Set(prev);
-        if (message.unreadMessagesCount > 0) {
-          newUnread.add(message.chatId);
-        } else {
-          newUnread.delete(message.chatId);
-        }
-        return newUnread;
-      });
-    } else if (message.type === "MESSAGE") {
-      setChats((prev) => {
-        const updatedChats = prev.map((chat) =>
-            chat.id === message.chatId
-                ? { ...chat, lastMessage: message.content, unreadMessagesCount: (chat.unreadMessagesCount || 0) + 1 }
-                : chat
-        );
-        return updatedChats;
-      });
-      setUnreadChats((prev) => {
-        const newUnread = new Set(prev);
-        newUnread.add(message.chatId);
-        return newUnread;
-      });
-      if (selectedChatId === message.chatId) {
-        window.dispatchEvent(new Event("messageUpdate"));
-      }
-    }
-  };
-
-  // Khởi tạo WebSocket và truyền danh sách chatIds
-  const { publish: wsPublish } = useWebSocket(
-      handleWebSocketMessage,
+      },
       (count) => {
         window.dispatchEvent(
             new CustomEvent("updateUnreadCount", { detail: { unreadCount: count } })
         );
       },
-      "/topic/chats/",
-      [user?.id].filter(Boolean)
+      "/topic/chat/",
+      chats.map((chat) => chat.id).concat(user ? [user.id] : []) // Subscribe vào tất cả chatId và userId
   );
 
   useEffect(() => {
@@ -237,7 +224,6 @@ function MessengerPage({ publish }) {
             })
         );
       }
-      window.dispatchEvent(new CustomEvent("chatSwitch", { detail: { chatId } }));
     } catch (error) {
       console.error("Error fetching messages or unread count:", error);
     }
@@ -279,27 +265,16 @@ function MessengerPage({ publish }) {
 
     fetchChats();
 
-    // Lấy chatId từ query params
     const chatId = searchParams.get("chatId");
     if (chatId) {
       setSelectedChatId(Number(chatId));
     }
   }, [token, user, navigate, searchParams]);
 
-  useEffect(() => {
-    const handleChatSwitch = () => {
-      console.log("Switching chat, cleaning up previous state if any...");
-    };
-    window.addEventListener("chatSwitch", handleChatSwitch);
-    return () => window.removeEventListener("chatSwitch", handleChatSwitch);
-  }, []);
-
-  const filteredChats = chats.filter((chat) => {
-    const chatName = chat.name ? chat.name.toLowerCase() : "";
-    const lastMessage = chat.lastMessage ? chat.lastMessage.toLowerCase() : "";
-    const search = searchQuery.toLowerCase();
-    return chatName.includes(search) || lastMessage.includes(search);
-  });
+  // Sửa lỗi: filteredChats không được định nghĩa
+  const filteredChats = chats.filter((chat) =>
+      chat.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
       <div className="d-flex h-100 bg-light">
@@ -320,7 +295,7 @@ function MessengerPage({ publish }) {
             isDarkMode={false}
             onToggleDarkMode={() => console.log("Toggle Dark Mode")}
         />
-        <div className="flex-grow-1 d-flex flex-column">
+        <div className="flex-grow-1 d dunque-flex flex-column">
           <div className="bg-white border-bottom p-3">
             <h5 className="fw-bold mb-0">Tin nhắn</h5>
             <InputGroup className="mt-3 rounded-pill shadow-sm">
@@ -384,7 +359,7 @@ function MessengerPage({ publish }) {
                                 e.stopPropagation();
                                 handleDeleteChat(chat.id);
                               }}
-                              title="Xóa chat"
+                              title="Delete chat"
                           >
                             <FaTrash className="text-danger" />
                           </Button>
@@ -395,7 +370,7 @@ function MessengerPage({ publish }) {
             </div>
             <div className="flex-grow-1">
               {selectedChatId ? (
-                  <Chat chatId={selectedChatId} publish={publish || wsPublish} />
+                  <Chat chatId={selectedChatId} publish={publish} />
               ) : (
                   <div className="d-flex justify-content-center align-items-center h-100">
                     <p className="text-muted">Chọn một cuộc trò chuyện</p>

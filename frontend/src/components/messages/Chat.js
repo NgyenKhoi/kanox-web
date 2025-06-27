@@ -5,9 +5,9 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { AuthContext } from "../../context/AuthContext";
 import { FaPaperclip, FaPaperPlane, FaPhone } from "react-icons/fa";
-import { useWebSocket } from "../../hooks/useWebSocket"; // Import useWebSocket
+import { useWebSocket } from "../../hooks/useWebSocket";
 
-const Chat = ({ chatId }) => {
+const Chat = ({ chatId, publish }) => {
     const { user, token } = useContext(AuthContext);
     const [messages, setMessages] = useState([]);
     const [message, setMessage] = useState("");
@@ -17,18 +17,23 @@ const Chat = ({ chatId }) => {
     const navigate = useNavigate();
 
     // Khởi tạo WebSocket
-    const { publish } = useWebSocket(
+    useWebSocket(
         (data) => {
-            // Xử lý tin nhắn nhận được
+            console.log("Chat WebSocket message received:", data); // Log để debug
             if (data.type === "MESSAGE") {
-                setMessages((prev) => [...prev, data].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)));
+                setMessages((prev) => {
+                    if (!prev.some((msg) => msg.id === data.id)) {
+                        return [...prev, data].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+                    }
+                    return prev;
+                });
             } else if (data.type === "TYPING") {
                 setIsTyping(data.isTyping);
             }
         },
-        () => {}, // setUnreadCount không cần trong Chat, để hàm rỗng
-        "/topic/chats/", // topicPrefix cho thông báo
-        [chatId] // chatIds để subscribe vào topic call
+        () => {}, // Không cần setUnreadCount trong Chat
+        "/topic/chat/", // Topic khớp với backend
+        [chatId]
     );
 
     useEffect(() => {
@@ -70,7 +75,13 @@ const Chat = ({ chatId }) => {
         if (chatContainerRef.current) {
             chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
         }
-    }, [messages]);
+        // Gửi sự kiện để cập nhật unread count khi chat được mở
+        window.dispatchEvent(
+            new CustomEvent("updateUnreadCount", {
+                detail: { chatId, unreadCount: 0 },
+            })
+        );
+    }, [messages, chatId]);
 
     const sendMessage = () => {
         if (!message.trim() || !publish) return;
@@ -118,7 +129,6 @@ const Chat = ({ chatId }) => {
                     <FaPhone />
                 </Button>
             </div>
-
             <div
                 className="flex-grow-1 overflow-auto p-3"
                 ref={chatContainerRef}
@@ -151,7 +161,6 @@ const Chat = ({ chatId }) => {
                 ))}
                 {isTyping && <div className="text-muted">Đang nhập...</div>}
             </div>
-
             <div className="p-3 border-top bg-white">
                 <InputGroup className="shadow-sm rounded-3 overflow-hidden" style={{ backgroundColor: "#f8f9fa" }}>
                     <Button variant="outline-secondary" className="border-0">
