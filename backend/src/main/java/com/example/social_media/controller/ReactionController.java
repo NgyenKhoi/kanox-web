@@ -89,4 +89,15 @@ public class ReactionController {
         reactionService.removeReaction(dto.getUserId(), dto.getTargetId(), dto.getTargetTypeCode());
         return ResponseEntity.ok().build();
     }
+
+    @GetMapping("/emoji-main-list")
+    public ResponseEntity<List<Map<String, String>>> getMainEmojiList() {
+        List<ReactionType> types = reactionService.getMainReactions();
+
+        List<Map<String, String>> result = types.stream()
+                .map(rt -> Map.of("name", rt.getName(), "emoji", rt.getEmoji()))
+                .toList();
+
+        return ResponseEntity.ok(result);
+    }
 }
