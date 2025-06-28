@@ -265,6 +265,42 @@ const Call = ({ onEndCall }) => {
                 endCall();
             });
 
+            stringeeCallRef.current.on("addlocalstream", (stream) => {
+                if (localVideoRef.current) {
+                    localVideoRef.current.srcObject = stream;
+                    localVideoRef.current.play().catch((err) => {
+                        console.warn("Local video play error:", err);
+                        setTimeout(() => {
+                            localVideoRef.current?.play().catch(err => console.error("Retry local video:", err));
+                        }, 300);
+                    });
+                }
+            });
+
+            stringeeCallRef.current.on("addremotestream", (stream) => {
+                if (remoteVideoRef.current) {
+                    remoteVideoRef.current.srcObject = stream;
+                    remoteVideoRef.current.play().catch((err) => {
+                        console.warn("Remote video play error:", err);
+                        setTimeout(() => {
+                            remoteVideoRef.current?.play().catch(err => console.error("Retry remote video:", err));
+                        }, 300);
+                    });
+                }
+            });
+
+// Thêm debug state
+            stringeeCallRef.current.on("signalingstate", (state) => {
+                console.log("📶 Signaling state:", state);
+            });
+            stringeeCallRef.current.on("mediastate", (state) => {
+                console.log("📺 Media state:", state);
+            });
+
+            stringeeCallRef.current.on("end", () => {
+                endCall();
+            });
+
             stringeeCallRef.current.makeCall((res) => {
                 if (res.r === 0) {
                     console.log("Call started:", res);
