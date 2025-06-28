@@ -4,7 +4,6 @@ import com.example.social_media.config.URLConfig;
 import com.example.social_media.dto.ReactionTypeCountDto;
 import com.example.social_media.entity.ReactionType;
 import com.example.social_media.service.ReactionService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,7 +12,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping(URLConfig.REACTION_BASE)
-@RequiredArgsConstructor
 public class ReactionController {
 
     private final ReactionService reactionService;
