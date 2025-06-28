@@ -282,7 +282,8 @@ public class ChatController {
     private byte[] hmacSha256Bytes(String data, String key) {
         try {
             Mac mac = Mac.getInstance("HmacSHA256");
-            SecretKeySpec secretKeySpec = new SecretKeySpec(Base64.getDecoder().decode(key), "HmacSHA256");
+            // ✅ Không decode base64 — dùng raw secret
+            SecretKeySpec secretKeySpec = new SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
             mac.init(secretKeySpec);
             return mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
         } catch (Exception e) {
