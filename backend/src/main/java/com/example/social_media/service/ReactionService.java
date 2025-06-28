@@ -8,7 +8,6 @@ import com.example.social_media.repository.ReactionRepository;
 import com.example.social_media.repository.ReactionTypeRepository;
 import com.example.social_media.repository.TargetTypeRepository;
 import com.example.social_media.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -18,13 +17,22 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 public class ReactionService {
 
     private final ReactionRepository reactionRepository;
     private final ReactionTypeRepository reactionTypeRepository;
     private final UserRepository userRepository;
     private final TargetTypeRepository targetTypeRepository;
+
+    public ReactionService(ReactionRepository reactionRepository
+    , ReactionTypeRepository reactionTypeRepository
+    , UserRepository userRepository
+    , TargetTypeRepository targetTypeRepository) {
+        this.reactionRepository = reactionRepository;
+        this.reactionTypeRepository = reactionTypeRepository;
+        this.userRepository = userRepository;
+        this.targetTypeRepository = targetTypeRepository;
+    }
 
     private static final Set<String> MAIN_REACTIONS = Set.of(
             "like", "love", "haha", "sad", "wow", "angry"
