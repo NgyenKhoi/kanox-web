@@ -130,12 +130,27 @@ const Call = ({ onEndCall }) => {
             });
 
             stringeeClientRef.current.on("incomingcall", (incomingCall) => {
-                stringeeCallRef.current = incomingCall;
-                window.dispatchEvent(
-                    new CustomEvent("incomingCall", {
-                        detail: { chatId: chatId, sessionId: incomingCall.callId }
-                    })
-                );
+                const caller = incomingCall.fromNumber;
+                const callee = incomingCall.toNumber;
+
+                console.log("📞 Cuộc gọi đến:", { caller, callee, currentUser: user.username });
+
+                if (callee === user.username) {
+                    // Đây là người nhận thực sự
+                    stringeeCallRef.current = incomingCall;
+                    window.dispatchEvent(
+                        new CustomEvent("incomingCall", {
+                            detail: {
+                                chatId: chatId,
+                                sessionId: incomingCall.callId,
+                                from: incomingCall.fromNumber,
+                                to: incomingCall.toNumber,
+                            },
+                        })
+                    );
+                } else {
+                    console.log("⛔ Bỏ qua incomingCall vì mình là người gọi.");
+                }
             });
         };
 

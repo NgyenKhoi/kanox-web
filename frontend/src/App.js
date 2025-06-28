@@ -70,8 +70,8 @@ function AppContent() {
     chatIds.forEach((chatId) => {
       subscriptions.push(
           subscribe(`/topic/call/${chatId}`, (message) => {
-            console.log("Received call signal:", message);
-            if (message.type === "start") {
+            if (message.type === "start" && message.userId !== user.id) {
+              // 👆 userId là người gọi => lọc ra
               setIncomingCall({ chatId: message.chatId, sessionId: message.sessionId });
               setShowCallModal(true);
             }
@@ -80,8 +80,14 @@ function AppContent() {
     });
 
     const handleIncomingCall = (event) => {
-      setIncomingCall({ chatId: event.detail.chatId, sessionId: event.detail.sessionId });
-      setShowCallModal(true);
+      const { chatId, sessionId, from, to } = event.detail;
+
+      if (to === user.username) {
+        setIncomingCall({ chatId, sessionId });
+        setShowCallModal(true);
+      } else {
+        console.log("⛔ Bỏ qua incomingCall vì mình là người gọi");
+      }
     };
     window.addEventListener("incomingCall", handleIncomingCall);
 
