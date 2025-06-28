@@ -38,12 +38,14 @@ const Call = ({ onEndCall }) => {
                 if (!isMounted) return;
                 if (response.ok) {
                     const members = await response.json();
-                    const recipient = members.find((member) => member.userId !== user.id);
+                    const recipient = members.find((member) => member.username !== user.username);
                     if (recipient) {
                         setRecipientId(recipient.stringeeUserId || recipient.username);
                     } else {
                         toast.error("Không tìm thấy người nhận trong cuộc trò chuyện.");
                     }
+                    console.log("👤 Current user:", user.username);
+                    console.log("📄 All members:", members);
                 } else {
                     const errorText = await response.text();
                     throw new Error(`Lỗi khi lấy danh sách thành viên: ${errorText}`);
