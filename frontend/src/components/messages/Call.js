@@ -19,6 +19,7 @@ const Call = ({ onEndCall }) => {
     const stringeeCallRef = useRef(null);
     const localVideoRef = useRef(null);
     const remoteVideoRef = useRef(null);
+    const [isStringeeConnected, setIsStringeeConnected] = useState(false);
 
     useEffect(() => {
         let isMounted = true;
@@ -92,13 +93,25 @@ const Call = ({ onEndCall }) => {
                 return;
             }
 
+            navigator.mediaDevices.getUserMedia({ audio: true, video: true })
+                .then((stream) => {
+                    console.log("🎥 Đã có quyền truy cập camera và mic");
+                })
+                .catch((err) => {
+                    console.error("❌ Không truy cập được camera/mic:", err);
+                    toast.error("Không thể truy cập camera/micro. Vui lòng cấp quyền.");
+                });
+
+
             console.log("✅ Stringee SDK đã sẵn sàng:", window.Stringee);
             stringeeClientRef.current = new window.Stringee.StringeeClient();
             stringeeClientRef.current.connect(accessToken);
 
             stringeeClientRef.current.on("connect", () => {
                 toast.success("Đã kết nối với Stringee.");
+                setIsStringeeConnected(true); // đánh dấu đã kết nối
             });
+
 
             stringeeClientRef.current.on("authen", (res) => {
                 if (res.r !== 0) {
@@ -147,7 +160,7 @@ const Call = ({ onEndCall }) => {
     }, [chatId, token, user, navigate]);
 
     const startCall = async () => {
-        if (!stringeeClientRef.current || !stringeeClientRef.current.connected) {
+        if (!isStringeeConnected) {
             toast.error("Chưa kết nối Stringee.");
             return;
         }
