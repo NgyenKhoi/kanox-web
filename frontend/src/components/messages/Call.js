@@ -248,6 +248,11 @@ const Call = ({ onEndCall }) => {
             });
 
             stringeeCallRef.current.on("addlocalstream", (stream) => {
+                console.log("🎥 [addlocalstream] Stream:", stream);
+                console.log("🎥 [addlocalstream] Tracks:", stream.getTracks());
+                stream.getVideoTracks().forEach(track => {
+                    console.log("📹 Local Video Track - enabled:", track.enabled, "readyState:", track.readyState);
+                });
                 if (localVideoRef.current) {
                     localVideoRef.current.srcObject = stream;
                     setTimeout(() => {
@@ -275,29 +280,6 @@ const Call = ({ onEndCall }) => {
                 endCall();
             });
 
-            stringeeCallRef.current.on("addlocalstream", (stream) => {
-                if (localVideoRef.current) {
-                    localVideoRef.current.srcObject = stream;
-                    setTimeout(() => {
-                        localVideoRef.current
-                            .play()
-                            .then(() => console.log("▶️ Local video playing"))
-                            .catch(err => console.warn("Local video play error:", err));
-                    }, 300); // ⏱️ delay giúp stream ổn định
-                }
-            });
-
-            stringeeCallRef.current.on("addremotestream", (stream) => {
-                if (remoteVideoRef.current) {
-                    remoteVideoRef.current.srcObject = stream;
-                    setTimeout(() => {
-                        remoteVideoRef.current
-                            .play()
-                            .then(() => console.log("▶️ Remote video playing"))
-                            .catch(err => console.warn("Remote video play error:", err));
-                    }, 300); // ⏱️ delay để tránh AbortError
-                }
-            });
 
 // Thêm debug state
             stringeeCallRef.current.on("signalingstate", (state) => {
@@ -305,10 +287,6 @@ const Call = ({ onEndCall }) => {
             });
             stringeeCallRef.current.on("mediastate", (state) => {
                 console.log("📺 Media state:", state);
-            });
-
-            stringeeCallRef.current.on("end", () => {
-                endCall();
             });
 
             stringeeCallRef.current.makeCall((res) => {
