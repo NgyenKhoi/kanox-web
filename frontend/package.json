@@ -29,6 +29,7 @@
     "sockjs-client": "^1.6.1",
     "stompjs": "^2.3.3",
     "stringee": "^2.9.3",
+    "stringee-react-native": "^1.5.8",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
