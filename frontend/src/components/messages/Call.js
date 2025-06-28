@@ -20,6 +20,7 @@ const Call = ({ onEndCall }) => {
     const localVideoRef = useRef(null);
     const remoteVideoRef = useRef(null);
     const [isStringeeConnected, setIsStringeeConnected] = useState(false);
+    const [isCaller, setIsCaller] = useState(false);
 
     useEffect(() => {
         let isMounted = true;
@@ -140,6 +141,7 @@ const Call = ({ onEndCall }) => {
                 }
 
                 stringeeCallRef.current = incomingCall;
+                setIsCaller(false);
 
                 stringeeCallRef.current.on("signalingstate", (state) => {
                     console.log("📶 Signaling state:", state);
@@ -233,6 +235,7 @@ const Call = ({ onEndCall }) => {
             const callSession = await response.json();
             setCallSessionId(callSession.sessionId);
 
+            setIsCaller(true);
             stringeeCallRef.current = new window.Stringee.StringeeCall(
                 stringeeClientRef.current,
                 user.username,
@@ -248,55 +251,39 @@ const Call = ({ onEndCall }) => {
             });
 
             stringeeCallRef.current.on("addlocalstream", (stream) => {
-                if (localVideoRef.current) {
-                    localVideoRef.current.srcObject = stream;
-                    setTimeout(() => {
-                        localVideoRef.current
-                            .play()
-                            .then(() => console.log("▶️ Local video playing"))
-                            .catch(err => console.warn("Local video play error:", err));
-                    }, 300); // ⏱️ delay giúp stream ổn định
+                if (isCaller) {
+                    // Người gọi: local là "video của bạn"
+                    if (localVideoRef.current) {
+                        localVideoRef.current.srcObject = stream;
+                        setTimeout(() => localVideoRef.current.play(), 300);
+                    }
+                } else {
+                    // Người nhận: local là "video của người nhận"
+                    if (remoteVideoRef.current) {
+                        remoteVideoRef.current.srcObject = stream;
+                        setTimeout(() => remoteVideoRef.current.play(), 300);
+                    }
                 }
             });
 
             stringeeCallRef.current.on("addremotestream", (stream) => {
-                if (remoteVideoRef.current) {
-                    remoteVideoRef.current.srcObject = stream;
-                    setTimeout(() => {
-                        remoteVideoRef.current
-                            .play()
-                            .then(() => console.log("▶️ Remote video playing"))
-                            .catch(err => console.warn("Remote video play error:", err));
-                    }, 300); // ⏱️ delay để tránh AbortError
+                if (isCaller) {
+                    // Người gọi: remote là "video của người nhận"
+                    if (remoteVideoRef.current) {
+                        remoteVideoRef.current.srcObject = stream;
+                        setTimeout(() => remoteVideoRef.current.play(), 300);
+                    }
+                } else {
+                    // Người nhận: remote là "video của bạn"
+                    if (localVideoRef.current) {
+                        localVideoRef.current.srcObject = stream;
+                        setTimeout(() => localVideoRef.current.play(), 300);
+                    }
                 }
             });
 
             stringeeCallRef.current.on("end", () => {
                 endCall();
-            });
-
-            stringeeCallRef.current.on("addlocalstream", (stream) => {
-                if (localVideoRef.current) {
-                    localVideoRef.current.srcObject = stream;
-                    setTimeout(() => {
-                        localVideoRef.current
-                            .play()
-                            .then(() => console.log("▶️ Local video playing"))
-                            .catch(err => console.warn("Local video play error:", err));
-                    }, 300); // ⏱️ delay giúp stream ổn định
-                }
-            });
-
-            stringeeCallRef.current.on("addremotestream", (stream) => {
-                if (remoteVideoRef.current) {
-                    remoteVideoRef.current.srcObject = stream;
-                    setTimeout(() => {
-                        remoteVideoRef.current
-                            .play()
-                            .then(() => console.log("▶️ Remote video playing"))
-                            .catch(err => console.warn("Remote video play error:", err));
-                    }, 300); // ⏱️ delay để tránh AbortError
-                }
             });
 
 // Thêm debug state
@@ -305,10 +292,6 @@ const Call = ({ onEndCall }) => {
             });
             stringeeCallRef.current.on("mediastate", (state) => {
                 console.log("📺 Media state:", state);
-            });
-
-            stringeeCallRef.current.on("end", () => {
-                endCall();
             });
 
             stringeeCallRef.current.makeCall((res) => {
