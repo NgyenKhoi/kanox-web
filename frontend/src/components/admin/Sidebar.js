@@ -1,13 +1,14 @@
 import React from "react";
 import { Nav, Navbar, Button } from "react-bootstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
-
+import { Link, useNavigate, useLocation } from "react-router-dom";
 const Sidebar = ({ activeTab, setActiveTab }) => {
   const navItems = [
     { name: "Tổng quan", icon: "📊", tab: "dashboard" },
     { name: "Người dùng", icon: "👥", tab: "users" },
     { name: "Bài viết", icon: "📋", tab: "posts" },
   ];
+    const navigate = useNavigate();
 
   return (
     <Navbar bg="dark" variant="dark" expand="lg" className="h-screen w-64 flex flex-col rounded-tr-lg rounded-br-lg">
@@ -31,7 +32,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
       <div className="p-4 border-top">
         <Button
           variant="outline-light"
-          onClick={() => console.log("Đăng xuất")}
+          onClick={() => navigate("/")}
           className="w-full text-lg flex items-center"
         >
           <span className="mr-3 text-xl">🚪</span>

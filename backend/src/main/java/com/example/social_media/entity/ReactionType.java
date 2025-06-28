@@ -23,6 +23,10 @@ public class ReactionType {
     @Column(name = "description")
     private String description;
 
+    @Size(max = 10)
+    @Column(name = "emoji", length = 10)
+    private String emoji;
+
     @ColumnDefault("1")
     @Column(name = "status")
     private Boolean status;
@@ -70,4 +74,12 @@ public class ReactionType {
         this.tblReactions = tblReactions;
     }
 
+
+    public String getEmoji() {
+        return emoji;
+    }
+
+    public void setEmoji(String emoji) {
+        this.emoji = emoji;
+    }
 }

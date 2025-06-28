@@ -39,6 +39,14 @@ public class URLConfig {
     public static final String RESEND = "/resend";
     public static final String GET_CHAT = "/{chatId}";
     public static final String CHAT_DELETE = "/{chatId}/delete";
+    // Reaction URLs
+    public static final String REACTION_BASE = "/api/reactions";
+    public static final String ADD_REACTION = "/add";
+    public static final String REMOVE_REACTION = "/remove";
+    public static final String GET_TOP_REACTION = "/top3";
+    public static final String COUNT_REACTION = "/count";
+    public static final String GET_REACTION_FOR_MESSAGE = "/messaging";
+    public static final String GET_MAIN_REACTION = "/main";
     // Frontend URLs
     public static final String FRONTEND_RESET_PASSWORD_URL = "https://kanox-web.netlify.app/reset-password?token=";
 
