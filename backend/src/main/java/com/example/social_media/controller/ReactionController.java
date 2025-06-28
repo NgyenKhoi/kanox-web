@@ -5,7 +5,6 @@ import com.example.social_media.dto.reaction.ReactionRequestDto;
 import com.example.social_media.dto.reaction.ReactionTypeCountDto;
 import com.example.social_media.dto.reaction.RemoveReactionRequestDto;
 import com.example.social_media.entity.ReactionType;
-import com.example.social_media.repository.TargetTypeRepository;
 import com.example.social_media.service.ReactionService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,34 +17,35 @@ import java.util.Map;
 public class ReactionController {
 
     private final ReactionService reactionService;
-    private final TargetTypeRepository targetTypeRepository;
 
-    public ReactionController(ReactionService reactionService,  TargetTypeRepository targetTypeRepository) {
+    public ReactionController(ReactionService reactionService) {
         this.reactionService = reactionService;
-        this.targetTypeRepository = targetTypeRepository;
     }
 
+    // ✅ Sử dụng targetTypeCode và emojiName (kiểu String)
     @PostMapping(URLConfig.ADD_REACTION)
     public ResponseEntity<Void> addReaction(
             @RequestParam Integer userId,
             @RequestParam Integer targetId,
-            @RequestParam Integer targetTypeId,
-            @RequestParam Integer reactionTypeId
+            @RequestParam String targetTypeCode,
+            @RequestParam String emojiName
     ) {
-        reactionService.addOrUpdateReaction(userId, targetId, targetTypeId, reactionTypeId);
+        reactionService.addOrUpdateReaction(userId, targetId, targetTypeCode, emojiName);
         return ResponseEntity.ok().build();
     }
 
+    // ✅ Sử dụng targetTypeCode (kiểu String)
     @DeleteMapping(URLConfig.REMOVE_REACTION)
     public ResponseEntity<Void> removeReaction(
             @RequestParam Integer userId,
             @RequestParam Integer targetId,
-            @RequestParam Integer targetTypeId
+            @RequestParam String targetTypeCode
     ) {
-        reactionService.removeReaction(userId, targetId, targetTypeId);
+        reactionService.removeReaction(userId, targetId, targetTypeCode);
         return ResponseEntity.ok().build();
     }
 
+    // Không cần sửa vì dùng targetTypeId (Integer) cho các hàm thống kê
     @GetMapping(URLConfig.GET_TOP_REACTION)
     public ResponseEntity<List<ReactionTypeCountDto>> getTop3Reactions(
             @RequestParam Integer targetId,
@@ -72,6 +72,7 @@ public class ReactionController {
         return ResponseEntity.ok(reactionService.getMainReactions());
     }
 
+    // Đã đúng sẵn: sử dụng DTO chứa targetTypeCode và emojiName
     @PostMapping(URLConfig.ADD_REACTION_BY_NAME)
     public ResponseEntity<Void> addReactionByName(@RequestBody ReactionRequestDto dto) {
         reactionService.addOrUpdateReaction(
@@ -85,9 +86,7 @@ public class ReactionController {
 
     @DeleteMapping(URLConfig.REMOVE_REACTION_BY_NAME)
     public ResponseEntity<Void> removeReactionByName(@RequestBody RemoveReactionRequestDto dto) {
-        var targetType = targetTypeRepository.findByCode(dto.getTargetTypeCode())
-                .orElseThrow(() -> new IllegalArgumentException("Loại đối tượng không hợp lệ"));
-        reactionService.removeReaction(dto.getUserId(), dto.getTargetId(), targetType.getId());
+        reactionService.removeReaction(dto.getUserId(), dto.getTargetId(), dto.getTargetTypeCode());
         return ResponseEntity.ok().build();
     }
 }

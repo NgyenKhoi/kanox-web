@@ -5,8 +5,8 @@ D:\kanox-web\backend\src\main\java\com\example\social_media\controller\AdminCont
 D:\kanox-web\backend\src\main\java\com\example\social_media\dto\post\PostResponseDto.java
 D:\kanox-web\backend\src\main\java\com\example\social_media\service\UserProfileService.java
 D:\kanox-web\backend\src\main\java\com\example\social_media\controller\FollowController.java
+D:\kanox-web\backend\src\main\java\com\example\social_media\dto\reaction\ReactionRequestDto.java
 D:\kanox-web\backend\src\main\java\com\example\social_media\config\URLConfig.java
-D:\kanox-web\backend\src\main\java\com\example\social_media\dto\ReactionTypeCountDto.java
 D:\kanox-web\backend\src\main\java\com\example\social_media\exception\EmailAlreadyExistsException.java
 D:\kanox-web\backend\src\main\java\com\example\social_media\service\MailService.java
 D:\kanox-web\backend\src\main\java\com\example\social_media\controller\AuthController.java
@@ -108,6 +108,7 @@ D:\kanox-web\backend\src\main\java\com\example\social_media\service\CustomUserDe
 D:\kanox-web\backend\src\main\java\com\example\social_media\repository\PostRepository.java
 D:\kanox-web\backend\src\main\java\com\example\social_media\repository\UserRepository.java
 D:\kanox-web\backend\src\main\java\com\example\social_media\entity\ReactionId.java
+D:\kanox-web\backend\src\main\java\com\example\social_media\dto\reaction\RemoveReactionRequestDto.java
 D:\kanox-web\backend\src\main\java\com\example\social_media\repository\PasswordResetRepository.java
 D:\kanox-web\backend\src\main\java\com\example\social_media\controller\PostController.java
 D:\kanox-web\backend\src\main\java\com\example\social_media\entity\FriendSuggestion.java
@@ -170,6 +171,7 @@ D:\kanox-web\backend\src\main\java\com\example\social_media\service\ChatService.
 D:\kanox-web\backend\src\main\java\com\example\social_media\repository\MessageRepository.java
 D:\kanox-web\backend\src\main\java\com\example\social_media\exception\InvalidPasswordException.java
 D:\kanox-web\backend\src\main\java\com\example\social_media\entity\User.java
+D:\kanox-web\backend\src\main\java\com\example\social_media\dto\reaction\ReactionTypeCountDto.java
 D:\kanox-web\backend\src\main\java\com\example\social_media\entity\Analytic.java
 D:\kanox-web\backend\src\main\java\com\example\social_media\entity\ErrorLog.java
 D:\kanox-web\backend\src\main\java\com\example\social_media\entity\Chat.java
