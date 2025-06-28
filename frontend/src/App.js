@@ -70,9 +70,13 @@ function AppContent() {
     chatIds.forEach((chatId) => {
       subscriptions.push(
           subscribe(`/topic/call/${chatId}`, (message) => {
+            console.log("Received call signal:", message);
             if (message.type === "start" && message.userId !== user.id) {
-              // 👆 userId là người gọi => lọc ra
-              setIncomingCall({ chatId: message.chatId, sessionId: message.sessionId });
+              setIncomingCall({
+                chatId: message.chatId,
+                sessionId: message.sessionId,
+                from: message.userId
+              });
               setShowCallModal(true);
             }
           }, `call-${chatId}`)
@@ -81,13 +85,12 @@ function AppContent() {
 
     const handleIncomingCall = (event) => {
       const { chatId, sessionId, from, to } = event.detail;
-
-      if (to === user.username) {
-        setIncomingCall({ chatId, sessionId });
-        setShowCallModal(true);
-      } else {
-        console.log("⛔ Bỏ qua incomingCall vì mình là người gọi");
+      if (to !== user.username) {
+        console.log("⛔ Mình là người gọi, không hiển thị modal.");
+        return;
       }
+      setIncomingCall({ chatId, sessionId });
+      setShowCallModal(true);
     };
     window.addEventListener("incomingCall", handleIncomingCall);
 

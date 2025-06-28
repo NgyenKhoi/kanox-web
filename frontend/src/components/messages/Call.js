@@ -130,27 +130,25 @@ const Call = ({ onEndCall }) => {
             });
 
             stringeeClientRef.current.on("incomingcall", (incomingCall) => {
-                const caller = incomingCall.fromNumber;
-                const callee = incomingCall.toNumber;
+                console.log("📞 incomingCall.toNumber:", incomingCall.toNumber);
+                console.log("👤 currentUser.username:", user.username);
+                stringeeCallRef.current = incomingCall;
 
-                console.log("📞 Cuộc gọi đến:", { caller, callee, currentUser: user.username });
-
-                if (callee === user.username) {
-                    // Đây là người nhận thực sự
-                    stringeeCallRef.current = incomingCall;
-                    window.dispatchEvent(
-                        new CustomEvent("incomingCall", {
-                            detail: {
-                                chatId: chatId,
-                                sessionId: incomingCall.callId,
-                                from: incomingCall.fromNumber,
-                                to: incomingCall.toNumber,
-                            },
-                        })
-                    );
-                } else {
-                    console.log("⛔ Bỏ qua incomingCall vì mình là người gọi.");
+                if (incomingCall.toNumber !== user.username) {
+                    console.log("⛔ Bỏ qua incomingCall vì mình là người gọi");
+                    return;
                 }
+
+                window.dispatchEvent(
+                    new CustomEvent("incomingCall", {
+                        detail: {
+                            chatId: chatId,
+                            sessionId: incomingCall.callId,
+                            from: incomingCall.fromNumber,
+                            to: incomingCall.toNumber,
+                        },
+                    })
+                );
             });
         };
 
