@@ -115,7 +115,6 @@ function TweetCard({ tweet, onPostUpdate }) {
   } = tweet || {};
 
   const isOwnTweet = user && user.username === owner?.username;
-  const [reaction, setReaction] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showImageModal, setShowImageModal] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
