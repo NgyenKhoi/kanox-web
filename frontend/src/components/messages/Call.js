@@ -140,16 +140,31 @@ const Call = ({ onEndCall }) => {
                 }
 
                 stringeeCallRef.current = incomingCall;
-                window.dispatchEvent(
-                    new CustomEvent("incomingCall", {
-                        detail: {
-                            chatId: chatId,
-                            sessionId: incomingCall.callId,
-                            from: incomingCall.fromNumber,
-                            to: incomingCall.toNumber,
-                        }
-                    })
-                );
+                incomingCall.on("addlocalstream", (stream) => {
+                    if (localVideoRef.current) {
+                        localVideoRef.current.srcObject = stream;
+                        localVideoRef.current.play().catch((err) => console.error("Local video play error:", err));
+                    }
+                });
+
+                incomingCall.on("addremotestream", (stream) => {
+                    if (remoteVideoRef.current) {
+                        remoteVideoRef.current.srcObject = stream;
+                        remoteVideoRef.current.play().catch((err) => console.error("Remote video play error:", err));
+                    }
+                });
+
+                incomingCall.on("end", () => {
+                    endCall();
+                });
+                incomingCall.answer((res) => {
+                    if (res.r === 0) {
+                        setCallStarted(true);
+                        console.log("📞 Cuộc gọi đã được trả lời");
+                    } else {
+                        toast.error("Không thể trả lời cuộc gọi: " + res.message);
+                    }
+                });
             });
 
         };
