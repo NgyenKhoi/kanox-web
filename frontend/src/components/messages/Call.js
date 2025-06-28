@@ -250,14 +250,24 @@ const Call = ({ onEndCall }) => {
             stringeeCallRef.current.on("addlocalstream", (stream) => {
                 if (localVideoRef.current) {
                     localVideoRef.current.srcObject = stream;
-                    localVideoRef.current.play().catch((err) => console.error("Local video play error:", err));
+                    setTimeout(() => {
+                        localVideoRef.current
+                            .play()
+                            .then(() => console.log("▶️ Local video playing"))
+                            .catch(err => console.warn("Local video play error:", err));
+                    }, 300); // ⏱️ delay giúp stream ổn định
                 }
             });
 
             stringeeCallRef.current.on("addremotestream", (stream) => {
                 if (remoteVideoRef.current) {
                     remoteVideoRef.current.srcObject = stream;
-                    remoteVideoRef.current.play().catch((err) => console.error("Remote video play error:", err));
+                    setTimeout(() => {
+                        remoteVideoRef.current
+                            .play()
+                            .then(() => console.log("▶️ Remote video playing"))
+                            .catch(err => console.warn("Remote video play error:", err));
+                    }, 300); // ⏱️ delay để tránh AbortError
                 }
             });
 
@@ -268,24 +278,24 @@ const Call = ({ onEndCall }) => {
             stringeeCallRef.current.on("addlocalstream", (stream) => {
                 if (localVideoRef.current) {
                     localVideoRef.current.srcObject = stream;
-                    localVideoRef.current.play().catch((err) => {
-                        console.warn("Local video play error:", err);
-                        setTimeout(() => {
-                            localVideoRef.current?.play().catch(err => console.error("Retry local video:", err));
-                        }, 300);
-                    });
+                    setTimeout(() => {
+                        localVideoRef.current
+                            .play()
+                            .then(() => console.log("▶️ Local video playing"))
+                            .catch(err => console.warn("Local video play error:", err));
+                    }, 300); // ⏱️ delay giúp stream ổn định
                 }
             });
 
             stringeeCallRef.current.on("addremotestream", (stream) => {
                 if (remoteVideoRef.current) {
                     remoteVideoRef.current.srcObject = stream;
-                    remoteVideoRef.current.play().catch((err) => {
-                        console.warn("Remote video play error:", err);
-                        setTimeout(() => {
-                            remoteVideoRef.current?.play().catch(err => console.error("Retry remote video:", err));
-                        }, 300);
-                    });
+                    setTimeout(() => {
+                        remoteVideoRef.current
+                            .play()
+                            .then(() => console.log("▶️ Remote video playing"))
+                            .catch(err => console.warn("Remote video play error:", err));
+                    }, 300); // ⏱️ delay để tránh AbortError
                 }
             });
 
