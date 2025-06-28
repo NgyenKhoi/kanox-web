@@ -1,0 +1,37 @@
+.reaction-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.reaction-popover {
+    display: none;
+    position: absolute;
+    bottom: 30px;
+    left: 0;
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 999px;
+    padding: 4px 8px;
+    display: flex;
+    gap: 6px;
+    z-index: 1000;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.reaction-wrapper:hover .reaction-popover {
+    display: flex;
+}
+
+.reaction-emoji {
+    font-size: 20px;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.reaction-emoji:hover {
+    transform: scale(1.2);
+}
+
+.hover-bg-light:hover {
+    background-color: #f0f2f5 !important;
+}

@@ -2,12 +2,14 @@ import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 
 export default function useReaction({ targetId, targetTypeCode, user }) {
-    const [reaction, setReaction] = useState(null); // emoji (e.g. "❤️")
+    const [reaction, setReaction] = useState(null); // emoji unicode (e.g. "❤️")
     const [reactionCount, setReactionCount] = useState(0);
+    const [emojiMap, setEmojiMap] = useState({}); // { like: "👍", love: "❤️", ... }
 
     useEffect(() => {
         if (!user || !targetId || !targetTypeCode) return;
         fetchReactionStatus();
+        fetchEmojiList();
     }, [user, targetId, targetTypeCode]);
 
     const fetchReactionStatus = async () => {
@@ -37,7 +39,21 @@ export default function useReaction({ targetId, targetTypeCode, user }) {
         }
     };
 
-    const sendReaction = async (emoji) => {
+    const fetchEmojiList = async () => {
+        try {
+            const res = await fetch(`${process.env.REACT_APP_API_URL}/reactions/emoji-main-list`);
+            const data = await res.json();
+            const map = {};
+            data.forEach(({ name, emoji }) => {
+                map[name] = emoji;
+            });
+            setEmojiMap(map);
+        } catch (err) {
+            console.error("Không thể lấy danh sách emoji:", err.message);
+        }
+    };
+
+    const sendReaction = async (reactionName) => {
         try {
             const token = localStorage.getItem("token");
             if (!token) throw new Error("Vui lòng đăng nhập để thả cảm xúc!");
@@ -52,12 +68,12 @@ export default function useReaction({ targetId, targetTypeCode, user }) {
                     userId: user.id,
                     targetId,
                     targetTypeCode,
-                    emojiName: emoji,
+                    emojiName: reactionName, // Gửi name chứ không phải emoji
                 }),
             });
 
             if (!response.ok) throw new Error("Không thể thả cảm xúc!");
-            setReaction(emoji);
+            setReaction(emojiMap[reactionName]); // Đổi lại thành emoji unicode
             toast.success("Đã thả cảm xúc!");
         } catch (err) {
             toast.error("Lỗi thả cảm xúc: " + err.message);
@@ -91,11 +107,12 @@ export default function useReaction({ targetId, targetTypeCode, user }) {
     };
 
     return {
-        reaction,
+        reaction, // emoji unicode
         setReaction,
-        sendReaction,
+        sendReaction, // nhận name như "like"
         removeReaction,
         reactionCount,
         setReactionCount,
+        emojiMap, // name → emoji unicode
     };
 }

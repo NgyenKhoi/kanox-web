@@ -13,6 +13,7 @@ import {
   InputGroup,
 } from "react-bootstrap";
 import {
+  FaBookmark,
   FaRegComment,
   FaRetweet,
   FaRegHeart,
@@ -39,6 +40,8 @@ import { useNavigate } from "react-router-dom";
 import CommentItem from "./CommentItem";
 import CommentThread from "./CommentThread";
 import useReaction from "../../../hooks/useReaction";
+import './TweetCard.css';
+
 
 // Inline styles
 const imageContainerStyles = {
@@ -131,7 +134,8 @@ function TweetCard({ tweet, onPostUpdate }) {
   const targetTypeId = tweet?.targetTypeId || 1;
 
   const {
-    reaction,
+    reactionName,
+    reactionEmoji,
     sendReaction,
     removeReaction,
   } = useReaction({ targetId: postId, targetTypeId, user });
@@ -270,7 +274,7 @@ function TweetCard({ tweet, onPostUpdate }) {
   const handleSaveTweet = () => alert(`Đã lưu bài đăng: ${content}`);
   const handleReportTweet = () => alert(`Đã báo cáo bài đăng: ${content}`);
   const handleEmojiReaction = async (emoji) => {
-    if (reaction === emoji) {
+    if (reactionName === emoji) {
       await removeReaction();
     } else {
       await sendReaction(emoji);
@@ -739,40 +743,43 @@ function TweetCard({ tweet, onPostUpdate }) {
               <Button
                 variant="link"
                 className="text-muted p-1 rounded-circle hover-bg-light"
-                aria-label="Chia sẻ lại"
+                aria-label="Lưu bài viết"
               >
-                <FaRetweet size={18} className="me-1" />
+                <FaBookmark size={18} className="me-1" />
                 {shareCount > 0 && shareCount}
               </Button>
-              <OverlayTrigger
-                placement="top"
-                overlay={<Tooltip>Chọn biểu cảm</Tooltip>}
-              >
-                <Dropdown>
-                  <Dropdown.Toggle
-                      variant="link"
-                      className="text-muted p-1 rounded-circle hover-bg-light"
-                      aria-label="Chọn biểu cảm"
-                  >
-                    {reaction ? (
-                        <span>{reaction}</span>
-                    ) : (
-                        <FaRegHeart size={18} className="me-1" />
-                    )}
-                    {likeCount > 0 && likeCount}
-                  </Dropdown.Toggle>
-                  <Dropdown.Menu>
-                    {["😊", "❤️", "👍", "😂"].map((emoji) => (
-                      <Dropdown.Item
-                        key={emoji}
-                        onClick={() => handleEmojiReaction(emoji)}
+              <div className="reaction-wrapper">
+                <Button
+                    variant="link"
+                    className="text-muted p-1 rounded-circle hover-bg-light"
+                    aria-label="Chọn biểu cảm"
+                >
+                  {reactionEmoji ? <span>{reactionEmoji}</span> : <FaRegHeart />}
+                  {likeCount > 0 && likeCount}
+                </Button>
+
+                <div className="reaction-popover">
+                  {[
+                    { name: "like", emoji: "👍" },
+                    { name: "love", emoji: "❤️" },
+                    { name: "haha", emoji: "😂" },
+                    { name: "care", emoji: "🤗" },
+                    { name: "sad", emoji: "😢" },
+                    { name: "angry", emoji: "😠" },
+                    { name: "wow", emoji: "😮" },
+                  ].map(({ name, emoji }) => (
+                      <span
+                          key={name}
+                          className="reaction-emoji"
+                          onClick={() => handleEmojiReaction(name)}
+                          aria-label={`Chọn biểu cảm ${name}`}
                       >
-                        {emoji}
-                      </Dropdown.Item>
-                    ))}
-                  </Dropdown.Menu>
-                </Dropdown>
-              </OverlayTrigger>
+        {emoji}
+      </span>
+                  ))}
+                </div>
+              </div>
+
               <Button
                 variant="link"
                 className="text-muted p-1 rounded-circle hover-bg-light"
@@ -892,5 +899,4 @@ function TweetCard({ tweet, onPostUpdate }) {
     </>
   );
 }
-
 export default TweetCard;
