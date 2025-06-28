@@ -18,6 +18,10 @@ public class ReactionController {
 
     private final ReactionService reactionService;
 
+    public ReactionController(ReactionService reactionService) {
+        this.reactionService = reactionService;
+    }
+
     @PostMapping(URLConfig.ADD_REACTION)
     public ResponseEntity<Void> addReaction(
             @RequestParam Integer userId,

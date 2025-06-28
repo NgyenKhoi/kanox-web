@@ -39,6 +39,7 @@ public class URLConfig {
     public static final String RESEND = "/resend";
     public static final String GET_CHAT = "/{chatId}";
     public static final String CHAT_DELETE = "/{chatId}/delete";
+    public static final String CHAT_PING = "/ping";
     // Reaction URLs
     public static final String REACTION_BASE = "/api/reactions";
     public static final String ADD_REACTION = "/add";
