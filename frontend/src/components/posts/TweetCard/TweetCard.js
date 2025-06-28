@@ -38,6 +38,7 @@ import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import CommentItem from "./CommentItem";
 import CommentThread from "./CommentThread";
+import useReaction from "../../../hooks/useReaction";
 
 // Inline styles
 const imageContainerStyles = {
@@ -128,6 +129,13 @@ function TweetCard({ tweet, onPostUpdate }) {
   const currentUserId = user?.id;
   const ownerId = owner?.id || null;
   const postId = id || null;
+  const targetTypeId = tweet?.targetTypeId || 1;
+
+  const {
+    reaction,
+    sendReaction,
+    removeReaction,
+  } = useReaction({ targetId: postId, targetTypeId, user });
 
   const avatarMedia = useMedia([ownerId], "PROFILE", "image");
   const imageMedia = useMedia([postId], "POST", "image");
@@ -262,9 +270,12 @@ function TweetCard({ tweet, onPostUpdate }) {
 
   const handleSaveTweet = () => alert(`Đã lưu bài đăng: ${content}`);
   const handleReportTweet = () => alert(`Đã báo cáo bài đăng: ${content}`);
-  const handleEmojiReaction = (emoji) => {
-    setReaction(emoji);
-    alert(`Phản ứng với ${emoji}`);
+  const handleEmojiReaction = async (emoji) => {
+    if (reaction === emoji) {
+      await removeReaction();
+    } else {
+      await sendReaction(emoji);
+    }
   };
 
   const handleStatusChange = async (newStatus) => {
@@ -740,14 +751,14 @@ function TweetCard({ tweet, onPostUpdate }) {
               >
                 <Dropdown>
                   <Dropdown.Toggle
-                    variant="link"
-                    className="text-muted p-1 rounded-circle hover-bg-light"
-                    aria-label="Chọn biểu cảm"
+                      variant="link"
+                      className="text-muted p-1 rounded-circle hover-bg-light"
+                      aria-label="Chọn biểu cảm"
                   >
                     {reaction ? (
-                      <span>{`${reaction} `}</span>
+                        <span>{reaction}</span>
                     ) : (
-                      <FaRegHeart size={18} className="me-1" />
+                        <FaRegHeart size={18} className="me-1" />
                     )}
                     {likeCount > 0 && likeCount}
                   </Dropdown.Toggle>

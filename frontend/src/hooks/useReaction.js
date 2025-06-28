@@ -1,34 +1,14 @@
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 
-const REACTION_MAP = {
-    "👍": 1,
-    "❤️": 2,
-    "😂": 3,
-    "😊": 4,
-    "😢": 5,
-    "😮": 6,
-    "😡": 7,
-};
-
-const EMOJI_BY_ID = {
-    1: "👍",
-    2: "❤️",
-    3: "😂",
-    4: "😊",
-    5: "😢",
-    6: "😮",
-    7: "😡",
-};
-
-export default function useReaction({ targetId, targetTypeId, user }) {
+export default function useReaction({ targetId, targetTypeCode, user }) {
     const [reaction, setReaction] = useState(null); // emoji (e.g. "❤️")
     const [reactionCount, setReactionCount] = useState(0);
 
     useEffect(() => {
-        if (!user || !targetId || !targetTypeId) return;
+        if (!user || !targetId || !targetTypeCode) return;
         fetchReactionStatus();
-    }, [user, targetId, targetTypeId]);
+    }, [user, targetId, targetTypeCode]);
 
     const fetchReactionStatus = async () => {
         try {
@@ -44,14 +24,13 @@ export default function useReaction({ targetId, targetTypeId, user }) {
                 body: JSON.stringify({
                     userId: user.id,
                     targetId,
-                    targetTypeId,
+                    targetTypeCode,
                 }),
             });
 
             const data = await res.json();
-            if (data && data.reactionType) {
-                const emoji = data.reactionType.emoji || EMOJI_BY_ID[data.reactionType.id];
-                setReaction(emoji);
+            if (data?.reactionType?.emoji) {
+                setReaction(data.reactionType.emoji);
             }
         } catch (err) {
             console.error("Không thể lấy reaction hiện tại:", err.message);
@@ -63,10 +42,7 @@ export default function useReaction({ targetId, targetTypeId, user }) {
             const token = localStorage.getItem("token");
             if (!token) throw new Error("Vui lòng đăng nhập để thả cảm xúc!");
 
-            const reactionTypeId = REACTION_MAP[emoji];
-            if (!reactionTypeId) throw new Error("Loại emoji không hợp lệ!");
-
-            const response = await fetch(`${process.env.REACT_APP_API_URL}/reactions`, {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/reactions/by-name`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -75,12 +51,12 @@ export default function useReaction({ targetId, targetTypeId, user }) {
                 body: JSON.stringify({
                     userId: user.id,
                     targetId,
-                    targetTypeId,
-                    reactionTypeId,
+                    targetTypeCode,
+                    emojiName: emoji,
                 }),
             });
 
-            if (!response.ok) throw new Error("Không thể thả reaction!");
+            if (!response.ok) throw new Error("Không thể thả cảm xúc!");
             setReaction(emoji);
             toast.success("Đã thả cảm xúc!");
         } catch (err) {
@@ -93,7 +69,7 @@ export default function useReaction({ targetId, targetTypeId, user }) {
             const token = localStorage.getItem("token");
             if (!token) throw new Error("Vui lòng đăng nhập để gỡ cảm xúc!");
 
-            const response = await fetch(`${process.env.REACT_APP_API_URL}/reactions`, {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/reactions/by-name`, {
                 method: "DELETE",
                 headers: {
                     "Content-Type": "application/json",
@@ -102,7 +78,7 @@ export default function useReaction({ targetId, targetTypeId, user }) {
                 body: JSON.stringify({
                     userId: user.id,
                     targetId,
-                    targetTypeId,
+                    targetTypeCode,
                 }),
             });
 

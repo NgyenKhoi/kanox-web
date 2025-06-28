@@ -1,6 +1,6 @@
 package com.example.social_media.service;
 
-import com.example.social_media.dto.ReactionTypeCountDto;
+import com.example.social_media.dto.reaction.ReactionTypeCountDto;
 import com.example.social_media.entity.Reaction;
 import com.example.social_media.entity.ReactionId;
 import com.example.social_media.entity.ReactionType;
@@ -24,10 +24,10 @@ public class ReactionService {
     private final UserRepository userRepository;
     private final TargetTypeRepository targetTypeRepository;
 
-    public ReactionService(ReactionRepository reactionRepository
-    , ReactionTypeRepository reactionTypeRepository
-    , UserRepository userRepository
-    , TargetTypeRepository targetTypeRepository) {
+    public ReactionService(ReactionRepository reactionRepository,
+                           ReactionTypeRepository reactionTypeRepository,
+                           UserRepository userRepository,
+                           TargetTypeRepository targetTypeRepository) {
         this.reactionRepository = reactionRepository;
         this.reactionTypeRepository = reactionTypeRepository;
         this.userRepository = userRepository;
@@ -38,20 +38,24 @@ public class ReactionService {
             "like", "love", "haha", "sad", "wow", "angry"
     );
 
-    public void addOrUpdateReaction(Integer userId, Integer targetId, Integer targetTypeId, Integer reactionTypeId) {
+    public void addOrUpdateReaction(Integer userId, Integer targetId, String targetTypeCode, String emojiName) {
+        var targetType = targetTypeRepository.findByCode(targetTypeCode.trim())
+                .orElseThrow(() -> new IllegalArgumentException("Loại đối tượng không hợp lệ: " + targetTypeCode));
+
+        var reactionType = reactionTypeRepository.findByNameIgnoreCase(emojiName.trim())
+                .orElseThrow(() -> new IllegalArgumentException("Loại cảm xúc không hợp lệ: " + emojiName));
+
         ReactionId reactionId = new ReactionId();
         reactionId.setUserId(userId);
         reactionId.setTargetId(targetId);
-        reactionId.setTargetTypeId(targetTypeId);
+        reactionId.setTargetTypeId(targetType.getId());
 
         Reaction existingReaction = reactionRepository.findById(reactionId).orElse(null);
 
         if (existingReaction != null) {
-            if (existingReaction.getReactionType().getId().equals(reactionTypeId)) {
-                return;
-            }
+            if (existingReaction.getReactionType().getId().equals(reactionType.getId())) return;
 
-            existingReaction.setReactionType(reactionTypeRepository.getReferenceById(reactionTypeId));
+            existingReaction.setReactionType(reactionType);
             existingReaction.setCreatedAt(Instant.now());
             existingReaction.setStatus(true);
             reactionRepository.save(existingReaction);
@@ -59,17 +63,19 @@ public class ReactionService {
             Reaction reaction = new Reaction();
             reaction.setId(reactionId);
             reaction.setUser(userRepository.getReferenceById(userId));
-            reaction.setTargetType(targetTypeRepository.getReferenceById(targetTypeId));
-            reaction.setReactionType(reactionTypeRepository.getReferenceById(reactionTypeId));
+            reaction.setTargetType(targetType);
+            reaction.setReactionType(reactionType);
             reaction.setCreatedAt(Instant.now());
             reaction.setStatus(true);
-
             reactionRepository.save(reaction);
         }
     }
 
-    public void removeReaction(Integer userId, Integer targetId, Integer targetTypeId) {
-        reactionRepository.deleteByIdUserIdAndIdTargetIdAndIdTargetTypeId(userId, targetId, targetTypeId);
+    public void removeReaction(Integer userId, Integer targetId, String targetTypeCode) {
+        var targetType = targetTypeRepository.findByCode(targetTypeCode.trim())
+                .orElseThrow(() -> new IllegalArgumentException("Loại đối tượng không hợp lệ: " + targetTypeCode));
+
+        reactionRepository.deleteByIdUserIdAndIdTargetIdAndIdTargetTypeId(userId, targetId, targetType.getId());
     }
 
     public List<ReactionTypeCountDto> getTop3Reactions(Integer targetId, Integer targetTypeId) {
@@ -92,15 +98,13 @@ public class ReactionService {
     }
 
     public List<ReactionType> getAvailableReactionsForMessaging() {
-        return reactionTypeRepository.findAll()
-                .stream()
+        return reactionTypeRepository.findAll().stream()
                 .filter(rt -> Boolean.TRUE.equals(rt.getStatus()))
                 .toList();
     }
 
     public List<ReactionType> getMainReactions() {
-        return reactionTypeRepository.findAll()
-                .stream()
+        return reactionTypeRepository.findAll().stream()
                 .filter(rt -> MAIN_REACTIONS.contains(rt.getName().toLowerCase()))
                 .toList();
     }

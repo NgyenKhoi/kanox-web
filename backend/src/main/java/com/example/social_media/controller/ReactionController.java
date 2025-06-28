@@ -1,8 +1,11 @@
 package com.example.social_media.controller;
 
 import com.example.social_media.config.URLConfig;
-import com.example.social_media.dto.ReactionTypeCountDto;
+import com.example.social_media.dto.reaction.ReactionRequestDto;
+import com.example.social_media.dto.reaction.ReactionTypeCountDto;
+import com.example.social_media.dto.reaction.RemoveReactionRequestDto;
 import com.example.social_media.entity.ReactionType;
+import com.example.social_media.repository.TargetTypeRepository;
 import com.example.social_media.service.ReactionService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,9 +18,11 @@ import java.util.Map;
 public class ReactionController {
 
     private final ReactionService reactionService;
+    private final TargetTypeRepository targetTypeRepository;
 
-    public ReactionController(ReactionService reactionService) {
+    public ReactionController(ReactionService reactionService,  TargetTypeRepository targetTypeRepository) {
         this.reactionService = reactionService;
+        this.targetTypeRepository = targetTypeRepository;
     }
 
     @PostMapping(URLConfig.ADD_REACTION)
@@ -65,5 +70,24 @@ public class ReactionController {
     @GetMapping(URLConfig.GET_MAIN_REACTION)
     public ResponseEntity<List<ReactionType>> getMainReactions() {
         return ResponseEntity.ok(reactionService.getMainReactions());
+    }
+
+    @PostMapping(URLConfig.ADD_REACTION_BY_NAME)
+    public ResponseEntity<Void> addReactionByName(@RequestBody ReactionRequestDto dto) {
+        reactionService.addOrUpdateReaction(
+                dto.getUserId(),
+                dto.getTargetId(),
+                dto.getTargetTypeCode(),
+                dto.getEmojiName()
+        );
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping(URLConfig.REMOVE_REACTION_BY_NAME)
+    public ResponseEntity<Void> removeReactionByName(@RequestBody RemoveReactionRequestDto dto) {
+        var targetType = targetTypeRepository.findByCode(dto.getTargetTypeCode())
+                .orElseThrow(() -> new IllegalArgumentException("Loại đối tượng không hợp lệ"));
+        reactionService.removeReaction(dto.getUserId(), dto.getTargetId(), targetType.getId());
+        return ResponseEntity.ok().build();
     }
 }
