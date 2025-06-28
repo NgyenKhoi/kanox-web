@@ -132,13 +132,14 @@ const Call = ({ onEndCall }) => {
             stringeeClientRef.current.on("incomingcall", (incomingCall) => {
                 console.log("📞 incomingCall.toNumber:", incomingCall.toNumber);
                 console.log("👤 currentUser.username:", user.username);
-                stringeeCallRef.current = incomingCall;
 
-                if (incomingCall.toNumber !== user.username) {
-                    console.log("⛔ Bỏ qua incomingCall vì mình là người gọi");
+                // 👉 Lọc ra nếu mình là người gọi thì bỏ qua
+                if (incomingCall.fromNumber === user.username) {
+                    console.log("⚠️ Bỏ qua cuộc gọi vì mình là người gọi");
                     return;
                 }
 
+                stringeeCallRef.current = incomingCall;
                 window.dispatchEvent(
                     new CustomEvent("incomingCall", {
                         detail: {
@@ -146,10 +147,11 @@ const Call = ({ onEndCall }) => {
                             sessionId: incomingCall.callId,
                             from: incomingCall.fromNumber,
                             to: incomingCall.toNumber,
-                        },
+                        }
                     })
                 );
             });
+
         };
 
         fetchChatMembers();
