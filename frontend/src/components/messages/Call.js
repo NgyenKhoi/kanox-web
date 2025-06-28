@@ -80,50 +80,41 @@ const Call = ({ onEndCall }) => {
             }
         };
 
-        const initializeStringee = (accessToken) => {
+        const initializeStringee = (accessToken, retryCount = 0) => {
             if (!window.Stringee) {
-                toast.error("Stringee SDK chưa được tải. Vui lòng kiểm tra kết nối.");
+                if (retryCount < 10) {
+                    setTimeout(() => {
+                        initializeStringee(accessToken, retryCount + 1);
+                    }, 200); // mỗi 200ms kiểm tra lại
+                } else {
+                    toast.error("Không thể tải Stringee SDK. Vui lòng tải lại trang.");
+                }
                 return;
             }
-            if (!accessToken || !isMounted) {
-                toast.error("Access token không hợp lệ.");
-                return;
-            }
+
+            console.log("✅ Stringee SDK đã sẵn sàng:", window.Stringee);
             stringeeClientRef.current = new window.Stringee.StringeeClient();
             stringeeClientRef.current.connect(accessToken);
 
             stringeeClientRef.current.on("connect", () => {
-                if (isMounted) {
-                    console.log("Stringee connected to ", process.env.REACT_APP_STRINGEE_WS_URL);
-                    toast.success("Đã kết nối với Stringee.");
-                }
+                toast.success("Đã kết nối với Stringee.");
             });
 
             stringeeClientRef.current.on("authen", (res) => {
-                if (isMounted) {
-                    console.log("Stringee authen:", res);
-                    if (res.r !== 0) {
-                        toast.error("Lỗi xác thực Stringee: " + res.message);
-                    }
+                if (res.r !== 0) {
+                    toast.error("Lỗi xác thực Stringee: " + res.message);
                 }
             });
 
             stringeeClientRef.current.on("error", (error) => {
-                if (isMounted) {
-                    console.error("Stringee error:", error);
-                    toast.error("Lỗi kết nối Stringee: " + error.message);
-                }
+                toast.error("Lỗi kết nối Stringee: " + error.message);
             });
 
             stringeeClientRef.current.on("disconnect", () => {
-                if (isMounted) {
-                    console.log("Stringee disconnected");
-                    toast.warn("Mất kết nối với Stringee.");
-                }
+                toast.warn("Mất kết nối với Stringee.");
             });
 
             stringeeClientRef.current.on("incomingcall", (incomingCall) => {
-                if (!isMounted) return;
                 stringeeCallRef.current = incomingCall;
                 window.dispatchEvent(
                     new CustomEvent("incomingCall", {
