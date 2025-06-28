@@ -29,6 +29,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
@@ -264,29 +265,35 @@ public class ChatController {
         if (apiKeySid == null || apiKeySecret == null || userId == null) {
             throw new IllegalArgumentException("apiKeySid, apiKeySecret, or userId cannot be null");
         }
-        String header = Base64.getEncoder().encodeToString("{\"alg\":\"HS256\",\"typ\":\"JWT\",\"cty\":\"stringee-api;v=1\"}".getBytes());
-        String payload = Base64.getEncoder().encodeToString(
-                String.format("{\"jti\":\"%s-%d\",\"iss\":\"%s\",\"exp\":%d,\"userId\":\"%s\"}",
-                        apiKeySid, System.currentTimeMillis(), apiKeySid, expirationTime, userId).getBytes()
-        );
+
+        String headerJson = "{\"alg\":\"HS256\",\"typ\":\"JWT\",\"cty\":\"stringee-api;v=1\"}";
+        String payloadJson = String.format("{\"jti\":\"%s-%d\",\"iss\":\"%s\",\"exp\":%d,\"userId\":\"%s\"}",
+                apiKeySid, System.currentTimeMillis(), apiKeySid, expirationTime, userId);
+
+        String header = Base64.getUrlEncoder().withoutPadding().encodeToString(headerJson.getBytes(StandardCharsets.UTF_8));
+        String payload = Base64.getUrlEncoder().withoutPadding().encodeToString(payloadJson.getBytes(StandardCharsets.UTF_8));
+
         String signatureInput = header + "." + payload;
-        String signature = Base64.getEncoder().encodeToString(
-                hmacSha256(signatureInput, apiKeySecret).getBytes()
-        );
+        String signature = base64UrlEncode(hmacSha256Bytes(signatureInput, apiKeySecret));
+
         return signatureInput + "." + signature;
     }
 
-    private String hmacSha256(String data, String key) {
+    private byte[] hmacSha256Bytes(String data, String key) {
         try {
             Mac mac = Mac.getInstance("HmacSHA256");
             SecretKeySpec secretKeySpec = new SecretKeySpec(Base64.getDecoder().decode(key), "HmacSHA256");
             mac.init(secretKeySpec);
-            byte[] hmacData = mac.doFinal(data.getBytes());
-            return Hex.encodeHexString(hmacData);
+            return mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
         } catch (Exception e) {
             throw new RuntimeException("Failed to generate HMAC SHA256", e);
         }
     }
+
+    private String base64UrlEncode(byte[] bytes) {
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
 
     @GetMapping("/{chatId}/members")
     public List<Map<String, Object>> getChatMembers(@PathVariable Integer chatId) {
