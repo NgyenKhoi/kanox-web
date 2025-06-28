@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useRef } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import {
   Container,
   Row,
@@ -12,25 +12,25 @@ import {
 import { FaSearch, FaPenSquare, FaTrash } from "react-icons/fa";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import SockJS from "sockjs-client";
-import { Client } from "@stomp/stompjs";
 import SidebarLeft from "../../components/layout/SidebarLeft/SidebarLeft";
 import Chat from "../../components/messages/Chat";
 import { AuthContext } from "../../context/AuthContext";
+import { WebSocketContext } from "../../context/WebSocketContext";
 import UserSelectionModal from "../../components/messages/UserSelectionModal";
 import useUserSearch from "../../hooks/useUserSearch";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 function MessengerPage() {
   const { token, user } = useContext(AuthContext);
+  const { subscribe, unsubscribe, publish } = useContext(WebSocketContext) || {};
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [chats, setChats] = useState([]);
   const [selectedChatId, setSelectedChatId] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [unreadChats, setUnreadChats] = useState(new Set());
   const [showUserSelectionModal, setShowUserSelectionModal] = useState(false);
-  const stompRef = useRef(null);
 
   const {
     searchKeyword,
@@ -41,13 +41,114 @@ function MessengerPage() {
   } = useUserSearch(token, navigate);
 
   useEffect(() => {
-    if (showUserSelectionModal) {
-      setSearchKeyword(searchQuery);
-      debouncedSearch(searchQuery);
+    if (!token || !user) {
+      toast.error("Vui lòng đăng nhập để xem tin nhắn.");
+      navigate("/login");
+      setLoading(false);
+      return;
     }
-  }, [searchQuery, showUserSelectionModal, setSearchKeyword, debouncedSearch]);
+
+    if (!subscribe || !unsubscribe || !publish) {
+      console.error("WebSocketContext is not available");
+      toast.error("Lỗi kết nối WebSocket. Vui lòng thử lại sau.");
+      setLoading(false);
+      return;
+    }
+
+    const subscription = subscribe(`/topic/chats/${user.id}`, (message) => {
+      console.log("MessengerPage WebSocket message:", message);
+      if (!message) return;
+      if (message.action === "delete") {
+        setChats((prev) => prev.filter((chat) => chat.id !== message.chatId));
+        setUnreadChats((prev) => {
+          const newUnread = new Set(prev);
+          newUnread.delete(message.chatId);
+          return newUnread;
+        });
+        if (selectedChatId === message.chatId) {
+          setSelectedChatId(null);
+          navigate("/messages");
+        }
+        toast.success("Chat đã được xóa.");
+      } else if (message.chatId) {
+        setChats((prev) => {
+          const existingChat = prev.find((chat) => chat.id === message.chatId);
+          const updatedMessage = {
+            ...message,
+            name: message.name || "Unknown User",
+          };
+          if (existingChat) {
+            return prev.map((chat) =>
+                chat.id === message.chatId ? { ...chat, ...updatedMessage } : chat
+            );
+          }
+          return [...prev, updatedMessage];
+        });
+        setUnreadChats((prev) => {
+          const newUnread = new Set(prev);
+          if (message.unreadMessagesCount > 0) {
+            newUnread.add(message.chatId);
+          } else {
+            newUnread.delete(message.chatId);
+          }
+          return newUnread;
+        });
+        window.dispatchEvent(
+            new CustomEvent("updateUnreadCount", {
+              detail: { unreadCount: message.unreadMessagesCount || 0 },
+            })
+        );
+      }
+    }, `chats-${user.id}`);
+
+    const fetchChats = async () => {
+      try {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/chats`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error("Lỗi khi tải danh sách chat.");
+        }
+
+        const data = await response.json();
+        setChats(data.map(chat => ({ ...chat, name: chat.name || "Unknown User" })));
+        const unread = new Set(
+            data.filter((chat) => chat.unreadMessagesCount > 0).map((chat) => chat.id)
+        );
+        setUnreadChats(unread);
+      } catch (err) {
+        toast.error(err.message || "Lỗi khi tải danh sách chat.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchChats();
+
+    return () => {
+      unsubscribe(`chats-${user.id}`);
+    };
+  }, [token, user, subscribe, unsubscribe, publish]);
+
+  useEffect(() => {
+    const chatId = searchParams.get("chatId");
+    if (chatId) {
+      setSelectedChatId(Number(chatId));
+      if (publish) {
+        publish("/app/resend", { chatId: Number(chatId) });
+        console.log(`Sent /app/resend for chatId: ${chatId}`);
+      }
+    }
+  }, [searchParams, publish]);
 
   const handleOpenUserSelectionModal = () => {
+    setSearchKeyword("");
+    setSearchQuery("");
     setShowUserSelectionModal(true);
   };
 
@@ -90,13 +191,17 @@ function MessengerPage() {
       const data = await response.json();
       setChats((prev) => {
         if (!prev.some((chat) => chat.id === data.id)) {
-          return [...prev, data];
+          return [...prev, { ...data, name: data.name || "Unknown User" }];
         }
-        return prev.map((chat) => chat.id === data.id ? data : chat);
+        return prev.map((chat) => (chat.id === data.id ? { ...data, name: data.name || "Unknown User" } : chat));
       });
       setSelectedChatId(data.id);
       navigate(`/messages?chatId=${data.id}`);
       handleCloseUserSelectionModal();
+      if (publish) {
+        publish("/app/resend", { chatId: data.id });
+        console.log(`Sent /app/resend for chatId: ${data.id}`);
+      }
     } catch (error) {
       toast.error("Không thể tạo chat: " + error.message);
       console.error("Create chat error:", error);
@@ -151,19 +256,26 @@ function MessengerPage() {
   const handleSelectChat = async (chatId) => {
     setSelectedChatId(chatId);
     navigate(`/messages?chatId=${chatId}`);
+    if (publish) {
+      publish("/app/resend", { chatId: Number(chatId) });
+      console.log(`Sent /app/resend for chatId: ${chatId}`);
+    }
     try {
       const token = sessionStorage.getItem("token") || localStorage.getItem("token");
-      // Gọi API để lấy tin nhắn và đánh dấu là đã đọc
-      await fetch(`${process.env.REACT_APP_API_URL}/chat/messages/${chatId}`, {
+      const messagesResponse = await fetch(`${process.env.REACT_APP_API_URL}/chat/${chatId}/messages`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      // Cập nhật unread count
-      const response = await fetch(
+      if (!messagesResponse.ok) {
+        const errorText = await messagesResponse.text();
+        throw new Error(`Lỗi khi tải tin nhắn: ${errorText}`);
+      }
+
+      const unreadResponse = await fetch(
           `${process.env.REACT_APP_API_URL}/chat/messages/unread-count`,
           { headers: { Authorization: `Bearer ${token}` } }
       );
-      if (response.ok) {
-        const messageData = await response.json();
+      if (unreadResponse.ok) {
+        const messageData = await unreadResponse.json();
         setUnreadChats((prev) => {
           const newUnread = new Set(prev);
           newUnread.delete(chatId);
@@ -174,148 +286,27 @@ function MessengerPage() {
               detail: { unreadCount: messageData.unreadCount || 0 },
             })
         );
+      } else {
+        const errorText = await unreadResponse.text();
+        throw new Error(`Lỗi khi tải số tin nhắn chưa đọc: ${errorText}`);
       }
-      // Gửi sự kiện làm sạch Chat component
-      window.dispatchEvent(new CustomEvent("chatSwitch", { detail: { chatId } }));
     } catch (error) {
-      console.error("Error fetching messages or unread count:", error);
+      console.error("Error in handleSelectChat:", error);
+      toast.error(error.message || "Lỗi khi tải tin nhắn hoặc đếm tin nhắn chưa đọc.");
     }
   };
 
-  useEffect(() => {
-    if (!token || !user) {
-      toast.error("Vui lòng đăng nhập để xem tin nhắn.");
-      setLoading(false);
-      return;
-    }
+  const filteredChats = chats.filter((chat) =>
+      (chat.name || "").toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
-    const socket = new SockJS(`${process.env.REACT_APP_WS_URL}/ws`);
-    const client = new Client({
-      webSocketFactory: () => socket,
-      connectHeaders: { Authorization: `Bearer ${token}` },
-      debug: (str) => console.log("STOMP Debug:", str),
-      reconnectDelay: 5000,
-      heartbeatIncoming: 4000,
-      heartbeatOutgoing: 4000,
-    });
-
-    client.onConnect = () => {
-      console.log("WebSocket connected for chats and messages");
-      client.subscribe("/topic/chats/" + user.id, (msg) => {
-        const data = JSON.parse(msg.body);
-        console.log("WebSocket message received (chats):", data);
-        if (data.action === "delete") {
-          setChats((prev) => prev.filter((chat) => chat.id !== data.chatId));
-          setUnreadChats((prev) => {
-            const newUnread = new Set(prev);
-            newUnread.delete(data.chatId);
-            return newUnread;
-          });
-          if (selectedChatId === data.chatId) {
-            setSelectedChatId(null);
-            navigate("/messages");
-          }
-          toast.success("Chat đã được xóa.");
-        } else {
-          console.log("New chat received: ID=" + data.id + ", Name=" + data.name);
-          setChats((prev) => {
-            const existingChat = prev.find((chat) => chat.id === data.id);
-            if (existingChat) {
-              return prev.map((chat) =>
-                  chat.id === data.id ? { ...chat, ...data } : chat
-              );
-            }
-            return [...prev, data];
-          });
-          setUnreadChats((prev) => {
-            const newUnread = new Set(prev);
-            if (data.unreadMessagesCount > 0) {
-              newUnread.add(data.id);
-            } else {
-              newUnread.delete(data.id);
-            }
-            return newUnread;
-          });
-        }
-      });
-
-      client.subscribe("/topic/messages/" + user.id, (msg) => {
-        const message = JSON.parse(msg.body);
-        console.log("New message received: ", message);
-        setChats((prev) => {
-          const updatedChats = prev.map((chat) =>
-              chat.id === message.chatId ? { ...chat, lastMessage: message.content, unreadMessagesCount: (chat.unreadMessagesCount || 0) + 1 } : chat
-          );
-          return updatedChats;
-        });
-        setUnreadChats((prev) => {
-          const newUnread = new Set(prev);
-          newUnread.add(message.chatId);
-          return newUnread;
-        });
-        if (selectedChatId === message.chatId) {
-          window.dispatchEvent(new Event("messageUpdate"));
-        }
-      });
-    };
-
-    client.onWebSocketClose = () => {
-      console.log("WebSocket disconnected, retrying...");
-    };
-
-    client.activate();
-    stompRef.current = client;
-
-    const fetchChats = async () => {
-      try {
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/chats`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error("Lỗi khi tải danh sách chat.");
-        }
-
-        const data = await response.json();
-        setChats(data);
-        const unread = new Set(
-            data.filter((chat) => chat.unreadMessagesCount > 0).map((chat) => chat.id)
-        );
-        setUnreadChats(unread);
-      } catch (err) {
-        toast.error(err.message || "Lỗi khi tải danh sách chat.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchChats();
-
-    return () => {
-      stompRef.current?.deactivate();
-    };
-  }, [token, user, navigate, selectedChatId]);
-
-  useEffect(() => {
-    const handleChatSwitch = () => {
-      // Logic làm sạch nếu cần, hiện tại chỉ log để debug
-      console.log("Switching chat, cleaning up previous state if any...");
-      // Có thể gọi API hoặc gửi tín hiệu để hủy cuộc gọi cũ nếu cần
-    };
-    window.addEventListener("chatSwitch", handleChatSwitch);
-    return () => window.removeEventListener("chatSwitch", handleChatSwitch);
-  }, []);
-
-  const filteredChats = chats.filter((chat) => {
-    const chatName = chat.name ? chat.name.toLowerCase() : "";
-    const lastMessage = chat.lastMessage ? chat.lastMessage.toLowerCase() : "";
-    const search = searchQuery.toLowerCase();
-    return chatName.includes(search) || lastMessage.includes(search);
-  });
+  if (loading) {
+    return (
+        <div className="d-flex justify-content-center align-items-center h-100">
+          <Spinner animation="border" />
+        </div>
+    );
+  }
 
   return (
       <div className="d-flex h-100 bg-light">
@@ -365,49 +356,43 @@ function MessengerPage() {
           </div>
           <div className="d-flex flex-grow-1">
             <div className="border-end bg-white" style={{ width: "350px" }}>
-              {loading ? (
-                  <div className="d-flex justify-content-center py-4">
-                    <Spinner animation="border" />
-                  </div>
-              ) : (
-                  <ListGroup variant="flush">
-                    {filteredChats.map((chat) => (
-                        <ListGroup.Item
-                            key={chat.id}
-                            action
-                            active={selectedChatId === chat.id}
-                            className={`d-flex align-items-center p-3 ${
-                                chat.unreadMessagesCount > 0 ? "fw-bold" : ""
-                            }`}
-                        >
-                          <img
-                              src="https://via.placeholder.com/40"
-                              alt="Avatar"
-                              className="rounded-circle me-2"
-                              style={{ width: "40px", height: "40px" }}
-                          />
-                          <div
-                              className="flex-grow-1"
-                              onClick={() => handleSelectChat(chat.id)}
-                          >
-                            <p className="fw-bold mb-0">{chat.name}</p>
-                            <p className="text-muted small mb-0">{chat.lastMessage}</p>
-                          </div>
-                          <Button
-                              variant="link"
-                              className="p-0"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteChat(chat.id);
-                              }}
-                              title="Xóa chat"
-                          >
-                            <FaTrash className="text-danger" />
-                          </Button>
-                        </ListGroup.Item>
-                    ))}
-                  </ListGroup>
-              )}
+              <ListGroup variant="flush">
+                {filteredChats.map((chat) => (
+                    <ListGroup.Item
+                        key={chat.id}
+                        action
+                        active={selectedChatId === chat.id}
+                        className={`d-flex align-items-center p-3 ${
+                            chat.unreadMessagesCount > 0 ? "fw-bold" : ""
+                        }`}
+                    >
+                      <img
+                          src="/assets/default-avatar.png"
+                          alt="Avatar"
+                          className="rounded-circle me-2"
+                          style={{ width: "40px", height: "40px" }}
+                      />
+                      <div
+                          className="flex-grow-1"
+                          onClick={() => handleSelectChat(chat.id)}
+                      >
+                        <p className="fw-bold mb-0">{chat.name || "Unknown User"}</p>
+                        <p className="text-muted small mb-0">{chat.lastMessage}</p>
+                      </div>
+                      <Button
+                          variant="link"
+                          className="p-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteChat(chat.id);
+                          }}
+                          title="Delete chat"
+                      >
+                        <FaTrash className="text-danger" />
+                      </Button>
+                    </ListGroup.Item>
+                ))}
+              </ListGroup>
             </div>
             <div className="flex-grow-1">
               {selectedChatId ? (

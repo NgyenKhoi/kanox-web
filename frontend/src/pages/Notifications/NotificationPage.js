@@ -4,7 +4,6 @@ import { FaCog } from "react-icons/fa";
 import SidebarLeft from "../../components/layout/SidebarLeft/SidebarLeft";
 import SidebarRight from "../../components/layout/SidebarRight/SidebarRight";
 import { AuthContext } from "../../context/AuthContext";
-import { useWebSocket } from "../../hooks/useWebSocket";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useNavigate } from "react-router-dom";
@@ -75,27 +74,27 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
   }, [user]);
 
   // Handle real-time notification via WebSocket
-  useWebSocket(
-    (notif) => {
-      const formatted = {
-        id: notif.id,
-        type: notif.type,
-        userId: notif.userId || null,
-        displayName: notif.displayName || "Người dùng",
-        username: notif.username || "unknown",
-        message: notif.message,
-        tags: notif.tags || [],
-        timestamp: notif.createdAt,
-        isRead: notif.status === "read",
-        image: notif.image || null,
-        targetId: notif.targetId || notif.userId,
-      };
-
-      setNotifications((prev) => [formatted, ...prev]);
-      toast.info(notif.message);
-    },
-    () => {}
-  );
+  // useWebSocket(
+  //   (notif) => {
+  //     const formatted = {
+  //       id: notif.id,
+  //       type: notif.type,
+  //       userId: notif.userId || null,
+  //       displayName: notif.displayName || "Người dùng",
+  //       username: notif.username || "unknown",
+  //       message: notif.message,
+  //       tags: notif.tags || [],
+  //       timestamp: notif.createdAt,
+  //       isRead: notif.status === "read",
+  //       image: notif.image || null,
+  //       targetId: notif.targetId || notif.userId,
+  //     };
+  //
+  //     setNotifications((prev) => [formatted, ...prev]);
+  //     toast.info(notif.message);
+  //   },
+  //   () => {}
+  // );
 
   const handleMarkRead = async (id, username = null) => {
     const token =
