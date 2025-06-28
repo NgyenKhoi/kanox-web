@@ -140,23 +140,42 @@ const Call = ({ onEndCall }) => {
                 }
 
                 stringeeCallRef.current = incomingCall;
+
+                stringeeCallRef.current.on("signalingstate", (state) => {
+                    console.log("📶 Signaling state:", state);
+                });
+                stringeeCallRef.current.on("mediastate", (state) => {
+                    console.log("📺 Media state:", state);
+                });
+
                 incomingCall.on("addlocalstream", (stream) => {
                     if (localVideoRef.current) {
                         localVideoRef.current.srcObject = stream;
-                        localVideoRef.current.play().catch((err) => console.error("Local video play error:", err));
+                        localVideoRef.current.play().catch((err) => {
+                            console.warn("Local video play error:", err);
+                            setTimeout(() => {
+                                localVideoRef.current?.play().catch(err => console.error("Retry local video error:", err));
+                            }, 300);
+                        });
                     }
                 });
 
                 incomingCall.on("addremotestream", (stream) => {
                     if (remoteVideoRef.current) {
                         remoteVideoRef.current.srcObject = stream;
-                        remoteVideoRef.current.play().catch((err) => console.error("Remote video play error:", err));
+                        remoteVideoRef.current.play().catch((err) => {
+                            console.warn("Remote video play error:", err);
+                            setTimeout(() => {
+                                remoteVideoRef.current?.play().catch(err => console.error("Retry remote video error:", err));
+                            }, 300);
+                        });
                     }
                 });
 
                 incomingCall.on("end", () => {
                     endCall();
                 });
+
                 incomingCall.answer((res) => {
                     if (res.r === 0) {
                         setCallStarted(true);
@@ -184,6 +203,7 @@ const Call = ({ onEndCall }) => {
             if (stringeeCallRef.current) {
                 try {
                     stringeeCallRef.current.hangup();
+                    stringeeCallRef.current = null; // ✅ THÊM
                 } catch (error) {
                     console.error("Error hanging up Stringee call:", error);
                 }
@@ -219,6 +239,13 @@ const Call = ({ onEndCall }) => {
                 recipientId,
                 true
             );
+
+            stringeeCallRef.current.on("signalingstate", (state) => {
+                console.log("📶 Signaling state:", state);
+            });
+            stringeeCallRef.current.on("mediastate", (state) => {
+                console.log("📺 Media state:", state);
+            });
 
             stringeeCallRef.current.on("addlocalstream", (stream) => {
                 if (localVideoRef.current) {
@@ -287,9 +314,11 @@ const Call = ({ onEndCall }) => {
     };
 
     const toggleVideo = () => {
-        if (stringeeCallRef.current) {
+        if (stringeeCallRef.current && typeof stringeeCallRef.current.enableVideo === 'function') {
             stringeeCallRef.current.enableVideo(!isVideoOff);
             setIsVideoOff(!isVideoOff);
+        } else {
+            console.warn("⚠️ stringeeCallRef không có hàm enableVideo");
         }
     };
 
