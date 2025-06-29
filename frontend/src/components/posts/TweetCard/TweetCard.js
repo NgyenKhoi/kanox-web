@@ -150,7 +150,6 @@ function TweetCard({ tweet, onPostUpdate }) {
   const imageUrls = imageData?.[postId] || [];
   const videoUrls = videoData?.[postId] || [];
 
-  const totalCount = Object.values(reactionCountMap).reduce((sum, count) => sum + count, 0);
 
   const {
     reactionCountMap,
@@ -160,7 +159,10 @@ function TweetCard({ tweet, onPostUpdate }) {
     removeReaction,
   } = useReaction({ user, targetId: tweet.id, targetTypeCode: "POST" });
 
-  
+  const totalCount = Object.values(reactionCountMap).reduce((sum, count) => sum + count, 0);
+
+
+
   const handleNextImage = () => {
     if (currentImageIndex < imageUrls.length - 1) {
       setCurrentImageIndex((prev) => prev + 1);
