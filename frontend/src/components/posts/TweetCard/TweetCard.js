@@ -39,8 +39,8 @@ import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import CommentItem from "./CommentItem";
 import CommentThread from "./CommentThread";
-import useReaction from "../../../hooks/useReaction";
 import './TweetCard.css';
+import ReactionButtonGroup from "./ReactionButtonGroup"; 
 
 
 // Inline styles
@@ -132,13 +132,6 @@ function TweetCard({ tweet, onPostUpdate }) {
   const ownerId = owner?.id || null;
   const postId = id || null;
   const targetTypeId = tweet?.targetTypeId || 1;
-
-  const {
-    reactionName,
-    reactionEmoji,
-    sendReaction,
-    removeReaction,
-  } = useReaction({ targetId: postId, targetTypeId, user });
 
   const avatarMedia = useMedia([ownerId], "PROFILE", "image");
   const imageMedia = useMedia([postId], "POST", "image");
@@ -273,13 +266,6 @@ function TweetCard({ tweet, onPostUpdate }) {
 
   const handleSaveTweet = () => alert(`Đã lưu bài đăng: ${content}`);
   const handleReportTweet = () => alert(`Đã báo cáo bài đăng: ${content}`);
-  const handleEmojiReaction = async (emoji) => {
-    if (reactionName === emoji) {
-      await removeReaction();
-    } else {
-      await sendReaction(emoji);
-    }
-  };
 
   const handleStatusChange = async (newStatus) => {
     try {
@@ -748,37 +734,11 @@ function TweetCard({ tweet, onPostUpdate }) {
                 <FaBookmark size={18} className="me-1" />
                 {shareCount > 0 && shareCount}
               </Button>
-              <div className="reaction-wrapper">
-                <Button
-                    variant="link"
-                    className="text-muted p-1 rounded-circle hover-bg-light"
-                    aria-label="Chọn biểu cảm"
-                >
-                  {reactionEmoji ? <span>{reactionEmoji}</span> : <FaRegHeart />}
-                  {likeCount > 0 && likeCount}
-                </Button>
-
-                <div className="reaction-popover">
-                  {[
-                    { name: "like", emoji: "👍" },
-                    { name: "love", emoji: "❤️" },
-                    { name: "haha", emoji: "😂" },
-                    { name: "care", emoji: "🤗" },
-                    { name: "sad", emoji: "😢" },
-                    { name: "angry", emoji: "😠" },
-                    { name: "wow", emoji: "😮" },
-                  ].map(({ name, emoji }) => (
-                      <span
-                          key={name}
-                          className="reaction-emoji"
-                          onClick={() => handleEmojiReaction(name)}
-                          aria-label={`Chọn biểu cảm ${name}`}
-                      >
-        {emoji}
-      </span>
-                  ))}
-                </div>
-              </div>
+              <ReactionButtonGroup
+                  user={user}
+                  targetId={postId}
+                  targetTypeCode="POST"
+              />
 
               <Button
                 variant="link"
