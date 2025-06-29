@@ -118,4 +118,13 @@ public class ReactionService {
         return targetTypeRepository.findByCode(code.trim())
                 .orElseThrow(() -> new IllegalArgumentException("Loại đối tượng không hợp lệ: " + code));
     }
+
+    public Map<ReactionType, Long> countAllReactions(Integer targetId, String targetTypeCode) {
+        TargetType targetType = getTargetTypeByCode(targetTypeCode);
+        List<Reaction> reactions = reactionRepository
+                .findByIdTargetIdAndIdTargetTypeIdAndStatusTrue(targetId, targetType.getId());
+
+        return reactions.stream()
+                .collect(Collectors.groupingBy(Reaction::getReactionType, Collectors.counting()));
+    }
 }

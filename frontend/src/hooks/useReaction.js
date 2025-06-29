@@ -116,6 +116,11 @@ export default function useReaction({ user, targetId, targetTypeCode }) {
     };
 
     const sendReaction = async (reactionName) => {
+        if (currentEmoji === emojiMap[reactionName]) {
+            await removeReaction();
+            return;
+        }
+
         try {
             const res = await fetch(`${process.env.REACT_APP_API_URL}/reactions/by-name`, {
                 method: "POST",
@@ -130,7 +135,6 @@ export default function useReaction({ user, targetId, targetTypeCode }) {
 
             setCurrentEmoji(emojiMap[reactionName]);
             fetchReactionCounts();
-            toast.success("Đã thả cảm xúc!");
         } catch (err) {
             toast.error(err.message);
         }
@@ -151,7 +155,6 @@ export default function useReaction({ user, targetId, targetTypeCode }) {
 
             setCurrentEmoji(null);
             fetchReactionCounts();
-            toast.success("Đã gỡ cảm xúc!");
         } catch (err) {
             toast.error(err.message);
         }
