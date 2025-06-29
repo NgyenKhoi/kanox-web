@@ -4,6 +4,7 @@ import com.example.social_media.dto.reaction.ReactionTypeCountDto;
 import com.example.social_media.entity.Reaction;
 import com.example.social_media.entity.ReactionId;
 import com.example.social_media.entity.ReactionType;
+import com.example.social_media.entity.TargetType;
 import com.example.social_media.repository.ReactionRepository;
 import com.example.social_media.repository.ReactionTypeRepository;
 import com.example.social_media.repository.TargetTypeRepository;
@@ -35,30 +36,25 @@ public class ReactionService {
     }
 
     private static final Set<String> MAIN_REACTIONS = Set.of(
-            "like", "love", "haha", "sad", "wow", "angry"
+            "like", "love", "smile", "sad", "wow", "angry", "sleepy"
     );
 
     public void addOrUpdateReaction(Integer userId, Integer targetId, String targetTypeCode, String emojiName) {
-        var targetType = targetTypeRepository.findByCode(targetTypeCode.trim())
-                .orElseThrow(() -> new IllegalArgumentException("Loại đối tượng không hợp lệ: " + targetTypeCode));
-
+        TargetType targetType = getTargetTypeByCode(targetTypeCode);
         var reactionType = reactionTypeRepository.findByNameIgnoreCase(emojiName.trim())
                 .orElseThrow(() -> new IllegalArgumentException("Loại cảm xúc không hợp lệ: " + emojiName));
 
-        ReactionId reactionId = new ReactionId();
-        reactionId.setUserId(userId);
-        reactionId.setTargetId(targetId);
-        reactionId.setTargetTypeId(targetType.getId());
+        ReactionId reactionId = new ReactionId(userId, targetId, targetType.getId());
 
-        Reaction existingReaction = reactionRepository.findById(reactionId).orElse(null);
+        Reaction existing = reactionRepository.findById(reactionId).orElse(null);
 
-        if (existingReaction != null) {
-            if (existingReaction.getReactionType().getId().equals(reactionType.getId())) return;
-
-            existingReaction.setReactionType(reactionType);
-            existingReaction.setCreatedAt(Instant.now());
-            existingReaction.setStatus(true);
-            reactionRepository.save(existingReaction);
+        if (existing != null) {
+            if (!existing.getReactionType().getId().equals(reactionType.getId())) {
+                existing.setReactionType(reactionType);
+                existing.setCreatedAt(Instant.now());
+                existing.setStatus(true);
+                reactionRepository.save(existing);
+            }
         } else {
             Reaction reaction = new Reaction();
             reaction.setId(reactionId);
@@ -72,14 +68,13 @@ public class ReactionService {
     }
 
     public void removeReaction(Integer userId, Integer targetId, String targetTypeCode) {
-        var targetType = targetTypeRepository.findByCode(targetTypeCode.trim())
-                .orElseThrow(() -> new IllegalArgumentException("Loại đối tượng không hợp lệ: " + targetTypeCode));
-
+        TargetType targetType = getTargetTypeByCode(targetTypeCode);
         reactionRepository.deleteByIdUserIdAndIdTargetIdAndIdTargetTypeId(userId, targetId, targetType.getId());
     }
 
-    public List<ReactionTypeCountDto> getTop3Reactions(Integer targetId, Integer targetTypeId) {
-        List<Reaction> reactions = reactionRepository.findByIdTargetIdAndIdTargetTypeIdAndStatusTrue(targetId, targetTypeId);
+    public List<ReactionTypeCountDto> getTop3Reactions(Integer targetId, String targetTypeCode) {
+        TargetType targetType = getTargetTypeByCode(targetTypeCode);
+        List<Reaction> reactions = reactionRepository.findByIdTargetIdAndIdTargetTypeIdAndStatusTrue(targetId, targetType.getId());
 
         Map<ReactionType, Long> grouped = reactions.stream()
                 .collect(Collectors.groupingBy(Reaction::getReactionType, Collectors.counting()));
@@ -91,8 +86,10 @@ public class ReactionService {
                 .toList();
     }
 
-    public Map<ReactionType, Long> countAllReactions(Integer targetId, Integer targetTypeId) {
-        List<Reaction> reactions = reactionRepository.findByIdTargetIdAndIdTargetTypeIdAndStatusTrue(targetId, targetTypeId);
+    public Map<ReactionType, Long> countAllReactions(Integer targetId, String targetTypeCode) {
+        TargetType targetType = getTargetTypeByCode(targetTypeCode);
+        List<Reaction> reactions = reactionRepository.findByIdTargetIdAndIdTargetTypeIdAndStatusTrue(targetId, targetType.getId());
+
         return reactions.stream()
                 .collect(Collectors.groupingBy(Reaction::getReactionType, Collectors.counting()));
     }
@@ -110,13 +107,17 @@ public class ReactionService {
     }
 
     public ReactionType getReactionOfUser(Integer userId, Integer targetId, String targetTypeCode) {
-        var targetType = targetTypeRepository.findByCode(targetTypeCode.trim())
-                .orElseThrow(() -> new IllegalArgumentException("Loại đối tượng không hợp lệ: " + targetTypeCode));
+        TargetType targetType = getTargetTypeByCode(targetTypeCode);
 
         return reactionRepository
                 .findByIdUserIdAndIdTargetIdAndIdTargetTypeId(userId, targetId, targetType.getId())
                 .filter(Reaction::getStatus)
                 .map(Reaction::getReactionType)
                 .orElse(null);
+    }
+
+    private TargetType getTargetTypeByCode(String code) {
+        return targetTypeRepository.findByCode(code.trim())
+                .orElseThrow(() -> new IllegalArgumentException("Loại đối tượng không hợp lệ: " + code));
     }
 }

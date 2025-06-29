@@ -46,17 +46,17 @@ public class ReactionController {
     @GetMapping(URLConfig.GET_TOP_REACTION)
     public ResponseEntity<List<ReactionTypeCountDto>> getTop3Reactions(
             @RequestParam Integer targetId,
-            @RequestParam Integer targetTypeId
+            @RequestParam String targetTypeCode
     ) {
-        return ResponseEntity.ok(reactionService.getTop3Reactions(targetId, targetTypeId));
+        return ResponseEntity.ok(reactionService.getTop3Reactions(targetId, targetTypeCode));
     }
 
     @GetMapping(URLConfig.COUNT_REACTION)
     public ResponseEntity<Map<ReactionType, Long>> countAllReactions(
             @RequestParam Integer targetId,
-            @RequestParam Integer targetTypeId
+            @RequestParam String targetTypeCode
     ) {
-        return ResponseEntity.ok(reactionService.countAllReactions(targetId, targetTypeId));
+        return ResponseEntity.ok(reactionService.countAllReactions(targetId, targetTypeCode));
     }
 
     @GetMapping(URLConfig.GET_REACTION_FOR_MESSAGE)

@@ -23,6 +23,15 @@ public class ReactionId implements Serializable {
     @Column(name = "target_type_id", nullable = false)
     private Integer targetTypeId;
 
+    public ReactionId(Integer userId, Integer targetId, Integer targetTypeId) {
+        this.userId = userId;
+        this.targetId = targetId;
+        this.targetTypeId = targetTypeId;
+    }
+
+    public ReactionId() {
+    }
+
     public Integer getUserId() {
         return userId;
     }
