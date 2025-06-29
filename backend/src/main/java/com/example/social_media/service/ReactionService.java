@@ -1,5 +1,6 @@
 package com.example.social_media.service;
 
+import com.example.social_media.dto.reaction.ReactionResponseDto;
 import com.example.social_media.dto.reaction.ReactionTypeCountDto;
 import com.example.social_media.entity.Reaction;
 import com.example.social_media.entity.ReactionId;
@@ -75,7 +76,8 @@ public class ReactionService {
 
     public List<ReactionTypeCountDto> getTop3Reactions(Integer targetId, String targetTypeCode) {
         TargetType targetType = getTargetTypeByCode(targetTypeCode);
-        List<Reaction> reactions = reactionRepository.findByIdTargetIdAndIdTargetTypeIdAndStatusTrue(targetId, targetType.getId());
+        List<Reaction> reactions = reactionRepository
+                .findByIdTargetIdAndIdTargetTypeIdAndStatusTrue(targetId, targetType.getId());
 
         Map<ReactionType, Long> grouped = reactions.stream()
                 .collect(Collectors.groupingBy(Reaction::getReactionType, Collectors.counting()));
@@ -83,16 +85,13 @@ public class ReactionService {
         return grouped.entrySet().stream()
                 .sorted(Map.Entry.<ReactionType, Long>comparingByValue().reversed())
                 .limit(3)
-                .map(entry -> new ReactionTypeCountDto(entry.getKey(), entry.getValue()))
+                .map(entry -> {
+                    ReactionType reactionType = entry.getKey();
+                    Long count = entry.getValue();
+                    ReactionResponseDto dto = new ReactionResponseDto(reactionType);
+                    return new ReactionTypeCountDto(dto, count);
+                })
                 .toList();
-    }
-
-    public Map<ReactionType, Long> countAllReactions(Integer targetId, String targetTypeCode) {
-        TargetType targetType = getTargetTypeByCode(targetTypeCode);
-        List<Reaction> reactions = reactionRepository.findByIdTargetIdAndIdTargetTypeIdAndStatusTrue(targetId, targetType.getId());
-
-        return reactions.stream()
-                .collect(Collectors.groupingBy(Reaction::getReactionType, Collectors.counting()));
     }
 
     public List<ReactionType> getAvailableReactionsForMessaging() {

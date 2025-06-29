@@ -3,15 +3,15 @@ package com.example.social_media.dto.reaction;
 import com.example.social_media.entity.ReactionType;
 
 public class ReactionTypeCountDto {
-    private ReactionType reactionType;
+    private ReactionResponseDto reactionType;
     private Long count;
 
-    public ReactionTypeCountDto(ReactionType reactionType, Long count) {
+    public ReactionTypeCountDto(ReactionResponseDto reactionType, Long count) {
         this.reactionType = reactionType;
         this.count = count;
     }
 
-    public ReactionType getReactionType() {
+    public ReactionResponseDto getReactionType() {
         return reactionType;
     }
 
