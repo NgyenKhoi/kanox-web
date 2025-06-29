@@ -63,10 +63,18 @@ function ReactionButtonGroup({ user, targetId, targetTypeCode }) {
                 className="text-muted p-1 rounded-circle hover-bg-light text-decoration-none text-reset"
                 onClick={() => setShowPopover((prev) => !prev)}
                 aria-label="Chọn biểu cảm"
-                style={{ fontSize: "1.2rem" }} // tăng kích thước nút
+                style={{ fontSize: "1.2rem" }}
             >
-                {currentEmoji ? currentEmoji : <FaRegHeart />}{" "}
-                {totalCount > 0 && totalCount}
+                {currentEmoji || <FaRegHeart />}
+                {currentEmoji &&
+                    Object.entries(emojiMap).find(([name, emoji]) => emoji === currentEmoji) &&
+                    (() => {
+                        const name = Object.entries(emojiMap).find(
+                            ([_, emoji]) => emoji === currentEmoji
+                        )?.[0];
+                        const count = reactionCountMap[name] || 0;
+                        return <span className="ms-1">{count}</span>;
+                    })()}
             </Button>
 
             {showPopover && (

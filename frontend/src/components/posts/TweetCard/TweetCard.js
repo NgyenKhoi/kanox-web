@@ -738,12 +738,14 @@ function TweetCard({ tweet, onPostUpdate }) {
                 {Object.entries(reactionCountMap)
                     .sort((a, b) => b[1] - a[1])
                     .slice(0, 3)
-                    .map(([name]) => (
+                    .map(([name, count]) => (
                         <span key={name} style={{ fontSize: "1.2rem" }}>
           {emojiMap[name]}
         </span>
                     ))}
-                <span className="text-muted ms-1">{totalCount.toLocaleString("vi-VN")}</span>
+                <span className="text-muted ms-1">
+      {Object.values(reactionCountMap).reduce((sum, c) => sum + c, 0).toLocaleString("vi-VN")}
+    </span>
               </div>
 
               {/* Bình luận + chia sẻ */}
@@ -752,46 +754,54 @@ function TweetCard({ tweet, onPostUpdate }) {
               </div>
             </div>
 
-            <div className="d-flex justify-content-around text-muted mt-2 flex-wrap">
-              <OverlayTrigger placement="top" overlay={<Tooltip>Bình luận</Tooltip>}>
-                <Button
-                    variant="link"
-                    className="text-muted p-1 rounded-circle hover-bg-light"
-                    onClick={() => setShowCommentBox((prev) => !prev)}
-                    aria-label="Mở/đóng hộp bình luận"
-                    style={{ fontSize: "1.2rem" }}
-                >
-                  <FaRegComment />
-                </Button>
-              </OverlayTrigger>
+            <div className="d-flex justify-content-around text-muted mt-2 flex-nowrap">
+              <div className="flex-fill text-center">
+                <OverlayTrigger placement="top" overlay={<Tooltip>Bình luận</Tooltip>}>
+                  <Button
+                      variant="link"
+                      className="text-muted p-1 rounded-circle hover-bg-light"
+                      onClick={() => setShowCommentBox((prev) => !prev)}
+                      aria-label="Mở/đóng hộp bình luận"
+                      style={{ fontSize: "1.2rem" }}
+                  >
+                    <FaRegComment />
+                  </Button>
+                </OverlayTrigger>
+              </div>
 
-              <OverlayTrigger placement="top" overlay={<Tooltip>Lưu bài viết</Tooltip>}>
-                <Button
-                    variant="link"
-                    className="text-muted p-1 rounded-circle hover-bg-light"
-                    aria-label="Lưu bài viết"
-                    style={{ fontSize: "1.2rem" }}
-                >
-                  <FaBookmark />
-                </Button>
-              </OverlayTrigger>
+              <div className="flex-fill text-center">
+                <OverlayTrigger placement="top" overlay={<Tooltip>Lưu bài viết</Tooltip>}>
+                  <Button
+                      variant="link"
+                      className="text-muted p-1 rounded-circle hover-bg-light"
+                      aria-label="Lưu bài viết"
+                      style={{ fontSize: "1.2rem" }}
+                  >
+                    <FaBookmark />
+                  </Button>
+                </OverlayTrigger>
+              </div>
 
-              <ReactionButtonGroup
-                  user={user}
-                  targetId={postId}
-                  targetTypeCode="POST"
-              />
+              <div className="flex-fill text-center">
+                <ReactionButtonGroup
+                    user={user}
+                    targetId={postId}
+                    targetTypeCode="POST"
+                />
+              </div>
 
-              <OverlayTrigger placement="top" overlay={<Tooltip>Chia sẻ</Tooltip>}>
-                <Button
-                    variant="link"
-                    className="text-muted p-1 rounded-circle hover-bg-light"
-                    aria-label="Chia sẻ"
-                    style={{ fontSize: "1.2rem" }}
-                >
-                  <FaShareAlt />
-                </Button>
-              </OverlayTrigger>
+              <div className="flex-fill text-center">
+                <OverlayTrigger placement="top" overlay={<Tooltip>Chia sẻ</Tooltip>}>
+                  <Button
+                      variant="link"
+                      className="text-muted p-1 rounded-circle hover-bg-light"
+                      aria-label="Chia sẻ"
+                      style={{ fontSize: "1.2rem" }}
+                  >
+                    <FaShareAlt />
+                  </Button>
+                </OverlayTrigger>
+              </div>
             </div>
 
             {showCommentBox && (
