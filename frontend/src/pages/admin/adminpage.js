@@ -1,13 +1,13 @@
 import React, { useState } from "react";
 import { Container, Row, Col, Navbar, Tab, Button } from "react-bootstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
-import CommunitiesManagement from "../../components/admin/CommunitiesManagement";
-import DashboardOverview from "../../components/admin/DashboardOverview";
-import ReportsManagement from "../../components/admin/ReportsManagement";
-import Settings from "../../components/admin/Settings";
-import Sidebar from "../../components/admin/Sidebar";
-import PostsManagement from "../../components/admin/PostsManagement";
-import UsersManagement from "../../components/admin/UsersManagement";
+import CommunitiesManagement from "../components/CommunitiesManagement";
+import DashboardOverview from "../components/DashboardOverview";
+import ReportsManagement from "../components/ReportsManagement";
+import Settings from "../components/Settings";
+import Sidebar from "../components/Sidebar";
+import PostsManagement from "../components/PostsManagement";
+import UsersManagement from "../components/UsersManagement";
 
 // Main Admin Dashboard App Component - Component ứng dụng Dashboard Admin chính
 const AdminDashboardApp = () => {
