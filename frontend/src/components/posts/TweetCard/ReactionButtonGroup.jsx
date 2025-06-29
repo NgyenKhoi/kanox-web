@@ -29,12 +29,12 @@ function ReactionButtonGroup({ user, targetId, targetTypeCode }) {
 
     const handleMouseEnter = () => {
         if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
-        hoverTimeout.current = setTimeout(() => setShowPopover(true), 300); // delay mở
+        hoverTimeout.current = setTimeout(() => setShowPopover(true), 300);
     };
 
     const handleMouseLeave = () => {
         if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
-        hoverTimeout.current = setTimeout(() => setShowPopover(false), 300); // delay ẩn
+        hoverTimeout.current = setTimeout(() => setShowPopover(false), 300);
     };
 
     useEffect(() => {
@@ -46,7 +46,7 @@ function ReactionButtonGroup({ user, targetId, targetTypeCode }) {
         document.addEventListener("mousedown", handleClickOutside);
         return () => {
             document.removeEventListener("mousedown", handleClickOutside);
-            clearTimeout(hoverTimeout.current); // dọn dẹp timeout
+            clearTimeout(hoverTimeout.current);
         };
     }, []);
 
@@ -58,20 +58,16 @@ function ReactionButtonGroup({ user, targetId, targetTypeCode }) {
             onMouseLeave={handleMouseLeave}
             style={{ position: "relative", display: "inline-block" }}
         >
-            <OverlayTrigger
-                placement="top"
-                overlay={<Tooltip>{currentEmoji ? "Đã thả cảm xúc" : "Thả cảm xúc"}</Tooltip>}
+            <Button
+                variant="link"
+                className="text-muted p-1 rounded-circle hover-bg-light text-decoration-none text-reset"
+                onClick={() => setShowPopover((prev) => !prev)}
+                aria-label="Chọn biểu cảm"
+                style={{ fontSize: "1.2rem" }} // tăng kích thước nút
             >
-                <Button
-                    variant="link"
-                    className="text-muted p-1 rounded-circle hover-bg-light"
-                    onClick={() => setShowPopover((prev) => !prev)}
-                    aria-label="Chọn biểu cảm"
-                >
-                    {currentEmoji || <FaRegHeart />}{" "}
-                    {totalCount > 0 && totalCount}
-                </Button>
-            </OverlayTrigger>
+                {currentEmoji ? currentEmoji : <FaRegHeart />}{" "}
+                {totalCount > 0 && totalCount}
+            </Button>
 
             {showPopover && (
                 <div
@@ -96,7 +92,10 @@ function ReactionButtonGroup({ user, targetId, targetTypeCode }) {
                                 className="reaction-emoji scale-hover"
                                 onClick={() => handleEmojiClick(name)}
                                 role="button"
-                                style={{ fontSize: "1.4rem", cursor: "pointer" }}
+                                style={{
+                                    fontSize: "1.4rem",
+                                    cursor: "pointer",
+                                }}
                             >
                                 {emoji}
                             </span>

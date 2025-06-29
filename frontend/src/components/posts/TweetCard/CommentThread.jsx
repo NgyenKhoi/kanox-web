@@ -6,6 +6,8 @@ import {
     Image,
     Dropdown,
     Collapse,
+    OverlayTrigger,
+    Tooltip,
 } from "react-bootstrap";
 import {
     FaReply,
@@ -130,15 +132,24 @@ function CommentThread({
 
                         {/* Reaction & Reply Buttons */}
                         <div className="d-flex align-items-center gap-2 mt-2">
+                            <OverlayTrigger
+                                placement="top"
+                                overlay={<Tooltip>Phản hồi</Tooltip>}
+                            >
                             <Button
                                 variant="link"
-                                className="px-1 py-0 text-dark text-decoration-none"
+                                className="px-1 py-0 text-dark text-decoration-none text-reset rounded-circle hover-bg-light"
                                 size="sm"
                                 onClick={() => setShowReplyBox(!showReplyBox)}
-                                style={{ fontWeight: "normal" }}
+                                style={{
+                                    fontWeight: "normal",
+                                    fontSize: "1.2rem", // Đồng bộ với ReactionButtonGroup
+                                }}
+                                aria-label="Phản hồi"
                             >
-                                <FaReply className="me-1" /> Phản hồi
+                                <FaReply className="me-1" />
                             </Button>
+                            </OverlayTrigger>
 
                             <ReactionButtonGroup
                                 user={{ id: currentUserId }}

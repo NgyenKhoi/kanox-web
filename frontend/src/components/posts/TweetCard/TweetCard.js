@@ -752,36 +752,46 @@ function TweetCard({ tweet, onPostUpdate }) {
               </div>
             </div>
 
-            <div className="d-flex justify-content-between text-muted mt-2">
-              <Button
-                variant="link"
-                className="text-muted p-1 rounded-circle hover-bg-light"
-                onClick={() => setShowCommentBox((prev) => !prev)}
-                aria-label="Mở/đóng hộp bình luận"
-              >
-                <FaRegComment size={18} className="me-1" />
-              </Button>
-              <Button
-                variant="link"
-                className="text-muted p-1 rounded-circle hover-bg-light"
-                aria-label="Lưu bài viết"
-              >
-                <FaBookmark size={18} className="me-1" />
-                {shareCount > 0 && shareCount}
-              </Button>
+            <div className="d-flex justify-content-around text-muted mt-2 flex-wrap">
+              <OverlayTrigger placement="top" overlay={<Tooltip>Bình luận</Tooltip>}>
+                <Button
+                    variant="link"
+                    className="text-muted p-1 rounded-circle hover-bg-light"
+                    onClick={() => setShowCommentBox((prev) => !prev)}
+                    aria-label="Mở/đóng hộp bình luận"
+                    style={{ fontSize: "1.2rem" }}
+                >
+                  <FaRegComment />
+                </Button>
+              </OverlayTrigger>
+
+              <OverlayTrigger placement="top" overlay={<Tooltip>Lưu bài viết</Tooltip>}>
+                <Button
+                    variant="link"
+                    className="text-muted p-1 rounded-circle hover-bg-light"
+                    aria-label="Lưu bài viết"
+                    style={{ fontSize: "1.2rem" }}
+                >
+                  <FaBookmark />
+                </Button>
+              </OverlayTrigger>
+
               <ReactionButtonGroup
                   user={user}
                   targetId={postId}
                   targetTypeCode="POST"
               />
 
-              <Button
-                variant="link"
-                className="text-muted p-1 rounded-circle hover-bg-light"
-                aria-label="Chia sẻ"
-              >
-                <FaShareAlt size={18} />
-              </Button>
+              <OverlayTrigger placement="top" overlay={<Tooltip>Chia sẻ</Tooltip>}>
+                <Button
+                    variant="link"
+                    className="text-muted p-1 rounded-circle hover-bg-light"
+                    aria-label="Chia sẻ"
+                    style={{ fontSize: "1.2rem" }}
+                >
+                  <FaShareAlt />
+                </Button>
+              </OverlayTrigger>
             </div>
 
             {showCommentBox && (
