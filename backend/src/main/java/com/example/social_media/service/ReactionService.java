@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -108,12 +109,10 @@ public class ReactionService {
 
     public ReactionType getReactionOfUser(Integer userId, Integer targetId, String targetTypeCode) {
         TargetType targetType = getTargetTypeByCode(targetTypeCode);
-
-        return reactionRepository
-                .findByIdUserIdAndIdTargetIdAndIdTargetTypeId(userId, targetId, targetType.getId())
-                .filter(Reaction::getStatus)
-                .map(Reaction::getReactionType)
-                .orElse(null);
+        Optional<Reaction> reaction = reactionRepository.findByIdUserIdAndIdTargetIdAndIdTargetTypeId(
+                userId, targetId, targetType.getId()
+        );
+        return reaction.map(Reaction::getReactionType).orElse(null);
     }
 
     private TargetType getTargetTypeByCode(String code) {

@@ -11,9 +11,19 @@ export default function useReaction({ user, targetId, targetTypeCode }) {
     useEffect(() => {
         if (!user?.id || !targetId || !targetTypeCode || !token) return;
 
-        fetchEmojiMap();
-        fetchUserReaction();
-        fetchReactionCounts();
+        const fetchAll = async () => {
+            try {
+                await Promise.all([
+                    fetchEmojiMap(),
+                    fetchUserReaction(),
+                    fetchReactionCounts()
+                ]);
+            } catch (err) {
+                console.error("Lỗi khi tải dữ liệu reactions:", err.message);
+            }
+        };
+
+        fetchAll();
     }, [user?.id, targetId, targetTypeCode, token]);
 
     const fetchEmojiMap = async () => {
@@ -52,7 +62,7 @@ export default function useReaction({ user, targetId, targetTypeCode }) {
             if (!res.ok) throw new Error("Không thể lấy reaction người dùng.");
 
             const data = await res.json();
-            setCurrentEmoji(data?.reactionType?.emoji || null);
+            setCurrentEmoji(data?.emoji || null);
         } catch (err) {
             console.error("Lỗi khi lấy reaction người dùng:", err.message);
         }

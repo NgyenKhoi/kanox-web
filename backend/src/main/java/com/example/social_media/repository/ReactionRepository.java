@@ -13,13 +13,10 @@ public interface ReactionRepository extends JpaRepository<Reaction, ReactionId> 
 
     Optional<Reaction> findById(ReactionId id);
 
-    List<Reaction> findByIdTargetIdAndIdTargetTypeId(Integer targetId, Integer targetTypeId);
-
     List<Reaction> findByIdTargetIdAndIdTargetTypeIdAndStatusTrue(Integer targetId, Integer targetTypeId);
-
-    Long countByIdTargetIdAndIdTargetTypeIdAndReactionType_IdAndStatusTrue(Integer targetId, Integer targetTypeId, Integer reactionTypeId);
 
     void deleteByIdUserIdAndIdTargetIdAndIdTargetTypeId(Integer userId, Integer targetId, Integer targetTypeId);
 
     Optional<Reaction> findByIdUserIdAndIdTargetIdAndIdTargetTypeId(Integer userId, Integer targetId, Integer targetTypeId);
+
 }

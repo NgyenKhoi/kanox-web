@@ -2,6 +2,7 @@ package com.example.social_media.controller;
 
 import com.example.social_media.config.URLConfig;
 import com.example.social_media.dto.reaction.ReactionRequestDto;
+import com.example.social_media.dto.reaction.ReactionResponseDto;
 import com.example.social_media.dto.reaction.ReactionTypeCountDto;
 import com.example.social_media.dto.reaction.RemoveReactionRequestDto;
 import com.example.social_media.entity.ReactionType;
@@ -98,12 +99,17 @@ public class ReactionController {
     }
 
     @PostMapping("/user")
-    public ResponseEntity<ReactionType> getUserReaction(@RequestBody ReactionRequestDto dto) {
+    public ResponseEntity<?> getUserReaction(@RequestBody ReactionRequestDto dto) {
         ReactionType reaction = reactionService.getReactionOfUser(
                 dto.getUserId(),
                 dto.getTargetId(),
                 dto.getTargetTypeCode()
         );
-        return ResponseEntity.ok(reaction);
+
+        if (reaction == null) {
+            return ResponseEntity.ok().body(null); // chưa thả cảm xúc
+        }
+
+        return ResponseEntity.ok(new ReactionResponseDto(reaction));
     }
 }
