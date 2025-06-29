@@ -61,7 +61,7 @@ export default function useReaction({ user, targetId, targetTypeCode }) {
     const fetchReactionCounts = async () => {
         try {
             const res = await fetch(
-                `${process.env.REACT_APP_API_URL}/reactions/count?targetId=${targetId}&targetTypeId=${targetTypeCode}`,
+                `${process.env.REACT_APP_API_URL}/reactions/count?targetId=${targetId}&targetTypeCode=${targetTypeCode}`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`,

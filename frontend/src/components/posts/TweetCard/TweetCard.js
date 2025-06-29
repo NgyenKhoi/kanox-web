@@ -41,6 +41,7 @@ import CommentItem from "./CommentItem";
 import CommentThread from "./CommentThread";
 import './TweetCard.css';
 import ReactionButtonGroup from "./ReactionButtonGroup"; 
+import useReaction from "../../../hooks/useReaction";
 
 
 // Inline styles
@@ -102,6 +103,8 @@ const commentContentStyles = {
   maxWidth: "80%",
 };
 
+
+
 function TweetCard({ tweet, onPostUpdate }) {
   const { user, loading, token } = useContext(AuthContext);
   const navigate = useNavigate();
@@ -147,7 +150,17 @@ function TweetCard({ tweet, onPostUpdate }) {
   const imageUrls = imageData?.[postId] || [];
   const videoUrls = videoData?.[postId] || [];
 
+  const totalCount = Object.values(reactionCountMap).reduce((sum, count) => sum + count, 0);
 
+  const {
+    reactionCountMap,
+    emojiMap,
+    currentEmoji,
+    sendReaction,
+    removeReaction,
+  } = useReaction({ user, targetId: tweet.id, targetTypeCode: "POST" });
+
+  
   const handleNextImage = () => {
     if (currentImageIndex < imageUrls.length - 1) {
       setCurrentImageIndex((prev) => prev + 1);
@@ -716,6 +729,27 @@ function TweetCard({ tweet, onPostUpdate }) {
                 </div>
               ))}
 
+            {/* Thanh tổng hợp cảm xúc + bình luận */}
+            <div className="d-flex justify-content-between align-items-center mt-2 px-2">
+              {/* Emojis phổ biến */}
+              <div className="d-flex align-items-center gap-1">
+                {Object.entries(reactionCountMap)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 3)
+                    .map(([name]) => (
+                        <span key={name} style={{ fontSize: "1.2rem" }}>
+          {emojiMap[name]}
+        </span>
+                    ))}
+                <span className="text-muted ms-1">{totalCount.toLocaleString("vi-VN")}</span>
+              </div>
+
+              {/* Bình luận + chia sẻ */}
+              <div className="text-muted small">
+                {commentCount} bình luận {shareCount > 0 && ` · ${shareCount} lượt chia sẻ`}
+              </div>
+            </div>
+
             <div className="d-flex justify-content-between text-muted mt-2">
               <Button
                 variant="link"
@@ -724,7 +758,6 @@ function TweetCard({ tweet, onPostUpdate }) {
                 aria-label="Mở/đóng hộp bình luận"
               >
                 <FaRegComment size={18} className="me-1" />
-                {commentCount > 0 && commentCount}
               </Button>
               <Button
                 variant="link"

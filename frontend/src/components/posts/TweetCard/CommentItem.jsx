@@ -64,7 +64,7 @@ const CommentItem = ({ comment }) => {
             ) : (
                 <FaUserCircle
                     size={36}
-                    style={{ color: "#6c757d" }}
+                    style={{ ...commentAvatarStyles, color: "#6c757d" }}
                     aria-label="Ảnh đại diện mặc định"
                 />
             )}
