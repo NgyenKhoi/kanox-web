@@ -84,4 +84,19 @@ public class UserService {
         
         return userRepository.save(user);
     }
-} 
+    
+    /**
+     * Cập nhật quyền admin cho người dùng
+     */
+    @Transactional
+    public User updateAdminRole(Integer userId, Boolean isAdmin) {
+        User user = getUserById(userId);
+        user.setIsAdmin(isAdmin);
+        
+        // Log activity
+        String action = isAdmin ? "GRANT_ADMIN" : "REVOKE_ADMIN";
+        activityLogService.logUserActivity(userId, action, "Admin role updated");
+        
+        return userRepository.save(user);
+    }
+}
