@@ -108,4 +108,15 @@ public class ReactionService {
                 .filter(rt -> MAIN_REACTIONS.contains(rt.getName().toLowerCase()))
                 .toList();
     }
+
+    public ReactionType getReactionOfUser(Integer userId, Integer targetId, String targetTypeCode) {
+        var targetType = targetTypeRepository.findByCode(targetTypeCode.trim())
+                .orElseThrow(() -> new IllegalArgumentException("Loại đối tượng không hợp lệ: " + targetTypeCode));
+
+        return reactionRepository
+                .findByIdUserIdAndIdTargetIdAndIdTargetTypeId(userId, targetId, targetType.getId())
+                .filter(Reaction::getStatus)
+                .map(Reaction::getReactionType)
+                .orElse(null);
+    }
 }

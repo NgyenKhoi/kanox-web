@@ -20,4 +20,6 @@ public interface ReactionRepository extends JpaRepository<Reaction, ReactionId> 
     Long countByIdTargetIdAndIdTargetTypeIdAndReactionType_IdAndStatusTrue(Integer targetId, Integer targetTypeId, Integer reactionTypeId);
 
     void deleteByIdUserIdAndIdTargetIdAndIdTargetTypeId(Integer userId, Integer targetId, Integer targetTypeId);
+
+    Optional<Reaction> findByIdUserIdAndIdTargetIdAndIdTargetTypeId(Integer userId, Integer targetId, Integer targetTypeId);
 }
