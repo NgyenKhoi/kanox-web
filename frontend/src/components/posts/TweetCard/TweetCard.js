@@ -148,6 +148,7 @@ function TweetCard({ tweet, onPostUpdate }) {
   const {
     reactionCountMap,
     emojiMap,
+    topReactions,
     currentEmoji,
     sendReaction,
     removeReaction,
@@ -724,14 +725,11 @@ function TweetCard({ tweet, onPostUpdate }) {
               <div className="d-flex justify-content-between align-items-center mt-2 px-2">
                 {/* Emojis phổ biến */}
                 <div className="d-flex align-items-center gap-1">
-                  {Object.entries(reactionCountMap)
-                      .sort((a, b) => b[1] - a[1])
-                      .slice(0, 3)
-                      .map(([name, count]) => (
-                          <span key={name} style={{ fontSize: "1.2rem" }}>
-                            {emojiMap[name]} <span className="ms-1">{count}</span>
-                          </span>
-                      ))}
+                  {topReactions.map(({ emoji, count, name }) => (
+                      <span key={name} style={{ fontSize: "1.2rem" }}>
+    {emoji} <span className="ms-1">{count}</span>
+  </span>
+                  ))}
                   <span className="text-muted ms-1">
                   {totalCount.toLocaleString("vi-VN")}
                 </span>

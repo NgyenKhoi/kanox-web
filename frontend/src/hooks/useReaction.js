@@ -5,6 +5,7 @@ export default function useReaction({ user, targetId, targetTypeCode }) {
     const [currentEmoji, setCurrentEmoji] = useState(null);
     const [emojiMap, setEmojiMap] = useState({});
     const [reactionCountMap, setReactionCountMap] = useState({});
+    const [topReactions, setTopReactions] = useState([]);
 
     const token = localStorage.getItem("token");
 
@@ -16,7 +17,8 @@ export default function useReaction({ user, targetId, targetTypeCode }) {
                 await Promise.all([
                     fetchEmojiMap(),
                     fetchUserReaction(),
-                    fetchReactionCounts()
+                    fetchReactionCounts(),
+                    fetchTopReactions()
                 ]);
             } catch (err) {
                 console.error("Lỗi khi tải dữ liệu reactions:", err.message);
@@ -25,6 +27,31 @@ export default function useReaction({ user, targetId, targetTypeCode }) {
 
         fetchAll();
     }, [user?.id, targetId, targetTypeCode, token]);
+
+    const fetchTopReactions = async () => {
+        try {
+            const res = await fetch(
+                `${process.env.REACT_APP_API_URL}/reactions/top3?targetId=${targetId}&targetTypeCode=${targetTypeCode}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
+
+            if (!res.ok) throw new Error("Không thể lấy top cảm xúc.");
+
+            const data = await res.json(); // [{ reactionType: { name, emoji }, count }]
+            const top = data.map((item) => ({
+                name: item.reactionType.name,
+                emoji: item.reactionType.emoji,
+                count: item.count,
+            }));
+            setTopReactions(top);
+        } catch (err) {
+            console.error("Lỗi khi lấy top reactions:", err.message);
+        }
+    };
 
     const fetchEmojiMap = async () => {
         try {
@@ -136,5 +163,6 @@ export default function useReaction({ user, targetId, targetTypeCode }) {
         reactionCountMap,
         sendReaction,
         removeReaction,
+        topReactions,
     };
 }
