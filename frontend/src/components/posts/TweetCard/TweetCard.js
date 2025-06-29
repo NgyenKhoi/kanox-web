@@ -729,9 +729,8 @@ function TweetCard({ tweet, onPostUpdate }) {
                       .slice(0, 3)
                       .map(([name, count]) => (
                           <span key={name} style={{ fontSize: "1.2rem" }}>
-                      {emojiMap[name]}
-                            <span className="ms-1">{count}</span>
-                    </span>
+                            {emojiMap[name]} <span className="ms-1">{count}</span>
+                          </span>
                       ))}
                   <span className="text-muted ms-1">
                   {totalCount.toLocaleString("vi-VN")}
@@ -744,8 +743,8 @@ function TweetCard({ tweet, onPostUpdate }) {
                 </div>
               </div>
 
-              <div className="d-flex justify-content-between text-muted mt-2 flex-nowrap px-0">
-                <div className="text-center flex-grow-1">
+              <div className="d-flex justify-content-between text-muted mt-2 w-100 px-0">
+                <div className="text-center">
                   <OverlayTrigger placement="top" overlay={<Tooltip>Bình luận</Tooltip>}>
                     <Button
                         variant="link"
@@ -759,7 +758,7 @@ function TweetCard({ tweet, onPostUpdate }) {
                   </OverlayTrigger>
                 </div>
 
-                <div className="text-center flex-grow-1">
+                <div className="text-center">
                   <OverlayTrigger placement="top" overlay={<Tooltip>Lưu bài viết</Tooltip>}>
                     <Button
                         variant="link"
@@ -772,7 +771,7 @@ function TweetCard({ tweet, onPostUpdate }) {
                   </OverlayTrigger>
                 </div>
 
-                <div className="text-center flex-grow-1">
+                <div className="text-center">
                   <ReactionButtonGroup
                       user={user}
                       targetId={postId}
@@ -780,7 +779,7 @@ function TweetCard({ tweet, onPostUpdate }) {
                   />
                 </div>
 
-                <div className="text-center flex-grow-1">
+                <div className="text-center">
                   <OverlayTrigger placement="top" overlay={<Tooltip>Chia sẻ</Tooltip>}>
                     <Button
                         variant="link"

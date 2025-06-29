@@ -66,15 +66,6 @@ function ReactionButtonGroup({ user, targetId, targetTypeCode }) {
                 style={{ fontSize: "1.2rem" }}
             >
                 {currentEmoji || <FaRegHeart />}
-                {currentEmoji &&
-                    Object.entries(emojiMap).find(([name, emoji]) => emoji === currentEmoji) &&
-                    (() => {
-                        const name = Object.entries(emojiMap).find(
-                            ([_, emoji]) => emoji === currentEmoji
-                        )?.[0];
-                        const count = reactionCountMap[name] || 0;
-                        return <span className="ms-1">{count}</span>;
-                    })()}
             </Button>
 
             {showPopover && (
