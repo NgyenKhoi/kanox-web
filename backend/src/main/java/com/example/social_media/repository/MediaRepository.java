@@ -7,10 +7,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
+
 @Repository
 public interface MediaRepository extends JpaRepository<Media, Integer> {
     List<Media> findByTargetIdAndTargetTypeIdAndMediaTypeIdAndStatus(Integer targetId, Integer targetTypeId, Integer mediaTypeId, Boolean status);
-    List<Media> findByTargetIdAndTargetTypeIdAndStatus(Integer targetId, Integer targetTypeId, Boolean status);
     List<Media> findByTargetIdAndTargetTypeAndMediaTypeAndStatusTrue(Integer targetId, TargetType targetType, MediaType mediaType);
     List<Media> findByTargetIdInAndTargetTypeIdAndMediaTypeIdAndStatus(
         List<Integer> targetIds,
@@ -18,4 +19,5 @@ public interface MediaRepository extends JpaRepository<Media, Integer> {
         Integer mediaTypeId,
         Boolean status
 );
+    Optional<Media> findFirstByTargetIdAndTargetType_CodeAndMediaType_NameOrderByCreatedAtDesc(Integer userId, String profile, String image);
 }

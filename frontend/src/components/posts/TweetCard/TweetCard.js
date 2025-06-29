@@ -42,6 +42,7 @@ import CommentThread from "./CommentThread";
 import './TweetCard.css';
 import ReactionButtonGroup from "./ReactionButtonGroup";
 import useReaction from "../../../hooks/useReaction";
+import ReactionUserListModal from "./ReactionUserListModal";
 
 // Inline styles
 const imageContainerStyles = {
@@ -125,6 +126,8 @@ function TweetCard({ tweet, onPostUpdate }) {
   const [isCommenting, setIsCommenting] = useState(false);
   const [showCommentBox, setShowCommentBox] = useState(false);
   const [isLoadingComments, setIsLoadingComments] = useState(true);
+  const [showReactionUserModal, setShowReactionUserModal] = useState(false);
+  const [selectedEmojiName, setSelectedEmojiName] = useState("");
 
   const currentUserId = user?.id;
   const ownerId = owner?.id || null;
@@ -725,14 +728,22 @@ function TweetCard({ tweet, onPostUpdate }) {
               <div className="d-flex justify-content-between align-items-center mt-2 px-2">
                 {/* Emojis phổ biến */}
                 <div className="d-flex align-items-center gap-1">
-                  {topReactions.map(({ emoji, count, name }) => (
-                      <span key={name} style={{ fontSize: "1.2rem" }}>
-    {emoji} <span className="ms-1">{count}</span>
-  </span>
+                  {topReactions.map(({ emoji, name }) => (
+                      <span
+                          key={name}
+                          onClick={() => {
+                            setSelectedEmojiName(name);
+                            setShowReactionUserModal(true);
+                          }}
+                          style={{ fontSize: "1.2rem", cursor: "pointer" }}
+                          title={`Xem ai đã thả ${name}`}
+                      >
+                        {emoji}
+                      </span>
                   ))}
-                  <span className="text-muted ms-1">
-                  {totalCount.toLocaleString("vi-VN")}
-                </span>
+                  {totalCount > 0 && (
+                      <span className="text-muted ms-1">{totalCount.toLocaleString("vi-VN")}</span>
+                  )}
                 </div>
 
                 {/* Bình luận + chia sẻ */}
@@ -849,6 +860,14 @@ function TweetCard({ tweet, onPostUpdate }) {
               />
           )}
         </Card>
+
+        <ReactionUserListModal
+            show={showReactionUserModal}
+            onHide={() => setShowReactionUserModal(false)}
+            targetId={postId}
+            targetTypeCode="POST"
+            emojiName={selectedEmojiName}
+        />
 
         <Modal
             show={showImageModal}

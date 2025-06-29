@@ -50,6 +50,7 @@ public class URLConfig {
     public static final String GET_MAIN_REACTION = "/main";
     public static final String ADD_REACTION_BY_NAME = "/by-name";
     public static final String REMOVE_REACTION_BY_NAME = "/by-name";
+    public static final String LIST_REACTION_BY_TYPE = "/list-by-type";
     // Frontend URLs
     public static final String FRONTEND_RESET_PASSWORD_URL = "https://kanox-web.netlify.app/reset-password?token=";
 

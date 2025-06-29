@@ -1,12 +1,12 @@
 package com.example.social_media.dto.user;
 
-public class UserForCommentDto {
+public class UserBasicDisplayDto {
     private Integer id;
     private String displayName;
     private String username;
     private String avatarUrl;
 
-    public UserForCommentDto(Integer id, String displayName, String username, String avatarUrl) {
+    public UserBasicDisplayDto(Integer id, String displayName, String username, String avatarUrl) {
         this.id = id;
         this.displayName = displayName;
         this.username = username;

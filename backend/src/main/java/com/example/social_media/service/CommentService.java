@@ -1,7 +1,7 @@
 package com.example.social_media.service;
 
 import com.example.social_media.dto.comment.CommentResponseDto;
-import com.example.social_media.dto.user.UserForCommentDto;
+import com.example.social_media.dto.user.UserBasicDisplayDto;
 import com.example.social_media.entity.Comment;
 import com.example.social_media.entity.User;
 import com.example.social_media.exception.UnauthorizedException;
@@ -85,7 +85,7 @@ public class CommentService {
                     .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy bình luận vừa tạo"));
 
             User user = comment.getUser();
-            UserForCommentDto userDto = new UserForCommentDto(
+            UserBasicDisplayDto userDto = new UserBasicDisplayDto(
                     user.getId(),
                     user.getDisplayName(),
                     user.getUsername(),
@@ -152,7 +152,7 @@ public class CommentService {
                     .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy bình luận"));
 
             User user = comment.getUser();
-            UserForCommentDto userDto = new UserForCommentDto(
+            UserBasicDisplayDto userDto = new UserBasicDisplayDto(
                     user.getId(),
                     user.getDisplayName(),
                     user.getUsername(),
@@ -190,7 +190,7 @@ public class CommentService {
 
     private CommentResponseDto mapToDtoWithReplies(Comment comment, Map<Integer, List<Comment>> repliesGrouped) {
         User user = comment.getUser();
-        UserForCommentDto userDto = new UserForCommentDto(
+        UserBasicDisplayDto userDto = new UserBasicDisplayDto(
                 user.getId(),
                 user.getDisplayName(),
                 user.getUsername(),

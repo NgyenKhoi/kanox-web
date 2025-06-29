@@ -5,6 +5,8 @@ import com.example.social_media.dto.reaction.ReactionRequestDto;
 import com.example.social_media.dto.reaction.ReactionResponseDto;
 import com.example.social_media.dto.reaction.ReactionTypeCountDto;
 import com.example.social_media.dto.reaction.RemoveReactionRequestDto;
+import com.example.social_media.dto.user.UserBasicDisplayDto;
+import com.example.social_media.dto.user.UserDto;
 import com.example.social_media.entity.ReactionType;
 import com.example.social_media.service.ReactionService;
 import org.springframework.http.ResponseEntity;
@@ -111,5 +113,15 @@ public class ReactionController {
         }
 
         return ResponseEntity.ok(new ReactionResponseDto(reaction));
+    }
+
+    @GetMapping(URLConfig.LIST_REACTION_BY_TYPE)
+    public ResponseEntity<List<UserBasicDisplayDto>> getUsersByReactionType(
+            @RequestParam Integer targetId,
+            @RequestParam String targetTypeCode,
+            @RequestParam String emojiName
+    ) {
+        List<UserBasicDisplayDto> users = reactionService.getUsersByReactionType(targetId, targetTypeCode, emojiName);
+        return ResponseEntity.ok(users);
     }
 }

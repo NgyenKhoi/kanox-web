@@ -7,9 +7,8 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.io.IOException;
 import java.time.Duration;
+import java.io.IOException;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -23,6 +22,7 @@ public class MediaService {
         private final TargetTypeRepository targetTypeRepository;
         private final GcsService gcsService;
         private final RedisTemplate<String, List<MediaDto>> redisTemplate;
+        private final RedisTemplate<String, String> redisAvatarTemplate;
 
         private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
                         "image/jpeg", "image/jpg",
@@ -30,25 +30,27 @@ public class MediaService {
                         "audio/mpeg");
 
         private static final Duration CACHE_TTL = Duration.ofMinutes(10);
+        private static final Duration AVATAR_CACHE_TTL = Duration.ofMinutes(5);
 
         public MediaService(MediaRepository mediaRepository,
-                        UserRepository userRepository,
-                        MediaTypeRepository mediaTypeRepository,
-                        TargetTypeRepository targetTypeRepository,
-                        GcsService gcsService,
-                        RedisTemplate<String, List<MediaDto>> redisTemplate) {
+                            UserRepository userRepository,
+                            MediaTypeRepository mediaTypeRepository,
+                            TargetTypeRepository targetTypeRepository,
+                            GcsService gcsService,
+                            RedisTemplate<String, List<MediaDto>> redisTemplate, RedisTemplate<String, String> redisAvatarTemplate) {
                 this.mediaRepository = mediaRepository;
                 this.userRepository = userRepository;
                 this.mediaTypeRepository = mediaTypeRepository;
                 this.targetTypeRepository = targetTypeRepository;
                 this.gcsService = gcsService;
                 this.redisTemplate = redisTemplate;
+            this.redisAvatarTemplate = redisAvatarTemplate;
         }
 
         private String buildCacheKey(List<Integer> targetIds, String targetTypeCode, String mediaTypeName) {
                 List<Integer> sortedIds = new ArrayList<>(targetIds);
                 Collections.sort(sortedIds);
-                return String.format("media:%s:%s:%s", sortedIds.toString(), targetTypeCode, mediaTypeName);
+                return String.format("media:%s:%s:%s", sortedIds, targetTypeCode, mediaTypeName);
         }
 
         public MediaDto uploadMedia(Integer userId, Integer targetId, String targetTypeCode, String mediaTypeName,
@@ -77,6 +79,7 @@ public class MediaService {
                 media.setStatus(true);
 
                 Media savedMedia = mediaRepository.save(media);
+                redisAvatarTemplate.delete("avatar:" + userId);
                 return toDto(savedMedia);
         }
 
@@ -119,10 +122,6 @@ public class MediaService {
                 return mediaList.stream().map(this::toDto).collect(Collectors.toList());
         }
 
-        public void updateMedia(Media media) {
-                mediaRepository.save(media);
-        }
-
         @Transactional
         public void disableOldProfileMedia(Integer userId) {
                 TargetType targetType = targetTypeRepository.findByCode("PROFILE")
@@ -136,12 +135,13 @@ public class MediaService {
                         media.setStatus(false);
                 }
                 mediaRepository.saveAll(oldMedia);
+                redisAvatarTemplate.delete("avatar:" + userId);
         }
 
         public List<MediaDto> uploadPostMediaFiles(Integer userId,
                         Integer postId,
                         List<MultipartFile> files,
-                        String caption) throws IOException {
+                        String caption) {
                 User owner = userRepository.findById(userId)
                                 .orElseThrow(() -> new IllegalArgumentException("Người dùng không tồn tại"));
 
@@ -160,7 +160,8 @@ public class MediaService {
                         String contentType = file.getContentType();
                         String mediaTypeName;
 
-                        if (contentType.startsWith("image/")) {
+                    assert contentType != null;
+                    if (contentType.startsWith("image/")) {
                                 mediaTypeName = "image";
                         } else if (contentType.startsWith("video/")) {
                                 mediaTypeName = "video";
@@ -220,6 +221,29 @@ public class MediaService {
                 if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType)) {
                         throw new IllegalArgumentException("Loại file không được hỗ trợ: " + contentType);
                 }
+        }
+
+        public String getAvatarUrlByUserId(Integer userId) {
+                String cacheKey = "avatar:" + userId;
+
+                // 1. Check cache
+                String cachedUrl = redisAvatarTemplate.opsForValue().get(cacheKey);
+                if (cachedUrl != null) return cachedUrl;
+
+                // 2. Fetch from DB
+                Optional<Media> mediaOpt = mediaRepository
+                        .findFirstByTargetIdAndTargetType_CodeAndMediaType_NameOrderByCreatedAtDesc(
+                                userId, "PROFILE", "image"
+                        );
+
+                String mediaUrl = mediaOpt.map(Media::getMediaUrl).orElse(null);
+
+                // 3. Cache lại nếu có
+                if (mediaUrl != null) {
+                        redisAvatarTemplate.opsForValue().set(cacheKey, mediaUrl, AVATAR_CACHE_TTL);
+                }
+
+                return mediaUrl;
         }
 
         public List<MediaDto> getMediaByTargetIds(List<Integer> targetIds, String targetTypeCode, String mediaTypeName,

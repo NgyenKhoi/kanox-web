@@ -2,6 +2,7 @@ package com.example.social_media.service;
 
 import com.example.social_media.dto.reaction.ReactionResponseDto;
 import com.example.social_media.dto.reaction.ReactionTypeCountDto;
+import com.example.social_media.dto.user.UserBasicDisplayDto;
 import com.example.social_media.entity.Reaction;
 import com.example.social_media.entity.ReactionId;
 import com.example.social_media.entity.ReactionType;
@@ -26,15 +27,18 @@ public class ReactionService {
     private final ReactionTypeRepository reactionTypeRepository;
     private final UserRepository userRepository;
     private final TargetTypeRepository targetTypeRepository;
+    private MediaService mediaService;
 
     public ReactionService(ReactionRepository reactionRepository,
                            ReactionTypeRepository reactionTypeRepository,
                            UserRepository userRepository,
-                           TargetTypeRepository targetTypeRepository) {
+                           TargetTypeRepository targetTypeRepository,
+                           MediaService mediaService) {
         this.reactionRepository = reactionRepository;
         this.reactionTypeRepository = reactionTypeRepository;
         this.userRepository = userRepository;
         this.targetTypeRepository = targetTypeRepository;
+        this.mediaService = mediaService;
     }
 
     private static final Set<String> MAIN_REACTIONS = Set.of(
@@ -126,5 +130,23 @@ public class ReactionService {
 
         return reactions.stream()
                 .collect(Collectors.groupingBy(Reaction::getReactionType, Collectors.counting()));
+    }
+
+    public List<UserBasicDisplayDto> getUsersByReactionType(Integer targetId, String targetTypeCode, String emojiName) {
+        TargetType targetType = getTargetTypeByCode(targetTypeCode);
+        ReactionType reactionType = reactionTypeRepository.findByNameIgnoreCase(emojiName)
+                .orElseThrow(() -> new IllegalArgumentException("Loại emoji không tồn tại"));
+
+        List<Reaction> reactions = reactionRepository.findByIdTargetIdAndIdTargetTypeIdAndReactionTypeIdAndStatusTrue(
+                targetId, targetType.getId(), reactionType.getId()
+        );
+
+        return reactions.stream()
+                .map(r -> {
+                    var user = r.getUser();
+                    String avatarUrl = mediaService.getAvatarUrlByUserId(user.getId());
+                    return new UserBasicDisplayDto(user.getId(), avatarUrl, user.getDisplayName(), user.getUsername());
+                })
+                .toList();
     }
 }

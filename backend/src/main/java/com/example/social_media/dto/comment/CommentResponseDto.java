@@ -1,19 +1,19 @@
 package com.example.social_media.dto.comment;
-import com.example.social_media.dto.user.UserForCommentDto;
+import com.example.social_media.dto.user.UserBasicDisplayDto;
 import java.time.Instant;
 import java.util.List;
 
 public class CommentResponseDto {
     private Integer commentId;
     private String content;
-    private UserForCommentDto user;
+    private UserBasicDisplayDto user;
     private Instant createdAt;
     private Instant updatedAt;
     private String message;
     private Integer userId;
     private List<CommentResponseDto> replies;
 
-    public CommentResponseDto(Integer commentId, String content, UserForCommentDto user,
+    public CommentResponseDto(Integer commentId, String content, UserBasicDisplayDto user,
                               Instant createdAt, Instant updatedAt, String message, Integer userId, List<CommentResponseDto> replies) {
         this.commentId = commentId;
         this.content = content;
@@ -42,8 +42,8 @@ public class CommentResponseDto {
         this.content = content;
     }
 
-    public UserForCommentDto getUser() { return user; }
-    public void setUser(UserForCommentDto user) { this.user = user; }
+    public UserBasicDisplayDto getUser() { return user; }
+    public void setUser(UserBasicDisplayDto user) { this.user = user; }
 
     public Instant getCreatedAt() {
         return createdAt;

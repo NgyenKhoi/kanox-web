@@ -49,6 +49,16 @@ public class RedisConfig {
         return container;
     }
 
+    @Bean
+    public RedisTemplate<String, String> redisAvatarTemplate(RedisConnectionFactory connectionFactory) {
+        RedisTemplate<String, String> template = new RedisTemplate<>();
+        template.setConnectionFactory(connectionFactory);
+        template.setKeySerializer(new StringRedisSerializer());
+        template.setValueSerializer(new StringRedisSerializer());
+        template.afterPropertiesSet();
+        return template;
+    }
+
     // ObjectMapper dùng chung
     @Bean
     public ObjectMapper objectMapper() {
