@@ -4,10 +4,12 @@ import com.example.social_media.entity.Report;
 import com.example.social_media.entity.TargetType;
 import com.example.social_media.entity.Post;
 import com.example.social_media.entity.Comment;
+import com.example.social_media.entity.User;
 import com.example.social_media.repository.ReportRepository;
 import com.example.social_media.repository.TargetTypeRepository;
 import com.example.social_media.repository.PostRepository;
 import com.example.social_media.repository.CommentRepository;
+import com.example.social_media.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 public class ReportService {
@@ -28,18 +31,21 @@ public class ReportService {
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
     private final ActivityLogService activityLogService;
+    private final UserRepository userRepository;
 
     @Autowired
     public ReportService(ReportRepository reportRepository, 
                          TargetTypeRepository targetTypeRepository,
                          PostRepository postRepository,
                          CommentRepository commentRepository,
-                         ActivityLogService activityLogService) {
+                         ActivityLogService activityLogService,
+                         UserRepository userRepository) {
         this.reportRepository = reportRepository;
         this.targetTypeRepository = targetTypeRepository;
         this.postRepository = postRepository;
         this.commentRepository = commentRepository;
         this.activityLogService = activityLogService;
+        this.userRepository = userRepository;
     }
 
     /**
@@ -83,14 +89,18 @@ public class ReportService {
         metadata.put("targetId", report.getTargetId());
         metadata.put("targetType", report.getTargetType().getCode());
         
-        activityLogService.logActivity(
-            adminUsername,
-            "RESOLVE_REPORT",
-            "Resolved report #" + id,
-            report.getTargetId().toString(),
-            report.getTargetType().getCode(),
-            metadata
-        );
+        // Log activity
+        Integer adminUserId = getUserIdByUsername(adminUsername);
+        if (adminUserId != null) {
+            activityLogService.logActivity(
+                adminUserId,
+                "RESOLVE_REPORT",
+                "127.0.0.1", // Default IP
+                "admin-panel", // Default device
+                report.getTargetId(),
+                report.getTargetType().getCode()
+            );
+        }
         
         return savedReport;
     }
@@ -113,14 +123,18 @@ public class ReportService {
         metadata.put("postId", postId);
         metadata.put("ownerId", post.getOwner().getId());
         
-        activityLogService.logActivity(
-            adminUsername,
-            "REMOVE_REPORTED_POST",
-            "Removed violating post #" + postId,
-            postId.toString(),
-            "POST",
-            metadata
-        );
+        // Log activity
+        Integer adminUserId = getUserIdByUsername(adminUsername);
+        if (adminUserId != null) {
+            activityLogService.logActivity(
+                adminUserId,
+                "REMOVE_REPORTED_POST",
+                "127.0.0.1", // Default IP
+                "admin-panel", // Default device
+                postId,
+                "POST"
+            );
+        }
     }
 
     /**
@@ -142,14 +156,18 @@ public class ReportService {
         metadata.put("postId", comment.getPost().getId());
         metadata.put("userId", comment.getUser().getId());
         
-        activityLogService.logActivity(
-            adminUsername,
-            "REMOVE_REPORTED_COMMENT",
-            "Removed violating comment #" + commentId,
-            commentId.toString(),
-            "COMMENT",
-            metadata
-        );
+        // Log activity
+        Integer adminUserId = getUserIdByUsername(adminUsername);
+        if (adminUserId != null) {
+            activityLogService.logActivity(
+                adminUserId,
+                "REMOVE_REPORTED_COMMENT",
+                "127.0.0.1", // Default IP
+                "admin-panel", // Default device
+                commentId,
+                "COMMENT"
+            );
+        }
     }
     
     /**
@@ -168,6 +186,21 @@ public class ReportService {
                 break;
             default:
                 throw new IllegalArgumentException("Unsupported content type: " + targetTypeCode);
+        }
+    }
+
+    /**
+     * Helper method to get user ID by username
+     * @param username the username to search for
+     * @return user ID if found, null otherwise
+     */
+    private Integer getUserIdByUsername(String username) {
+        try {
+            Optional<User> userOptional = userRepository.findByUsername(username);
+            return userOptional.map(User::getId).orElse(null);
+        } catch (Exception e) {
+            logger.warn("Could not find user with username: {}", username, e);
+            return null;
         }
     }
 }
