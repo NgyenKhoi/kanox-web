@@ -212,4 +212,77 @@ public class PostController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
+
+    @PostMapping(URLConfig.SAVE_POST)
+    public ResponseEntity<Map<String, Object>> savePost(
+            @PathVariable Integer postId,
+            @RequestHeader("Authorization") String authHeader) {
+        try {
+            String token = authHeader.substring(7);
+            String username = jwtService.extractUsername(token);
+            logger.debug("Saving post {} for user: {}", postId, username);
+            postService.savePost(postId, username);
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Lưu bài viết thành công");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.error("Error saving post: {}", e.getMessage(), e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("status", "error");
+            errorResponse.put("message", "Lỗi khi lưu bài viết: " + e.getMessage());
+            errorResponse.put("errors", new HashMap<>());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+    @PostMapping(URLConfig.HIDE_POST)
+    public ResponseEntity<Map<String, Object>> hidePost(
+            @PathVariable Integer postId,
+            @RequestHeader("Authorization") String authHeader) {
+        try {
+            String token = authHeader.substring(7);
+            String username = jwtService.extractUsername(token);
+            logger.debug("Hiding post {} for user: {}", postId, username);
+            postService.hidePost(postId, username);
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Ẩn bài viết thành công");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.error("Error hiding post: {}", e.getMessage(), e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("status", "error");
+            errorResponse.put("message", "Lỗi khi ẩn bài viết: " + e.getMessage());
+            errorResponse.put("errors", new HashMap<>());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+    @PostMapping(URLConfig.UNSAVE_POST)
+    public ResponseEntity<Map<String, Object>> unsavePost(
+            @PathVariable Integer postId,
+            @RequestHeader("Authorization") String authHeader) {
+        try {
+            String token = authHeader.substring(7);
+            String username = jwtService.extractUsername(token);
+            logger.debug("Un-saving post {} for user: {}", postId, username);
+            postService.unsavePost(postId, username);
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Bỏ lưu bài viết thành công");
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            logger.error("Error unsaving post: {}", e.getMessage());
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("status", "error");
+            errorResponse.put("message", e.getMessage());
+            errorResponse.put("errors", new HashMap<>());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+        } catch (Exception e) {
+            logger.error("Unexpected error during unsave: {}", e.getMessage(), e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("status", "error");
+            errorResponse.put("message", "Lỗi khi bỏ lưu bài viết: " + e.getMessage());
+            errorResponse.put("errors", new HashMap<>());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
 }

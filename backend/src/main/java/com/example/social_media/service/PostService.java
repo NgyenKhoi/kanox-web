@@ -8,12 +8,17 @@ import com.example.social_media.exception.RegistrationException;
 import com.example.social_media.exception.UserNotFoundException;
 import com.example.social_media.exception.UnauthorizedException;
 import com.example.social_media.repository.*;
+import com.example.social_media.repository.post_repository.HiddenPostRepository;
+import com.example.social_media.repository.post_repository.PostRepository;
+import com.example.social_media.repository.post_repository.PostTagRepository;
+import com.example.social_media.repository.post_repository.SavedPostRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -29,11 +34,13 @@ public class PostService {
     private final PrivacyService privacyService;
     private final MediaService mediaService;
     private final CommentRepository commentRepository;
-
+    private final SavedPostRepository savedPostRepository;
+    private final HiddenPostRepository hiddenPostRepository;
     public PostService(PostRepository postRepository, PostTagRepository postTagRepository,
             UserRepository userRepository, ContentPrivacyRepository contentPrivacyRepository,
             CustomPrivacyListRepository customPrivacyListRepository, PrivacyService privacyService,
-            MediaService mediaService, CommentRepository commentRepository) {
+            MediaService mediaService, CommentRepository commentRepository,
+                       SavedPostRepository savedPostRepository, HiddenPostRepository hiddenPostRepository) {
         this.postRepository = postRepository;
         this.postTagRepository = postTagRepository;
         this.userRepository = userRepository;
@@ -42,6 +49,8 @@ public class PostService {
         this.privacyService = privacyService;
         this.mediaService = mediaService; // Khởi tạo MediaService
         this.commentRepository = commentRepository;
+        this.savedPostRepository = savedPostRepository;
+        this.hiddenPostRepository = hiddenPostRepository;
     }
 
     @Transactional
@@ -278,6 +287,77 @@ public class PostService {
         return hasAccess;
     }
 
+    @Transactional
+    public void savePost(Integer postId, String username) {
+        var user = userRepository.findByUsernameAndStatusTrue(username)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        var post = postRepository.findById(postId)
+                .orElseThrow(() -> new IllegalArgumentException("Post not found"));
+
+        var savedPostOpt = savedPostRepository.findByUserIdAndPostId(user.getId(), postId);
+
+        if (savedPostOpt.isPresent()) {
+            SavedPost savedPost = savedPostOpt.get();
+            savedPost.setStatus(true); // Nếu đã lưu trước đó và bị ẩn
+            savedPost.setSaveTime(Instant.now());
+            savedPostRepository.save(savedPost);
+        } else {
+            SavedPost savedPost = new SavedPost();
+            savedPost.setUser(user);
+            savedPost.setPost(post);
+            savedPost.setStatus(true);
+            savedPost.setSaveTime(Instant.now());
+            savedPostRepository.save(savedPost);
+        }
+    }
+
+    @Transactional
+    public void hidePost(Integer postId, String username) {
+        var user = userRepository.findByUsernameAndStatusTrue(username)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        var post = postRepository.findById(postId)
+                .orElseThrow(() -> new IllegalArgumentException("Post not found"));
+
+        var hiddenPostOpt = hiddenPostRepository.findByUserIdAndPostId(user.getId(), postId);
+
+        if (hiddenPostOpt.isPresent()) {
+            HiddenPost hiddenPost = hiddenPostOpt.get();
+            hiddenPost.setStatus(true);
+            hiddenPost.setHiddenTime(Instant.now());
+            hiddenPostRepository.save(hiddenPost);
+        } else {
+            HiddenPost hiddenPost = new HiddenPost();
+            hiddenPost.setUser(user);
+            hiddenPost.setPost(post);
+            hiddenPost.setStatus(true);
+            hiddenPost.setHiddenTime(Instant.now());
+            hiddenPostRepository.save(hiddenPost);
+        }
+    }
+
+    @Transactional
+    public void unsavePost(Integer postId, String username) {
+        var user = userRepository.findByUsernameAndStatusTrue(username)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        var post = postRepository.findById(postId)
+                .orElseThrow(() -> new IllegalArgumentException("Post not found"));
+
+        var savedPostOpt = savedPostRepository.findByUserIdAndPostId(user.getId(), postId);
+
+        if (savedPostOpt.isPresent()) {
+            SavedPost savedPost = savedPostOpt.get();
+            savedPost.setStatus(false);
+            savedPostRepository.save(savedPost);
+        } else {
+            throw new IllegalArgumentException("Bài viết chưa được lưu trước đó");
+        }
+    }
+
+
+
     private PostResponseDto convertToDto(Post post) {
         PostResponseDto dto = new PostResponseDto();
         dto.setId(post.getId());
@@ -294,7 +374,6 @@ public class PostService {
         dto.setCommentCount(post.getTblComments().size());
         dto.setLikeCount(0);
         dto.setShareCount(0);
-
         return dto;
     }
 }

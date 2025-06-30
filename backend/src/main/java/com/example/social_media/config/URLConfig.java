@@ -21,6 +21,9 @@ public class URLConfig {
     public static final String POST_BASE = "/api/posts";
     public static final String NEWSFEED = "/newsfeed";
     public static final String USER_POST = "/user/{username}";
+    public static final String SAVE_POST = "/{postId}/save";
+    public static final String HIDE_POST = "/{postId}/hide";
+    public static final String UNSAVE_POST = "/{postId}/unsave";
     // Upload Management URLs
     public static final String UPLOAD_BASE = "/api/upload";
     // Chat URLs

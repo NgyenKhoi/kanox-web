@@ -1,13 +1,12 @@
 package com.example.social_media.service;
 
 import com.example.social_media.entity.Report;
-import com.example.social_media.entity.TargetType;
 import com.example.social_media.entity.Post;
 import com.example.social_media.entity.Comment;
 import com.example.social_media.entity.User;
 import com.example.social_media.repository.ReportRepository;
 import com.example.social_media.repository.TargetTypeRepository;
-import com.example.social_media.repository.PostRepository;
+import com.example.social_media.repository.post_repository.PostRepository;
 import com.example.social_media.repository.CommentRepository;
 import com.example.social_media.repository.UserRepository;
 import org.slf4j.Logger;
