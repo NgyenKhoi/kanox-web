@@ -116,7 +116,7 @@ public class ChatController {
         messagingTemplate.convertAndSend("/topic/typing/" + chatId, typingData);
     }
 
-    @MessageMapping("/ping")
+    @MessageMapping(URLConfig.CHAT_PING)
     public void handlePing(@Header("simpSessionId") String sessionId) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String username = auth != null && auth.isAuthenticated() ? auth.getName() : null;

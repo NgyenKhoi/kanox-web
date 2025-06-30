@@ -17,6 +17,7 @@
       <list>
         <option value="JSX File" />
         <option value="JavaScript File" />
+        <option value="CSS File" />
       </list>
     </option>
   </component>
@@ -53,6 +54,7 @@
     &quot;git-widget-placeholder&quot;: &quot;main&quot;,
     &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
     &quot;last_opened_file_path&quot;: &quot;D:/SWP391/kanox-web/frontend&quot;,
+    &quot;list.type.of.created.stylesheet&quot;: &quot;CSS&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
@@ -111,10 +113,17 @@
       <workItem from="1750831425176" duration="1314000" />
       <workItem from="1750856424695" duration="22000" />
       <workItem from="1750856458650" duration="6061000" />
+      <workItem from="1751013303765" duration="2936000" />
+      <workItem from="1751038952250" duration="213000" />
+      <workItem from="1751045726784" duration="73000" />
       <workItem from="1751006927969" duration="8000" />
       <workItem from="1751027367930" duration="8000" />
       <workItem from="1751027386595" duration="25308000" />
-      <workItem from="1751083352443" duration="17965000" />
+      <workItem from="1751083352443" duration="16835000" />
+      <workItem from="1751107131097" duration="3715000" />
+      <workItem from="1751120674410" duration="4683000" />
+      <workItem from="1751127699759" duration="436000" />
+      <workItem from="1751128156856" duration="5000" />
     </task>
     <servers />
   </component>

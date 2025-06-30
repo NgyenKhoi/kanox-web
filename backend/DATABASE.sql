@@ -2315,7 +2315,6 @@ WHERE definition LIKE '%friendship%';
         name VARCHAR(50),
         code VARCHAR(50)
     );
-
     ---------PROC VALIDATE TARGET EXISTS---------
 
     CREATE PROCEDURE sp_ValidateTargetExists
@@ -2428,6 +2427,7 @@ WHERE definition LIKE '%friendship%';
         id INT PRIMARY KEY IDENTITY(1, 1),
         name VARCHAR(50),
         description VARCHAR(255),
+		emoji NVARCHAR(10),
         status BIT DEFAULT 1
     );
 
@@ -2440,7 +2440,6 @@ WHERE definition LIKE '%friendship%';
         status BIT DEFAULT 1,
         PRIMARY KEY (user_id, target_id, target_type_id)
     );
-
     CREATE PROCEDURE sp_AddReaction
         @user_id INT,
         @reaction_type_id INT,
@@ -2719,18 +2718,51 @@ WHERE definition LIKE '%friendship%';
 	('FOLLOW', 'Someone followed you', 1);
 
     -- tblReactionType (Loại phản hồi: Like, Love, Haha, v.v.)
-    INSERT INTO tblReactionType (name, description, status) VALUES
-    ('Like', 'Like reaction', 1),
-    ('Love', 'Love reaction', 1),
-    ('Haha', 'Haha reaction', 1);
+	INSERT INTO tblReactionType (name, description, emoji, status) VALUES
+	('like',           N'Thích',              N'👍', 1),
+	('love',           N'Yêu thích',          N'❤️', 1),
+	('heart_eyes',     N'Mắt tim',            N'😍', 1),
+	('kiss',           N'Hôn',                N'😘', 1),
+	('broken_heart',   N'Trái tim tan vỡ',    N'💔', 1),
+	('blue_heart',     N'Trái tim xanh',      N'💙', 1),
+	('green_heart',    N'Trái tim xanh lá',   N'💚', 1),
+	('yellow_heart',   N'Trái tim vàng',      N'💛', 1),
+	('purple_heart',   N'Trái tim tím',       N'💜', 1),
+	('black_heart',    N'Trái tim đen',       N'🖤', 1),
+	('white_heart',    N'Trái tim trắng',     N'🤍', 1),
+	('orange_heart',   N'Trái tim cam',       N'🧡', 1),
+	('smile',          N'Cười',               N'😄', 1),
+	('grin',           N'Cười to',            N'😁', 1),
+	('laugh',          N'Cười nghiêng',       N'🤣', 1),
+	('wink',           N'Nháy mắt',           N'😉', 1),
+	('sad',            N'Buồn',               N'😢', 1),
+	('cry',            N'Khóc',               N'😭', 1),
+	('angry',          N'Tức giận',           N'😡', 1),
+	('wow',            N'Ngạc nhiên',         N'😮', 1),
+	('thinking',       N'Suy nghĩ',           N'🤔', 1),
+	('nerd',           N'Đeo kính thông minh',N'🤓', 1),
+	('party',          N'Ăn mừng',            N'🥳', 1),
+	('sleepy',         N'Buồn ngủ',           N'😴', 1),
+	('thumbs_down',    N'Không thích',        N'👎', 1),
+	('clapping',       N'Vỗ tay',             N'👏', 1),
+	('muscle',         N'Cơ bắp',             N'💪', 1),
+	('soccer',         N'Bóng đá',            N'⚽️', 1),
+	('basketball',     N'Bóng rổ',            N'🏀', 1),
+	('running',        N'Chạy bộ',            N'🏃', 1),
+	('swimming',       N'Bơi',                N'🏊', 1),
+	('doctor',         N'Bác sĩ',             N'👩‍⚕️', 1),
+	('engineer',       N'Kỹ sư',              N'👷', 1),
+	('teacher',        N'Giáo viên',          N'👨‍🏫', 1),
+	('dancer_girl',    N'Cô gái đang múa',    N'💃', 1),
+	('middle_finger',  N'Ngón giữa',          N'🖕', 1),
+	('ring',           N'Nhẫn',               N'💍', 1),
+	('crown',          N'Vương miện',         N'👑', 1);
 
     -- tblMessageType (Loại tin nhắn: văn bản, hình ảnh, video)
     INSERT INTO tblMessageType (name, description, status) VALUES
     ('Text', 'Text message', 1),
     ('Image', 'Image message', 1),
     ('Video', 'Video message', 1);
-
-    -- tblUpgradeType (Loại nâng cấp tài khoản: Premium, VIP)
     INSERT INTO tblUpgradeType (name, description) VALUES
     ('Premium', 'Premium account upgrade'),
     ('VIP', 'VIP account upgrade');

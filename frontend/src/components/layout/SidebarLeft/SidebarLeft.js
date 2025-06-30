@@ -58,7 +58,7 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
 
   useEffect(() => {
     if (!user) {
-      navigate("/login");
+      navigate("/");
       return;
     }
 

@@ -141,5 +141,67 @@ public class AdminController {
         }
     }
     
+    // Phân quyền admin cho user khác
+    @PatchMapping("/users/{userId}/admin")
+    public ResponseEntity<?> grantAdminRole(@PathVariable Integer userId) {
+        try {
+            String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+            User admin = customUserDetailsService.getUserByUsername(currentUsername);
+            
+            User updatedUser = userService.updateAdminRole(userId, true);
+            
+            // Log hoạt động và gửi thông báo
+            notificationService.sendNotification(
+                    userId,
+                    "ADMIN_ROLE", 
+                    "You have been granted administrator privileges", 
+                    admin.getId(), 
+                    "USER"
+            );
+            
+            return ResponseEntity.ok(Map.of(
+                    "message", "Admin role granted successfully", 
+                    "data", updatedUser
+            ));
+        } catch (UserNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("message", "User not found", "error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Error granting admin role", "error", e.getMessage()));
+        }
+    }
+    
+    // Hủy quyền admin của user
+    @PatchMapping("/users/{userId}/revoke-admin")
+    public ResponseEntity<?> revokeAdminRole(@PathVariable Integer userId) {
+        try {
+            String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+            User admin = customUserDetailsService.getUserByUsername(currentUsername);
+            
+            User updatedUser = userService.updateAdminRole(userId, false);
+            
+            // Log hoạt động và gửi thông báo
+            notificationService.sendNotification(
+                    userId,
+                    "ADMIN_ROLE", 
+                    "Your administrator privileges have been revoked", 
+                    admin.getId(), 
+                    "USER"
+            );
+            
+            return ResponseEntity.ok(Map.of(
+                    "message", "Admin role revoked successfully", 
+                    "data", updatedUser
+            ));
+        } catch (UserNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("message", "User not found", "error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Error revoking admin role", "error", e.getMessage()));
+        }
+    }
+    
     // === CÁC TÍNH NĂNG ADMIN KHÁC CÓ THỂ ĐƯỢC THÊM VÀO ĐÂY ===
-} 
+}

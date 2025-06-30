@@ -1,14 +1,57 @@
 import React from "react";
-import { Container, Row, Col, Card, ListGroup } from "react-bootstrap";
+import {
+  Container,
+  Row,
+  Col,
+  Card,
+  ListGroup,
+  Button,
+  Badge,
+} from "react-bootstrap";
+import { DataGrid, GridColDef, GridRowsProp } from "@mui/x-data-grid";
+import "bootstrap/dist/css/bootstrap.min.css";
+import "@fortawesome/fontawesome-free/css/all.min.css"; // Add back FontAwesome for icons
 
 // Component: DashboardOverview - Tổng quan Dashboard
 const DashboardOverview = () => {
   // Dữ liệu giả cho thống kê dashboard
   const stats = [
-    { label: "Tổng số người dùng", value: "15,450", icon: "👥" },
-    { label: "Tổng số bài viết", value: "8,210", icon: "📋" },
-    { label: "Tổng số cộng đồng", value: "120", icon: "🏘️" },
-    { label: "Báo cáo mới", value: "45", icon: "⚠️" },
+    { label: "Tổng số người dùng", value: "15,450", icon: "" },
+    { label: "Tổng số bài viết", value: "8,210", icon: "" },
+    { label: "Tổng số cộng đồng", value: "120", icon: "" },
+    { label: "Báo cáo mới", value: "45", icon: "" },
+  ];
+
+  // Dữ liệu cho lưới dữ liệu
+  const rows: GridRowsProp = [
+    { id: 1, month: "Tháng 1", users: 44, posts: 23, communities: 15 },
+    { id: 2, month: "Tháng 2", users: 55, posts: 25, communities: 18 },
+    { id: 3, month: "Tháng 3", users: 57, posts: 30, communities: 20 },
+    { id: 4, month: "Tháng 4", users: 56, posts: 35, communities: 25 },
+    { id: 5, month: "Tháng 5", users: 61, posts: 40, communities: 28 },
+    { id: 6, month: "Tháng 6", users: 58, posts: 42, communities: 30 },
+  ];
+
+  const columns: GridColDef[] = [
+    { field: "month", headerName: "Tháng", width: 150 },
+    {
+      field: "users",
+      headerName: "Người dùng mới",
+      width: 150,
+      renderCell: (params) => `${params.value} người`,
+    },
+    {
+      field: "posts",
+      headerName: "Bài viết mới",
+      width: 150,
+      renderCell: (params) => `${params.value} bài`,
+    },
+    {
+      field: "communities",
+      headerName: "Cộng đồng mới",
+      width: 150,
+      renderCell: (params) => `${params.value} cộng đồng`,
+    },
   ];
 
   const activities = [
@@ -88,6 +131,93 @@ const DashboardOverview = () => {
           ))}
         </ListGroup>
       </div>
+      <Row>
+        <Col xs={12}>
+          <Card>
+            <Card.Header className="d-flex justify-content-between align-items-center">
+              <h3 className="mb-0">Thống kê hoạt động</h3>
+              <Button variant="outline-primary" size="sm">
+                <i className="fas fa-download me-1"></i>
+                Xuất báo cáo
+              </Button>
+            </Card.Header>
+            <Card.Body>
+              <div style={{ height: 400, width: "100%" }}>
+                <DataGrid
+                  rows={rows}
+                  columns={columns}
+                  pageSize={6}
+                  rowsPerPageOptions={[6]}
+                  checkboxSelection
+                  disableSelectionOnClick
+                  components={{
+                    Toolbar: () => (
+                      <div
+                        style={{
+                          padding: "10px",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                        }}
+                      >
+                        <h3 style={{ margin: 0 }}>Thống kê hoạt động</h3>
+                        <Button variant="outline-primary" size="sm">
+                          <i className="fas fa-download me-1"></i>
+                          Xuất báo cáo
+                        </Button>
+                      </div>
+                    ),
+                  }}
+                  sx={{
+                    "& .MuiDataGrid-cell": {
+                      fontSize: "14px",
+                      fontWeight: "500",
+                    },
+                    "& .MuiDataGrid-header": {
+                      backgroundColor: "#f8f9fa",
+                    },
+                    "& .MuiDataGrid-row": {
+                      "&:hover": {
+                        backgroundColor: "#f8f9fa",
+                      },
+                    },
+                  }}
+                />
+              </div>
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
+      <Row>
+        <Col xs={12}>
+          <Card>
+            <Card.Header>
+              <h3 className="mb-0">Hoạt động gần đây</h3>
+            </Card.Header>
+            <Card.Body>
+              <ListGroup className="mb-3">
+                {activities.map((activity, index) => (
+                  <ListGroup.Item
+                    key={index}
+                    className="d-flex justify-content-between align-items-center"
+                  >
+                    <div>
+                      <strong>{activity.title}</strong>
+                      <small className="text-muted d-block">
+                        {activity.time}
+                      </small>
+                    </div>
+                    <Badge bg="secondary">Mới</Badge>
+                  </ListGroup.Item>
+                ))}
+              </ListGroup>
+              <Button variant="outline-primary" className="w-100">
+                Xem thêm
+              </Button>
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
       <div className="mt-5">
         {" "}
         {/* Thay mt-8 */}
