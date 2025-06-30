@@ -7,7 +7,8 @@ export default function ReactionUserListModal({ show, onHide, targetId, targetTy
     const token = localStorage.getItem("token");
 
     useEffect(() => {
-        if (!show || !emojiName) return;
+        if (!show || !emojiName || !targetId || !targetTypeCode) return;
+
         const fetchUsers = async () => {
             setLoading(true);
             try {
@@ -20,7 +21,7 @@ export default function ReactionUserListModal({ show, onHide, targetId, targetTy
                     }
                 );
                 const data = await res.json();
-                setUsers(data || []);
+                setUsers(Array.isArray(data) ? data : []);
             } catch (err) {
                 console.error("Lỗi khi tải danh sách người dùng:", err.message);
                 setUsers([]);
@@ -28,8 +29,9 @@ export default function ReactionUserListModal({ show, onHide, targetId, targetTy
                 setLoading(false);
             }
         };
+
         fetchUsers();
-    }, [show, emojiName]);
+    }, [show, emojiName, targetId, targetTypeCode]);
 
     return (
         <Modal show={show} onHide={onHide} centered>
