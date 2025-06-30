@@ -24,6 +24,7 @@ public class URLConfig {
     public static final String SAVE_POST = "/{postId}/save";
     public static final String HIDE_POST = "/{postId}/hide";
     public static final String UNSAVE_POST = "/{postId}/unsave";
+    public static final String GET_SAVE_POST ="/saved-posts";
     // Upload Management URLs
     public static final String UPLOAD_BASE = "/api/upload";
     // Chat URLs
@@ -105,4 +106,15 @@ public class URLConfig {
     public static final String GET_MEDIA_BY_TARGET = "/target";
     public static final String MEDIA_FOR_POST = "/posts/{postId}/media";
     public static final String DELETE_MEDIA = "/{mediaId}";
+
+    public static final String GROUP_BASE = "/api/groups";
+    public static final String CREATE_GROUP ="/create";
+    public static final String ADD_MEMBER = "/{groupId}/add";
+    public static final String REMOVE_MEMBER = "/{groupId}/remove";
+    public static final String ASSIGN_ADMIN ="/{groupId}/assign-admin";
+    public static final String GET_MEMBER ="/{groupId}/members";
+    public static final String INVITE_MEMBER ="/{groupId}/invite";
+    public static final String ACCEPT_INVITE ="/{groupId}/accept";
+    public static final String REJECT_INVITE ="/{groupId}/reject";
+    public static final String PENDING_INVITE ="/pending-invites";
 }

@@ -376,4 +376,17 @@ public class PostService {
         dto.setShareCount(0);
         return dto;
     }
+
+    public List<PostResponseDto> getSavedPostsForUser(String username, Instant from, Instant to) {
+        var user = userRepository.findByUsernameAndStatusTrue(username)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        List<SavedPost> savedPosts = savedPostRepository
+                .findActiveSavedPostsByUserIdAndSaveTimeBetween(user.getId(), from, to);
+
+        return savedPosts.stream()
+                .map(sp -> convertToDto(sp.getPost()))
+                .collect(Collectors.toList());
+    }
+
 }

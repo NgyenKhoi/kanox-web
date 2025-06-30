@@ -45,9 +45,6 @@
     created_date DATETIME NOT NULL DEFAULT GETDATE(),
 	CONSTRAINT UQ_VerificationToken_Email UNIQUE(email)
 );
--- Tạo index để tìm token nhanh
-CREATE UNIQUE INDEX IDX_VerificationToken_Token ON VerificationToken(Token);
-
     CREATE TRIGGER trg_InsertPrivacySettings
     ON tblUser
     AFTER INSERT
@@ -2854,10 +2851,6 @@ WHERE definition LIKE '%friendship%';
 
     ----the forth----
     -- tblPost (Bài viết)
-    INSERT INTO tblPost (owner_id, content, privacy_setting, media_url, status) VALUES
-    (1, N'Chào mọi người, đây là bài viết đầu tiên của tôi!', 'public', NULL, 1),
-    (2, N'Hôm nay ăn phở ngon quá!', 'friends', 'https://example.com/pho.jpg', 1),
-    (4, N'Chỉ bạn thân mới thấy được bài này.', 'custom', NULL, 1);
 
     -- tblContentPrivacy (Quyền riêng tư cho bài viết)
     INSERT INTO tblContentPrivacy (content_id, content_type_id, privacy_setting, custom_list_id, updated_at, status) VALUES
@@ -2869,9 +2862,6 @@ WHERE definition LIKE '%friendship%';
     (3, 1, 1, N'Cảm ơn bạn!', 'public', GETDATE(), 1); -- Bình luận trả lời
 
     -- tblStory (Câu chuyện)
-    INSERT INTO tblStory (user_id, caption, media_url, media_type, privacy_setting, background_color, status) VALUES
-    (2, N'Chuyến đi Đà Lạt tuyệt vời!', 'https://example.com/dalat.jpg', 'image', 'friends', '#FF0000', 1),
-    (4, N'Hôm nay chill!', 'https://example.com/chill.mp4', 'video', 'custom', '#00FF00', 1);
 
     -- tblContentPrivacy (Quyền riêng tư cho câu chuyện)
     INSERT INTO tblContentPrivacy (content_id, content_type_id, privacy_setting, custom_list_id, updated_at, status) VALUES

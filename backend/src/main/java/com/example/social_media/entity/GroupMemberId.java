@@ -19,6 +19,16 @@ public class GroupMemberId implements Serializable {
     @Column(name = "user_id", nullable = false)
     private Integer userId;
 
+
+
+    public GroupMemberId(Integer groupId, Integer userId) {
+        this.groupId = groupId;
+        this.userId = userId;
+    }
+
+    public GroupMemberId() {
+    }
+
     public Integer getGroupId() {
         return groupId;
     }
