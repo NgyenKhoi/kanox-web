@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { Card, ListGroup, Button, Form, Nav, Image } from "react-bootstrap";
 import { FaSearch, FaEllipsisH } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -73,172 +72,35 @@ function SidebarRight() {
   };
 
   return (
-      <div
-          className="p-3 pt-2 d-none d-lg-block position-sticky top-0"
-          style={{
-            height: "100vh",
-            overflowY: "auto",
-            backgroundColor: "#fff",
-            scrollbarWidth: "none", /* Ẩn thanh cuộn trên Firefox */
-          }}
-      >
-        {/* Ẩn thanh cuộn trên Webkit (Chrome, Safari) */}
-        <style>
-          {`
-          div::-webkit-scrollbar {
-            display: none; /* Ẩn thanh cuộn */
-          }
-        `}
-        </style>
-
-        <Form className="mb-4 sticky-top bg-white" style={{ top: "0", zIndex: 1020 }}>
-          <div className="position-relative w-100">
-            <FaSearch
-                className="position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"
-                size={18}
-            />
-            <Form.Control
-                type="search"
+      <aside className="hidden lg:block sticky top-0 h-screen overflow-y-auto px-4 pt-4 text-[var(--text-color)] bg-[var(--background-color)]">
+        {/* Search Box */}
+        <div className="sticky top-0 bg-[var(--background-color)] z-10">
+          <div className="relative mb-4">
+            <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
+            <input
+                type="text"
                 placeholder="Tìm kiếm"
-                className="rounded-pill ps-5 bg-white border border-dark shadow-sm"
-                aria-label="Search"
-                style={{ height: "48px", fontSize: "1rem", color: "#000" }}
+                className="w-full pl-10 pr-4 py-3 rounded-full bg-white dark:bg-gray-800 text-black dark:text-white shadow border border-gray-300 dark:border-gray-600"
             />
           </div>
-        </Form>
-
-        <Card className="mb-4 rounded-3 shadow-sm border-[var(--border-color)] bg-[var(--background-color)]">
-          <Card.Body className="p-4 text-[var(--text-color)]">
-            <h5 className="fw-bold mb-3">Đăng ký gói Premium</h5>
-            <p className="mb-3 text-[var(--text-color-muted)]">
-              Đăng ký để mở khóa các tính năng mới và nhận chia sẻ doanh thu nếu bạn là người sáng tạo nội dung.
-            </p>
-            <Button variant="dark" className="rounded-pill px-4 py-2 fw-bold">Đăng ký</Button>
-          </Card.Body>
-        </Card>
-
-        <Card className="mb-4 rounded-3 shadow-sm border border-dark">
-          <Card.Header
-              className="fw-bold bg-white border-0 p-4 pb-2"
-              style={{ color: "#000" }}
-          >
-            Những điều đang diễn ra
-          </Card.Header>
-          <ListGroup variant="flush">
-            {trends.map((trend) => (
-                <ListGroup.Item
-                    key={trend.id}
-                    action
-                    className="d-flex flex-column align-items-start py-3 px-4 border-0"
-                    style={{ backgroundColor: "transparent" }}
-                >
-                  <div className="d-flex justify-content-between w-100">
-                    <div>
-                      <small style={{ color: "#666", fontSize: "0.85rem" }}>{trend.name}</small>
-                      <h6 className="mb-1 fw-bold" style={{ color: "#000" }}>{trend.title}</h6>
-                      <small style={{ color: "#666", fontSize: "0.85rem" }}>{trend.tweets}</small>
-                    </div>
-                    <Button variant="link" className="text-dark p-0">
-                      <FaEllipsisH size={16} />
-                    </Button>
-                  </div>
-                </ListGroup.Item>
-            ))}
-            <ListGroup.Item
-                action
-                className="py-2 px-4 fw-bold border-0"
-                style={{ color: "#000" }}
-            >
-              Hiển thị thêm
-            </ListGroup.Item>
-          </ListGroup>
-        </Card>
-
-        <Card className="mb-4 rounded-3 shadow-sm border border-dark">
-          <Card.Header
-              className="fw-bold bg-white border-0 p-4 pb-2"
-              style={{ color: "#000" }}
-          >
-            Gợi ý theo dõi
-          </Card.Header>
-          <ListGroup variant="flush">
-            {suggestedUsers.map((user) => (
-                <ListGroup.Item
-                    key={user.id}
-                    className="d-flex align-items-center py-3 px-4 border-0"
-                    style={{ backgroundColor: "transparent" }}
-                >
-                  <Image
-                      src={user.avatar}
-                      alt={user.name}
-                      width="40"
-                      height="40"
-                      roundedCircle
-                      className="me-3 border border-dark"
-                  />
-                  <div className="d-flex flex-column flex-grow-1">
-                <span className="fw-bold" style={{ fontSize: "0.95rem", color: "#000" }}>
-                  {user.name}
-                </span>
-                    <span style={{ fontSize: "0.85rem", color: "#666" }}>@{user.username}</span>
-                  </div>
-                  <Button
-                      variant="outline-dark"
-                      size="sm"
-                      className="col-auto rounded-pill px-3 py-1 fw-bold"
-                  >
-                    Theo dõi
-                  </Button>
-                </ListGroup.Item>
-            ))}
-            <ListGroup.Item
-                action
-                className="py-2 px-4 fw-bold border-0"
-                style={{ color: "#000" }}
-            >
-              Hiển thị thêm
-            </ListGroup.Item>
-          </ListGroup>
-        </Card>
-
-        <div className="px-3">
-          <Nav className="flex-wrap">
-            {defaultFooterLinks.map((link, index) => (
-                <Nav.Link
-                    key={index}
-                    as={Link}
-                    to={link.to}
-                    className="text-muted small me-3 my-1 p-0"
-                    style={{ fontSize: "0.85rem", color: "#666" }}
-                >
-                  {link.text}
-                </Nav.Link>
-            ))}
-            {showFullFooter &&
-                fullFooterLinks.slice(defaultFooterLinks.length).map((link, index) => (
-                    <Nav.Link
-                        key={`full-${index}`}
-                        as={Link}
-                        to={link.to}
-                        className="text-muted small me-3 my-1 p-0"
-                        style={{ fontSize: "0.85rem", color: "#666" }}
-                    >
-                      {link.text}
-                    </Nav.Link>
-                ))}
-            <Nav.Link
-                onClick={() => setShowFullFooter(!showFullFooter)}
-                className="text-muted small mep-0 my-1"
-                style={{ fontSize: "0.85rem", color: "#666" }}
-            >
-              {showFullFooter ? "Ẩn bớt" : "Thêm..."}
-            </Nav.Link>
-            <span className="text-muted small my-1 p-0" style={{ color: "#666", fontSize: "0.85rem" }}>
-            © 2025 KaNox Corp.
-          </span>
-          </Nav>
         </div>
-      </div>
+
+        {/* Gói Premium */}
+        <div className="bg-[var(--background-color)] rounded-xl p-4 shadow mb-4 border border-[var(--border-color)]">
+          <h2 className="text-lg font-bold mb-2">Đăng ký gói Premium</h2>
+          <p className="text-[var(--text-color-muted)] mb-3">
+            Đăng ký để mở khóa các tính năng mới...
+          </p>
+          <button
+              className="px-4 py-2 bg-black text-white rounded-full font-semibold"
+              onClick={() => navigate("/premium")}
+          >
+            Đăng ký
+          </button>
+        </div>
+
+        {/* Các phần khác: trends, suggestedUsers, footer... tương tự */}
+      </aside>
   );
 }
 

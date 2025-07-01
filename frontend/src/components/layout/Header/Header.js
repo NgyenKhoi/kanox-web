@@ -1,35 +1,22 @@
-
 import React from "react";
-import { Navbar, Container, Image } from "react-bootstrap";
-import { FaTwitter, FaSearch } from "react-icons/fa"; // Dùng FaTwitter tạm thời cho logo X
+import { FaTwitter, FaSearch } from "react-icons/fa";
 import { Link } from "react-router-dom";
 
 function Header() {
     return (
-        <Navbar
-            bg="var(--background-color)"
-            expand="lg"
-            className="border-bottom shadow-sm fixed-top d-lg-none"
-        >
-            {" "}
-            <Container className="d-flex justify-content-between align-items-center">
-                {/* Avatar người dùng ở góc trái trên mobile */}
-                <Image
-                    src="https://via.placeholder.com/40" // Thay bằng ảnh avatar thật
-                    alt="User Avatar"
-                    roundedCircle
-                    width={40}
-                    height={40}
-                    className="me-2"
+        <header className="lg:hidden fixed top-0 left-0 w-full bg-[var(--background-color)] border-b shadow-sm z-50">
+            <div className="flex items-center justify-between px-4 py-2">
+                <img
+                    src="https://via.placeholder.com/40"
+                    alt="Avatar"
+                    className="rounded-full w-10 h-10"
                 />
-
-                <Navbar.Brand as={Link} to="/Home" className="mx-auto">
-                    <FaTwitter size={30} className="text-[var(--text-color)]" />
-                </Navbar.Brand>
-
+                <Link to="/home" className="mx-auto text-[var(--text-color)]">
+                    <FaTwitter size={28} />
+                </Link>
                 <FaSearch size={20} className="text-[var(--text-color-muted)]" />
-            </Container>
-        </Navbar>
+            </div>
+        </header>
     );
 }
 

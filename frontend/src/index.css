@@ -17,7 +17,6 @@ code {
 @tailwind components;
 @tailwind utilities;
 
-/* Định nghĩa biến CSS tùy chỉnh cho theme */
 :root {
   --background-color: #ffffff;
   --text-color: #212529;
@@ -28,7 +27,6 @@ code {
   --text-color-filter: none;
 }
 
-/* Dark theme styles */
 .dark {
   --background-color: #222222;
   --text-color: #ffffff;
@@ -39,9 +37,8 @@ code {
   --text-color-filter: invert(1);
 }
 
-/* Đảm bảo các thành phần áp dụng theme */
 body {
-  @apply bg-[var(--background-color)] text-[var(--text-color)];
+  @apply bg-[var(--background-color)] text-[var(--text-color)] transition-colors duration-200;
 }
 
 .text-dark {
@@ -64,7 +61,7 @@ body {
   @apply bg-[var(--hover-bg-color)];
 }
 
-/* Thêm hiệu ứng chuyển đổi mượt mà */
 * {
   @apply transition-colors duration-200;
 }
+

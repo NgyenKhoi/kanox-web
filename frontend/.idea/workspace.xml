@@ -5,20 +5,17 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="c6c17ae2-c6cb-4c94-a6b8-91c54839fa5e" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/src/components/messages/UserSelectionModal.jsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/hooks/useEmojiMap.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/DATABASE.sql" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/DATABASE.sql" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/controller/MediaController.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/controller/MediaController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/dto/reaction/ReactionResponseDto.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/dto/reaction/ReactionResponseDto.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/service/MediaService.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/service/MediaService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/service/ReactionService.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/service/ReactionService.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/messages/UserSelectionModal.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/posts/TweetCard/ReactionUserListModal.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/posts/TweetCard/ReactionUserListModal.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/posts/TweetCard/TweetCard.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/posts/TweetCard/TweetCard.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/posts/TweetInput/EditPostModal.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/posts/TweetInput/EditPostModal.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/hooks/useReaction.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/hooks/useReaction.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/pages/Messenger/MessengerPage.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/pages/Messenger/MessengerPage.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/App.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/App.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/layout/Footer/Footer.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/layout/Footer/Footer.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/layout/Header/Header.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/layout/Header/Header.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/layout/SidebarLeft/SidebarLeft.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/layout/SidebarLeft/SidebarLeft.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/layout/SidebarLeft/SidebarLeft.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/layout/SidebarLeft/SidebarLeft.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/layout/SidebarRight/SidebarRight.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/layout/SidebarRight/SidebarRight.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/index.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/index.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/index.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -64,7 +61,7 @@
     "Node.js.MessengerPage.js.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "Merging main",
+    "git-widget-placeholder": "main",
     "junie.onboarding.icon.badge.shown": "true",
     "last_opened_file_path": "D:/SWP391/kanox-web/frontend",
     "list.type.of.created.stylesheet": "CSS",

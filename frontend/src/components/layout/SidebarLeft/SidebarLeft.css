@@ -112,13 +112,6 @@
 }
 
 /* General Link Styling to respect theme */
-.text-dark {
-  color: var(--text-color) !important;
-}
-
-.text-muted {
-  color: var(--text-color-muted) !important;
-}
 
 .opacity-75 {
   opacity: 0.75;
