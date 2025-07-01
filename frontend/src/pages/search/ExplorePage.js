@@ -214,7 +214,7 @@ function ExplorePage() {
         >
           <Container fluid>
             <Row>
-              <Col xs={12} lg={6} className="mx-auto px-md-0 position-relative">
+              <Col xs={12} lg={9} className="px-md-0 border-start border-end">
                 <InputGroup className="me-2">
                   <InputGroup.Text className="bg-light border border-light rounded-pill ps-3">
                     <FaSearch className="text-muted" />

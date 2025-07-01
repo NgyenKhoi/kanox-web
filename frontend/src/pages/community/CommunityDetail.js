@@ -266,11 +266,7 @@ function CommunityDetail() {
       className="community-detail-page-container d-flex flex-grow-1"
     >
       <Row className="w-100 justify-content-center">
-        <Col
-          xs={12}
-          lg={8}
-          className="community-detail-main-content border-start border-end py-3"
-        >
+        <Col xs={12} lg={9} className="community-detail-main-content border-start border-end py-3">
           {/* Header */}
           <div className="d-flex align-items-center mb-3 px-3">
             <Button

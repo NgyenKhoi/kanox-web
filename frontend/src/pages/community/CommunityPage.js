@@ -113,11 +113,7 @@ function CommunityPage({ onShowCreatePost, isDarkMode, onToggleDarkMode }) {
     <Container fluid className="community-page-container d-flex flex-grow-1">
       <Row className="w-100 justify-content-center">
         {/* Main Content Area */}
-        <Col
-          xs={12}
-          lg={6}
-          className="community-main-content border-start border-end py-3"
-        >
+        <Col xs={12} lg={9} className="community-main-content border-start border-end py-3">
           <div className="d-flex align-items-center mb-3 px-3">
             <h2 className="mb-0 me-auto">Cộng đồng</h2>
             <div className="search-icon me-3">

@@ -172,7 +172,7 @@ function SettingsPage() {
                 </div>
                 <Container fluid className="flex-grow-1">
                     <Row className="h-100">
-                        <Col xs={12} lg={6} className="px-md-0">
+                        <Col xs={12} lg={9} className="px-md-0">
                             <div className="p-3">
                                 <h4 className="text-dark mb-4">
                                     <FaLock className="me-2" /> Quyền riêng tư

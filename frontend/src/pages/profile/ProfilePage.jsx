@@ -349,12 +349,8 @@ function ProfilePage() {
                 >
                   <div className="d-flex align-items-center">
                     <Image
-                        src={mediaUrl || "https://via.placeholder.com/40?text=Avatar"}
-                        roundedCircle
-                        width={40}
-                        height={40}
-                        className="me-2"
-                        alt="Avatar"
+                        src={mediaUrl || "https://via.placeholder.com/150?text=Avatar"}
+                        className="w-[150px] h-[150px] object-cover border-4 border-white rounded-full"
                     />
                     <div>
                       <strong>{req.displayName || req.username}</strong>
@@ -501,10 +497,10 @@ function ProfilePage() {
                             {!isBlocked && <FriendshipButton targetId={userProfile.id} />}
                             <Button
                                 variant={isBlocked ? "outline-secondary" : "outline-danger"}
-                                className="rounded-pill ms-2 px-3 py-1"
+                                className="rounded-full px-3 py-1 ml-2"
                                 onClick={handleBlockToggle}
                             >
-                              <FaUserSlash className="me-1" />
+                              <FaUserSlash className="mr-1" />
                               {isBlocked ? "Bỏ chặn" : "Chặn"}
                             </Button>
                           </>
@@ -595,12 +591,11 @@ function ProfilePage() {
                             <Nav.Item key={tab}>
                               <Nav.Link
                                   onClick={() => setActiveTab(tab)}
-                                  className={`text-dark fw-bold ${activeTab === tab ? "active" : ""}`}
+                                  className={`font-bold ${activeTab === tab ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-600"} py-2`}
                               >
                                 {tab === "posts" && "Bài đăng"}
                                 {tab === "shares" && "Chia sẻ"}
                                 {tab === "savedArticles" && "Bài viết đã lưu"}
-                                {tab === "sentRequests" && "Yêu cầu đã gửi"}
                               </Nav.Link>
                             </Nav.Item>
                         ))}
