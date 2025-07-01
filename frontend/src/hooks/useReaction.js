@@ -74,7 +74,7 @@ export default function useReaction({ user, targetId, targetTypeCode }) {
             toast.error("Lỗi khi lấy danh sách emoji.");
         }
     };
-
+    
     const fetchUserReaction = async () => {
         try {
             const res = await fetch(`${process.env.REACT_APP_API_URL}/reactions/user`, {
@@ -86,6 +86,11 @@ export default function useReaction({ user, targetId, targetTypeCode }) {
                 body: JSON.stringify({ userId: user.id, targetId, targetTypeCode }),
             });
 
+            if (res.status === 204) {
+                setCurrentEmoji(null);
+                return;
+            }
+
             if (!res.ok) throw new Error("Không thể lấy reaction người dùng.");
 
             const data = await res.json();
@@ -94,6 +99,7 @@ export default function useReaction({ user, targetId, targetTypeCode }) {
             console.error("Lỗi khi lấy reaction người dùng:", err.message);
         }
     };
+
 
     const fetchReactionCounts = async () => {
         try {

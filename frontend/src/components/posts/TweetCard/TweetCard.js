@@ -621,9 +621,7 @@ function TweetCard({ tweet, onPostUpdate }) {
                 </span>
                   <OverlayTrigger
                       placement="top"
-                      overlay={
-                        <Tooltip>{renderStatusText(privacySetting)}</Tooltip>
-                      }
+                      overlay={<Tooltip>{renderStatusText(privacySetting)}</Tooltip>}
                   >
                     <span>{renderStatusIcon(privacySetting)}</span>
                   </OverlayTrigger>
@@ -654,24 +652,16 @@ function TweetCard({ tweet, onPostUpdate }) {
                               {renderStatusText(privacySetting)}
                             </Dropdown.Toggle>
                             <Dropdown.Menu>
-                              <Dropdown.Item
-                                  onClick={() => handleStatusChange("public")}
-                              >
+                              <Dropdown.Item onClick={() => handleStatusChange("public")}>
                                 <FaGlobeAmericas className="me-2" /> Công khai
                               </Dropdown.Item>
-                              <Dropdown.Item
-                                  onClick={() => handleStatusChange("friends")}
-                              >
+                              <Dropdown.Item onClick={() => handleStatusChange("friends")}>
                                 <FaUserFriends className="me-2" /> Bạn bè
                               </Dropdown.Item>
-                              <Dropdown.Item
-                                  onClick={() => handleStatusChange("only_me")}
-                              >
+                              <Dropdown.Item onClick={() => handleStatusChange("only_me")}>
                                 <FaLock className="me-2" /> Chỉ mình tôi
                               </Dropdown.Item>
-                              <Dropdown.Item
-                                  onClick={() => handleStatusChange("custom")}
-                              >
+                              <Dropdown.Item onClick={() => handleStatusChange("custom")}>
                                 <FaList className="me-2" /> Tùy chỉnh
                               </Dropdown.Item>
                             </Dropdown.Menu>
@@ -723,33 +713,64 @@ function TweetCard({ tweet, onPostUpdate }) {
                       </div>
                   ))}
 
-              {/* Thanh tổng hợp cảm xúc + bình luận */}
-              <div className="d-flex justify-content-between align-items-center mt-2 px-2">
-                {/* Emojis phổ biến */}
-                <div className="d-flex align-items-center gap-1">
-                  {topReactions.map(({ emoji, name }) => (
-                      <span
-                          key={name}
-                          onClick={() => {
-                            setSelectedEmojiName(name);
-                            setShowReactionUserModal(true);
-                          }}
-                          style={{ fontSize: "1.2rem", cursor: "pointer" }}
-                          title={`Xem ai đã thả ${name}`}
-                      >
-                        {emoji}
-                      </span>
-                  ))}
-                  {totalCount > 0 && (
-                      <span className="text-muted ms-1">{totalCount.toLocaleString("vi-VN")}</span>
-                  )}
-                </div>
+              {/* Thanh tổng hợp cảm xúc + bình luận với điều kiện */}
+              {(totalCount > 0 || commentCount > 0) && (
+                  <>
+                    {imageUrls.length === 0 && (
+                        <div
+                            style={{
+                              borderTop: "1px solid #e6ecf0",
+                              marginTop: "10px",
+                            }}
+                        />
+                    )}
+                    <div className="d-flex justify-content-between align-items-center mt-2 px-2">
+                      {/* Emojis phổ biến với tooltip hiển thị tên người dùng */}
+                      {totalCount > 0 && (
+                          <div className="d-flex align-items-center gap-1">
+                            {topReactions.map(({ emoji, name }) => (
+                                <OverlayTrigger
+                                    key={name}
+                                    placement="top"
+                                    overlay={
+                                      <Tooltip id={`tooltip-${name}`}>
+                                        {reactionCountMap[name] > 0
+                                            ? `Người dùng: ${Array(reactionCountMap[name])
+                                                .fill()
+                                                .map((_, i) => `User${i + 1}`)
+                                                .join(", ")}`
+                                            : "Chưa có ai phản hồi"}
+                                      </Tooltip>
+                                    }
+                                >
+                          <span
+                              onClick={() => {
+                                setSelectedEmojiName(name);
+                                setShowReactionUserModal(true);
+                              }}
+                              style={{ fontSize: "1.2rem", cursor: "pointer" }}
+                              title={`Xem ai đã thả ${name}`}
+                          >
+                            {emoji}
+                          </span>
+                                </OverlayTrigger>
+                            ))}
+                            {totalCount > 0 && (
+                                <span className="text-muted ms-1">{totalCount.toLocaleString("vi-VN")}</span>
+                            )}
+                          </div>
+                      )}
 
-                {/* Bình luận + chia sẻ */}
-                <div className="text-muted small">
-                  {commentCount} bình luận {shareCount > 0 && ` · ${shareCount} lượt chia sẻ`}
-                </div>
-              </div>
+                      {/* Bình luận + chia sẻ */}
+                      {commentCount > 0 && (
+                          <div className="text-muted small">
+                            {commentCount} bình luận {shareCount > 0 && ` · ${shareCount} lượt chia sẻ`}
+                          </div>
+                      )}
+                    </div>
+                    <div style={{ borderTop: "1px solid #e6ecf0", margin: "10px 0" }} />
+                  </>
+              )}
 
               <div className="d-flex justify-content-between text-muted mt-2 w-100 px-0">
                 <div className="text-center">
@@ -919,4 +940,5 @@ function TweetCard({ tweet, onPostUpdate }) {
       </>
   );
 }
+
 export default TweetCard;
