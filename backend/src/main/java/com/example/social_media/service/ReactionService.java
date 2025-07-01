@@ -11,13 +11,11 @@ import com.example.social_media.repository.ReactionRepository;
 import com.example.social_media.repository.ReactionTypeRepository;
 import com.example.social_media.repository.TargetTypeRepository;
 import com.example.social_media.repository.UserRepository;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
-
+import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -27,31 +25,32 @@ public class ReactionService {
     private final ReactionTypeRepository reactionTypeRepository;
     private final UserRepository userRepository;
     private final TargetTypeRepository targetTypeRepository;
-    private MediaService mediaService;
+    private final MediaService mediaService;
+    private final RedisTemplate<String, Object> redisReactionTemplate;
+
+    private static final Set<String> MAIN_REACTIONS = Set.of("like", "love", "smile", "sad", "wow", "angry", "sleepy");
+    private static final Duration CACHE_TTL = Duration.ofMinutes(5);
 
     public ReactionService(ReactionRepository reactionRepository,
                            ReactionTypeRepository reactionTypeRepository,
                            UserRepository userRepository,
                            TargetTypeRepository targetTypeRepository,
-                           MediaService mediaService) {
+                           MediaService mediaService,
+                           RedisTemplate<String, Object> redisReactionTemplate) {
         this.reactionRepository = reactionRepository;
         this.reactionTypeRepository = reactionTypeRepository;
         this.userRepository = userRepository;
         this.targetTypeRepository = targetTypeRepository;
         this.mediaService = mediaService;
+        this.redisReactionTemplate = redisReactionTemplate;
     }
-
-    private static final Set<String> MAIN_REACTIONS = Set.of(
-            "like", "love", "smile", "sad", "wow", "angry", "sleepy"
-    );
 
     public void addOrUpdateReaction(Integer userId, Integer targetId, String targetTypeCode, String emojiName) {
         TargetType targetType = getTargetTypeByCode(targetTypeCode);
-        var reactionType = reactionTypeRepository.findByNameIgnoreCase(emojiName.trim())
+        ReactionType reactionType = reactionTypeRepository.findByNameIgnoreCase(emojiName.trim())
                 .orElseThrow(() -> new IllegalArgumentException("Loại cảm xúc không hợp lệ: " + emojiName));
 
         ReactionId reactionId = new ReactionId(userId, targetId, targetType.getId());
-
         Reaction existing = reactionRepository.findById(reactionId).orElse(null);
 
         if (existing != null) {
@@ -71,31 +70,41 @@ public class ReactionService {
             reaction.setStatus(true);
             reactionRepository.save(reaction);
         }
+
+        clearCache(targetId, targetTypeCode);
     }
 
     public void removeReaction(Integer userId, Integer targetId, String targetTypeCode) {
         TargetType targetType = getTargetTypeByCode(targetTypeCode);
         reactionRepository.deleteByIdUserIdAndIdTargetIdAndIdTargetTypeId(userId, targetId, targetType.getId());
+        clearCache(targetId, targetTypeCode);
     }
 
     public List<ReactionTypeCountDto> getTop3Reactions(Integer targetId, String targetTypeCode) {
+        String cacheKey = String.format("reaction:top3:%s:%d", targetTypeCode, targetId);
+        List<ReactionTypeCountDto> cached = (List<ReactionTypeCountDto>) redisReactionTemplate.opsForValue().get(cacheKey);
+        if (cached != null) return cached;
+
         TargetType targetType = getTargetTypeByCode(targetTypeCode);
-        List<Reaction> reactions = reactionRepository
-                .findByIdTargetIdAndIdTargetTypeIdAndStatusTrue(targetId, targetType.getId());
+        List<Reaction> reactions = reactionRepository.findByIdTargetIdAndIdTargetTypeIdAndStatusTrue(targetId, targetType.getId());
 
         Map<ReactionType, Long> grouped = reactions.stream()
                 .collect(Collectors.groupingBy(Reaction::getReactionType, Collectors.counting()));
 
-        return grouped.entrySet().stream()
+        List<ReactionTypeCountDto> result = grouped.entrySet().stream()
                 .sorted(Map.Entry.<ReactionType, Long>comparingByValue().reversed())
                 .limit(3)
-                .map(entry -> {
-                    ReactionType reactionType = entry.getKey();
-                    Long count = entry.getValue();
-                    ReactionResponseDto dto = new ReactionResponseDto(reactionType);
-                    return new ReactionTypeCountDto(dto, count);
-                })
+                .map(entry -> new ReactionTypeCountDto(new ReactionResponseDto(entry.getKey()), entry.getValue()))
                 .toList();
+
+        redisReactionTemplate.opsForValue().set(cacheKey, result, CACHE_TTL);
+        return result;
+    }
+
+    public Map<ReactionType, Long> countAllReactions(Integer targetId, String targetTypeCode) {
+        TargetType targetType = getTargetTypeByCode(targetTypeCode);
+        List<Reaction> reactions = reactionRepository.findByIdTargetIdAndIdTargetTypeIdAndStatusTrue(targetId, targetType.getId());
+        return reactions.stream().collect(Collectors.groupingBy(Reaction::getReactionType, Collectors.counting()));
     }
 
     public List<ReactionType> getAvailableReactionsForMessaging() {
@@ -112,24 +121,8 @@ public class ReactionService {
 
     public ReactionType getReactionOfUser(Integer userId, Integer targetId, String targetTypeCode) {
         TargetType targetType = getTargetTypeByCode(targetTypeCode);
-        Optional<Reaction> reaction = reactionRepository.findByIdUserIdAndIdTargetIdAndIdTargetTypeId(
-                userId, targetId, targetType.getId()
-        );
+        Optional<Reaction> reaction = reactionRepository.findByIdUserIdAndIdTargetIdAndIdTargetTypeId(userId, targetId, targetType.getId());
         return reaction.map(Reaction::getReactionType).orElse(null);
-    }
-
-    private TargetType getTargetTypeByCode(String code) {
-        return targetTypeRepository.findByCode(code.trim())
-                .orElseThrow(() -> new IllegalArgumentException("Loại đối tượng không hợp lệ: " + code));
-    }
-
-    public Map<ReactionType, Long> countAllReactions(Integer targetId, String targetTypeCode) {
-        TargetType targetType = getTargetTypeByCode(targetTypeCode);
-        List<Reaction> reactions = reactionRepository
-                .findByIdTargetIdAndIdTargetTypeIdAndStatusTrue(targetId, targetType.getId());
-
-        return reactions.stream()
-                .collect(Collectors.groupingBy(Reaction::getReactionType, Collectors.counting()));
     }
 
     public List<UserBasicDisplayDto> getUsersByReactionType(Integer targetId, String targetTypeCode, String emojiName) {
@@ -138,15 +131,23 @@ public class ReactionService {
                 .orElseThrow(() -> new IllegalArgumentException("Loại emoji không tồn tại"));
 
         List<Reaction> reactions = reactionRepository.findByIdTargetIdAndIdTargetTypeIdAndReactionTypeIdAndStatusTrue(
-                targetId, targetType.getId(), reactionType.getId()
-        );
+                targetId, targetType.getId(), reactionType.getId());
 
         return reactions.stream()
-                .map(r -> {
-                    var user = r.getUser();
-                    String avatarUrl = mediaService.getAvatarUrlByUserId(user.getId());
-                    return new UserBasicDisplayDto(user.getId(), avatarUrl, user.getDisplayName(), user.getUsername());
-                })
-                .toList();
+                .map(r -> new UserBasicDisplayDto(
+                        r.getUser().getId(),
+                        mediaService.getAvatarUrlByUserId(r.getUser().getId()),
+                        r.getUser().getDisplayName(),
+                        r.getUser().getUsername()
+                )).toList();
+    }
+
+    private TargetType getTargetTypeByCode(String code) {
+        return targetTypeRepository.findByCode(code.trim())
+                .orElseThrow(() -> new IllegalArgumentException("Loại đối tượng không hợp lệ: " + code));
+    }
+
+    private void clearCache(Integer targetId, String targetTypeCode) {
+        redisReactionTemplate.delete(String.format("reaction:top3:%s:%d", targetTypeCode, targetId));
     }
 }

@@ -33,6 +33,9 @@ public class GroupMember {
     @Column(name = "status")
     private Boolean status;
 
+    @Column(name = "invite_status")
+    private String inviteStatus = "PENDING";
+
     public GroupMemberId getId() {
         return id;
     }
@@ -81,4 +84,19 @@ public class GroupMember {
         this.status = status;
     }
 
+    public Boolean getAdmin() {
+        return isAdmin;
+    }
+
+    public void setAdmin(Boolean admin) {
+        isAdmin = admin;
+    }
+
+    public String getInviteStatus() {
+        return inviteStatus;
+    }
+
+    public void setInviteStatus(String inviteStatus) {
+        this.inviteStatus = inviteStatus;
+    }
 }

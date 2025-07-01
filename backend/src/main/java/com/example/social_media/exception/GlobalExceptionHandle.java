@@ -74,4 +74,12 @@ public class GlobalExceptionHandle {
     public ResponseEntity<Map<String, Object>> handleRegistrationException(RegistrationException ex) {
         return buildErrorResponse(ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
     }
+
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<Object> handleNotFoundException(NotFoundException ex) {
+        Map<String, Object> error = new HashMap<>();
+        error.put("status", "error");
+        error.put("message", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    }
 }

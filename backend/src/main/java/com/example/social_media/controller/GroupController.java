@@ -1,53 +1,100 @@
 package com.example.social_media.controller;
 
+import com.example.social_media.config.URLConfig;
+import com.example.social_media.dto.user.UserBasicDisplayDto;
 import com.example.social_media.entity.Group;
 import com.example.social_media.service.GroupService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/groups")
+@RequestMapping(URLConfig.GROUP_BASE)
 public class GroupController {
-    @Autowired
-    private GroupService groupService;
 
-    @GetMapping
-    public List<Group> getAllGroups() {
-        return groupService.getAllGroups();
+    private final GroupService groupService;
+
+    public GroupController(GroupService groupService) {
+        this.groupService = groupService;
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<Group> getGroupById(@PathVariable Integer id) {
-        return groupService.getGroupById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    @PostMapping(URLConfig.CREATE_GROUP)
+    public ResponseEntity<Group> createGroup(
+            @RequestParam String ownerUsername,
+            @RequestParam String name,
+            @RequestParam(required = false) String description) {
+        Group group = groupService.createGroup(ownerUsername, name, description);
+        return ResponseEntity.ok(group);
     }
 
-    @PostMapping
-    public Group createGroup(@RequestBody Group group) {
-        return groupService.createGroup(group);
+    @DeleteMapping("/{groupId}")
+    public ResponseEntity<Void> deleteGroup(
+            @PathVariable Integer groupId,
+            @RequestParam String username) {
+        groupService.deleteGroup(groupId, username);
+        return ResponseEntity.ok().build();
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<Group> updateGroup(@PathVariable Integer id, @RequestBody Group group) {
-        return groupService.getGroupById(id)
-                .map(existingGroup -> {
-                    group.setId(id);
-                    return ResponseEntity.ok(groupService.updateGroup(group));
-                })
-                .orElse(ResponseEntity.notFound().build());
+    @PostMapping(URLConfig.ADD_MEMBER)
+    public ResponseEntity<Void> addMember(
+            @PathVariable Integer groupId,
+            @RequestParam String username) {
+        groupService.addMember(groupId, username);
+        return ResponseEntity.ok().build();
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteGroup(@PathVariable Integer id) {
-        return groupService.getGroupById(id)
-                .map(group -> {
-                    groupService.deleteGroup(id);
-                    return ResponseEntity.ok().<Void>build();
-                })
-                .orElse(ResponseEntity.notFound().build());
+    @PostMapping(URLConfig.REMOVE_MEMBER)
+    public ResponseEntity<Void> removeMember(
+            @PathVariable Integer groupId,
+            @RequestParam Integer targetUserId,
+            @RequestParam String requesterUsername) {
+        groupService.removeMember(groupId, targetUserId, requesterUsername);
+        return ResponseEntity.ok().build();
     }
-} 
+
+    @PostMapping(URLConfig.ASSIGN_ADMIN)
+    public ResponseEntity<Void> assignAdmin(
+            @PathVariable Integer groupId,
+            @RequestParam Integer targetUserId,
+            @RequestParam String requesterUsername) {
+        groupService.assignAdmin(groupId, targetUserId, requesterUsername);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping(URLConfig.GET_MEMBER)
+    public ResponseEntity<List<UserBasicDisplayDto>> getMembers(
+            @PathVariable Integer groupId) {
+        return ResponseEntity.ok(groupService.getGroupMembers(groupId));
+    }
+
+    @PostMapping(URLConfig.INVITE_MEMBER)
+    public ResponseEntity<Void> inviteMember(
+            @PathVariable Integer groupId,
+            @RequestParam String usernameToInvite) {
+        groupService.inviteMember(groupId, usernameToInvite);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping(URLConfig.ACCEPT_INVITE)
+    public ResponseEntity<Void> acceptInvite(
+            @PathVariable Integer groupId,
+            @RequestParam String username) {
+        groupService.acceptInvite(groupId, username);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping(URLConfig.REJECT_INVITE)
+    public ResponseEntity<Void> rejectInvite(
+            @PathVariable Integer groupId,
+            @RequestParam String username) {
+        groupService.rejectInvite(groupId, username);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping(URLConfig.PENDING_INVITE)
+    public ResponseEntity<List<Group>> getPendingInvites(
+            @RequestParam String username) {
+        return ResponseEntity.ok(groupService.getPendingInvites(username));
+    }
+}

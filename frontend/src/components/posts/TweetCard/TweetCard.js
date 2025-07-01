@@ -150,7 +150,6 @@ function TweetCard({ tweet, onPostUpdate }) {
 
   const {
     reactionCountMap,
-    emojiMap,
     topReactions,
     currentEmoji,
     sendReaction,
