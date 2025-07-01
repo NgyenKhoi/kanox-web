@@ -29,7 +29,7 @@ function CommunityRulesModal({
         <h5 className="mb-3">
           Xem lại và đồng ý với Quy tắc của {communityName}
         </h5>
-        <p className="text-muted small">
+        <p className="small" style={{ color: "var(--muted-color)" }}>
           Những quy tắc này do các quản trị viên của Cộng đồng đặt ra, thực thi
           và tồn tại bên cạnh Quy tắc của X.
         </p>
@@ -39,7 +39,7 @@ function CommunityRulesModal({
             <span className="me-2 fw-bold rule-number">{index + 1}</span>
             <div>
               <p className="fw-bold mb-1">{rule.title}</p>
-              <p className="text-muted mb-0">{rule.description}</p>
+              <p className="mb-0" style={{ color: "var(--muted-color)" }}>{rule.description}</p>
             </div>
           </div>
         ))}

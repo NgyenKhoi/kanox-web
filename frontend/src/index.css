@@ -65,3 +65,44 @@ body {
   @apply transition-colors duration-200;
 }
 
+/* Bootstrap override for dark mode */
+.dark .modal-content {
+  background-color: var(--background-color) !important;
+  color: var(--text-color) !important;
+}
+
+.dark .modal-header,
+.dark .modal-footer {
+  border-color: var(--border-color) !important;
+}
+
+.dark .text-muted {
+  color: var(--text-color-muted) !important;
+}
+
+.dark .bg-light {
+  background-color: var(--hover-bg-color) !important;
+}
+
+.dark .border {
+  border-color: var(--border-color) !important;
+}
+
+.dark .btn-light {
+  background-color: var(--hover-bg-color) !important;
+  color: var(--text-color) !important;
+  border-color: var(--border-color) !important;
+}
+
+.dark .text-secondary {
+  color: var(--text-color-muted) !important;
+}
+
+.dark .border-bottom {
+  border-color: var(--border-color) !important;
+}
+
+.dark .list-group-item {
+  background-color: var(--background-color) !important;
+  color: var(--text-color) !important;
+}

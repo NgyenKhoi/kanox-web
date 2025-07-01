@@ -138,7 +138,7 @@ function BlockedUsersPage() {
 
                 <Container fluid className="flex-grow-1">
                     <Row className="h-100">
-                        <Col xs={12} lg={9} className="px-md-0">
+                        <Col xs={12} lg={8} className="px-md-0">
                             <div className="p-3">
                                 <h4 className="text-dark mb-3">Danh sách người bị chặn</h4>
                                 <ListGroup variant="flush">

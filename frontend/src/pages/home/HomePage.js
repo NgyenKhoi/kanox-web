@@ -58,7 +58,7 @@ function HomePage({ onShowCreatePost, onToggleDarkMode }) {
       <div className="d-flex flex-column min-vh-100 bg-[var(--background-color)]">
         <Container fluid className="flex-grow-1">
           <Row className="h-100">
-            <Col xs={12} className="p-0">
+            <Col xs={12} lg={8} className="p-0">
               <div
                   className="sticky-top border-bottom fw-bold fs-5 px-3 py-2 d-flex justify-content-between align-items-center"
                   style={{ zIndex: 1020 }}
