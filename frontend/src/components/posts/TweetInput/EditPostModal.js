@@ -115,22 +115,39 @@ function EditPostModal({ show, onHide, post, onSave }) {
     const handleImageUpload = (e) => {
         const files = Array.from(e.target.files);
         const validImageTypes = ['image/jpeg', 'image/png', 'image/gif'];
-        const maxSize = 5 * 1024 * 1024; // 5MB
+        const validVideoTypes = ['video/mp4'];
+        const maxSize = 100 * 1024 * 1024; // 100MB
 
-        const validFiles = files.filter(file => 
-            validImageTypes.includes(file.type) && file.size <= maxSize
-        );
+        const validFiles = [];
+        let warningShown = false;
 
-        if (validFiles.length < files.length) {
-            setError("Một số file không hợp lệ (chỉ hỗ trợ JPEG, PNG, GIF, tối đa 5MB)");
+        files.forEach(file => {
+            const { type, size, name } = file;
+
+            const isImage = validImageTypes.includes(type);
+            const isVideo = validVideoTypes.includes(type);
+
+            if ((isImage || isVideo) && size <= maxSize) {
+                validFiles.push(file);
+            } else {
+                if (!warningShown) {
+                    if (!isImage && !isVideo) {
+                        setError(`"${name}" có định dạng không được hỗ trợ.`);
+                    } else if (size > maxSize) {
+                        setError(`"${name}" vượt quá giới hạn 100MB.`);
+                    }
+                    warningShown = true;
+                }
+            }
+        });
+
+        if (validFiles.length > 0) {
+            setFormData(prev => ({
+                ...prev,
+                images: [...prev.images, ...validFiles],
+            }));
         }
-
-        setFormData(prev => ({
-            ...prev,
-            images: [...prev.images, ...validFiles],
-        }));
     };
-
     const handleRemoveImage = (index, isExisting = false) => {
         if (isExisting) {
             const imageUrl = formData.existingImageUrls[index];
@@ -303,7 +320,7 @@ function EditPostModal({ show, onHide, post, onSave }) {
                         <FormControl
                             type="file"
                             multiple
-                            accept="image/jpeg,image/png,image/gif"
+                            accept="image/jpeg,image/png,video/mp4"
                             onChange={handleImageUpload}
                         />
                         <Row className="mt-2 g-2">
@@ -326,25 +343,37 @@ function EditPostModal({ show, onHide, post, onSave }) {
                                     </div>
                                 </Col>
                             ))}
-                            {formData.images.map((image, index) => (
-                                <Col xs={4} key={`new-${index}`}>
-                                    <div style={{ position: "relative" }}>
-                                        <BootstrapImage
-                                            src={URL.createObjectURL(image)}
-                                            style={{ width: "100%", height: "100px", objectFit: "cover", borderRadius: "8px" }}
-                                            fluid
-                                        />
-                                        <Button
-                                            variant="danger"
-                                            size="sm"
-                                            style={{ position: "absolute", top: "5px", right: "5px" }}
-                                            onClick={() => handleRemoveImage(index)}
-                                        >
-                                            <FaTrash />
-                                        </Button>
-                                    </div>
-                                </Col>
-                            ))}
+                            {formData.images.map((file, index) => {
+                                const url = URL.createObjectURL(file);
+                                const isVideo = file.type.startsWith("video/");
+                                return (
+                                    <Col xs={4} key={`new-${index}`}>
+                                        <div style={{ position: "relative" }}>
+                                            {isVideo ? (
+                                                <video
+                                                    src={url}
+                                                    controls
+                                                    style={{ width: "100%", height: "100px", objectFit: "cover", borderRadius: "8px" }}
+                                                />
+                                            ) : (
+                                                <BootstrapImage
+                                                    src={url}
+                                                    style={{ width: "100%", height: "100px", objectFit: "cover", borderRadius: "8px" }}
+                                                    fluid
+                                                />
+                                            )}
+                                            <Button
+                                                variant="danger"
+                                                size="sm"
+                                                style={{ position: "absolute", top: "5px", right: "5px" }}
+                                                onClick={() => handleRemoveImage(index)}
+                                            >
+                                                <FaTrash />
+                                            </Button>
+                                        </div>
+                                    </Col>
+                                );
+                            })}
                         </Row>
                     </FormGroup>
 

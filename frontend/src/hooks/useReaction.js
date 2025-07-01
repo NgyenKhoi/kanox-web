@@ -41,7 +41,7 @@ export default function useReaction({ user, targetId, targetTypeCode }) {
 
             if (!res.ok) throw new Error("Không thể lấy top cảm xúc.");
 
-            const data = await res.json(); // [{ reactionType: { name, emoji }, count }]
+            const data = await res.json();
             const top = data.map((item) => ({
                 name: item.reactionType.name,
                 emoji: item.reactionType.emoji,
