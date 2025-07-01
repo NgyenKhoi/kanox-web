@@ -105,6 +105,7 @@ public class MessageService {
         return messageDto;
     }
 
+
     @Transactional
     public List<MessageDto> getChatMessages(Integer chatId, String username) {
         User user = userRepository.findByUsername(username)

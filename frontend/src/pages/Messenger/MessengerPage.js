@@ -70,16 +70,16 @@ function MessengerPage() {
           navigate("/messages");
         }
         toast.success("Chat đã được xóa.");
-      } else if (message.chatId) {
+      } else if (message.id) { // Kiểm tra message.id thay vì message.chatId để khớp với ChatDto
         setChats((prev) => {
-          const existingChat = prev.find((chat) => chat.id === message.chatId);
+          const existingChat = prev.find((chat) => chat.id === message.id);
           const updatedMessage = {
             ...message,
             name: message.name || "Unknown User",
           };
           if (existingChat) {
             return prev.map((chat) =>
-                chat.id === message.chatId ? { ...chat, ...updatedMessage } : chat
+                chat.id === message.id ? { ...chat, ...updatedMessage } : chat
             );
           }
           return [...prev, updatedMessage];
@@ -87,9 +87,9 @@ function MessengerPage() {
         setUnreadChats((prev) => {
           const newUnread = new Set(prev);
           if (message.unreadMessagesCount > 0) {
-            newUnread.add(message.chatId);
+            newUnread.add(message.id);
           } else {
-            newUnread.delete(message.chatId);
+            newUnread.delete(message.id);
           }
           return newUnread;
         });
