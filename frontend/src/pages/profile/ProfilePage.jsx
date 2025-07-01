@@ -21,7 +21,6 @@ import {
 import { Link, useParams, useNavigate } from "react-router-dom";
 import TweetCard from "../../components/posts/TweetCard/TweetCard";
 import EditProfileModal from "../../components/profile/EditProfileModal";
-import SidebarLeft from "../../components/layout/SidebarLeft/SidebarLeft";
 import SidebarRight from "../../components/layout/SidebarRight/SidebarRight";
 import FriendshipButton from "../../components/friendship/FriendshipButton";
 import FollowActionButton from "../../components/utils/FollowActionButton";
@@ -459,9 +458,6 @@ function ProfilePage() {
 
           <Container fluid className="flex-grow-1">
             <Row className="h-100">
-              <Col xs={0} lg={3} className="d-none d-lg-block p-0">
-                <SidebarLeft />
-              </Col>
 
               <Col xs={12} lg={6} className="px-md-0">
                 <div className="position-relative p-3">

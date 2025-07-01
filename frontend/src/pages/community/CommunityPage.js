@@ -12,7 +12,7 @@ import {
 } from "react-icons/fa"; // Icons for engagement
 import { Link, useNavigate } from "react-router-dom";
 import SidebarRight from "../../components/layout/SidebarRight/SidebarRight"; // Assuming you have a right sidebar
-import SidebarLeft from "../../components/layout/SidebarLeft/SidebarLeft";
+
 
 // YOU MUST DESTRUCTURE THE PROPS HERE
 function CommunityPage({ onShowCreatePost, isDarkMode, onToggleDarkMode }) {
@@ -112,14 +112,6 @@ function CommunityPage({ onShowCreatePost, isDarkMode, onToggleDarkMode }) {
   return (
     <Container fluid className="community-page-container d-flex flex-grow-1">
       <Row className="w-100 justify-content-center">
-        <Col xs={0} md={0} lg={3} className="p-0">
-          {/* Pass the received props to SidebarLeft */}
-          <SidebarLeft
-            onShowCreatePost={onShowCreatePost}
-            isDarkMode={isDarkMode}
-            onToggleDarkMode={onToggleDarkMode}
-          />
-        </Col>
         {/* Main Content Area */}
         <Col
           xs={12}

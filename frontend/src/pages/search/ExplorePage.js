@@ -15,7 +15,6 @@ import { FaSearch, FaEllipsisH } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 
-import SidebarLeft from "../../components/layout/SidebarLeft/SidebarLeft";
 import SidebarRight from "../../components/layout/SidebarRight/SidebarRight";
 import { AuthContext } from "../../context/AuthContext";
 import useSingleMedia from "../../hooks/useSingleMedia";
@@ -208,9 +207,6 @@ function ExplorePage() {
 
   return (
     <div className="d-flex min-vh-100 bg-white">
-      <div className="d-none d-lg-block">
-        <SidebarLeft />
-      </div>
       <div className="d-flex flex-column flex-grow-1">
         <div
           className="sticky-top bg-white border-bottom py-2"

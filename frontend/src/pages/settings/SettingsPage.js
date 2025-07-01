@@ -3,7 +3,6 @@ import { Container, Row, Col, Form, Button, Spinner } from "react-bootstrap";
 import { FaArrowLeft, FaLock, FaList } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
-import SidebarLeft from "../../components/layout/SidebarLeft/SidebarLeft";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -173,13 +172,6 @@ function SettingsPage() {
                 </div>
                 <Container fluid className="flex-grow-1">
                     <Row className="h-100">
-                        <Col xs={0} lg={3} className="d-none d-lg-block p-0">
-                            <SidebarLeft
-                                onToggleDarkMode={handleToggleDarkMode}
-                                isDarkMode={isDarkMode}
-                                onShowCreatePost={handleShowCreatePost}
-                            />
-                        </Col>
                         <Col xs={12} lg={6} className="px-md-0">
                             <div className="p-3">
                                 <h4 className="text-dark mb-4">

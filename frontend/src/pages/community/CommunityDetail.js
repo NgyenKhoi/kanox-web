@@ -4,7 +4,6 @@ import { useParams, useNavigate } from "react-router-dom";
 // Corrected: Added FaUsers to the import
 import { FaArrowLeft, FaSearch, FaUsers } from "react-icons/fa";
 import SidebarRight from "../../components/layout/SidebarRight/SidebarRight";
-import SidebarLeft from "../../components/layout/SidebarLeft/SidebarLeft";
 import CommunityRulesModal from "../../components/community/CommunityRulesModal";
 import CommunityMembersModal from "../../components/community/CommunityMembersModal";
 import { AuthContext } from "../../context/AuthContext";
@@ -267,9 +266,6 @@ function CommunityDetail() {
       className="community-detail-page-container d-flex flex-grow-1"
     >
       <Row className="w-100 justify-content-center">
-        <Col xs={0} md={0} lg={3} className="p-0">
-          <SidebarLeft />
-        </Col>
         <Col
           xs={12}
           lg={8}

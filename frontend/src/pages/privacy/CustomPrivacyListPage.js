@@ -3,7 +3,6 @@ import { Container, Row, Col, Form, Button, Spinner, ListGroup, Modal } from "re
 import { FaArrowLeft, FaPlusCircle, FaSearch, FaTrash } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
-import SidebarLeft from "../../components/layout/SidebarLeft/SidebarLeft";
 import SidebarRight from "../../components/layout/SidebarRight/SidebarRight";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -237,11 +236,6 @@ function CustomPrivacyListPage() {
                 React.createElement(
                     Row,
                     null,
-                    React.createElement(
-                        Col,
-                        { xs: 0, lg: 3, className: "d-none d-lg-block p-0" },
-                        React.createElement(SidebarLeft, { onToggleDarkMode: handleToggleDarkMode, isDarkMode: isDarkMode })
-                    ),
                     React.createElement(
                         Col,
                         { xs: 12, lg: 6, className: "px-md-0" },

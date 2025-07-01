@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useContext } from "react";
 import { Container, Row, Col, Button, Spinner } from "react-bootstrap";
 import { FaCog } from "react-icons/fa";
-import SidebarLeft from "../../components/layout/SidebarLeft/SidebarLeft";
 import SidebarRight from "../../components/layout/SidebarRight/SidebarRight";
 import { AuthContext } from "../../context/AuthContext";
 import { ToastContainer, toast } from "react-toastify";
@@ -203,14 +202,6 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
     <>
       <ToastContainer />
       <div className="d-flex min-vh-100 bg-light">
-        <div className="d-none d-lg-block">
-          <SidebarLeft
-            onToggleDarkMode={onToggleDarkMode}
-            isDarkMode={isDarkMode}
-            onShowCreatePost={onShowCreatePost}
-          />
-        </div>
-
         <div className="d-flex flex-column flex-grow-1 border-start border-end bg-white">
           <div
             className="sticky-top bg-white border-bottom py-2"

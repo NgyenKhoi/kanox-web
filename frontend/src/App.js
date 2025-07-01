@@ -126,11 +126,13 @@ function AppContent() {
             <LoadingPage />
         ) : (
             <div className="min-h-screen flex">
-              <SidebarLeft
-                  onToggleDarkMode={toggleDarkMode}
-                  isDarkMode={isDarkMode}
-                  onShowCreatePost={() => setShowCreatePost(true)}
-              />
+              {user && (
+                  <SidebarLeft
+                      onToggleDarkMode={toggleDarkMode}
+                      isDarkMode={isDarkMode}
+                      onShowCreatePost={() => setShowCreatePost(true)}
+                  />
+              )}
               <div className="flex-grow p-4">
                 <Routes>
                   <Route path="/" element={<SignupPage />} />

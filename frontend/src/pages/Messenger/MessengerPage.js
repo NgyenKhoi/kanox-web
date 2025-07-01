@@ -12,7 +12,6 @@ import {
 import { FaSearch, FaPenSquare, FaTrash } from "react-icons/fa";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import SidebarLeft from "../../components/layout/SidebarLeft/SidebarLeft";
 import Chat from "../../components/messages/Chat";
 import { AuthContext } from "../../context/AuthContext";
 import { WebSocketContext } from "../../context/WebSocketContext";
@@ -394,11 +393,6 @@ function MessengerPage() {
           }
         `}
         </style>
-        <SidebarLeft
-            onShowCreatePost={() => console.log("Create Post clicked")}
-            isDarkMode={false}
-            onToggleDarkMode={() => console.log("Toggle Dark Mode")}
-        />
         <div className="flex-grow-1 d-flex flex-column">
           <div className="bg-white border-bottom p-3">
             <h5 className="fw-bold mb-0">Tin nhắn</h5>
