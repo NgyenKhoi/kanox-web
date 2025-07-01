@@ -136,9 +136,9 @@ public class ReactionService {
         return reactions.stream()
                 .map(r -> new UserBasicDisplayDto(
                         r.getUser().getId(),
-                        mediaService.getAvatarUrlByUserId(r.getUser().getId()),
                         r.getUser().getDisplayName(),
-                        r.getUser().getUsername()
+                        r.getUser().getUsername(),
+                        mediaService.getAvatarUrlByUserId(r.getUser().getId())
                 )).toList();
     }
 

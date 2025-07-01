@@ -2293,6 +2293,7 @@ WHERE definition LIKE '%friendship%';
         join_at DATETIME DEFAULT GETDATE(),
         is_admin BIT DEFAULT 0,
         status BIT DEFAULT 1,
+		invite_status NVARCHAR(20) DEFAULT 'PENDING',
         PRIMARY KEY (group_id, user_id)
     );
 
@@ -2712,7 +2713,8 @@ WHERE definition LIKE '%friendship%';
     ('STORY_VIEW', 'Someone viewed your story', 1),
     ('REACTION', 'Someone reacted to your content', 1),
 	('FRIEND_ACCEPTED', 'accepted friend request', 1),
-	('FOLLOW', 'Someone followed you', 1);
+	('FOLLOW', 'Someone followed you', 1),
+	('GROUP_INVITE', 'You have been invited to join a group', 1);
 
     -- tblReactionType (Loại phản hồi: Like, Love, Haha, v.v.)
 	INSERT INTO tblReactionType (name, description, emoji, status) VALUES

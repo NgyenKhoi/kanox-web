@@ -23,9 +23,9 @@ function EditPostModal({ show, onHide, post, onSave }) {
         taggedUserIds: [],
         tagInput: "",
         customListId: null,
-        images: [],
-        existingImageUrls: [],
-        imagesToDelete: [],
+        images: [], // New images to upload
+        existingImageUrls: [], // Existing image URLs from the post
+        imagesToDelete: [], // Image IDs to delete
     });
     const [customLists, setCustomLists] = useState([]);
     const [error, setError] = useState(null);
@@ -53,7 +53,7 @@ function EditPostModal({ show, onHide, post, onSave }) {
             setFormData({
                 content: post.content || "",
                 privacySetting: post.privacySetting === "private" ? "only_me" : post.privacySetting || "public",
-                taggedUserIds: post.taggedUsers ? post.taggedUsers.map(tag => parseInt(tag.id)) : [],
+                taggedUserIds: post.taggedUsers ? post.taggedUsers.map((tag) => parseInt(tag.id)) : [],
                 tagInput: "",
                 customListId: post.customListId || null,
                 images: [],
@@ -65,11 +65,11 @@ function EditPostModal({ show, onHide, post, onSave }) {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+        setFormData((prev) => ({ ...prev, [name]: value }));
     };
 
     const handleTagInputChange = (e) => {
-        setFormData(prev => ({ ...prev, tagInput: e.target.value }));
+        setFormData((prev) => ({ ...prev, tagInput: e.target.value }));
     };
 
     const handleAddTag = async () => {
@@ -82,7 +82,7 @@ function EditPostModal({ show, onHide, post, onSave }) {
                 });
                 if (!res.ok) throw new Error("Không tìm thấy người dùng!");
                 const data = await res.json();
-                setFormData(prev => ({
+                setFormData((prev) => ({
                     ...prev,
                     taggedUserIds: [...prev.taggedUserIds, parseInt(data.id)],
                     tagInput: "",
@@ -94,14 +94,14 @@ function EditPostModal({ show, onHide, post, onSave }) {
     };
 
     const handleRemoveTag = (tagId) => {
-        setFormData(prev => ({
+        setFormData((prev) => ({
             ...prev,
-            taggedUserIds: prev.taggedUserIds.filter(id => id !== tagId),
+            taggedUserIds: prev.taggedUserIds.filter((id) => id !== tagId),
         }));
     };
 
     const handleStatusChange = (status) => {
-        setFormData(prev => ({
+        setFormData((prev) => ({
             ...prev,
             privacySetting: status,
             customListId: status !== "custom" ? null : prev.customListId,
@@ -109,23 +109,21 @@ function EditPostModal({ show, onHide, post, onSave }) {
     };
 
     const handleCustomListSelect = (id) => {
-        setFormData(prev => ({ ...prev, customListId: id }));
+        setFormData((prev) => ({ ...prev, customListId: id }));
     };
 
     const handleImageUpload = (e) => {
         const files = Array.from(e.target.files);
-        const validImageTypes = ['image/jpeg', 'image/png', 'image/gif'];
-        const maxSize = 5 * 1024 * 1024;
+        const validImageTypes = ["image/jpeg", "image/png", "image/gif"];
+        const maxSize = 5 * 1024 * 1024; // 5MB
 
-        const validFiles = files.filter(file =>
-            validImageTypes.includes(file.type) && file.size <= maxSize
-        );
+        const validFiles = files.filter((file) => validImageTypes.includes(file.type) && file.size <= maxSize);
 
         if (validFiles.length < files.length) {
             setError("Một số file không hợp lệ (chỉ hỗ trợ JPEG, PNG, GIF, tối đa 5MB)");
         }
 
-        setFormData(prev => ({
+        setFormData((prev) => ({
             ...prev,
             images: [...prev.images, ...validFiles],
         }));
@@ -134,14 +132,14 @@ function EditPostModal({ show, onHide, post, onSave }) {
     const handleRemoveImage = (index, isExisting = false) => {
         if (isExisting) {
             const imageUrl = formData.existingImageUrls[index];
-            const imageId = imageUrl.split('/').pop();
-            setFormData(prev => ({
+            const imageId = imageUrl.split("/").pop(); // Assuming imageUrl contains an ID
+            setFormData((prev) => ({
                 ...prev,
                 existingImageUrls: prev.existingImageUrls.filter((_, i) => i !== index),
                 imagesToDelete: [...prev.imagesToDelete, imageId],
             }));
         } else {
-            setFormData(prev => ({
+            setFormData((prev) => ({
                 ...prev,
                 images: prev.images.filter((_, i) => i !== index),
             }));
@@ -162,14 +160,14 @@ function EditPostModal({ show, onHide, post, onSave }) {
             const token = localStorage.getItem("token");
             const formDataToSend = new FormData();
 
-            formDataToSend.append('content', formData.content);
-            formDataToSend.append('privacySetting', formData.privacySetting);
-            formDataToSend.append('taggedUserIds', JSON.stringify(formData.taggedUserIds));
+            formDataToSend.append("content", formData.content);
+            formDataToSend.append("privacySetting", formData.privacySetting);
+            formDataToSend.append("taggedUserIds", JSON.stringify(formData.taggedUserIds));
             if (formData.customListId) {
-                formDataToSend.append('customListId', formData.customListId);
+                formDataToSend.append("customListId", formData.customListId);
             }
             if (formData.imagesToDelete.length > 0) {
-                formDataToSend.append('imagesToDelete', JSON.stringify(formData.imagesToDelete));
+                formDataToSend.append("imagesToDelete", JSON.stringify(formData.imagesToDelete));
             }
 
             formData.images.forEach((image, index) => {
@@ -192,7 +190,7 @@ function EditPostModal({ show, onHide, post, onSave }) {
                 } catch {
                     throw new Error(`Lỗi server: ${res.status} - ${text || "Không rõ lỗi"}`);
                 }
-                throw new Error(errData.message || `Không thể cập nhật bài đăng!`);
+                throw new Error(errData.message || "Không thể cập nhật bài đăng!");
             }
 
             onSave();
@@ -204,7 +202,7 @@ function EditPostModal({ show, onHide, post, onSave }) {
     };
 
     return (
-        <Modal show={show} onHide={onHide} centered className="bg-[var(--background-color)] text-[var(--text-color)]">
+        <Modal show={show} onHide={onHide} centered>
             <Modal.Header closeButton>
                 <Modal.Title>Chỉnh sửa bài đăng</Modal.Title>
             </Modal.Header>
@@ -219,14 +217,13 @@ function EditPostModal({ show, onHide, post, onSave }) {
                             value={formData.content}
                             onChange={handleChange}
                             placeholder="Bạn đang nghĩ gì?"
-                            className="bg-[var(--input-bg-color)] border-[var(--border-color)] text-[var(--text-color)]"
                         />
                     </FormGroup>
 
                     <FormGroup className="mb-3">
                         <FormLabel>Trạng thái hiển thị</FormLabel>
                         <Dropdown>
-                            <Dropdown.Toggle variant="outline-secondary" className="w-100 text-start bg-[var(--input-bg-color)] text-[var(--text-color)] border-[var(--border-color)]">
+                            <Dropdown.Toggle variant="outline-secondary" className="w-100 text-start">
                                 {formData.privacySetting === "only_me"
                                     ? "Riêng tư"
                                     : formData.privacySetting === "friends"
@@ -248,13 +245,13 @@ function EditPostModal({ show, onHide, post, onSave }) {
                         <FormGroup className="mb-3">
                             <FormLabel>Danh sách tùy chỉnh</FormLabel>
                             <Dropdown>
-                                <Dropdown.Toggle variant="outline-secondary" className="w-100 text-start bg-[var(--input-bg-color)] text-[var(--text-color)] border-[var(--border-color)]">
+                                <Dropdown.Toggle variant="outline-secondary" className="w-100 text-start">
                                     {formData.customListId
-                                        ? customLists.find(l => l.id === formData.customListId)?.listName
+                                        ? customLists.find((l) => l.id === formData.customListId)?.listName
                                         : "Chọn danh sách"}
                                 </Dropdown.Toggle>
                                 <Dropdown.Menu>
-                                    {customLists.map(list => (
+                                    {customLists.map((list) => (
                                         <Dropdown.Item key={list.id} onClick={() => handleCustomListSelect(list.id)}>
                                             {list.listName}
                                         </Dropdown.Item>
@@ -273,18 +270,22 @@ function EditPostModal({ show, onHide, post, onSave }) {
                                     placeholder="Nhập username"
                                     value={formData.tagInput}
                                     onChange={handleTagInputChange}
-                                    className="bg-[var(--input-bg-color)] border-[var(--border-color)] text-[var(--text-color)]"
                                 />
                             </Col>
                             <Col xs={3}>
-                                <Button variant="primary" onClick={handleAddTag} disabled={!formData.tagInput.trim()} className="w-100">
+                                <Button
+                                    variant="primary"
+                                    onClick={handleAddTag}
+                                    disabled={!formData.tagInput.trim()}
+                                    className="w-100"
+                                >
                                     Thêm
                                 </Button>
                             </Col>
                         </Row>
                         <div className="mt-2">
                             {formData.taggedUserIds.map((tagId) => (
-                                <Badge key={tagId} bg="primary" className="me-2 mb-2 text-white">
+                                <Badge key={tagId} bg="primary" className="me-2 mb-2">
                                     @User_{tagId}{" "}
                                     <Button
                                         variant="link"
@@ -306,21 +307,20 @@ function EditPostModal({ show, onHide, post, onSave }) {
                             multiple
                             accept="image/jpeg,image/png,image/gif"
                             onChange={handleImageUpload}
-                            className="bg-[var(--input-bg-color)] border-[var(--border-color)] text-[var(--text-color)]"
                         />
                         <Row className="mt-2 g-2">
                             {formData.existingImageUrls.map((url, index) => (
                                 <Col xs={4} key={`existing-${index}`}>
-                                    <div className="position-relative">
+                                    <div style={{ position: "relative" }}>
                                         <BootstrapImage
                                             src={url}
-                                            className="w-full h-[100px] object-cover rounded-lg"
+                                            style={{ width: "100%", height: "100px", objectFit: "cover", borderRadius: "8px" }}
                                             fluid
                                         />
                                         <Button
                                             variant="danger"
                                             size="sm"
-                                            className="position-absolute top-1 end-1"
+                                            style={{ position: "absolute", top: "5px", right: "5px" }}
                                             onClick={() => handleRemoveImage(index, true)}
                                         >
                                             <FaTrash />
@@ -328,29 +328,32 @@ function EditPostModal({ show, onHide, post, onSave }) {
                                     </div>
                                 </Col>
                             ))}
-                            {formData.images.map((image, index) => (
-                                <Col xs={4} key={`new-${index}`}>
-                                    <div className="position-relative">
-                                        <BootstrapImage
-                                            src={URL.createObjectURL(image)}
-                                            className="w-full h-[100px] object-cover rounded-lg"
-                                            fluid
-                                        />
-                                        <Button
-                                            variant="danger"
-                                            size="sm"
-                                            className="position-absolute top-1 end-1"
-                                            onClick={() => handleRemoveImage(index)}
-                                        >
-                                            <FaTrash />
-                                        </Button>
-                                    </div>
-                                </Col>
-                            ))}
+                            {formData.images.map((file, index) => {
+                                const url = URL.createObjectURL(file);
+                                return (
+                                    <Col xs={4} key={`new-${index}`}>
+                                        <div style={{ position: "relative" }}>
+                                            <BootstrapImage
+                                                src={url}
+                                                style={{ width: "100%", height: "100px", objectFit: "cover", borderRadius: "8px" }}
+                                                fluid
+                                            />
+                                            <Button
+                                                variant="danger"
+                                                size="sm"
+                                                style={{ position: "absolute", top: "5px", right: "5px" }}
+                                                onClick={() => handleRemoveImage(index)}
+                                            >
+                                                <FaTrash />
+                                            </Button>
+                                        </div>
+                                    </Col>
+                                );
+                            })}
                         </Row>
                     </FormGroup>
 
-                    {error && <p className="text-[var(--error-color)] text-center">{error}</p>}
+                    {error && <p className="text-danger text-center">{error}</p>}
 
                     <div className="d-flex justify-content-end">
                         <Button variant="secondary" onClick={onHide} className="me-2" disabled={loading}>

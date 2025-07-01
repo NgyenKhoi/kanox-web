@@ -5,32 +5,20 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="c6c17ae2-c6cb-4c94-a6b8-91c54839fa5e" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/src/context/ThemeContext.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/components/messages/UserSelectionModal.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/hooks/useEmojiMap.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../backend/DATABASE.sql" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/DATABASE.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/controller/MediaController.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/controller/MediaController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/dto/reaction/ReactionResponseDto.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/dto/reaction/ReactionResponseDto.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/service/MediaService.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/service/MediaService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/service/ReactionService.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/service/ReactionService.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/App.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/App.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/App.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/App.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/layout/Footer/Footer.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/layout/Footer/Footer.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/layout/Header/Header.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/layout/Header/Header.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/layout/SidebarLeft/SidebarLeft.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/layout/SidebarLeft/SidebarLeft.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/layout/SidebarLeft/SidebarLeft.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/layout/SidebarLeft/SidebarLeft.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/layout/SidebarRight/SidebarRight.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/layout/SidebarRight/SidebarRight.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/messages/Call.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/messages/Call.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/messages/Chat.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/messages/Chat.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/messages/UserSelectionModal.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/messages/UserSelectionModal.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/posts/TweetCard/CommentItem.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/posts/TweetCard/CommentItem.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/posts/TweetCard/CommentThread.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/posts/TweetCard/CommentThread.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/posts/TweetCard/ReactionButtonGroup.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/posts/TweetCard/ReactionButtonGroup.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/messages/UserSelectionModal.js" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/components/posts/TweetCard/ReactionUserListModal.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/posts/TweetCard/ReactionUserListModal.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/posts/TweetCard/TweetCard.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/posts/TweetCard/TweetCard.css" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/components/posts/TweetCard/TweetCard.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/posts/TweetCard/TweetCard.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/components/posts/TweetInput/EditPostModal.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/posts/TweetInput/EditPostModal.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/posts/TweetInput/TweetInput.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/posts/TweetInput/TweetInput.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/profile/EditProfileModal.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/profile/EditProfileModal.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/index.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/index.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/index.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/pages/home/HomePage.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/pages/home/HomePage.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/hooks/useReaction.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/hooks/useReaction.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/pages/Messenger/MessengerPage.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/pages/Messenger/MessengerPage.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -41,8 +29,8 @@
     <option name="RECENT_TEMPLATES">
       <list>
         <option value="CSS File" />
-        <option value="JavaScript File" />
         <option value="JSX File" />
+        <option value="JavaScript File" />
       </list>
     </option>
   </component>
@@ -70,30 +58,30 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;Node.js.MessengerPage.js.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
-    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;D:/SWP391/kanox-web/frontend&quot;,
-    &quot;list.type.of.created.stylesheet&quot;: &quot;CSS&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;settings.nodejs&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "Node.js.MessengerPage.js.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "Merging main",
+    "junie.onboarding.icon.badge.shown": "true",
+    "last_opened_file_path": "D:/SWP391/kanox-web/frontend",
+    "list.type.of.created.stylesheet": "CSS",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "settings.nodejs",
+    "vue.rearranger.settings.migration": "true"
   },
-  &quot;keyToStringList&quot;: {
-    &quot;DatabaseDriversLRU&quot;: [
-      &quot;sqlserver&quot;
+  "keyToStringList": {
+    "DatabaseDriversLRU": [
+      "sqlserver"
     ]
   }
-}</component>
+}]]></component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
@@ -151,6 +139,7 @@
       <workItem from="1751128156856" duration="5000" />
       <workItem from="1751194526757" duration="15727000" />
       <workItem from="1751290210748" duration="3376000" />
+      <workItem from="1751349869793" duration="3157000" />
     </task>
     <servers />
   </component>

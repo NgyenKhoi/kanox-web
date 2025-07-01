@@ -245,11 +245,16 @@ function TweetCard({ tweet, onPostUpdate }) {
 
   const renderStatusIcon = (status) => {
     switch (status) {
-      case "public": return <FaGlobeAmericas className="text-primary" />;
-      case "friends": return <FaUserFriends className="text-success" />;
-      case "only_me": return <FaLock className="text-danger" />;
-      case "custom": return <FaList className="text-info" />;
-      default: return <FaGlobeAmericas className="text-primary" />;
+      case "public":
+        return <FaGlobeAmericas className="text-primary" />;
+      case "friends":
+        return <FaUserFriends className="text-success" />;
+      case "only_me":
+        return <FaLock className="text-danger" />;
+      case "custom":
+        return <FaList className="text-info" />;
+      default:
+        return <FaGlobeAmericas className="text-primary" />;
     }
   };
 
@@ -605,27 +610,55 @@ function TweetCard({ tweet, onPostUpdate }) {
                       </div>
                   ))}
 
-              {/* Thanh tổng hợp cảm xúc + bình luận */}
-              <div className="d-flex justify-content-between align-items-center mt-2 px-2">
-                {/* Emojis phổ biến */}
-                <div className="d-flex align-items-center gap-1">
-                  {topReactions.map(({ emoji, name }) => (
-                      <span
-                          key={name}
-                          onClick={() => {
-                            setSelectedEmojiName(name);
-                            setShowReactionUserModal(true);
-                          }}
-                          className="text-2xl cursor-pointer text-[var(--text-color)]"
-                          title={`Xem ai đã thả ${name}`}
-                      >
-                    {emoji}
-                  </span>
-                  ))}
-                  {totalCount > 0 && (
-                      <span className="text-[var(--text-color-muted)] ms-1">{totalCount.toLocaleString("vi-VN")}</span>
-                  )}
-                </div>
+              {/* Thanh tổng hợp cảm xúc + bình luận với điều kiện */}
+              {(totalCount > 0 || commentCount > 0) && (
+                  <>
+                    {imageUrls.length === 0 && (
+                        <div
+                            style={{
+                              borderTop: "1px solid #e6ecf0",
+                              marginTop: "10px",
+                            }}
+                        />
+                    )}
+                    <div className="d-flex justify-content-between align-items-center mt-2 px-2">
+                      {/* Emojis phổ biến với tooltip hiển thị tên người dùng */}
+                      {totalCount > 0 && (
+                          <div className="d-flex align-items-center gap-1">
+                            {topReactions.map(({ emoji, name }) => (
+                                <OverlayTrigger
+                                    key={name}
+                                    placement="top"
+                                    overlay={
+                                      <Tooltip id={`tooltip-${name}`}>
+                                        {reactionCountMap[name] > 0
+                                            ? `Người dùng: ${Array(reactionCountMap[name])
+                                                .fill()
+                                                .map((_, i) => `User${i + 1}`)
+                                                .join(", ")}`
+                                            : "Chưa có ai phản hồi"}
+                                      </Tooltip>
+                                    }
+                                >
+                          <span
+                              onClick={() => {
+                                setSelectedEmojiName(name);
+                                setTimeout(() => {
+                                  setShowReactionUserModal(true);
+                                }, 0);
+                              }}
+                              style={{ fontSize: "1.2rem", cursor: "pointer" }}
+                              title={`Xem ai đã thả ${name}`}
+                          >
+                            {emoji}
+                          </span>
+                                </OverlayTrigger>
+                            ))}
+                            {totalCount > 0 && (
+                                <span className="text-[var(--text-color-muted)] ms-1">{totalCount.toLocaleString("vi-VN")}</span>
+                            )}
+                          </div>
+                      )}
 
                 {/* Bình luận + chia sẻ */}
                 <div className="text-[var(--text-color-muted)] small">
@@ -717,6 +750,8 @@ function TweetCard({ tweet, onPostUpdate }) {
                       </div>
                     </Form>
                   </div>
+              )}
+                  </>
               )}
             </div>
           </Card.Body>
