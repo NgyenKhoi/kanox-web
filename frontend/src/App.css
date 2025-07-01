@@ -2,6 +2,7 @@
   text-align: center;
 }
 
+/* Điều chỉnh .App-logo để hỗ trợ theme */
 .App-logo {
   height: 40vmin;
   pointer-events: none;
@@ -13,21 +14,24 @@
   }
 }
 
+/* Điều chỉnh .App-header để hỗ trợ theme thay vì hardcode màu */
 .App-header {
-  background-color: #282c34;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   font-size: calc(10px + 2vmin);
-  color: white;
+  background-color: var(--background-color);
+  color: var(--text-color);
 }
 
+/* Điều chỉnh .App-link để hỗ trợ theme */
 .App-link {
-  color: #61dafb;
+  color: var(--primary-color);
 }
 
+/* Giữ lại animation */
 @keyframes App-logo-spin {
   from {
     transform: rotate(0deg);
@@ -36,33 +40,31 @@
     transform: rotate(360deg);
   }
 }
-/* src/index.css or App.css */
-html, body, #root {
-  height: 100%;
-  margin: 0;
-  padding: 0;
-}
 
+/* Thêm Tailwind CSS */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Tích hợp các style layout từ code cũ */
 .app-container {
-  min-height: 100vh; /* Ensure the container takes full viewport height */
+  min-height: 100vh;
 }
 
+/* Điều chỉnh sidebar-left để hỗ trợ theme */
 .sidebar-left {
-  /* Existing styles for sidebar */
-  /* If you removed 'position: sticky' from inline style, add it here */
   position: sticky;
   top: 0;
-  align-self: flex-start; /* Important for sticky to work correctly with flex container */
-  /* Ensure it has a background color to stand out from main content */
-  background-color: var(--background-color); /* Use CSS variable */
-  z-index: 1000; /* Ensure it stays on top */
+  align-self: flex-start;
+  background-color: var(--background-color);
+  z-index: 1000;
 }
 
+/* Điều chỉnh main-content để hỗ trợ theme */
 .main-content {
-  flex-grow: 1; /* Allow main content to take remaining space */
-  padding-left: 15px; /* Adjust as needed */
-  padding-right: 15px; /* Adjust as needed */
-  /* Remove borders from here if handled by specific page components */
+  flex-grow: 1;
+  padding-left: 15px;
+  padding-right: 15px;
 }
 
 /* Adjustments for general layout classes */
@@ -76,7 +78,7 @@ html, body, #root {
 
 /* Ensure font colors for various components respond to theme */
 .text-dark, .text-muted, h1, h2, h3, h4, h5, h6, p, a {
-  color: var(--text-color); /* Apply global text color */
+  color: var(--text-color);
 }
 
 /* Add general hover effect for clickable elements */

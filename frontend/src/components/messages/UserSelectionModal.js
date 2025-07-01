@@ -78,21 +78,21 @@ function UserSelectionModal({
   };
 
   return (
-      <Modal show={show} onHide={handleClose} centered size="md">
+      <Modal show={show} onHide={handleClose} centered size="md" className="bg-[var(--background-color)] text-[var(--text-color)]">
         <Modal.Header closeButton>
           <Modal.Title className="fw-bold">Tin nhắn mới</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <InputGroup className="mb-3 rounded-pill shadow-sm">
-            <InputGroup.Text className="bg-light border-0 rounded-pill ps-3">
-              <FaSearch className="text-muted" />
+            <InputGroup.Text className="bg-[var(--background-color)] border-0 rounded-pill ps-3">
+              <FaSearch className="text-[var(--text-color-muted)]" />
             </InputGroup.Text>
             <Form.Control
                 type="text"
                 placeholder="Tìm kiếm theo tên hoặc email"
                 value={searchKeyword}
                 onChange={(e) => setSearchKeyword(e.target.value)}
-                className="bg-light border-0 rounded-pill py-2"
+                className="bg-[var(--input-bg-color)] border-0 rounded-pill py-2"
                 autoFocus
             />
           </InputGroup>
@@ -107,7 +107,7 @@ function UserSelectionModal({
                     searchResults.map((user) => (
                         <ListGroup.Item
                             key={user.id}
-                            className="d-flex align-items-center p-2 hover-bg-light"
+                            className="d-flex align-items-center p-2 hover-bg-[var(--background-color)]"
                         >
                           <UserAvatar
                               userId={user.id}

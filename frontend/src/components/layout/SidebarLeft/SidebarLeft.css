@@ -1,42 +1,39 @@
 /* src/components/layout/SidebarLeft/SidebarLeft.css */
 
 .sidebar-left-container {
-  /* Set width explicitly for desktop */
-  width: 280px; /* Example width, adjust as needed */
-  height: 100vh; /* Make it fit the viewport height */
+  width: 280px;
+  height: 100vh;
   position: sticky;
   top: 0;
-  /* Ensure content inside can scroll if it overflows */
   overflow-y: auto;
-  scrollbar-width: none; /* Hide scrollbar for Firefox */
-  -ms-overflow-style: none;  /* Hide scrollbar for IE and Edge */
-  transition: background-color 0.3s ease, border-color 0.3s ease; /* Smooth transition for theme change */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 /* Hide scrollbar for Chrome, Safari, Opera */
 .sidebar-left-container::-webkit-scrollbar {
-    display: none;
+  display: none;
 }
 
 .sidebar-nav-link {
-  color: var(--text-color); /* Inherit text color from theme */
+  color: var(--text-color);
   font-weight: 500;
-  padding: 10px 15px; /* Adjust padding as needed */
+  padding: 10px 15px;
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .sidebar-nav-link:hover {
-  background-color: var(--hover-bg-color); /* Use theme variable for hover */
-  color: var(--text-color); /* Keep text color on hover */
+  background-color: var(--hover-bg-color);
+  color: var(--text-color);
 }
 
 .active-sidebar-link {
-  background-color: var(--hover-bg-color); /* Highlight active link with hover color */
-  color: var(--primary-color) !important; /* Make active link text primary color */
+  background-color: var(--hover-bg-color);
+  color: var(--primary-color) !important;
   font-weight: bold;
 }
 
-/* Ensure the text inside active link is also primary color */
 .active-sidebar-link span {
   color: var(--primary-color) !important;
 }
@@ -47,7 +44,7 @@
   background-color: var(--background-color);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   border-radius: 8px;
-  min-width: 180px; /* Adjust width as needed */
+  min-width: 180px;
 }
 
 .sidebar-dropdown-item {
@@ -65,7 +62,6 @@
   font-size: 1.1rem;
   padding-left: 20px;
   padding-right: 20px;
-  /* Colors are handled by Bootstrap's primary variable via theme.css */
 }
 
 /* Floating Action Button (FAB) for small screens */
@@ -73,12 +69,12 @@
   position: fixed;
   bottom: 20px;
   right: 20px;
-  width: 56px; /* Standard FAB size */
-  height: 56px; /* Standard FAB size */
+  width: 56px;
+  height: 56px;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1030; /* Above Offcanvas */
+  z-index: 1030;
 }
 
 /* Offcanvas specific styling */
@@ -90,7 +86,7 @@
 }
 
 .sidebar-offcanvas .btn-close {
-  filter: var(--text-color-filter); /* Apply filter for dark mode close button */
+  filter: var(--text-color-filter);
 }
 
 /* Style for the user profile dropdown at the bottom of sidebar */
@@ -117,28 +113,25 @@
 
 /* General Link Styling to respect theme */
 .text-dark {
-    color: var(--text-color) !important;
+  color: var(--text-color) !important;
 }
 
 .text-muted {
-    color: var(--text-color-muted) !important; /* Define --text-color-muted in theme.css */
+  color: var(--text-color-muted) !important;
 }
 
 .opacity-75 {
   opacity: 0.75;
 }
 
-/* Định nghĩa cursor-pointer cho liên kết tên người dùng */
 .cursor-pointer {
   cursor: pointer;
 }
 
-/* Đảm bảo text-primary sử dụng biến theme */
 .text-primary {
   color: var(--primary-color) !important;
 }
 
-/* Nếu cần, thêm style cho bg-light-primary (dùng trong NotificationPage) */
 .bg-light-primary {
-  background-color: var(--hover-bg-color); /* Hoặc màu khác phù hợp với theme */
+  background-color: var(--hover-bg-color);
 }

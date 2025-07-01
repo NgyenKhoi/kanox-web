@@ -107,21 +107,13 @@ function SidebarRight() {
           </div>
         </Form>
 
-        <Card className="mb-4 rounded-3 shadow-sm border border-dark">
-          <Card.Body className="p-4">
-            <h5 className="fw-bold mb-3" style={{ color: "#000" }}>
-              Đăng ký gói Premium
-            </h5>
-            <p className="mb-3" style={{ color: "#000", fontSize: "0.95rem" }}>
+        <Card className="mb-4 rounded-3 shadow-sm border-[var(--border-color)] bg-[var(--background-color)]">
+          <Card.Body className="p-4 text-[var(--text-color)]">
+            <h5 className="fw-bold mb-3">Đăng ký gói Premium</h5>
+            <p className="mb-3 text-[var(--text-color-muted)]">
               Đăng ký để mở khóa các tính năng mới và nhận chia sẻ doanh thu nếu bạn là người sáng tạo nội dung.
             </p>
-            <Button
-                variant="dark"
-                className="rounded-pill px-4 py-2 fw-bold"
-                onClick={handleSubscribePremiumClick}
-            >
-              Đăng ký
-            </Button>
+            <Button variant="dark" className="rounded-pill px-4 py-2 fw-bold">Đăng ký</Button>
           </Card.Body>
         </Card>
 

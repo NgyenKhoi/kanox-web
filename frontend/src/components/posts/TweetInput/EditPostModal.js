@@ -23,9 +23,9 @@ function EditPostModal({ show, onHide, post, onSave }) {
         taggedUserIds: [],
         tagInput: "",
         customListId: null,
-        images: [], // New images to upload
-        existingImageUrls: [], // Existing image URLs from the post
-        imagesToDelete: [], // Image IDs to delete
+        images: [],
+        existingImageUrls: [],
+        imagesToDelete: [],
     });
     const [customLists, setCustomLists] = useState([]);
     const [error, setError] = useState(null);
@@ -57,7 +57,7 @@ function EditPostModal({ show, onHide, post, onSave }) {
                 tagInput: "",
                 customListId: post.customListId || null,
                 images: [],
-                existingImageUrls: post.imageUrls || [], // Assuming post.imageUrls contains existing image URLs
+                existingImageUrls: post.imageUrls || [],
                 imagesToDelete: [],
             });
         }
@@ -115,9 +115,9 @@ function EditPostModal({ show, onHide, post, onSave }) {
     const handleImageUpload = (e) => {
         const files = Array.from(e.target.files);
         const validImageTypes = ['image/jpeg', 'image/png', 'image/gif'];
-        const maxSize = 5 * 1024 * 1024; // 5MB
+        const maxSize = 5 * 1024 * 1024;
 
-        const validFiles = files.filter(file => 
+        const validFiles = files.filter(file =>
             validImageTypes.includes(file.type) && file.size <= maxSize
         );
 
@@ -134,7 +134,6 @@ function EditPostModal({ show, onHide, post, onSave }) {
     const handleRemoveImage = (index, isExisting = false) => {
         if (isExisting) {
             const imageUrl = formData.existingImageUrls[index];
-            // Assuming imageUrl contains an ID or unique identifier at the end
             const imageId = imageUrl.split('/').pop();
             setFormData(prev => ({
                 ...prev,
@@ -162,7 +161,7 @@ function EditPostModal({ show, onHide, post, onSave }) {
             setLoading(true);
             const token = localStorage.getItem("token");
             const formDataToSend = new FormData();
-            
+
             formDataToSend.append('content', formData.content);
             formDataToSend.append('privacySetting', formData.privacySetting);
             formDataToSend.append('taggedUserIds', JSON.stringify(formData.taggedUserIds));
@@ -172,7 +171,7 @@ function EditPostModal({ show, onHide, post, onSave }) {
             if (formData.imagesToDelete.length > 0) {
                 formDataToSend.append('imagesToDelete', JSON.stringify(formData.imagesToDelete));
             }
-            
+
             formData.images.forEach((image, index) => {
                 formDataToSend.append(`images[${index}]`, image);
             });
@@ -205,7 +204,7 @@ function EditPostModal({ show, onHide, post, onSave }) {
     };
 
     return (
-        <Modal show={show} onHide={onHide} centered>
+        <Modal show={show} onHide={onHide} centered className="bg-[var(--background-color)] text-[var(--text-color)]">
             <Modal.Header closeButton>
                 <Modal.Title>Chỉnh sửa bài đăng</Modal.Title>
             </Modal.Header>
@@ -220,13 +219,14 @@ function EditPostModal({ show, onHide, post, onSave }) {
                             value={formData.content}
                             onChange={handleChange}
                             placeholder="Bạn đang nghĩ gì?"
+                            className="bg-[var(--input-bg-color)] border-[var(--border-color)] text-[var(--text-color)]"
                         />
                     </FormGroup>
 
                     <FormGroup className="mb-3">
                         <FormLabel>Trạng thái hiển thị</FormLabel>
                         <Dropdown>
-                            <Dropdown.Toggle variant="outline-secondary" className="w-100 text-start">
+                            <Dropdown.Toggle variant="outline-secondary" className="w-100 text-start bg-[var(--input-bg-color)] text-[var(--text-color)] border-[var(--border-color)]">
                                 {formData.privacySetting === "only_me"
                                     ? "Riêng tư"
                                     : formData.privacySetting === "friends"
@@ -248,7 +248,7 @@ function EditPostModal({ show, onHide, post, onSave }) {
                         <FormGroup className="mb-3">
                             <FormLabel>Danh sách tùy chỉnh</FormLabel>
                             <Dropdown>
-                                <Dropdown.Toggle variant="outline-secondary" className="w-100 text-start">
+                                <Dropdown.Toggle variant="outline-secondary" className="w-100 text-start bg-[var(--input-bg-color)] text-[var(--text-color)] border-[var(--border-color)]">
                                     {formData.customListId
                                         ? customLists.find(l => l.id === formData.customListId)?.listName
                                         : "Chọn danh sách"}
@@ -273,6 +273,7 @@ function EditPostModal({ show, onHide, post, onSave }) {
                                     placeholder="Nhập username"
                                     value={formData.tagInput}
                                     onChange={handleTagInputChange}
+                                    className="bg-[var(--input-bg-color)] border-[var(--border-color)] text-[var(--text-color)]"
                                 />
                             </Col>
                             <Col xs={3}>
@@ -283,7 +284,7 @@ function EditPostModal({ show, onHide, post, onSave }) {
                         </Row>
                         <div className="mt-2">
                             {formData.taggedUserIds.map((tagId) => (
-                                <Badge key={tagId} bg="primary" className="me-2 mb-2">
+                                <Badge key={tagId} bg="primary" className="me-2 mb-2 text-white">
                                     @User_{tagId}{" "}
                                     <Button
                                         variant="link"
@@ -305,20 +306,21 @@ function EditPostModal({ show, onHide, post, onSave }) {
                             multiple
                             accept="image/jpeg,image/png,image/gif"
                             onChange={handleImageUpload}
+                            className="bg-[var(--input-bg-color)] border-[var(--border-color)] text-[var(--text-color)]"
                         />
                         <Row className="mt-2 g-2">
                             {formData.existingImageUrls.map((url, index) => (
                                 <Col xs={4} key={`existing-${index}`}>
-                                    <div style={{ position: "relative" }}>
+                                    <div className="position-relative">
                                         <BootstrapImage
                                             src={url}
-                                            style={{ width: "100%", height: "100px", objectFit: "cover", borderRadius: "8px" }}
+                                            className="w-full h-[100px] object-cover rounded-lg"
                                             fluid
                                         />
                                         <Button
                                             variant="danger"
                                             size="sm"
-                                            style={{ position: "absolute", top: "5px", right: "5px" }}
+                                            className="position-absolute top-1 end-1"
                                             onClick={() => handleRemoveImage(index, true)}
                                         >
                                             <FaTrash />
@@ -328,16 +330,16 @@ function EditPostModal({ show, onHide, post, onSave }) {
                             ))}
                             {formData.images.map((image, index) => (
                                 <Col xs={4} key={`new-${index}`}>
-                                    <div style={{ position: "relative" }}>
+                                    <div className="position-relative">
                                         <BootstrapImage
                                             src={URL.createObjectURL(image)}
-                                            style={{ width: "100%", height: "100px", objectFit: "cover", borderRadius: "8px" }}
+                                            className="w-full h-[100px] object-cover rounded-lg"
                                             fluid
                                         />
                                         <Button
                                             variant="danger"
                                             size="sm"
-                                            style={{ position: "absolute", top: "5px", right: "5px" }}
+                                            className="position-absolute top-1 end-1"
                                             onClick={() => handleRemoveImage(index)}
                                         >
                                             <FaTrash />
@@ -348,7 +350,7 @@ function EditPostModal({ show, onHide, post, onSave }) {
                         </Row>
                     </FormGroup>
 
-                    {error && <p className="text-danger text-center">{error}</p>}
+                    {error && <p className="text-[var(--error-color)] text-center">{error}</p>}
 
                     <div className="d-flex justify-content-end">
                         <Button variant="secondary" onClick={onHide} className="me-2" disabled={loading}>

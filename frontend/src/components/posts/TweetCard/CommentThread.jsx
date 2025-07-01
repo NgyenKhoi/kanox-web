@@ -9,11 +9,7 @@ import {
     OverlayTrigger,
     Tooltip,
 } from "react-bootstrap";
-import {
-    FaReply,
-    FaUserCircle,
-    FaEllipsisH,
-} from "react-icons/fa";
+import { FaReply, FaUserCircle, FaEllipsisH } from "react-icons/fa";
 import moment from "moment";
 import useCommentAvatar from "../../../hooks/useCommentAvatar";
 import ReactionButtonGroup from "./ReactionButtonGroup";
@@ -63,19 +59,26 @@ function CommentThread({
                         className="me-2"
                     />
                 ) : (
-                    <FaUserCircle size={40} className="me-2 text-secondary" />
+                    <FaUserCircle size={40} className="me-2 text-[var(--text-color-muted)]" />
                 )}
 
                 <div className="flex-grow-1">
                     <div
-                        className="rounded-4 p-3"
-                        style={{ backgroundColor: "#f8f9fa", fontSize: "15px" }}
+                        className="rounded-2xl p-3 text-base"
+                        style={{ backgroundColor: "var(--comment-bg-color)" }}
                     >
                         <div className="d-flex justify-content-between align-items-start">
                             <div>
-                                <strong>{comment.user?.displayName}</strong>{" "}
-                                <span className="text-muted">@{comment.user?.username}</span>{" "}
-                                <span className="text-muted ms-2" style={{ fontSize: "12px" }}>
+                                <strong className="text-[var(--text-color)]">
+                                    {comment.user?.displayName}
+                                </strong>{" "}
+                                <span className="text-[var(--text-color-muted)]">
+                  @{comment.user?.username}
+                </span>{" "}
+                                <span
+                                    className="text-[var(--text-color-muted)] ms-2"
+                                    style={{ fontSize: "12px" }}
+                                >
                   {moment(comment.createdAt * 1000).fromNow()}
                 </span>
                             </div>
@@ -83,7 +86,7 @@ function CommentThread({
                                 <Dropdown align="end">
                                     <Dropdown.Toggle
                                         variant="link"
-                                        bsPrefix="p-0 border-0 text-muted"
+                                        bsPrefix="p-0 border-0 text-[var(--text-color-muted)]"
                                     >
                                         <FaEllipsisH />
                                     </Dropdown.Toggle>
@@ -106,13 +109,13 @@ function CommentThread({
                                         value={editedText}
                                         onChange={(e) => setEditedText(e.target.value)}
                                         size="sm"
-                                        style={{ borderRadius: "20px" }}
+                                        className="rounded-full border-[var(--border-color)] bg-[var(--background-color)] text-[var(--text-color)]"
                                     />
                                     <Button
                                         variant="primary"
                                         size="sm"
                                         type="submit"
-                                        style={{ borderRadius: "20px" }}
+                                        className="rounded-full"
                                     >
                                         Lưu
                                     </Button>
@@ -120,14 +123,14 @@ function CommentThread({
                                         variant="secondary"
                                         size="sm"
                                         onClick={() => setIsEditing(false)}
-                                        style={{ borderRadius: "20px" }}
+                                        className="rounded-full"
                                     >
                                         Hủy
                                     </Button>
                                 </InputGroup>
                             </Form>
                         ) : (
-                            <p className="mb-1 mt-2 text-dark">{comment.content}</p>
+                            <p className="mb-1 mt-2 text-[var(--text-color)]">{comment.content}</p>
                         )}
 
                         {/* Reaction & Reply Buttons */}
@@ -136,19 +139,15 @@ function CommentThread({
                                 placement="top"
                                 overlay={<Tooltip>Phản hồi</Tooltip>}
                             >
-                            <Button
-                                variant="link"
-                                className="px-1 py-0 text-dark text-decoration-none text-reset rounded-circle hover-bg-light"
-                                size="sm"
-                                onClick={() => setShowReplyBox(!showReplyBox)}
-                                style={{
-                                    fontWeight: "normal",
-                                    fontSize: "1.2rem", // Đồng bộ với ReactionButtonGroup
-                                }}
-                                aria-label="Phản hồi"
-                            >
-                                <FaReply className="me-1" />
-                            </Button>
+                                <Button
+                                    variant="link"
+                                    className="px-1 py-0 text-[var(--text-color)] text-decoration-none rounded-full hover-bg-light"
+                                    size="sm"
+                                    onClick={() => setShowReplyBox(!showReplyBox)}
+                                    aria-label="Phản hồi"
+                                >
+                                    <FaReply className="me-1" size={18} />
+                                </Button>
                             </OverlayTrigger>
 
                             <ReactionButtonGroup
@@ -172,7 +171,7 @@ function CommentThread({
                                             className="me-2"
                                         />
                                     ) : (
-                                        <FaUserCircle size={32} className="me-2 text-secondary" />
+                                        <FaUserCircle size={32} className="me-2 text-[var(--text-color-muted)]" />
                                     )}
                                     <InputGroup>
                                         <Form.Control
@@ -180,14 +179,14 @@ function CommentThread({
                                             placeholder="Viết phản hồi..."
                                             value={replyText}
                                             onChange={(e) => setReplyText(e.target.value)}
-                                            style={{ borderRadius: "20px" }}
+                                            className="rounded-full border-[var(--border-color)] bg-[var(--background-color)] text-[var(--text-color)]"
                                             size="sm"
                                         />
                                         <Button
                                             type="submit"
                                             size="sm"
                                             variant="primary"
-                                            style={{ borderRadius: "20px" }}
+                                            className="rounded-full"
                                         >
                                             Gửi
                                         </Button>

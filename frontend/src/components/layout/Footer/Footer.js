@@ -5,8 +5,8 @@ import { Link } from "react-router-dom";
 
 function Footer({ isWhiteBackground = false }) {
   const footerClass = isWhiteBackground
-    ? "py-3 px-0 border-top mt-auto bg-white text-dark rounded-top"
-    : "py-3 px-0 border-top mt-auto bg-gradient bg-primary text-white rounded-top";
+    ? "py-3 px-0 border-top mt-auto bg-[var(--background-color)] text-dark rounded-top"
+    : "py-3 px-0 border-top mt-auto bg-[var(--background-color)] text-white rounded-top";
 
   return (
     <div className="py-3 px-0 border-top mt-auto footer-custom-size">

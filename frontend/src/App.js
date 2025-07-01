@@ -2,7 +2,13 @@ import React, { useState, useEffect, useContext } from "react";
 import { Modal, Button } from "react-bootstrap";
 import "./App.css";
 
-//import important page
+import SidebarLeft from "./components/layout/SidebarLeft/SidebarLeft";
+import { ThemeContext, ThemeProvider } from "./context/ThemeContext";
+import { AuthContext, AuthProvider } from "./context/AuthContext";
+import { WebSocketContext, WebSocketProvider } from "./context/WebSocketContext";
+import { BrowserRouter as Router, Routes, Route, useNavigate } from "react-router-dom";
+
+// Import các page
 import SignupPage from "./pages/auth/signup/signupPage";
 import HomePage from "./pages/home/HomePage";
 import ProfilePage from "./pages/profile/ProfilePage";
@@ -21,11 +27,6 @@ import FriendsPage from "./pages/friends/FriendsPage";
 import AdminPage from "./pages/admin/adminpage";
 import Call from "./components/messages/Call";
 
-//context & router
-import { BrowserRouter as Router, Routes, Route, useNavigate } from "react-router-dom";
-import { AuthContext, AuthProvider } from "./context/AuthContext";
-import { WebSocketContext, WebSocketProvider } from "./context/WebSocketContext";
-
 function AppContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [showCallModal, setShowCallModal] = useState(false);
@@ -33,7 +34,9 @@ function AppContent() {
   const [chatIds, setChatIds] = useState([]);
   const { user, token } = useContext(AuthContext);
   const { subscribe, unsubscribe, publish } = useContext(WebSocketContext) || {};
+  const { isDarkMode, toggleDarkMode } = useContext(ThemeContext);
   const navigate = useNavigate();
+  const [showCreatePost, setShowCreatePost] = useState(false);
 
   useEffect(() => {
     if (!user || !token) {
@@ -98,7 +101,7 @@ function AppContent() {
       subscriptions.forEach((_, index) => unsubscribe(`call-${chatIds[index]}`));
       window.removeEventListener("incomingCall", handleIncomingCall);
     };
-  }, [chatIds, subscribe, unsubscribe]);
+  }, [chatIds, subscribe, unsubscribe, user, navigate]);
 
   const acceptCall = () => {
     setShowCallModal(false);
@@ -122,8 +125,13 @@ function AppContent() {
         {isLoading ? (
             <LoadingPage />
         ) : (
-            <div className="app-container d-flex">
-              <div className="main-content flex-grow-1">
+            <div className="min-h-screen flex">
+              <SidebarLeft
+                  onToggleDarkMode={toggleDarkMode}
+                  isDarkMode={isDarkMode}
+                  onShowCreatePost={() => setShowCreatePost(true)}
+              />
+              <div className="flex-grow p-4">
                 <Routes>
                   <Route path="/" element={<SignupPage />} />
                   <Route path="/reset-password" element={<ResetPasswordPage />} />
@@ -144,7 +152,7 @@ function AppContent() {
                   <Route path="/call/:chatId" element={<Call />} />
                 </Routes>
 
-                <Modal show={showCallModal} centered onHide={rejectCall}>
+                <Modal show={showCallModal} centered onHide={rejectCall} className="bg-[var(--background-color)] text-[var(--text-color)]">
                   <Modal.Header closeButton>
                     <Modal.Title>Cuộc gọi đến</Modal.Title>
                   </Modal.Header>
@@ -170,7 +178,9 @@ function App() {
       <Router>
         <AuthProvider>
           <WebSocketProvider>
-            <AppContent />
+            <ThemeProvider>
+              <AppContent />
+            </ThemeProvider>
           </WebSocketProvider>
         </AuthProvider>
       </Router>

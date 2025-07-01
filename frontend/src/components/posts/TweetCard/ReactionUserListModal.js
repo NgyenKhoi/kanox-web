@@ -14,11 +14,7 @@ export default function ReactionUserListModal({ show, onHide, targetId, targetTy
             try {
                 const res = await fetch(
                     `${process.env.REACT_APP_API_URL}/reactions/list-by-type?targetId=${targetId}&targetTypeCode=${targetTypeCode}&emojiName=${emojiName}`,
-                    {
-                        headers: {
-                            Authorization: `Bearer ${token}`,
-                        },
-                    }
+                    { headers: { Authorization: `Bearer ${token}` } }
                 );
                 const data = await res.json();
                 setUsers(Array.isArray(data) ? data : []);
@@ -36,31 +32,34 @@ export default function ReactionUserListModal({ show, onHide, targetId, targetTy
     return (
         <Modal show={show} onHide={onHide} centered>
             <Modal.Header closeButton>
-                <Modal.Title>Người dùng đã thả: {emojiName}</Modal.Title>
+                <Modal.Title className="text-[var(--text-color)]">Người dùng đã thả: {emojiName}</Modal.Title>
             </Modal.Header>
-            <Modal.Body>
+            <Modal.Body className="bg-[var(--background-color)]">
                 {loading ? (
                     <div className="text-center">
-                        <Spinner animation="border" />
+                        <Spinner animation="border" className="text-[var(--text-color)]" />
                     </div>
                 ) : (
                     <ListGroup variant="flush">
                         {users.map((user) => (
-                            <ListGroup.Item key={user.id} className="d-flex align-items-center">
+                            <ListGroup.Item
+                                key={user.id}
+                                className="d-flex align-items-center bg-[var(--background-color)] text-[var(--text-color)]"
+                            >
                                 <Image
                                     src={user.avatarUrl || "/default-avatar.png"}
                                     roundedCircle
-                                    style={{ width: 40, height: 40, objectFit: "cover", marginRight: 10 }}
+                                    className="w-10 h-10 object-cover mr-2.5"
                                 />
                                 <span>{user.displayName || user.username}</span>
                             </ListGroup.Item>
                         ))}
-                        {users.length === 0 && <div className="text-muted text-center">Không có người dùng.</div>}
+                        {users.length === 0 && <div className="text-[var(--text-color-muted)] text-center">Không có người dùng.</div>}
                     </ListGroup>
                 )}
             </Modal.Body>
-            <Modal.Footer>
-                <Button variant="secondary" onClick={onHide}>
+            <Modal.Footer className="bg-[var(--background-color)]">
+                <Button variant="secondary" className="text-[var(--text-color)]" onClick={onHide}>
                     Đóng
                 </Button>
             </Modal.Footer>

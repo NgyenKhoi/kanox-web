@@ -56,30 +56,22 @@ function ReactionButtonGroup({ user, targetId, targetTypeCode }) {
             ref={ref}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
-            style={{ position: "relative", display: "inline-block" }}
         >
             <Button
                 variant="link"
-                className="text-muted p-1 rounded-circle hover-bg-light text-decoration-none text-reset"
+                className="text-[var(--text-color-muted)] p-1 rounded-full hover-bg-light text-decoration-none"
                 onClick={() => setShowPopover((prev) => !prev)}
                 aria-label="Chọn biểu cảm"
-                style={{ fontSize: "1.2rem" }}
             >
-                {currentEmoji || <FaRegHeart />}
+                {currentEmoji || <FaRegHeart size={20} />}
             </Button>
 
             {showPopover && (
                 <div
-                    className="reaction-popover bg-white rounded px-2 py-1 shadow border d-flex gap-2"
+                    className="reaction-popover bg-[var(--background-color)] rounded-xl px-2 py-1 shadow border border-[var(--border-color)] flex gap-2"
                     onMouseEnter={handleMouseEnter}
                     onMouseLeave={handleMouseLeave}
-                    style={{
-                        position: "absolute",
-                        bottom: "36px",
-                        left: 0,
-                        zIndex: 1000,
-                        transition: "opacity 0.2s ease",
-                    }}
+                    style={{ position: "absolute", bottom: "36px", left: 0, zIndex: 1000, transition: "opacity 0.2s ease" }}
                 >
                     {Object.entries(emojiMap).map(([name, emoji]) => (
                         <OverlayTrigger
@@ -87,17 +79,13 @@ function ReactionButtonGroup({ user, targetId, targetTypeCode }) {
                             placement="top"
                             overlay={<Tooltip>{name}</Tooltip>}
                         >
-                            <span
-                                className="reaction-emoji scale-hover"
-                                onClick={() => handleEmojiClick(name)}
-                                role="button"
-                                style={{
-                                    fontSize: "1.4rem",
-                                    cursor: "pointer",
-                                }}
-                            >
-                                {emoji}
-                            </span>
+              <span
+                  className="reaction-emoji scale-hover text-[var(--text-color)]"
+                  onClick={() => handleEmojiClick(name)}
+                  role="button"
+              >
+                {emoji}
+              </span>
                         </OverlayTrigger>
                     ))}
                 </div>

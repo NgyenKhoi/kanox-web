@@ -37,16 +37,10 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
 
   const fetchUnreadMessageCount = async () => {
     try {
-      const token =
-          sessionStorage.getItem("token") || localStorage.getItem("token");
-      const response = await fetch(
-          `${process.env.REACT_APP_API_URL}/chat/messages/unread-count`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-      );
+      const token = sessionStorage.getItem("token") || localStorage.getItem("token");
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/messages/unread-count`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (response.ok) {
         const messageData = await response.json();
         setUnreadMessageCount(messageData.unreadCount || 0);
@@ -81,25 +75,17 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
   useEffect(() => {
     const fetchCounts = async () => {
       try {
-        const token =
-            sessionStorage.getItem("token") || localStorage.getItem("token");
+        const token = sessionStorage.getItem("token") || localStorage.getItem("token");
         if (!token) return;
 
-        const notifResponse = await fetch(
-            `${process.env.REACT_APP_API_URL}/notifications?page=0&size=100`,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            }
-        );
+        const notifResponse = await fetch(`${process.env.REACT_APP_API_URL}/notifications?page=0&size=100`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
         if (notifResponse.ok) {
           const notifData = await notifResponse.json();
           const unreadNotifs = Array.isArray(notifData.data?.content)
-              ? notifData.data.content.filter(
-                  (notif) => notif.status === "unread"
-              ).length
+              ? notifData.data.content.filter((notif) => notif.status === "unread").length
               : 0;
           setUnreadNotificationCount(unreadNotifs);
         }
@@ -124,10 +110,7 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
           <div className="position-relative">
             <FaBell size={24} />
             {unreadNotificationCount > 0 && (
-                <Badge
-                    bg="danger"
-                    className="position-absolute top-0 start-100 translate-middle rounded-circle"
-                >
+                <Badge bg="danger" className="position-absolute top-0 start-100 translate-middle rounded-circle">
                   {unreadNotificationCount}
                 </Badge>
             )}
@@ -141,10 +124,7 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
           <div className="position-relative">
             <FaEnvelope size={24} />
             {unreadMessageCount > 0 && (
-                <Badge
-                    bg="danger"
-                    className="position-absolute top-0 start-100 translate-middle rounded-circle"
-                >
+                <Badge bg="danger" className="position-absolute top-0 start-100 translate-middle rounded-circle">
                   {unreadMessageCount}
                 </Badge>
             )}
@@ -155,35 +135,15 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
     },
     { icon: <FaUserAlt size={24} />, label: "Cộng đồng", path: "/communities" },
     { icon: <BsStars size={24} />, label: "Premium", path: "/premium" },
-    {
-      icon: <FaUserAlt size={24} />,
-      label: "Hồ sơ",
-      path: `/profile/${user?.username || "default"}`,
-      protected: true,
-    },
+    { icon: <FaUserAlt size={24} />, label: "Hồ sơ", path: `/profile/${user?.username || "default"}`, protected: true },
   ];
 
   const additionalTabs = [
     { icon: <FaUserFriends size={24} />, label: "Bạn bè", path: "/friends" },
-    {
-      icon: <FaUserSlash size={24} />,
-      label: "Người bị chặn",
-      path: "/blocks",
-      protected: true,
-    },
-    {
-      icon: <FaRegPlusSquare size={24} />,
-      label: "Tạo Story",
-      path: "/create-story",
-      protected: true,
-    },
+    { icon: <FaUserSlash size={24} />, label: "Người bị chặn", path: "/blocks", protected: true },
+    { icon: <FaRegPlusSquare size={24} />, label: "Tạo Story", path: "/create-story", protected: true },
     { icon: <FaLock size={24} />, label: "Cài đặt Bảo mật", path: "/settings" },
-    {
-      icon: <FaTrash size={24} />,
-      label: "Xóa Tài khoản",
-      path: "/delete-account",
-      protected: true,
-    },
+    { icon: <FaTrash size={24} />, label: "Xóa Tài khoản", path: "/delete-account", protected: true },
   ];
 
   const handleNavLinkClick = (tab) => {
@@ -201,18 +161,8 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
   };
 
   const isLinkActive = (path) => {
-    if (
-        path.startsWith("/profile/") &&
-        location.pathname.startsWith("/profile/")
-    ) {
-      return true;
-    }
-    if (
-        path === "/home" &&
-        (location.pathname === "/" || location.pathname === "/home")
-    ) {
-      return true;
-    }
+    if (path.startsWith("/profile/") && location.pathname.startsWith("/profile/")) return true;
+    if (path === "/home" && (location.pathname === "/" || location.pathname === "/home")) return true;
     return location.pathname === path;
   };
 
@@ -221,11 +171,7 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
         {!user ? (
             <div className="text-center p-3">
               <p className="mb-2">Bạn chưa đăng nhập.</p>
-              <Button
-                  variant="primary"
-                  className="rounded-pill px-4"
-                  onClick={() => navigate("/")}
-              >
+              <Button variant="primary" className="rounded-pill px-4" onClick={() => navigate("/")}>
                 Đăng nhập
               </Button>
             </div>
@@ -236,11 +182,9 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
                     <Nav.Item key={tab.label} className="mb-1">
                       <Nav.Link
                           onClick={() => handleNavLinkClick(tab)}
-                          className={`d-flex align-items-center text-dark py-2 px-3 rounded-pill sidebar-nav-link ${
-                              isLinkActive(tab.path) ? "active-sidebar-link" : ""
-                          }`}
+                          className={`d-flex align-items-center py-2 px-3 rounded-pill sidebar-nav-link ${isLinkActive(tab.path) ? "active-sidebar-link" : ""}`}
                       >
-                        <span className="me-3">{tab.icon}</span>
+                        <span className="me-3">{React.cloneElement(tab.icon, { size: 24, className: "text-[var(--text-color)] dark:text-white" })}</span>
                         <span className="fs-5 d-none d-lg-inline">{tab.label}</span>
                       </Nav.Link>
                     </Nav.Item>
@@ -248,11 +192,9 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
                 <Dropdown className="mt-2 sidebar-more-dropdown">
                   <Dropdown.Toggle
                       as={Nav.Link}
-                      className="d-flex align-items-center text-dark py-2 px-3 rounded-pill sidebar-nav-link"
+                      className="d-flex align-items-center py-2 px-3 rounded-pill sidebar-nav-link"
                   >
-                <span className="me-3">
-                  <FaEllipsisH size={24} />
-                </span>
+                    <span className="me-3"><FaEllipsisH size={24} className="text-[var(--text-color)] dark:text-white" /></span>
                     <span className="fs-5 d-none d-lg-inline">Thêm</span>
                   </Dropdown.Toggle>
                   <Dropdown.Menu className="sidebar-dropdown-menu">
@@ -262,7 +204,7 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
                             onClick={() => handleNavLinkClick(tab)}
                             className="d-flex align-items-center py-2 px-3 sidebar-dropdown-item"
                         >
-                          <span className="me-3">{tab.icon}</span>
+                          <span className="me-3">{React.cloneElement(tab.icon, { size: 24, className: "text-[var(--text-color)] dark:text-white" })}</span>
                           {tab.label}
                         </Dropdown.Item>
                     ))}
@@ -287,14 +229,13 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
                     onShowCreatePost();
                   }}
               >
-                <FaPlusCircle size={24} />
+                <FaPlusCircle size={24} className="text-white" />
               </Button>
               <div className="mt-auto pt-3">
                 <Dropdown drop="up" className="w-100">
                   <Dropdown.Toggle
                       as="div"
-                      className="d-flex align-items-center p-2 rounded-pill hover-bg-light cursor-pointer w-100"
-                      style={{ backgroundColor: isDarkMode ? "#222" : "#f8f9fa" }}
+                      className="d-flex align-items-center p-2 rounded-pill hover-bg-light cursor-pointer"
                   >
                     <img
                         src={avatarUrl || "https://placehold.co/40x40"}
@@ -303,27 +244,17 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
                         style={{ width: "40px", height: "40px", objectFit: "cover" }}
                     />
                     <div className="d-none d-lg-block flex-grow-1">
-                      <div className="fw-bold text-dark">
-                        {user?.displayName || "Người dùng"}
-                      </div>
-                      <div className="text-muted small">
-                        @{user?.username || "username"}
-                      </div>
+                      <div className="fw-bold text-[var(--text-color)]">{user?.displayName || "Người dùng"}</div>
+                      <div className="text-[var(--text-color-muted)] small">@{user?.username || "username"}</div>
                     </div>
-                    <FaEllipsisH className="ms-auto me-2 text-dark d-none d-lg-block" />
+                    <FaEllipsisH className="ms-auto me-2 text-[var(--text-color)] dark:text-white" />
                   </Dropdown.Toggle>
                   <Dropdown.Menu className="sidebar-user-dropdown-menu">
-                    <Dropdown.Item
-                        onClick={() =>
-                            navigate(`/profile/${user?.username || "default"}`)
-                        }
-                    >
+                    <Dropdown.Item onClick={() => navigate(`/profile/${user?.username || "default"}`)}>
                       Xem hồ sơ
                     </Dropdown.Item>
-                    <Dropdown.Item
-                        onClick={() => handleNavLinkClick({ action: "logout" })}
-                    >
-                      <FaSignOutAlt className="me-2" /> Đăng xuất
+                    <Dropdown.Item onClick={() => handleNavLinkClick({ action: "logout" })}>
+                      <FaSignOutAlt className="me-2 text-[var(--text-color)] dark:text-white" /> Đăng xuất
                     </Dropdown.Item>
                   </Dropdown.Menu>
                 </Dropdown>
@@ -338,20 +269,14 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
         <ToastContainer />
         <Button
             variant="light"
-            className="d-md-none position-fixed top-0 start-0 m-3 z-3"
+            className="d-md-none position-fixed top-0 start-0 m-3 z-3 text-[var(--text-color)] dark:text-white"
             onClick={handleShowOffcanvas}
         >
           <FaBars size={24} />
         </Button>
         <div
             className="d-none d-md-flex flex-column flex-shrink-0 pt-2 pb-3 ps-3 pe-0 border-end sidebar-left-container"
-            style={{
-              width: "280px",
-              height: "100vh",
-              position: "sticky",
-              top: 0,
-              overflowY: "auto",
-            }}
+            style={{ width: "280px", height: "100vh", top: 0, overflowY: "auto" }}
         >
           <div className="d-flex justify-content-between align-items-center mb-3 px-3">
             <Link to="/home" className="d-block me-auto">
@@ -360,7 +285,7 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
             <Button
                 variant="link"
                 onClick={onToggleDarkMode}
-                className="text-dark p-0 toggle-dark-mode-button"
+                className="text-[var(--text-color)] p-0"
             >
               {isDarkMode ? <FaSun size={20} /> : <FaMoon size={20} />}
             </Button>
@@ -381,7 +306,7 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
               <Button
                   variant="link"
                   onClick={onToggleDarkMode}
-                  className="text-dark p-0 toggle-dark-mode-button"
+                  className="text-[var(--text-color)] p-0"
               >
                 {isDarkMode ? <FaSun size={20} /> : <FaMoon size={20} />}
               </Button>

@@ -1,4 +1,4 @@
-// src/components/layout/Header/Header.jsx
+
 import React from "react";
 import { Navbar, Container, Image } from "react-bootstrap";
 import { FaTwitter, FaSearch } from "react-icons/fa"; // Dùng FaTwitter tạm thời cho logo X
@@ -7,7 +7,7 @@ import { Link } from "react-router-dom";
 function Header() {
     return (
         <Navbar
-            bg="white"
+            bg="var(--background-color)"
             expand="lg"
             className="border-bottom shadow-sm fixed-top d-lg-none"
         >
@@ -24,10 +24,10 @@ function Header() {
                 />
 
                 <Navbar.Brand as={Link} to="/Home" className="mx-auto">
-                    <FaTwitter size={30} className="text-dark" />{" "}
+                    <FaTwitter size={30} className="text-[var(--text-color)]" />
                 </Navbar.Brand>
 
-                <FaSearch size={20} className="text-secondary" />
+                <FaSearch size={20} className="text-[var(--text-color-muted)]" />
             </Container>
         </Navbar>
     );

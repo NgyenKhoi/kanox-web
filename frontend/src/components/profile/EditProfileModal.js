@@ -152,12 +152,13 @@ function EditProfileModal({
         fullscreen="sm-down"
         centered
         size="lg"
+        className="bg-[var(--background-color)] text-[var(--text-color)]"
       >
         <Modal.Header className="border-bottom-0 pb-0">
           <div className="d-flex align-items-center">
             <Button
               variant="link"
-              className="text-dark p-0 me-3"
+              className="text-[var(--text-color)] p-0 me-3"
               onClick={handleClose}
             >
               <FaTimes size={24} />
@@ -175,7 +176,7 @@ function EditProfileModal({
                   "https://source.unsplash.com/150x150/?portrait"
                 }
                 roundedCircle
-                className="border border-white border-4"
+                className="border border-[var(--border-color)] border-4"
                 style={{ width: "150px", height: "150px", objectFit: "cover" }}
               />
 
@@ -216,10 +217,10 @@ function EditProfileModal({
             </div>
           </div>
 
-          <h6 className="fw-bold mb-3">Thông tin cá nhân</h6>
+          <h6 className="fw-bold mb-3 text-[var(--text-color)]">Thông tin cá nhân</h6>
           <Form className="mb-4">
             <Form.Group className="mb-3" controlId="formDisplayName">
-              <Form.Label className="text-muted small mb-1">
+              <Form.Label className="text-[var(--muted-text-color)] small mb-1">
                 Tên hiển thị
               </Form.Label>
               <Form.Control
@@ -228,7 +229,7 @@ function EditProfileModal({
                 onChange={(e) =>
                   handleInputChange("displayName", e.target.value)
                 }
-                className="border-0 border-bottom rounded-0 px-0 py-1"
+                className="border-0 border-b border-[var(--border-color)] rounded-0 px-0 py-1 text-[var(--text-color)]"
                 isInvalid={!!errors.displayName}
               />
               <Form.Control.Feedback type="invalid">
@@ -237,13 +238,13 @@ function EditProfileModal({
             </Form.Group>
 
             <Form.Group className="mb-3" controlId="formBio">
-              <Form.Label className="text-muted small mb-1">Tiểu sử</Form.Label>
+              <Form.Label className="text-[var(--muted-text-color)] small mb-1">Tiểu sử</Form.Label>
               <Form.Control
                 as="textarea"
                 rows={3}
                 value={formData.bio}
                 onChange={(e) => handleInputChange("bio", e.target.value)}
-                className="border-0 border-bottom rounded-0 px-0 py-1"
+                className="border-0 border-b border-[var(--border-color)] rounded-0 px-0 py-1 text-[var(--text-color)]"
                 isInvalid={!!errors.bio}
               />
               <Form.Control.Feedback type="invalid">
@@ -252,7 +253,7 @@ function EditProfileModal({
             </Form.Group>
 
             <Form.Group className="mb-3" controlId="formDateOfBirth">
-              <Form.Label className="text-muted small mb-1">
+              <Form.Label className="text-[var(--muted-text-color)] small mb-1">
                 Ngày sinh
               </Form.Label>
               <Form.Control
@@ -261,18 +262,18 @@ function EditProfileModal({
                 onChange={(e) =>
                   handleInputChange("dateOfBirth", e.target.value)
                 }
-                className="border-0 border-bottom rounded-0 px-0 py-1"
+                className="border-0 border-b border-[var(--border-color)] rounded-0 px-0 py-1 text-[var(--text-color)]"
               />
             </Form.Group>
 
             <Form.Group className="mb-3" controlId="formGender">
-              <Form.Label className="text-muted small mb-1">
+              <Form.Label className="text-[var(--muted-text-color)] small mb-1">
                 Giới tính
               </Form.Label>
               <Form.Select
                 value={formData.gender}
                 onChange={(e) => handleInputChange("gender", e.target.value)}
-                className="border-0 border-bottom rounded-0 px-0 py-1"
+                className="border-0 border-b border-[var(--border-color)] rounded-0 px-0 py-1 text-[var(--text-color)]"
               >
                 {genderOptions.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -287,7 +288,7 @@ function EditProfileModal({
           <Nav className="flex-column">
             <Nav.Link
               onClick={handleSecuritySettings}
-              className="text-dark d-flex align-items-center py-2 px-0 border-bottom"
+              className="text-[var(--text-color-muted)] d-flex align-items-center py-2 px-0 border-bottom"
             >
               <FaLock className="me-2" /> Cài đặt bảo mật
             </Nav.Link>
