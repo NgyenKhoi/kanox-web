@@ -23,10 +23,10 @@ function CustomPrivacyListPage() {
     const [isDarkMode, setIsDarkMode] = useState(false);
 
     useEffect(() => {
-        if (!user) {
-            navigate("/");
-            return;
-        }
+        // if (!user) {
+        //     navigate("/");
+        //     return;
+        // }
         fetchLists();
     }, [user, navigate]);
 

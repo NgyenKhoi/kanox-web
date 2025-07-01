@@ -203,11 +203,11 @@ function CommunityDetail() {
   const handleCloseMembersModal = () => setShowMembersModal(false);
 
   const handleAgreeToJoin = async () => {
-    if (!user) {
-      alert("Bạn cần đăng nhập để tham gia cộng đồng.");
-      navigate("/login");
-      return;
-    }
+    // if (!user) {
+    //   alert("Bạn cần đăng nhập để tham gia cộng đồng.");
+    //   navigate("/login");
+    //   return;
+    // }
 
     setIsJoining(true);
     handleCloseRulesModal();

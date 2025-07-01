@@ -5,15 +5,13 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="c6c17ae2-c6cb-4c94-a6b8-91c54839fa5e" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/src/components/common/PrivateRoute/PrivateRoute.jsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/App.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/App.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/pages/Messenger/MessengerPage.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/pages/Messenger/MessengerPage.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/pages/Notifications/NotificationPage.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/pages/Notifications/NotificationPage.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/pages/block/BlockedUsersPage.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/pages/block/BlockedUsersPage.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/pages/community/CommunityDetail.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/pages/community/CommunityDetail.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/pages/community/CommunityPage.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/pages/community/CommunityPage.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/pages/friends/FriendsPage.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/pages/friends/FriendsPage.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/pages/home/HomePage.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/pages/home/HomePage.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/pages/privacy/CustomPrivacyListPage.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/pages/privacy/CustomPrivacyListPage.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/pages/profile/ProfilePage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/pages/profile/ProfilePage.jsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/pages/search/ExplorePage.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/pages/search/ExplorePage.js" afterDir="false" />
@@ -28,8 +26,8 @@
     <option name="RECENT_TEMPLATES">
       <list>
         <option value="CSS File" />
-        <option value="JSX File" />
         <option value="JavaScript File" />
+        <option value="JSX File" />
       </list>
     </option>
   </component>

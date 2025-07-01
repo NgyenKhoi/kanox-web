@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from "react";
 import { Modal, Button } from "react-bootstrap";
 import "./App.css";
+import PrivateRoute from "./components/common/PrivateRoute/PrivateRoute";
 
 import SidebarLeft from "./components/layout/SidebarLeft/SidebarLeft";
 import { ThemeContext, ThemeProvider } from "./context/ThemeContext";
@@ -135,23 +136,26 @@ function AppContent() {
               )}
               <div className="flex-grow p-4">
                 <Routes>
+                  {/* Public Routes */}
                   <Route path="/" element={<SignupPage />} />
                   <Route path="/reset-password" element={<ResetPasswordPage />} />
                   <Route path="/verify-email" element={<VerifyEmailPage />} />
-                  <Route path="/home" element={<HomePage />} />
-                  <Route path="/profile/:username" element={<ProfilePage />} />
-                  <Route path="/profile/me" element={<ProfilePage />} />
-                  <Route path="/explore" element={<ExplorePage />} />
-                  <Route path="/notifications" element={<NotificationPage />} />
-                  <Route path="/messages" element={<MessengerPage />} />
-                  <Route path="/communities" element={<CommunityPage />} />
-                  <Route path="/community/:communityId" element={<CommunityDetail />} />
-                  <Route path="/privacy/lists" element={<CustomPrivacyListPage />} />
-                  <Route path="/blocks" element={<BlockedUsersPage />} />
-                  <Route path="/settings" element={<SettingsPage />} />
-                  <Route path="/friends" element={<FriendsPage />} />
-                  <Route path="/admin" element={<AdminPage />} />
-                  <Route path="/call/:chatId" element={<Call />} />
+
+                  {/* Private Routes */}
+                  <Route path="/home" element={<PrivateRoute><HomePage /></PrivateRoute>} />
+                  <Route path="/profile/:username" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
+                  <Route path="/profile/me" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
+                  <Route path="/explore" element={<PrivateRoute><ExplorePage /></PrivateRoute>} />
+                  <Route path="/notifications" element={<PrivateRoute><NotificationPage /></PrivateRoute>} />
+                  <Route path="/messages" element={<PrivateRoute><MessengerPage /></PrivateRoute>} />
+                  <Route path="/communities" element={<PrivateRoute><CommunityPage /></PrivateRoute>} />
+                  <Route path="/community/:communityId" element={<PrivateRoute><CommunityDetail /></PrivateRoute>} />
+                  <Route path="/privacy/lists" element={<PrivateRoute><CustomPrivacyListPage /></PrivateRoute>} />
+                  <Route path="/blocks" element={<PrivateRoute><BlockedUsersPage /></PrivateRoute>} />
+                  <Route path="/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
+                  <Route path="/friends" element={<PrivateRoute><FriendsPage /></PrivateRoute>} />
+                  <Route path="/admin" element={<PrivateRoute><AdminPage /></PrivateRoute>} />
+                  <Route path="/call/:chatId" element={<PrivateRoute><Call /></PrivateRoute>} />
                 </Routes>
 
                 <Modal show={showCallModal} centered onHide={rejectCall} className="bg-[var(--background-color)] text-[var(--text-color)]">

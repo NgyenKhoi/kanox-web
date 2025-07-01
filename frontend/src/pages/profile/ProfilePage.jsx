@@ -77,18 +77,18 @@ function ProfilePage() {
         return;
       }
 
-      if (!user) {
-        navigate("/");
-        return;
-      }
+      // if (!user) {
+      //   navigate("/");
+      //   return;
+      // }
 
       const token = sessionStorage.getItem("token") || localStorage.getItem("token");
-      if (!token) {
-        toast.error("Không tìm thấy token. Vui lòng đăng nhập lại.");
-        setLoading(false);
-        navigate("/");
-        return;
-      }
+      // if (!token) {
+      //   toast.error("Không tìm thấy token. Vui lòng đăng nhập lại.");
+      //   setLoading(false);
+      //   navigate("/");
+      //   return;
+      // }
 
       try {
         const profileResponse = await fetch(
@@ -194,17 +194,17 @@ function ProfilePage() {
   }, [user, username, navigate]);
 
   const handleBlockToggle = async () => {
-    if (!user) {
-      navigate("/");
-      return;
-    }
+    // if (!user) {
+    //   navigate("/");
+    //   return;
+    // }
 
     const token = sessionStorage.getItem("token") || localStorage.getItem("token");
-    if (!token) {
-      toast.error("Không tìm thấy token. Vui lòng đăng nhập lại.");
-      navigate("/");
-      return;
-    }
+    // if (!token) {
+    //   toast.error("Không tìm thấy token. Vui lòng đăng nhập lại.");
+    //   navigate("/");
+    //   return;
+    // }
 
     try {
       const response = await fetch(

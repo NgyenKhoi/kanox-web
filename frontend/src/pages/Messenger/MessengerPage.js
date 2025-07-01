@@ -133,12 +133,12 @@ function MessengerPage() {
   }, [unsubscribe]);
 
   useEffect(() => {
-    if (!token || !user) {
-      toast.error("Vui lòng đăng nhập để xem tin nhắn.");
-      navigate("/");
-      setLoading(false);
-      return;
-    }
+    // if (!token || !user) {
+    //   toast.error("Vui lòng đăng nhập để xem tin nhắn.");
+    //   navigate("/");
+    //   setLoading(false);
+    //   return;
+    // }
 
     if (!subscribe || !unsubscribe || !publish) {
       console.error("WebSocketContext is not available");
@@ -243,11 +243,11 @@ function MessengerPage() {
   };
 
   const handleSelectUser = async (userId) => {
-    if (!token) {
-      toast.error("Vui lòng đăng nhập lại.");
-      navigate("/");
-      return;
-    }
+    // if (!token) {
+    //   toast.error("Vui lòng đăng nhập lại.");
+    //   navigate("/");
+    //   return;
+    // }
 
     try {
       const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/create`, {
@@ -259,13 +259,13 @@ function MessengerPage() {
         body: JSON.stringify({ targetUserId: userId }),
       });
 
-      if (response.status === 401) {
-        toast.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
-        localStorage.removeItem("token");
-        sessionStorage.removeItem("token");
-        navigate("/");
-        return;
-      }
+      // if (response.status === 401) {
+      //   toast.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
+      //   localStorage.removeItem("token");
+      //   sessionStorage.removeItem("token");
+      //   navigate("/");
+      //   return;
+      // }
 
       if (!response.ok) {
         const errorText = await response.text();

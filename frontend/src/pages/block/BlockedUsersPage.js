@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from "react";
 import { Container, Row, Col, ListGroup, Spinner } from "react-bootstrap";
 import { FaArrowLeft } from "react-icons/fa";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 import SidebarRight from "../../components/layout/SidebarRight/SidebarRight";
 import { ToastContainer, toast } from "react-toastify";
@@ -10,18 +10,13 @@ import BlockedUserItem from "./BlockedUserItem";
 
 function BlockedUsersPage() {
     const { user } = useContext(AuthContext);
-    const navigate = useNavigate();
     const [blockedUsers, setBlockedUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isDarkMode, setIsDarkMode] = useState(false);
 
     useEffect(() => {
-        if (!user) {
-            navigate("/login");
-            return;
-        }
         fetchBlockedUsers();
-    }, [user, navigate]);
+    }, [user]);
 
     const fetchBlockedUsers = async () => {
         setLoading(true);
@@ -29,7 +24,6 @@ function BlockedUsersPage() {
         if (!token) {
             toast.error("Không tìm thấy token! Vui lòng đăng nhập lại!");
             setLoading(false);
-            navigate("/login");
             return;
         }
 
@@ -68,11 +62,11 @@ function BlockedUsersPage() {
 
     const handleUnblock = async (blockedUserId) => {
         const token = localStorage.getItem("token") || sessionStorage.getItem("token");
-        if (!token) {
-            toast.error("Không tìm thấy token! Vui lòng đăng nhập lại!");
-            navigate("/login");
-            return;
-        }
+        // if (!token) {
+        //     toast.error("Không tìm thấy token! Vui lòng đăng nhập lại!");
+        //     navigate("/login");
+        //     return;
+        // }
 
         try {
             const response = await fetch(`${process.env.REACT_APP_API_URL}/blocks/${blockedUserId}`, {

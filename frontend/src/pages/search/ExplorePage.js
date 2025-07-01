@@ -35,12 +35,12 @@ function ExplorePage() {
   const [activeTab, setActiveTab] = useState("for-you");
 
   // Check login & redirect
-  useEffect(() => {
-    if (!loading && !token) {
-      toast.warning("Bạn cần đăng nhập để truy cập trang khám phá.");
-      navigate("/");
-    }
-  }, [loading, token, navigate]);
+  // useEffect(() => {
+  //   if (!loading && !token) {
+  //     toast.warning("Bạn cần đăng nhập để truy cập trang khám phá.");
+  //     navigate("/");
+  //   }
+  // }, [loading, token, navigate]);
 
   // Handle debounced search
   useEffect(() => {

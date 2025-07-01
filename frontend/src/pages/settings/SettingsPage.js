@@ -22,11 +22,11 @@ function SettingsPage() {
     const fetchPrivacySettings = async () => {
         setLoading(true);
         const token = sessionStorage.getItem("token") || localStorage.getItem("token");
-        if (!token) {
-            toast.error("Không tìm thấy token. Vui lòng đăng nhập lại.");
-            navigate("/login");
-            return;
-        }
+        // if (!token) {
+        //     toast.error("Không tìm thấy token. Vui lòng đăng nhập lại.");
+        //     navigate("/login");
+        //     return;
+        // }
 
         try {
             const [generalRes, profileRes] = await Promise.all([
@@ -66,10 +66,10 @@ function SettingsPage() {
     };
 
     useEffect(() => {
-        if (!user) {
-            navigate("/");
-            return;
-        }
+        // if (!user) {
+        //     navigate("/");
+        //     return;
+        // }
         fetchPrivacySettings();
     }, [user, navigate]);
 
@@ -81,11 +81,11 @@ function SettingsPage() {
     const handleSave = async () => {
         setSaving(true);
         const token = sessionStorage.getItem("token") || localStorage.getItem("token");
-        if (!token) {
-            toast.error("Không tìm thấy token. Vui lòng đăng nhập lại.");
-            navigate("/login");
-            return;
-        }
+        // if (!token) {
+        //     toast.error("Không tìm thấy token. Vui lòng đăng nhập lại.");
+        //     navigate("/login");
+        //     return;
+        // }
 
         try {
             // Gửi cập nhật bài đăng/bình luận

@@ -42,13 +42,13 @@ function FriendsPage() {
         setLoading(true);
         setError(null);
         const token = localStorage.getItem("token") || sessionStorage.getItem("token");
-        if (!token) {
-            setError("Không tìm thấy token. Vui lòng đăng nhập lại.");
-            setLoading(false);
-            logout();
-            navigate("/");
-            return;
-        }
+        // if (!token) {
+        //     setError("Không tìm thấy token. Vui lòng đăng nhập lại.");
+        //     setLoading(false);
+        //     logout();
+        //     navigate("/");
+        //     return;
+        // }
         if (!user?.id) {
             setError("Không tìm thấy thông tin người dùng.");
             setLoading(false);
@@ -134,10 +134,10 @@ function FriendsPage() {
 
     useEffect(() => {
         console.log("Current user:", user);
-        if (!user) {
-            navigate("/");
-            return;
-        }
+        // if (!user) {
+        //     navigate("/");
+        //     return;
+        // }
         if (activeTab === "friends") {
             fetchData("friends", page.friends);
         } else if (activeTab === "sent") {
