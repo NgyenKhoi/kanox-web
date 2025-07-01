@@ -424,205 +424,139 @@ function ProfilePage() {
   const hasAccess = userProfile?.bio !== null || isOwnProfile; // Thêm kiểm tra quyền
 
   return (
-      <>
+      <div className="flex flex-col min-h-screen bg-[var(--background-color)] text-[var(--text-color)]">
         <ToastContainer />
-        <Container fluid className="min-vh-100 p-0">
-          <div
-              className="sticky-top bg-white border-bottom py-2"
-              style={{ zIndex: 1020 }}
-          >
-            <Container fluid>
-              <Row>
-                <Col
-                    xs={12}
-                    lg={12}
-                    className="mx-auto d-flex align-items-center ps-md-5"
-                >
-                  <Link to="/home" className="btn btn-light me-3">
-                    <FaArrowLeft size={20} />
-                  </Link>
-                  <div>
-                    <h5 className="mb-0 fw-bold text-dark">{userProfile.displayName}</h5>
-                    <span className="text-dark small">
-                    {hasAccess ? `${userProfile.postCount || 0} bài đăng` : "Hồ sơ bị hạn chế"}
-                  </span>
-                  </div>
-                </Col>
-              </Row>
-            </Container>
+
+        <div className="sticky top-0 bg-[var(--background-color)] border-b border-gray-300 py-2 z-50">
+          <div className="container mx-auto px-4 flex items-center">
+            <Link to="/home" className="btn btn-light mr-3">
+              <FaArrowLeft />
+            </Link>
+            <div>
+              <h5 className="font-bold mb-0">{userProfile.displayName}</h5>
+              <span className="text-sm">
+              {hasAccess ? `${userProfile.postCount || 0} bài đăng` : "Hồ sơ bị hạn chế"}
+            </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-grow container mx-auto px-4 py-4">
+          <div className="w-full lg:w-2/3 pr-0 lg:pr-8">
+            <div className="mb-6">
+              <div className="flex justify-between items-center mb-4">
+                <Image
+                    src={userProfile.profileImageUrl || "https://via.placeholder.com/150?text=Avatar"}
+                    roundedCircle
+                    className="border-4 border-white"
+                    style={{ width: 150, height: 150, objectFit: "cover" }}
+                />
+                {isOwnProfile ? (
+                    <Button variant="primary" onClick={() => setShowEditModal(true)}>
+                      Chỉnh sửa
+                    </Button>
+                ) : (
+                    <div className="flex gap-2">
+                      <FollowActionButton
+                          targetId={userProfile.id}
+                          disabled={isBlocked}
+                          onFollowChange={(isFollowing) =>
+                              setUserProfile((prev) => ({
+                                ...prev,
+                                followerCount: prev.followerCount + (isFollowing ? 1 : -1),
+                              }))
+                          }
+                      />
+                      {!isBlocked && <FriendshipButton targetId={userProfile.id} />}
+                      <Button
+                          variant={isBlocked ? "outline-secondary" : "outline-danger"}
+                          onClick={() => handleBlockToggle()}
+                      >
+                        <FaUserSlash className="mr-1" /> {isBlocked ? "Bỏ chặn" : "Chặn"}
+                      </Button>
+                    </div>
+                )}
+              </div>
+
+              <h4 className="font-bold mb-1">{userProfile.displayName}</h4>
+              <p className="text-sm mb-1">@{userProfile.username}</p>
+
+              {hasAccess && (
+                  <>
+                    {userProfile.bio && <p className="mb-2">{userProfile.bio}</p>}
+                    {userProfile.location && (
+                        <p className="text-sm flex items-center">
+                          <FaMapMarkerAlt className="mr-2" /> {userProfile.location}
+                        </p>
+                    )}
+                    {userProfile.website && (
+                        <p className="text-sm flex items-center">
+                          <FaLink className="mr-2" />
+                          <a href={userProfile.website} className="text-blue-500" target="_blank" rel="noopener noreferrer">
+                            {userProfile.website}
+                          </a>
+                        </p>
+                    )}
+                    <p className="text-sm flex items-center">
+                      <FaCalendarAlt className="mr-2" /> Ngày sinh: {new Date(userProfile.dateOfBirth).toLocaleDateString("vi-VN")}
+                    </p>
+                    <p className="text-sm flex items-center">
+                      <FaEllipsisH className="mr-2" />
+                      Giới tính: {userProfile.gender === 0 ? "Nam" : userProfile.gender === 1 ? "Nữ" : "Khác"}
+                    </p>
+                  </>
+              )}
+            </div>
+
+            {hasAccess && (
+                <Nav variant="tabs" className="mb-4">
+                  {["posts", "shares", "savedArticles", ...(isOwnProfile ? ["sentRequests"] : [])].map((tab) => (
+                      <Nav.Item key={tab}>
+                        <Nav.Link active={activeTab === tab} onClick={() => setActiveTab(tab)}>
+                          {tab === "posts" && "Bài đăng"}
+                          {tab === "shares" && "Chia sẻ"}
+                          {tab === "savedArticles" && "Đã lưu"}
+                        </Nav.Link>
+                      </Nav.Item>
+                  ))}
+                </Nav>
+            )}
+
+            <div>
+              {activeTab === "posts" && posts.map((item) => (
+                  <TweetCard key={item.id} tweet={item} onPostUpdate={fetchProfileAndPosts} />
+              ))}
+
+              {activeTab === "sentRequests" && sentRequests.map((req) => (
+                  <ListGroup.Item key={req.id} className="flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                      <Image src={mediaUrl || "https://via.placeholder.com/150?text=Avatar"} className="rounded-full" style={{ width: 50, height: 50 }} />
+                      <div>
+                        <strong>{req.displayName || req.username}</strong>
+                        <p className="text-sm text-gray-500">@{req.username}</p>
+                      </div>
+                    </div>
+                    <FriendshipButton targetId={req.id} onAction={fetchProfileAndPosts} />
+                  </ListGroup.Item>
+              ))}
+            </div>
           </div>
 
-          <Container fluid className="flex-grow-1">
-            <Row className="h-100">
+          <div className="hidden lg:block lg:w-1/3">
+            <SidebarRight />
+          </div>
+        </div>
 
-              <Col xs={12} lg={6} className="px-md-0">
-                <div className="position-relative p-3">
-                  <div className="d-flex justify-content-between align-items-center mb-3">
-                    <Image
-                        src={
-                            userProfile.profileImageUrl ||
-                            "https://via.placeholder.com/150?text=Avatar"
-                        }
-                        roundedCircle
-                        className="border border-white border-4"
-                        style={{
-                          width: "150px",
-                          height: "150px",
-                          objectFit: "cover",
-                          zIndex: 2,
-                        }}
-                        alt="Profile"
-                    />
-                    <div className="d-flex align-items-center">
-                      {isOwnProfile ? (
-                          <Button
-                              variant="primary"
-                              className="rounded-pill px-3 py-2"
-                              onClick={() => setShowEditModal(true)}
-                          >
-                            Chỉnh sửa
-                          </Button>
-                      ) : (
-                          <>
-                            <FollowActionButton
-                                targetId={userProfile.id}
-                                disabled={isBlocked}
-                                onFollowChange={(isFollowing) =>
-                                    setUserProfile((prev) => ({
-                                      ...prev,
-                                      followerCount: prev.followerCount + (isFollowing ? 1 : -1),
-                                    }))
-                                }
-                            />
-                            {!isBlocked && <FriendshipButton targetId={userProfile.id} />}
-                            <Button
-                                variant={isBlocked ? "outline-secondary" : "outline-danger"}
-                                className="rounded-full px-3 py-1 ml-2"
-                                onClick={handleBlockToggle}
-                            >
-                              <FaUserSlash className="mr-1" />
-                              {isBlocked ? "Bỏ chặn" : "Chặn"}
-                            </Button>
-                          </>
-                      )}
-                    </div>
-                  </div>
-
-                  <h4 className="mb-0 fw-bold text-dark">{userProfile.displayName}</h4>
-                  <p className="text-dark small mb-2">@{userProfile.username}</p>
-                  {hasAccess ? (
-                      <>
-                        {userProfile.bio && <p className="mb-2 text-dark">{userProfile.bio}</p>}
-                        {userProfile.location && (
-                            <p className="text-secondary small d-flex align-items-center mb-2">
-                              <FaMapMarkerAlt size={16} className="me-2" /> {userProfile.location}
-                            </p>
-                        )}
-                        {userProfile.website && (
-                            <p className="text-secondary small d-flex align-items-center mb-2">
-                              <FaLink size={16} className="me-2" />
-                              <a
-                                  href={userProfile.website}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-primary"
-                              >
-                                {userProfile.website}
-                              </a>
-                            </p>
-                        )}
-                        <p className="text-secondary small d-flex align-items-center mb-2">
-                          <FaCalendarAlt size={16} className="me-2" /> Ngày sinh:{" "}
-                          {userProfile.dateOfBirth
-                              ? new Date(userProfile.dateOfBirth).toLocaleDateString("vi-VN")
-                              : "Chưa cập nhật"}
-                        </p>
-                        {userProfile.gender !== undefined && (
-                            <p className="text-secondary small d-flex align-items-center mb-2">
-                              <FaEllipsisH size={16} className="me-2" />
-                              Giới tính: {userProfile.gender === 0 ? "Nam" : userProfile.gender === 1 ? "Nữ" : "Khác"}
-                            </p>
-                        )}
-                        <div className="d-flex mb-3">
-                          <Link to="#" className="me-3 text-dark text-decoration-none">
-                            <span className="fw-bold">{userProfile.followeeCount || 0}</span>{" "}
-                            <span className="text-secondary small">Đang theo dõi</span>
-                          </Link>
-                          <Link to="#" className="text-dark text-decoration-none">
-                            <span className="fw-bold">{userProfile.followerCount || 0}</span>{" "}
-                            <span className="text-secondary small">Người theo dõi</span>
-                          </Link>
-                        </div>
-
-                        {showPremiumAlert && !userProfile.isPremium && (
-                            <div className="alert alert-light d-flex align-items-start border border-light rounded-3 p-3">
-                              <div>
-                                <h6 className="fw-bold text-dark mb-1">
-                                  Bạn chưa đăng ký tài khoản Premium <FaCheckCircle className="text-dark" />
-                                </h6>
-                                <p className="text-secondary small mb-2">
-                                  Hãy đăng ký tài khoản Premium để sử dụng các tính năng ưu tiên trả lời, phân tích, duyệt xem không quảng cáo, v.v.
-                                </p>
-                                <Button
-                                    variant="dark"
-                                    className="rounded-pill px-4 py-2 fw-bold"
-                                    onClick={() => navigate("/premium")}
-                                >
-                                  Premium
-                                </Button>
-                              </div>
-                              <Button
-                                  variant="link"
-                                  className="ms-auto text-dark p-0"
-                                  onClick={() => setShowPremiumAlert(false)}
-                              >
-                                ✕
-                              </Button>
-                            </div>
-                        )}
-                      </>
-                  ) : (
-                      <p className="text-dark mb-2">Bạn không có quyền xem thông tin chi tiết của hồ sơ này.</p>
-                  )}
-
-                  {hasAccess && (
-                      <Nav variant="tabs" className="mt-4 profile-tabs nav-justified">
-                        {["posts", "shares", "savedArticles", ...(isOwnProfile ? ["sentRequests"] : [])].map((tab) => (
-                            <Nav.Item key={tab}>
-                              <Nav.Link
-                                  onClick={() => setActiveTab(tab)}
-                                  className={`font-bold ${activeTab === tab ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-600"} py-2`}
-                              >
-                                {tab === "posts" && "Bài đăng"}
-                                {tab === "shares" && "Chia sẻ"}
-                                {tab === "savedArticles" && "Bài viết đã lưu"}
-                              </Nav.Link>
-                            </Nav.Item>
-                        ))}
-                      </Nav>
-                  )}
-
-                  <div className="mt-0 border-top">{renderTabContent()}</div>
-                </div>
-              </Col>
-
-              <Col xs={0} lg={3} className="d-none d-lg-block p-0">
-                <SidebarRight />
-              </Col>
-            </Row>
-          </Container>
-
-          {isOwnProfile && (
-              <EditProfileModal
-                  show={showEditModal}
-                  handleClose={() => setShowEditModal(false)}
-                  userProfile={userProfile}
-                  onSave={handleEditProfile}
-                  username={username}
-              />
-          )}
-        </Container>
-      </>
+        {isOwnProfile && (
+            <EditProfileModal
+                show={showEditModal}
+                handleClose={() => setShowEditModal(false)}
+                userProfile={userProfile}
+                onSave={handleEditProfile}
+                username={username}
+            />
+        )}
+      </div>
   );
 }
 

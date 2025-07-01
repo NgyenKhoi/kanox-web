@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Button, OverlayTrigger, Tooltip } from "react-bootstrap";
 import { FaRegHeart } from "react-icons/fa";
 import useReaction from "../../../hooks/useReaction";
 
@@ -15,8 +14,6 @@ function ReactionButtonGroup({ user, targetId, targetTypeCode }) {
         sendReaction,
         removeReaction,
     } = useReaction({ user, targetId, targetTypeCode });
-
-    const totalCount = Object.values(reactionCountMap).reduce((sum, count) => sum + count, 0);
 
     const handleEmojiClick = async (name) => {
         if (emojiMap[name] === currentEmoji) {
@@ -52,41 +49,32 @@ function ReactionButtonGroup({ user, targetId, targetTypeCode }) {
 
     return (
         <div
-            className="reaction-wrapper"
+            className="relative inline-block"
             ref={ref}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
         >
-            <Button
-                variant="link"
-                className="text-[var(--text-color-muted)] p-1 rounded-full hover-bg-light text-decoration-none"
+            <button
+                className="text-[var(--text-color-muted)] p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition"
                 onClick={() => setShowPopover((prev) => !prev)}
                 aria-label="Chọn biểu cảm"
             >
                 {currentEmoji || <FaRegHeart size={20} />}
-            </Button>
+            </button>
 
             {showPopover && (
                 <div
-                    className="reaction-popover bg-[var(--background-color)] rounded-xl px-2 py-1 shadow border border-[var(--border-color)] flex gap-2"
-                    onMouseEnter={handleMouseEnter}
-                    onMouseLeave={handleMouseLeave}
-                    style={{ position: "absolute", bottom: "36px", left: 0, zIndex: 1000, transition: "opacity 0.2s ease" }}
+                    className="absolute bottom-10 left-0 z-50 bg-[var(--background-color)] border border-[var(--border-color)] rounded-xl px-2 py-1 shadow flex gap-2 transition-opacity duration-200"
                 >
                     {Object.entries(emojiMap).map(([name, emoji]) => (
-                        <OverlayTrigger
+                        <span
                             key={name}
-                            placement="top"
-                            overlay={<Tooltip>{name}</Tooltip>}
+                            className="cursor-pointer text-[var(--text-color)] text-lg hover:scale-125 transition-transform"
+                            title={name}
+                            onClick={() => handleEmojiClick(name)}
                         >
-              <span
-                  className="reaction-emoji scale-hover text-[var(--text-color)]"
-                  onClick={() => handleEmojiClick(name)}
-                  role="button"
-              >
-                {emoji}
-              </span>
-                        </OverlayTrigger>
+                            {emoji}
+                        </span>
                     ))}
                 </div>
             )}

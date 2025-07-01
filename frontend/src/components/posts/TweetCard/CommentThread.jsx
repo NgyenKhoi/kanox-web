@@ -1,14 +1,4 @@
 import React, { useState } from "react";
-import {
-    Button,
-    Form,
-    InputGroup,
-    Image,
-    Dropdown,
-    Collapse,
-    OverlayTrigger,
-    Tooltip,
-} from "react-bootstrap";
 import { FaReply, FaUserCircle, FaEllipsisH } from "react-icons/fa";
 import moment from "moment";
 import useCommentAvatar from "../../../hooks/useCommentAvatar";
@@ -25,8 +15,6 @@ function CommentThread({
     const [replyText, setReplyText] = useState("");
     const [isEditing, setIsEditing] = useState(false);
     const [editedText, setEditedText] = useState(comment.content);
-    const [showReplies, setShowReplies] = useState(false);
-
     const { avatarUrl } = useCommentAvatar(comment.user?.id);
 
     const handleReplySubmit = (e) => {
@@ -47,27 +35,21 @@ function CommentThread({
     };
 
     return (
-        <div className="mb-3">
-            <div className="d-flex">
+        <div className="mb-4">
+            <div className="flex">
                 {avatarUrl ? (
-                    <Image
+                    <img
                         src={avatarUrl}
                         alt="avatar"
-                        roundedCircle
-                        width={40}
-                        height={40}
-                        className="me-2"
+                        className="w-10 h-10 rounded-full object-cover mr-3"
                     />
                 ) : (
-                    <FaUserCircle size={40} className="me-2 text-[var(--text-color-muted)]" />
+                    <FaUserCircle size={40} className="mr-3 text-[var(--text-color-muted)]" />
                 )}
 
-                <div className="flex-grow-1">
-                    <div
-                        className="rounded-2xl p-3 text-base"
-                        style={{ backgroundColor: "var(--comment-bg-color)" }}
-                    >
-                        <div className="d-flex justify-content-between align-items-start">
+                <div className="flex-1">
+                    <div className="rounded-2xl p-3 text-sm bg-[var(--comment-bg-color)]">
+                        <div className="flex justify-between">
                             <div>
                                 <strong className="text-[var(--text-color)]">
                                     {comment.user?.displayName}
@@ -75,81 +57,70 @@ function CommentThread({
                                 <span className="text-[var(--text-color-muted)]">
                   @{comment.user?.username}
                 </span>{" "}
-                                <span
-                                    className="text-[var(--text-color-muted)] ms-2"
-                                    style={{ fontSize: "12px" }}
-                                >
+                                <span className="text-xs text-[var(--text-color-muted)] ml-2">
                   {moment(comment.createdAt * 1000).fromNow()}
                 </span>
                             </div>
                             {currentUserId === comment.userId && (
-                                <Dropdown align="end">
-                                    <Dropdown.Toggle
-                                        variant="link"
-                                        bsPrefix="p-0 border-0 text-[var(--text-color-muted)]"
+                                <div className="relative">
+                                    <button
+                                        onClick={() => setIsEditing(!isEditing)}
+                                        className="text-[var(--text-color-muted)]"
                                     >
                                         <FaEllipsisH />
-                                    </Dropdown.Toggle>
-                                    <Dropdown.Menu>
-                                        <Dropdown.Item onClick={() => setIsEditing(true)}>
-                                            Chỉnh sửa
-                                        </Dropdown.Item>
-                                        <Dropdown.Item onClick={() => onDelete(comment.commentId)}>
-                                            Xóa
-                                        </Dropdown.Item>
-                                    </Dropdown.Menu>
-                                </Dropdown>
+                                    </button>
+                                    {isEditing && (
+                                        <div className="absolute right-0 mt-1 bg-white dark:bg-[var(--background-color)] border border-[var(--border-color)] rounded shadow">
+                                            <button
+                                                onClick={() => setIsEditing(true)}
+                                                className="block px-4 py-2 w-full text-left hover:bg-gray-100 dark:hover:bg-gray-700"
+                                            >
+                                                Chỉnh sửa
+                                            </button>
+                                            <button
+                                                onClick={() => onDelete(comment.commentId)}
+                                                className="block px-4 py-2 w-full text-left hover:bg-gray-100 dark:hover:bg-gray-700"
+                                            >
+                                                Xóa
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
                             )}
                         </div>
 
                         {isEditing ? (
-                            <Form onSubmit={handleEditSubmit} className="mt-2">
-                                <InputGroup>
-                                    <Form.Control
-                                        value={editedText}
-                                        onChange={(e) => setEditedText(e.target.value)}
-                                        size="sm"
-                                        className="rounded-full border-[var(--border-color)] bg-[var(--background-color)] text-[var(--text-color)]"
-                                    />
-                                    <Button
-                                        variant="primary"
-                                        size="sm"
-                                        type="submit"
-                                        className="rounded-full"
-                                    >
-                                        Lưu
-                                    </Button>
-                                    <Button
-                                        variant="secondary"
-                                        size="sm"
-                                        onClick={() => setIsEditing(false)}
-                                        className="rounded-full"
-                                    >
-                                        Hủy
-                                    </Button>
-                                </InputGroup>
-                            </Form>
+                            <form onSubmit={handleEditSubmit} className="mt-2 flex gap-2">
+                                <input
+                                    value={editedText}
+                                    onChange={(e) => setEditedText(e.target.value)}
+                                    className="flex-1 px-3 py-1 rounded-full border border-[var(--border-color)] bg-[var(--background-color)] text-[var(--text-color)]"
+                                />
+                                <button
+                                    type="submit"
+                                    className="px-4 py-1 text-sm rounded-full bg-blue-500 text-white"
+                                >
+                                    Lưu
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsEditing(false)}
+                                    className="px-4 py-1 text-sm rounded-full bg-gray-400 text-white"
+                                >
+                                    Hủy
+                                </button>
+                            </form>
                         ) : (
-                            <p className="mb-1 mt-2 text-[var(--text-color)]">{comment.content}</p>
+                            <p className="mt-2 text-[var(--text-color)]">{comment.content}</p>
                         )}
 
-                        {/* Reaction & Reply Buttons */}
-                        <div className="d-flex align-items-center gap-2 mt-2">
-                            <OverlayTrigger
-                                placement="top"
-                                overlay={<Tooltip>Phản hồi</Tooltip>}
+                        <div className="flex items-center gap-3 mt-3">
+                            <button
+                                onClick={() => setShowReplyBox(!showReplyBox)}
+                                className="flex items-center text-[var(--text-color)] text-sm hover:underline"
                             >
-                                <Button
-                                    variant="link"
-                                    className="px-1 py-0 text-[var(--text-color)] text-decoration-none rounded-full hover-bg-light"
-                                    size="sm"
-                                    onClick={() => setShowReplyBox(!showReplyBox)}
-                                    aria-label="Phản hồi"
-                                >
-                                    <FaReply className="me-1" size={18} />
-                                </Button>
-                            </OverlayTrigger>
-
+                                <FaReply className="mr-1" /> Phản hồi
+                            </button>
                             <ReactionButtonGroup
                                 user={{ id: currentUserId }}
                                 targetId={comment.commentId}
@@ -157,49 +128,38 @@ function CommentThread({
                             />
                         </div>
 
-                        {/* Reply Box */}
                         {showReplyBox && (
-                            <Form onSubmit={handleReplySubmit} className="mt-2">
-                                <div className="d-flex align-items-center">
-                                    {avatarUrl ? (
-                                        <Image
-                                            src={avatarUrl}
-                                            alt="avatar"
-                                            roundedCircle
-                                            width={32}
-                                            height={32}
-                                            className="me-2"
-                                        />
-                                    ) : (
-                                        <FaUserCircle size={32} className="me-2 text-[var(--text-color-muted)]" />
-                                    )}
-                                    <InputGroup>
-                                        <Form.Control
-                                            type="text"
-                                            placeholder="Viết phản hồi..."
-                                            value={replyText}
-                                            onChange={(e) => setReplyText(e.target.value)}
-                                            className="rounded-full border-[var(--border-color)] bg-[var(--background-color)] text-[var(--text-color)]"
-                                            size="sm"
-                                        />
-                                        <Button
-                                            type="submit"
-                                            size="sm"
-                                            variant="primary"
-                                            className="rounded-full"
-                                        >
-                                            Gửi
-                                        </Button>
-                                    </InputGroup>
-                                </div>
-                            </Form>
+                            <form onSubmit={handleReplySubmit} className="mt-3 flex gap-2 items-center">
+                                {avatarUrl ? (
+                                    <img
+                                        src={avatarUrl}
+                                        alt="avatar"
+                                        className="w-8 h-8 rounded-full object-cover"
+                                    />
+                                ) : (
+                                    <FaUserCircle size={32} className="text-[var(--text-color-muted)]" />
+                                )}
+                                <input
+                                    type="text"
+                                    placeholder="Viết phản hồi..."
+                                    value={replyText}
+                                    onChange={(e) => setReplyText(e.target.value)}
+                                    className="flex-1 px-3 py-1 rounded-full border border-[var(--border-color)] bg-[var(--background-color)] text-[var(--text-color)]"
+                                />
+                                <button
+                                    type="submit"
+                                    className="px-4 py-1 text-sm rounded-full bg-blue-500 text-white"
+                                >
+                                    Gửi
+                                </button>
+                            </form>
                         )}
                     </div>
 
                     {/* Replies */}
-                    <Collapse in={showReplies}>
-                        <div className="mt-2 ms-4">
-                            {comment.replies?.map((reply) => (
+                    {comment.replies?.length > 0 && (
+                        <div className="mt-4 ml-6 border-l-2 border-gray-200 dark:border-gray-700 pl-4">
+                            {comment.replies.map((reply) => (
                                 <CommentThread
                                     key={reply.commentId}
                                     comment={reply}
@@ -210,7 +170,7 @@ function CommentThread({
                                 />
                             ))}
                         </div>
-                    </Collapse>
+                    )}
                 </div>
             </div>
         </div>

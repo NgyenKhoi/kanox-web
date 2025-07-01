@@ -1,5 +1,4 @@
 import React from "react";
-import Image from "react-bootstrap/Image";
 import { FaUserCircle } from "react-icons/fa";
 import moment from "moment";
 import useCommentAvatar from "../../../hooks/useCommentAvatar";
@@ -10,22 +9,20 @@ const CommentItem = ({ comment }) => {
     return (
         <div className="flex items-start gap-2.5 mb-4">
             {avatarUrl ? (
-                <Image
+                <img
                     src={avatarUrl}
-                    className="w-9 h-9 object-cover flex-shrink-0 rounded-full"
-                    roundedCircle
-                    alt="Ảnh đại diện"
+                    alt="Avatar"
+                    className="w-9 h-9 rounded-full object-cover flex-shrink-0"
                 />
             ) : (
                 <FaUserCircle
                     size={36}
-                    className="w-9 h-9 flex-shrink-0 text-[var(--text-color-muted)]"
-                    aria-label="Ảnh đại diện mặc định"
+                    className="text-[var(--text-color-muted)] flex-shrink-0"
                 />
             )}
 
             <div className="flex flex-col">
-                <div className="bg-[var(--comment-bg-color)] p-2 rounded-2xl max-w-full break-words text-[var(--text-color)]">
+                <div className="bg-[var(--comment-bg-color)] p-2 rounded-2xl text-[var(--text-color)] break-words max-w-full">
                     <div className="flex items-center gap-2 mb-1">
             <span className="font-semibold text-sm">
               {comment?.user?.displayName || "Người dùng"}
