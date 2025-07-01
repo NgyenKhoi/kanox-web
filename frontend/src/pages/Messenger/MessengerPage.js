@@ -152,6 +152,39 @@ function MessengerPage() {
   }, [token, user, subscribe, unsubscribe, publish, handleMessageUpdate]);
 
   useEffect(() => {
+    if (!subscribe || !unsubscribe || !user || chats.length === 0) return;
+
+    const subscriptions = [];
+
+    chats.forEach((chat) => {
+      const topic = `/topic/messages/${chat.id}`;
+      const subId = `messages-${chat.id}`;
+
+      const callback = (message) => {
+        console.log("📩 Tin nhắn mới từ WebSocket:", message);
+        setMessages((prev) => ({
+          ...prev,
+          [chat.id]: [...(prev[chat.id] || []), message],
+        }));
+
+        if (selectedChatId !== chat.id) {
+          setUnreadChats((prev) => new Set(prev).add(chat.id));
+        }
+      };
+
+      const sub = subscribe(topic, callback, subId);
+      subscriptions.push(sub);
+    });
+
+    return () => {
+      chats.forEach((chat) => {
+        unsubscribe(`messages-${chat.id}`);
+      });
+    };
+  }, [subscribe, unsubscribe, user, chats, selectedChatId]);
+
+
+  useEffect(() => {
     if (searchKeyword.trim()) {
       debouncedSearch(searchKeyword);
     }
