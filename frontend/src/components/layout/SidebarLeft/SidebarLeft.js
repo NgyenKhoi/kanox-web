@@ -224,7 +224,7 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
               <Button
                   variant="primary"
                   className="rounded-pill px-4"
-                  onClick={() => navigate("/login")}
+                  onClick={() => navigate("/")}
               >
                 Đăng nhập
               </Button>
