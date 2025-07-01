@@ -10,6 +10,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping(URLConfig.MEDIA_BASE)
@@ -84,9 +85,8 @@ public class MediaController {
             @RequestParam("mediaTypeName") String mediaTypeName,
             @RequestParam(value = "status", defaultValue = "true") Boolean status) {
         try {
-            List<MediaDto> mediaList = mediaService.getMediaByTargetIds(targetIds, targetTypeCode, mediaTypeName,
-                    status);
-            return ResponseEntity.ok(mediaList);
+            Map<Integer, List<MediaDto>> mediaMap = mediaService.getMediaByTargetIds(targetIds, targetTypeCode, mediaTypeName, status);
+            return ResponseEntity.ok(mediaMap);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body("Invalid request: " + e.getMessage());
         }

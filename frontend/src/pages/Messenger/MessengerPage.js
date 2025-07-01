@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useCallback } from "react";
+import React, { useState, useEffect, useContext, useCallback, useRef } from "react";
 import {
   Container,
   Row,
@@ -32,6 +32,7 @@ function MessengerPage() {
   const [unreadChats, setUnreadChats] = useState(new Set());
   const [showUserSelectionModal, setShowUserSelectionModal] = useState(false);
   const [messages, setMessages] = useState({});
+  const subscriptionsRef = useRef({}); // Theo dõi các subscription
 
   const {
     searchKeyword,
@@ -86,10 +87,10 @@ function MessengerPage() {
         return newUnread;
       });
       // Cập nhật tin nhắn cho chat được chọn
-      if (selectedChatId === message.id) {
+      if (message.chatId) {
         setMessages((prev) => ({
           ...prev,
-          [message.id]: [...(prev[message.id] || []), message],
+          [message.chatId]: [...(prev[message.chatId] || []), message],
         }));
       }
       window.dispatchEvent(
@@ -99,6 +100,38 @@ function MessengerPage() {
       );
     }
   }, [selectedChatId, navigate]);
+
+  // Subscribe đến tin nhắn theo thời gian thực cho từng chat
+  const subscribeToChatMessages = useCallback((chatId) => {
+    if (!subscribe || subscriptionsRef.current[chatId] || !chatId) return;
+
+    const topic = `/topic/chat/${chatId}`;
+    const subId = `chat-${chatId}`;
+    const callback = (message) => {
+      const newMessage = JSON.parse(message.body); // ✅ parse JSON
+      console.log(`📩 Tin nhắn mới từ /topic/chat/${chatId}:`, newMessage);
+      setMessages((prev) => ({
+        ...prev,
+        [chatId]: [...(prev[chatId] || []), newMessage],
+      }));
+      if (selectedChatId !== chatId) {
+        setUnreadChats((prev) => new Set(prev).add(chatId));
+      }
+    };
+
+    const subscription = subscribe(topic, callback, subId);
+    subscriptionsRef.current[chatId] = subscription;
+    console.log(`Subscribed to ${topic} with subId ${subId}`);
+  }, [subscribe, selectedChatId]);
+
+  // Hủy subscribe khi không cần thiết
+  const unsubscribeFromChatMessages = useCallback((chatId) => {
+    if (unsubscribe && subscriptionsRef.current[chatId] && chatId) {
+      unsubscribe(`chat-${chatId}`);
+      delete subscriptionsRef.current[chatId];
+      console.log(`Unsubscribed from /topic/chat/${chatId}`);
+    }
+  }, [unsubscribe]);
 
   useEffect(() => {
     if (!token || !user) {
@@ -148,41 +181,20 @@ function MessengerPage() {
 
     return () => {
       unsubscribe(`chats-${user.id}`);
+      Object.values(subscriptionsRef.current).forEach((sub) => unsubscribe(sub.id));
+      subscriptionsRef.current = {};
     };
   }, [token, user, subscribe, unsubscribe, publish, handleMessageUpdate]);
 
   useEffect(() => {
-    if (!subscribe || !unsubscribe || !user || chats.length === 0) return;
+    chats.forEach((chat) => subscribeToChatMessages(chat.id));
 
-    const subscriptions = [];
-
-    chats.forEach((chat) => {
-      const topic = `/topic/messages/${chat.id}`;
-      const subId = `messages-${chat.id}`;
-
-      const callback = (message) => {
-        console.log("📩 Tin nhắn mới từ WebSocket:", message);
-        setMessages((prev) => ({
-          ...prev,
-          [chat.id]: [...(prev[chat.id] || []), message],
-        }));
-
-        if (selectedChatId !== chat.id) {
-          setUnreadChats((prev) => new Set(prev).add(chat.id));
-        }
-      };
-
-      const sub = subscribe(topic, callback, subId);
-      subscriptions.push(sub);
+    Object.keys(subscriptionsRef.current).forEach((chatId) => {
+      if (!chats.find((chat) => chat.id === Number(chatId))) {
+        unsubscribeFromChatMessages(Number(chatId));
+      }
     });
-
-    return () => {
-      chats.forEach((chat) => {
-        unsubscribe(`messages-${chat.id}`);
-      });
-    };
-  }, [subscribe, unsubscribe, user, chats, selectedChatId]);
-
+  }, [chats, subscribeToChatMessages, unsubscribeFromChatMessages]);
 
   useEffect(() => {
     if (searchKeyword.trim()) {
@@ -194,7 +206,7 @@ function MessengerPage() {
     const chatId = searchParams.get("chatId");
     if (chatId) {
       setSelectedChatId(Number(chatId));
-      // Lấy tin nhắn khi chọn chat
+      subscribeToChatMessages(Number(chatId)); // Subscribe khi chọn chat
       const fetchMessages = async () => {
         try {
           const token = sessionStorage.getItem("token") || localStorage.getItem("token");
@@ -214,8 +226,10 @@ function MessengerPage() {
       if (publish) {
         publish("/app/resend", { chatId: Number(chatId) });
       }
+    } else if (selectedChatId) {
+      unsubscribeFromChatMessages(selectedChatId); // Hủy subscribe khi không chọn chat
     }
-  }, [searchParams, publish]);
+  }, [searchParams, publish, subscribeToChatMessages, unsubscribeFromChatMessages]);
 
   const handleOpenUserSelectionModal = () => {
     setSearchKeyword("");
@@ -306,7 +320,6 @@ function MessengerPage() {
         throw new Error(`Lỗi khi xóa chat: ${errorText}`);
       }
 
-      // Gửi thông báo xóa qua WebSocket
       if (publish) {
         publish("/app/chat/delete", { chatId, userId: user.id });
       }

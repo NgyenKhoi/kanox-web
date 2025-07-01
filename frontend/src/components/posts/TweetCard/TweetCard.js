@@ -746,7 +746,9 @@ function TweetCard({ tweet, onPostUpdate }) {
                           <span
                               onClick={() => {
                                 setSelectedEmojiName(name);
-                                setShowReactionUserModal(true);
+                                setTimeout(() => {
+                                  setShowReactionUserModal(true);
+                                }, 0);
                               }}
                               style={{ fontSize: "1.2rem", cursor: "pointer" }}
                               title={`Xem ai đã thả ${name}`}

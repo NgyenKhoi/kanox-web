@@ -246,25 +246,33 @@ public class MediaService {
                 return mediaUrl;
         }
 
-        public List<MediaDto> getMediaByTargetIds(List<Integer> targetIds, String targetTypeCode, String mediaTypeName,
-                        Boolean status) {
+        public Map<Integer, List<MediaDto>> getMediaByTargetIds(List<Integer> targetIds, String targetTypeCode, String mediaTypeName,
+                                                                Boolean status) {
                 String cacheKey = buildCacheKey(targetIds, targetTypeCode, mediaTypeName);
 
                 List<MediaDto> cached = redisTemplate.opsForValue().get(cacheKey);
-                if (cached != null)
-                        return cached;
+                if (cached != null) {
+                        // 🔄 Group cached result by targetId
+                        return cached.stream()
+                                .collect(Collectors.groupingBy(MediaDto::getTargetId));
+                }
 
                 TargetType targetType = targetTypeRepository.findByCode(targetTypeCode)
-                                .orElseThrow(() -> new IllegalArgumentException("Loại target không hợp lệ"));
+                        .orElseThrow(() -> new IllegalArgumentException("Loại target không hợp lệ"));
 
                 MediaType mediaType = mediaTypeRepository.findByName(mediaTypeName)
-                                .orElseThrow(() -> new IllegalArgumentException("Loại media không hợp lệ"));
+                        .orElseThrow(() -> new IllegalArgumentException("Loại media không hợp lệ"));
 
                 List<Media> mediaList = mediaRepository.findByTargetIdInAndTargetTypeIdAndMediaTypeIdAndStatus(
-                                targetIds, targetType.getId(), mediaType.getId(), status);
+                        targetIds, targetType.getId(), mediaType.getId(), status);
 
                 List<MediaDto> dtoList = mediaList.stream().map(this::toDto).collect(Collectors.toList());
+
+                // ❗ Cache raw list (vì RedisTemplate không lưu được Map dạng động)
                 redisTemplate.opsForValue().set(cacheKey, dtoList, CACHE_TTL);
-                return dtoList;
+
+                // ✅ Trả về map theo targetId
+                return dtoList.stream()
+                        .collect(Collectors.groupingBy(MediaDto::getTargetId));
         }
 }
