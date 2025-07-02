@@ -42,6 +42,7 @@ const SignupPage = () => {
         const { token, refreshToken, user } = data;
         setUser(user, token, refreshToken);
         toast.success("Đăng nhập bằng Google thành công! Đang chuyển hướng...");
+        navigate("/home");
       } else {
         toast.error(data.message || "Đăng nhập Google thất bại.");
       }
@@ -55,12 +56,7 @@ const SignupPage = () => {
   const handleGoogleLoginError = () => {
     toast.error("Đăng nhập Google thất bại hoặc bị hủy.");
   };
-
-  useEffect(() => {
-    if (user && token) {
-      navigate("/home");
-    }
-  }, [user, token]);
+  
 
   return (
     <Container
