@@ -1,16 +1,4 @@
 import React, { useState, useEffect, useContext } from "react";
-import {
-  Container,
-  Row,
-  Col,
-  Form,
-  InputGroup,
-  Nav,
-  Button,
-  Image,
-  Spinner,
-  ListGroup,
-} from "react-bootstrap";
 import { FaSearch, FaEllipsisH } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -133,7 +121,7 @@ function ExplorePage() {
 
   const renderSearchResults = () =>
       searchKeyword.trim() && (
-          <div className="absolute bg-white dark:bg-gray-900 w-full mt-1 rounded-md shadow-lg z-50 max-h-96 overflow-y-auto">
+          <div className="absolute bg-[var(--content-bg)] dark:bg-[var(--content-bg)] w-full mt-1 rounded-md shadow-lg z-50 max-h-96 overflow-y-auto">
             {isSearching ? (
                 <div className="px-4 py-3 text-center text-sm text-gray-500">Đang tải...</div>
             ) : searchResults.length > 0 ? (
@@ -148,6 +136,7 @@ function ExplorePage() {
             )}
           </div>
       );
+
 
   const renderTabContent = () => (
       <div className="mt-0">
@@ -202,30 +191,25 @@ function ExplorePage() {
                     placeholder="Tìm kiếm người dùng"
                     className="pl-10 pr-4 py-2 w-full rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 focus:outline-none"
                 />
+                {renderSearchResults()}
               </div>
-              {searchKeyword.trim() && (
-                  <div className="absolute bg-white dark:bg-gray-900 w-full mt-1 rounded-md shadow-lg z-50 max-h-96 overflow-y-auto">
-                    {isSearching ? (
-                        <div className="px-4 py-3 text-center text-sm text-gray-500">Đang tải...</div>
-                    ) : searchResults.length > 0 ? (
-                        <>
-                          <div className="px-4 py-2 font-semibold text-sm text-gray-700 dark:text-gray-200">Người dùng</div>
-                          {searchResults.map((item) => (
-                              <UserSearchItem key={item.id} item={item} />
-                          ))}
-                        </>
-                    ) : (
-                        <div className="px-4 py-3 text-sm text-gray-500">Không tìm thấy kết quả.</div>
-                    )}
-                  </div>
-              )}
 
-              <div className="flex justify-around mt-4 text-sm font-semibold text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700">
-                {["for-you", "trending", "news", "sports", "entertainment"].map((tab) => (
+              <div className="flex justify-around mt-4 text-sm font-semibold text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700 bg-[var(--content-bg)]">
+                {[
+                  "for-you",
+                  "trending",
+                  "news",
+                  "sports",
+                  "entertainment",
+                ].map((tab) => (
                     <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
-                        className={`py-2 ${activeTab === tab ? "border-b-2 border-blue-500 text-blue-600 dark:text-blue-400" : ""}`}
+                        className={`py-2 ${
+                            activeTab === tab
+                                ? "border-b-2 border-blue-500 text-blue-600 dark:text-blue-400"
+                                : ""
+                        }`}
                     >
                       {{
                         "for-you": "Cho Bạn",
@@ -242,7 +226,9 @@ function ExplorePage() {
 
           <div className="max-w-2xl mx-auto flex-grow">
             {trendingTopics.length === 0 ? (
-                <p className="text-center text-gray-500 p-4">Không có chủ đề nào đang phổ biến.</p>
+                <p className="text-center text-gray-500 p-4">
+                  Không có chủ đề nào đang phổ biến.
+                </p>
             ) : (
                 trendingTopics.map((topic) => (
                     <div
@@ -271,3 +257,4 @@ function ExplorePage() {
 }
 
 export default ExplorePage;
+
