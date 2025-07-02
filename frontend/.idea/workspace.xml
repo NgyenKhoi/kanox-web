@@ -5,6 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="c6c17ae2-c6cb-4c94-a6b8-91c54839fa5e" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/service/MediaService.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/service/MediaService.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -16,8 +17,8 @@
     <option name="RECENT_TEMPLATES">
       <list>
         <option value="CSS File" />
-        <option value="JavaScript File" />
         <option value="JSX File" />
+        <option value="JavaScript File" />
       </list>
     </option>
   </component>

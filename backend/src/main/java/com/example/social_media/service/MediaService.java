@@ -1,8 +1,10 @@
 package com.example.social_media.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.example.social_media.dto.media.MediaDto;
 import com.example.social_media.entity.*;
 import com.example.social_media.repository.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,10 +23,11 @@ public class MediaService {
         private final MediaTypeRepository mediaTypeRepository;
         private final TargetTypeRepository targetTypeRepository;
         private final GcsService gcsService;
-        private final RedisTemplate<String, List<MediaDto>> redisTemplate;
         private final RedisTemplate<String, String> redisAvatarTemplate;
+        private final RedisTemplate<String, String> redisMediaTemplate;
+        private final ObjectMapper objectMapper;
 
-        private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
+    private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
                         "image/jpeg", "image/jpg",
                         "video/mp4",
                         "audio/mpeg");
@@ -37,14 +40,18 @@ public class MediaService {
                             MediaTypeRepository mediaTypeRepository,
                             TargetTypeRepository targetTypeRepository,
                             GcsService gcsService,
-                            RedisTemplate<String, List<MediaDto>> redisTemplate, RedisTemplate<String, String> redisAvatarTemplate) {
+                            RedisTemplate<String, String> redisAvatarTemplate,
+                            RedisTemplate<String, String> redisMediaTemplate,
+                            ObjectMapper objectMapper
+                            ) {
                 this.mediaRepository = mediaRepository;
                 this.userRepository = userRepository;
                 this.mediaTypeRepository = mediaTypeRepository;
                 this.targetTypeRepository = targetTypeRepository;
                 this.gcsService = gcsService;
-                this.redisTemplate = redisTemplate;
-            this.redisAvatarTemplate = redisAvatarTemplate;
+                this.redisAvatarTemplate = redisAvatarTemplate;
+                this.redisMediaTemplate = redisMediaTemplate;
+                this.objectMapper = objectMapper;
         }
 
         private String buildCacheKey(List<Integer> targetIds, String targetTypeCode, String mediaTypeName) {
@@ -246,33 +253,43 @@ public class MediaService {
                 return mediaUrl;
         }
 
-        public Map<Integer, List<MediaDto>> getMediaByTargetIds(List<Integer> targetIds, String targetTypeCode, String mediaTypeName,
-                                                                Boolean status) {
-                String cacheKey = buildCacheKey(targetIds, targetTypeCode, mediaTypeName);
+    public Map<Integer, List<MediaDto>> getMediaByTargetIds(List<Integer> targetIds, String targetTypeCode, String mediaTypeName,
+                                                            Boolean status) {
+        String cacheKey = buildCacheKey(targetIds, targetTypeCode, mediaTypeName);
 
-                List<MediaDto> cached = redisTemplate.opsForValue().get(cacheKey);
-                if (cached != null) {
-                        // 🔄 Group cached result by targetId
-                        return cached.stream()
-                                .collect(Collectors.groupingBy(MediaDto::getTargetId));
-                }
-
-                TargetType targetType = targetTypeRepository.findByCode(targetTypeCode)
-                        .orElseThrow(() -> new IllegalArgumentException("Loại target không hợp lệ"));
-
-                MediaType mediaType = mediaTypeRepository.findByName(mediaTypeName)
-                        .orElseThrow(() -> new IllegalArgumentException("Loại media không hợp lệ"));
-
-                List<Media> mediaList = mediaRepository.findByTargetIdInAndTargetTypeIdAndMediaTypeIdAndStatus(
-                        targetIds, targetType.getId(), mediaType.getId(), status);
-
-                List<MediaDto> dtoList = mediaList.stream().map(this::toDto).collect(Collectors.toList());
-
-                // ❗ Cache raw list (vì RedisTemplate không lưu được Map dạng động)
-                redisTemplate.opsForValue().set(cacheKey, dtoList, CACHE_TTL);
-
-                // ✅ Trả về map theo targetId
-                return dtoList.stream()
-                        .collect(Collectors.groupingBy(MediaDto::getTargetId));
+        try {
+            String json = redisMediaTemplate.opsForValue().get(cacheKey);
+            if (json != null) {
+                List<MediaDto> cachedList = objectMapper.readValue(
+                        json,
+                        new TypeReference<>() {
+                        }
+                );
+                return cachedList.stream().collect(Collectors.groupingBy(MediaDto::getTargetId));
+            }
+        } catch (Exception e) {
+            e.printStackTrace(); // fallback
         }
+
+        TargetType targetType = targetTypeRepository.findByCode(targetTypeCode)
+                .orElseThrow(() -> new IllegalArgumentException("Loại target không hợp lệ"));
+
+        MediaType mediaType = mediaTypeRepository.findByName(mediaTypeName)
+                .orElseThrow(() -> new IllegalArgumentException("Loại media không hợp lệ"));
+
+        List<Media> mediaList = mediaRepository.findByTargetIdInAndTargetTypeIdAndMediaTypeIdAndStatus(
+                targetIds, targetType.getId(), mediaType.getId(), status);
+
+        List<MediaDto> dtoList = mediaList.stream()
+                .map(this::toDto)
+                .collect(Collectors.toList());
+
+        try {
+            redisMediaTemplate.opsForValue().set(cacheKey, objectMapper.writeValueAsString(dtoList), CACHE_TTL);
+        } catch (Exception e) {
+            e.printStackTrace(); // fallback
+        }
+
+        return dtoList.stream().collect(Collectors.groupingBy(MediaDto::getTargetId));
+    }
 }

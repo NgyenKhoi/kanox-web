@@ -32,11 +32,11 @@ public class RedisConfig {
 
     // RedisTemplate cho media: String -> List<MediaDto>
     @Bean
-    public RedisTemplate<String, List<MediaDto>> redisMediaTemplate(RedisConnectionFactory connectionFactory, ObjectMapper objectMapper) {
-        RedisTemplate<String, List<MediaDto>> template = new RedisTemplate<>();
+    public RedisTemplate<String, String> redisMediaTemplate(RedisConnectionFactory connectionFactory) {
+        RedisTemplate<String, String> template = new RedisTemplate<>();
         template.setConnectionFactory(connectionFactory);
         template.setKeySerializer(new StringRedisSerializer());
-        template.setValueSerializer(new GenericJackson2JsonRedisSerializer(objectMapper));
+        template.setValueSerializer(new StringRedisSerializer());
         template.afterPropertiesSet();
         return template;
     }

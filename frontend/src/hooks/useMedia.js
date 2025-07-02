@@ -62,11 +62,18 @@ const useMedia = (
         const data = await response.json();
         console.debug("[useMedia] Dữ liệu media nhận được:", data);
 
-        const grouped = {};
-        for (const item of data) {
-          const targetId = item.targetId;
-          if (!grouped[targetId]) grouped[targetId] = [];
-          grouped[targetId].push(item);
+        const grouped = data; // dữ liệu đã group từ server rồi
+
+        if (isMounted) {
+          setMediaData(grouped);
+
+          if (stableTargetIds.length === 1) {
+            const firstId = stableTargetIds[0];
+            const firstUrl = grouped?.[firstId]?.[0]?.url || null;
+            setMediaUrl(firstUrl);
+          } else {
+            setMediaUrl(null);
+          }
         }
 
         if (isMounted) {
