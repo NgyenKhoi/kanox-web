@@ -608,149 +608,87 @@ function TweetCard({ tweet, onPostUpdate }) {
                       </div>
                   ))}
 
-              {/* Thanh tổng hợp cảm xúc + bình luận với điều kiện */}
-              {(totalCount > 0 || commentCount > 0) && (
-                  <>
-                    {imageUrls.length === 0 && (
-                        <div
-                            style={{
-                              borderTop: "1px solid #e6ecf0",
-                              marginTop: "10px",
-                            }}
-                        />
-                    )}
+              <>
+                {(totalCount > 0 || commentCount > 0) && (
                     <div className="d-flex justify-content-between align-items-center mt-2 px-2">
-                      {/* Emojis phổ biến với tooltip hiển thị tên người dùng */}
+                      {/* Thống kê reaction */}
                       {totalCount > 0 && (
                           <div className="d-flex align-items-center gap-1">
                             {topReactions.map(({ emoji, name }) => (
                                 <OverlayTrigger
                                     key={name}
                                     placement="top"
-                                    overlay={
-                                      <Tooltip id={`tooltip-${name}`}>
-                                        {reactionCountMap[name] > 0
-                                            ? `Người dùng: ${Array(reactionCountMap[name])
-                                                .fill()
-                                                .map((_, i) => `User${i + 1}`)
-                                                .join(", ")}`
-                                            : "Chưa có ai phản hồi"}
-                                      </Tooltip>
-                                    }
+                                    overlay={<Tooltip>{`Ai đã thả ${name}`}</Tooltip>}
                                 >
-                          <span
-                              onClick={() => {
-                                setSelectedEmojiName(name);
-                                setTimeout(() => {
-                                  setShowReactionUserModal(true);
-                                }, 0);
-                              }}
-                              style={{ fontSize: "1.2rem", cursor: "pointer" }}
-                              title={`Xem ai đã thả ${name}`}
-                          >
-                            {emoji}
-                          </span>
+              <span
+                  onClick={() => {
+                    setSelectedEmojiName(name);
+                    setTimeout(() => {
+                      setShowReactionUserModal(true);
+                    }, 0);
+                  }}
+                  style={{ fontSize: "1.2rem", cursor: "pointer" }}
+              >
+                {emoji}
+              </span>
                                 </OverlayTrigger>
                             ))}
-                            {totalCount > 0 && (
-                                <span className="text-[var(--text-color-muted)] ms-1">{totalCount.toLocaleString("vi-VN")}</span>
-                            )}
+                            <span className="text-[var(--text-color-muted)] ms-1">{totalCount}</span>
                           </div>
                       )}
 
-                      {/* Bình luận + chia sẻ */}
+                      {/* Số lượng bình luận & chia sẻ */}
                       <div className="text-[var(--text-color-muted)] small">
                         {commentCount} bình luận {shareCount > 0 && ` · ${shareCount} lượt chia sẻ`}
                       </div>
                     </div>
+                )}
 
-                    <div className="d-flex justify-content-between text-[var(--text-color-muted)] mt-2 w-100 px-0">
-                      <div className="text-center">
-                        <OverlayTrigger placement="top" overlay={<Tooltip>Bình luận</Tooltip>}>
-                          <Button
-                              variant="link"
-                              className="p-2 rounded-full hover-bg-light text-[var(--text-color)]"
-                              onClick={() => setShowCommentBox((prev) => !prev)}
-                              aria-label="Mở/đóng hộp bình luận"
-                          >
-                            <FaRegComment size={20} />
-                          </Button>
-                        </OverlayTrigger>
-                      </div>
+                {/* Hành động: Bình luận - Lưu - React - Chia sẻ */}
+                <div className="d-flex justify-content-between text-[var(--text-color-muted)] mt-2 w-100 px-0">
+                  <div className="text-center">
+                    <OverlayTrigger placement="top" overlay={<Tooltip>Bình luận</Tooltip>}>
+                      <Button
+                          variant="link"
+                          className="p-2 rounded-full hover-bg-light text-[var(--text-color)]"
+                          onClick={() => setShowCommentBox((prev) => !prev)}
+                          aria-label="Mở/đóng hộp bình luận"
+                      >
+                        <FaRegComment size={20} />
+                      </Button>
+                    </OverlayTrigger>
+                  </div>
 
-                      <div className="text-center">
-                        <OverlayTrigger placement="top" overlay={<Tooltip>Lưu bài viết</Tooltip>}>
-                          <Button
-                              variant="link"
-                              className="p-2 rounded-full hover-bg-light text-[var(--text-color)]"
-                              aria-label="Lưu bài viết"
-                          >
-                            <FaBookmark size={20} />
-                          </Button>
-                        </OverlayTrigger>
-                      </div>
+                  <div className="text-center">
+                    <OverlayTrigger placement="top" overlay={<Tooltip>Lưu bài viết</Tooltip>}>
+                      <Button
+                          variant="link"
+                          className="p-2 rounded-full hover-bg-light text-[var(--text-color)]"
+                          aria-label="Lưu bài viết"
+                      >
+                        <FaBookmark size={20} />
+                      </Button>
+                    </OverlayTrigger>
+                  </div>
 
-                      <div className="text-center">
-                        <ReactionButtonGroup user={user} targetId={postId} targetTypeCode="POST" />
-                      </div>
+                  <div className="text-center">
+                    <ReactionButtonGroup user={user} targetId={postId} targetTypeCode="POST" />
+                  </div>
 
-                      <div className="text-center">
-                        <OverlayTrigger placement="top" overlay={<Tooltip>Chia sẻ</Tooltip>}>
-                          <Button
-                              variant="link"
-                              className="p-2 rounded-full hover-bg-light text-[var(--text-color)]"
-                              aria-label="Chia sẻ"
-                          >
-                            <FaShareAlt size={20} />
-                          </Button>
-                        </OverlayTrigger>
-                      </div>
-                    </div>
+                  <div className="text-center">
+                    <OverlayTrigger placement="top" overlay={<Tooltip>Chia sẻ</Tooltip>}>
+                      <Button
+                          variant="link"
+                          className="p-2 rounded-full hover-bg-light text-[var(--text-color)]"
+                          aria-label="Chia sẻ"
+                      >
+                        <FaShareAlt size={20} />
+                      </Button>
+                    </OverlayTrigger>
+                  </div>
+                </div>
+              </>
 
-                    {showCommentBox && (
-                        <div className="mt-2 pt-2 border-t border-[var(--border-color)]">
-                          {renderComments()}
-                          <Form onSubmit={handleCommentSubmit} className="mt-2">
-                            <div className="d-flex align-items-center">
-                              {user?.avatarUrl ? (
-                                  <BootstrapImage
-                                      src={user.avatarUrl}
-                                      className="w-8 h-8 object-cover mr-2 rounded-full"
-                                      aria-label={`Ảnh đại diện của ${user.displayName}`}
-                                  />
-                              ) : (
-                                  <FaUserCircle
-                                      size={32}
-                                      className="me-2 text-[var(--text-color-muted)]"
-                                      aria-label="Ảnh đại diện mặc định"
-                                  />
-                              )}
-                              <InputGroup>
-                                <Form.Control
-                                    type="text"
-                                    placeholder="Viết bình luận..."
-                                    value={newComment}
-                                    onChange={(e) => setNewComment(e.target.value)}
-                                    className="rounded-full border-[var(--border-color)] bg-[var(--background-color)] text-[var(--text-color)]"
-                                    disabled={isCommenting}
-                                    aria-label="Viết bình luận"
-                                />
-                                <Button
-                                    type="submit"
-                                    size="sm"
-                                    variant="primary"
-                                    className="rounded-full"
-                                    disabled={isCommenting}
-                                >
-                                  Gửi
-                                </Button>
-                              </InputGroup>
-                            </div>
-                          </Form>
-                        </div>
-                    )}
-                  </>
-              )}
             </div>
           </Card.Body>
 

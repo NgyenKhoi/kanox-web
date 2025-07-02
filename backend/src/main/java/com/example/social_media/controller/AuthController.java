@@ -91,15 +91,22 @@ public class AuthController {
 
     // LOGOUT
     @PostMapping(URLConfig.LOGOUT)
-    public ResponseEntity<?> logout(@RequestParam Integer userId) {
+    public ResponseEntity<?> logout(@RequestParam Integer userId,
+                                    @RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.badRequest().body("Thiếu token hoặc định dạng không hợp lệ");
+        }
+
+        String token = authHeader.substring(7); // Cắt "Bearer " để lấy token thật
+
         Optional<User> userOpt = authService.getUser(userId);
         if (userOpt.isPresent()) {
-            authService.logout(userOpt.get());
-            return ResponseEntity.ok("Logged out successfully");
+            authService.logout(userOpt.get(), token); // Gọi đúng phương thức mới
+            return ResponseEntity.ok("Đăng xuất thành công");
         }
-        throw new IllegalArgumentException("User not found");
-    }
 
+        return ResponseEntity.status(404).body("Không tìm thấy người dùng");
+    }
     // FORGOT PASSWORD
     @PostMapping(URLConfig.FORGOT_PASSWORD)
     public ResponseEntity<?> forgotPassword(@RequestBody ForgotPasswordRequestDto request) {

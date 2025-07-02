@@ -60,7 +60,13 @@ function ReactionButtonGroup({ user, targetId, targetTypeCode }) {
             <Button
                 variant="link"
                 className="text-[var(--text-color-muted)] p-1 rounded-full hover-bg-light text-decoration-none"
-                onClick={() => setShowPopover((prev) => !prev)}
+                onClick={async () => {
+                    if (currentEmoji) {
+                        await removeReaction();
+                    } else {
+                        setShowPopover((prev) => !prev);
+                    }   
+                }}
                 aria-label="Chọn biểu cảm"
             >
                 {currentEmoji || <FaRegHeart size={20} />}

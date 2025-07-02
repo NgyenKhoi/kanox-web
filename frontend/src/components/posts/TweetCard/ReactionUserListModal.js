@@ -1,4 +1,13 @@
-import { Modal, Button, ListGroup, Spinner, Image, Dropdown, OverlayTrigger, Tooltip } from "react-bootstrap";
+import {
+    Modal,
+    Button,
+    ListGroup,
+    Spinner,
+    Image,
+    Dropdown,
+    OverlayTrigger,
+    Tooltip,
+} from "react-bootstrap";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useReaction from "../../../hooks/useReaction";
@@ -7,25 +16,48 @@ export default function ReactionUserListModal({ show, onHide, targetId, targetTy
     const [loading, setLoading] = useState(false);
     const [users, setUsers] = useState([]);
     const [selectedReaction, setSelectedReaction] = useState(null);
+    const [friendshipStatus, setFriendshipStatus] = useState({});
     const token = localStorage.getItem("token");
+    const currentUserId = localStorage.getItem("userId");
     const navigate = useNavigate();
 
     const {
-        currentEmoji,
         emojiMap,
         reactionCountMap,
-        topReactions,
-    } = useReaction({ user: { id: localStorage.getItem("userId") }, targetId, targetTypeCode });
+        topReactions, // top 3 emoji react nhiều nhất
+    } = useReaction({ user: { id: currentUserId }, targetId, targetTypeCode });
 
     const fetchUsers = async (reactionName) => {
         setLoading(true);
         try {
             const res = await fetch(
                 `${process.env.REACT_APP_API_URL}/reactions/list-by-type?targetId=${targetId}&targetTypeCode=${targetTypeCode}&emojiName=${reactionName || ""}`,
-                { headers: { Authorization: `Bearer ${token}` } }
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
             );
             const data = await res.json();
-            setUsers(Array.isArray(data) ? data : []);
+            const validUsers = Array.isArray(data) ? data : [];
+            setUsers(validUsers);
+
+            // Fetch friendship status
+            const statusMap = {};
+            await Promise.all(
+                validUsers.map(async (u) => {
+                    if (u.id === currentUserId) return;
+                    const res = await fetch(
+                        `${process.env.REACT_APP_API_URL}/friends/users/${currentUserId}/friendship-status/${u.id}`,
+                        { headers: { Authorization: `Bearer ${token}` } }
+                    );
+                    if (res.ok) {
+                        const json = await res.json();
+                        statusMap[u.id] = json.status;
+                    }
+                })
+            );
+            setFriendshipStatus(statusMap);
         } catch (err) {
             console.error("Lỗi khi tải danh sách người dùng:", err.message);
             setUsers([]);
@@ -34,43 +66,84 @@ export default function ReactionUserListModal({ show, onHide, targetId, targetTy
         }
     };
 
+    const handleAddFriend = async (userId) => {
+        try {
+            const res = await fetch(
+                `${process.env.REACT_APP_API_URL}/friends/send-request/${userId}`,
+                {
+                    method: "POST",
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
+            if (res.ok) {
+                setFriendshipStatus((prev) => ({ ...prev, [userId]: "SENT" }));
+            }
+        } catch (error) {
+            console.error("Không thể gửi lời mời kết bạn", error.message);
+        }
+    };
+
     useEffect(() => {
         if (show && targetId && targetTypeCode) fetchUsers(selectedReaction);
     }, [show, targetId, targetTypeCode, selectedReaction]);
 
+    const top3Reactions = topReactions.slice(0, 3);
     const otherReactions = Object.entries(emojiMap)
-        .filter(([name]) => !topReactions.some(r => r.name === name))
-        .map(([name, emoji]) => ({ name, emoji, count: reactionCountMap[name] || 0 }));
+        .filter(([name]) => !top3Reactions.some((r) => r.name === name))
+        .map(([name, emoji]) => ({
+            name,
+            emoji,
+            count: reactionCountMap[name] || 0,
+        }))
+        .filter((item) => item.count > 0);
 
     return (
         <Modal show={show} onHide={onHide} centered size="lg">
             <Modal.Header closeButton className="border-0 pb-0" />
             <Modal.Body className="bg-[var(--background-color)]">
                 {loading ? (
-                    <div className="text-center"><Spinner animation="border" className="text-[var(--text-color)]" /></div>
+                    <div className="text-center">
+                        <Spinner animation="border" className="text-[var(--text-color)]" />
+                    </div>
                 ) : (
                     <>
-                        {(topReactions.length + otherReactions.length > 1) && (
+                        {(top3Reactions.length + otherReactions.length > 1) && (
                             <div className="d-flex gap-2 flex-wrap mb-3 ps-3 pe-3 align-items-center">
-                                <Button variant="link" className={`p-1 rounded-pill fw-semibold ${!selectedReaction ? 'text-primary' : 'text-muted'}`} onClick={() => setSelectedReaction(null)}>
+                                <Button
+                                    variant="link"
+                                    className={`p-1 rounded-pill fw-semibold ${
+                                        !selectedReaction ? "text-primary" : "text-muted"
+                                    }`}
+                                    onClick={() => setSelectedReaction(null)}
+                                >
                                     Tất cả
                                 </Button>
 
-                                {topReactions.map(({ name, emoji, count }) => (
+                                {top3Reactions.map(({ name, emoji, count }) => (
                                     <OverlayTrigger key={name} placement="top" overlay={<Tooltip>{name}</Tooltip>}>
-                                        <Button variant="link" className={`p-1 rounded-circle fs-4 ${selectedReaction === name ? 'text-primary' : 'text-muted'}`} onClick={() => setSelectedReaction(name)}>
-                                            {emoji} {count > 0 && count}
+                                        <Button
+                                            variant="link"
+                                            className={`p-1 rounded-circle fs-4 ${
+                                                selectedReaction === name ? "text-primary" : "text-muted"
+                                            }`}
+                                            onClick={() => setSelectedReaction(name)}
+                                        >
+                                            {emoji} {count}
                                         </Button>
                                     </OverlayTrigger>
                                 ))}
 
                                 {otherReactions.length > 0 && (
                                     <Dropdown align="end">
-                                        <Dropdown.Toggle variant="link" className="p-1 rounded-circle fs-5 text-muted">...</Dropdown.Toggle>
+                                        <Dropdown.Toggle variant="link" className="p-1 rounded fs-5 text-muted">
+                                            Khác
+                                        </Dropdown.Toggle>
                                         <Dropdown.Menu>
                                             {otherReactions.map(({ name, emoji, count }) => (
                                                 <Dropdown.Item key={name} onClick={() => setSelectedReaction(name)}>
-                                                    {emoji} {count > 0 && count} {name}
+                                                    {emoji} {count} {name}
                                                 </Dropdown.Item>
                                             ))}
                                         </Dropdown.Menu>
@@ -81,16 +154,54 @@ export default function ReactionUserListModal({ show, onHide, targetId, targetTy
 
                         <ListGroup variant="flush">
                             {users.length > 0 ? (
-                                users.map(user => (
+                                users.map((user) => (
                                     <ListGroup.Item
                                         key={user.id}
-                                        className="d-flex align-items-center bg-[var(--background-color)] text-[var(--text-color)]" onClick={() => navigate(`/profile/${user.username}`)} style={{ cursor: "pointer" }}>
-                                        <Image src={user.avatarUrl || "/default-avatar.png"} roundedCircle style={{ width: 40, height: 40, objectFit: "cover", marginRight: 10 }} />
-                                        <span>{user.displayName || user.username}</span>
+                                        className="d-flex justify-content-between align-items-center bg-[var(--background-color)] text-[var(--text-color)]"
+                                    >
+                                        <div
+                                            className="d-flex align-items-center"
+                                            onClick={() => navigate(`/profile/${user.username}`)}
+                                            style={{ cursor: "pointer" }}
+                                        >
+                                            <Image
+                                                src={user.avatarUrl || "/default-avatar.png"}
+                                                roundedCircle
+                                                style={{
+                                                    width: 40,
+                                                    height: 40,
+                                                    objectFit: "cover",
+                                                    marginRight: 10,
+                                                }}
+                                            />
+                                            <span>{user.displayName || user.username}</span>
+                                        </div>
+                                        {user.id !== currentUserId && (
+                                            <>
+                                                {friendshipStatus[user.id] === "FRIENDS" ? null : (
+                                                    friendshipStatus[user.id] === "SENT" ? (
+                                                        <small className="text-muted">Đã gửi</small>
+                                                    ) : (
+                                                        <Button
+                                                            variant="outline-primary"
+                                                            size="sm"
+                                                            onClick={() => handleAddFriend(user.id)}
+                                                        >
+                                                            Thêm bạn bè
+                                                        </Button>
+                                                    )
+                                                )}
+                                            </>
+                                        )}
+                                        {friendshipStatus[user.id] === "SENT" && (
+                                            <small className="text-muted">Đã gửi</small>
+                                        )}
                                     </ListGroup.Item>
                                 ))
                             ) : (
-                                <div className="text-[var(--text-color-muted)] text-center">Không có người dùng.</div>
+                                <div className="text-[var(--text-color-muted)] text-center">
+                                    Không có người dùng.
+                                </div>
                             )}
                         </ListGroup>
                     </>

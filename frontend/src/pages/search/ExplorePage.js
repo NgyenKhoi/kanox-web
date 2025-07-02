@@ -178,30 +178,28 @@ function ExplorePage() {
   return (
       <div className="flex min-h-screen bg-[var(--background-color)] text-[var(--text-color)]">
         <div className="flex flex-col flex-grow">
-          <div className="sticky top-0 z-50 bg-[var(--content-bg)] border-b border-gray-200 dark:border-gray-700">
+          <div className="sticky top-0 z-50 bg-[var(--content-bg)] border-b border-gray-200 dark:border-gray-700 overflow-visible">
             <div className="max-w-2xl mx-auto w-full p-4">
-              <div className="flex items-center gap-2 relative">
-                <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                  <FaSearch />
+              {/* ✅ Search input + dropdown */}
+              <div className="relative overflow-visible">
+                <div className="flex items-center gap-2">
+                  <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                    <FaSearch />
+                  </div>
+                  <input
+                      type="text"
+                      value={searchKeyword}
+                      onChange={(e) => setSearchKeyword(e.target.value)}
+                      placeholder="Tìm kiếm người dùng"
+                      className="pl-10 pr-4 py-2 w-full rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 focus:outline-none"
+                  />
                 </div>
-                <input
-                    type="text"
-                    value={searchKeyword}
-                    onChange={(e) => setSearchKeyword(e.target.value)}
-                    placeholder="Tìm kiếm người dùng"
-                    className="pl-10 pr-4 py-2 w-full rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 focus:outline-none"
-                />
                 {renderSearchResults()}
               </div>
 
+              {/* ✅ Tabs */}
               <div className="flex justify-around mt-4 text-sm font-semibold text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700 bg-[var(--content-bg)]">
-                {[
-                  "for-you",
-                  "trending",
-                  "news",
-                  "sports",
-                  "entertainment",
-                ].map((tab) => (
+                {["for-you", "trending", "news", "sports", "entertainment"].map((tab) => (
                     <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
@@ -224,7 +222,8 @@ function ExplorePage() {
             </div>
           </div>
 
-          <div className="max-w-2xl mx-auto flex-grow">
+          {/* ✅ Main content: Trending topics */}
+          <div className="w-full px-4 flex-grow">
             {trendingTopics.length === 0 ? (
                 <p className="text-center text-gray-500 p-4">
                   Không có chủ đề nào đang phổ biến.
@@ -249,6 +248,7 @@ function ExplorePage() {
           </div>
         </div>
 
+        {/* ✅ Sidebar */}
         <div className="hidden lg:block w-[350px] border-l border-gray-200 dark:border-gray-700">
           <SidebarRight trendingTopics={trendingTopics} />
         </div>
