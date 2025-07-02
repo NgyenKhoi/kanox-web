@@ -58,7 +58,7 @@ function HomePage({ onShowCreatePost, onToggleDarkMode }) {
       <div className="d-flex flex-column min-vh-100 bg-[var(--background-color)]">
         <Container fluid className="flex-grow-1">
           <Row className="h-100">
-            <Col xs={12} lg={9} className="p-0">
+            <Col xs={12} lg={7} className="p-0">
               <div
                   className="sticky-top border-bottom fw-bold fs-5 px-3 py-2 d-flex justify-content-between align-items-center"
                   style={{ zIndex: 1020 }}
@@ -80,7 +80,7 @@ function HomePage({ onShowCreatePost, onToggleDarkMode }) {
                   <p className="text-center p-4 text-[var(--text-color)]">No posts found.</p>
               )}
             </Col>
-            <Col xs={0} lg={3} className="d-none d-lg-block border-start p-0">
+            <Col xs={0} lg={5} className="d-none d-lg-block border-start p-0">
               <SidebarRight />
             </Col>
           </Row>

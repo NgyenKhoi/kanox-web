@@ -270,10 +270,10 @@ function ExplorePage() {
         </div>
         <Container fluid className="flex-grow-1">
           <Row className="h-100">
-            <Col xs={12} lg={6} className="px-md-0 border-start border-end">
+            <Col xs={12} lg={7} className="px-md-0 border-start border-end">
               {renderTabContent()}
             </Col>
-            <Col xs={0} lg={3} className="d-none d-lg-block border-start p-0">
+            <Col xs={0} lg={5} className="d-none d-lg-block border-start p-0">
               <SidebarRight
                 trendingTopics={trendingTopics}
                 suggestedFollows={suggestedFollows}

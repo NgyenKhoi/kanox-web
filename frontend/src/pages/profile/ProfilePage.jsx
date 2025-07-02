@@ -442,7 +442,7 @@ function ProfilePage() {
         </div>
 
         <div className="flex flex-grow container mx-auto px-4 py-4">
-          <div className="w-full lg:w-2/3 pr-0 lg:pr-8">
+          <div className="w-full lg:w-7/12 pr-0 lg:pr-8">
             <div className="mb-6">
               <div className="flex justify-between items-center mb-4">
                 <Image
@@ -542,7 +542,7 @@ function ProfilePage() {
             </div>
           </div>
 
-          <div className="hidden lg:block lg:w-1/3">
+          <div className="hidden lg:block lg:w-5/12">
             <SidebarRight />
           </div>
         </div>

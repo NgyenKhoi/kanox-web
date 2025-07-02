@@ -209,10 +209,10 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
           >
             <Container fluid>
               <Row className="align-items-center">
-                <Col xs={6} className="text-start">
+                <Col xs={7} className="text-start">
                   <h5 className="fw-bold mb-0">Thông báo</h5>
                 </Col>
-                <Col xs={6} className="text-end">
+                <Col xs={5} className="text-end">
                   <Button variant="link" className="text-dark p-0">
                     <FaCog />
                   </Button>
