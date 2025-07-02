@@ -75,11 +75,9 @@ public class AuthController {
         if (userOpt.isPresent()) {
             User user = userOpt.get();
             String token = jwtService.generateToken(user.getUsername());
-            String refreshToken = jwtService.generateRefreshToken(user.getUsername()); // ✅ Thêm dòng này
 
             Map<String, Object> result = new HashMap<>();
             result.put("token", token);
-            result.put("refreshToken", refreshToken); // ✅ Thêm dòng này
             result.put("user", Map.of(
                     "id", user.getId(),
                     "username", user.getUsername(),
@@ -93,22 +91,15 @@ public class AuthController {
 
     // LOGOUT
     @PostMapping(URLConfig.LOGOUT)
-    public ResponseEntity<?> logout(@RequestParam Integer userId,
-                                    @RequestHeader("Authorization") String authHeader) {
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return ResponseEntity.badRequest().body("Thiếu token hoặc định dạng không hợp lệ");
-        }
-
-        String token = authHeader.substring(7); // Cắt "Bearer " để lấy token thật
-
+    public ResponseEntity<?> logout(@RequestParam Integer userId) {
         Optional<User> userOpt = authService.getUser(userId);
         if (userOpt.isPresent()) {
-            authService.logout(userOpt.get(), token); // Gọi đúng phương thức mới
-            return ResponseEntity.ok("Đăng xuất thành công");
+            authService.logout(userOpt.get());
+            return ResponseEntity.ok("Logged out successfully");
         }
-
-        return ResponseEntity.status(404).body("Không tìm thấy người dùng");
+        throw new IllegalArgumentException("User not found");
     }
+
     // FORGOT PASSWORD
     @PostMapping(URLConfig.FORGOT_PASSWORD)
     public ResponseEntity<?> forgotPassword(@RequestBody ForgotPasswordRequestDto request) {

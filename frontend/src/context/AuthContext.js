@@ -23,37 +23,28 @@ export const AuthProvider = ({ children }) => {
 
   const setUser = (userObj, newToken = null, newRefreshToken = null) => {
     setUserState(userObj);
-    if (newToken) {
-      setToken(newToken);
-      localStorage.setItem("token", newToken);
-    }
-    if (newRefreshToken) {
-      setRefreshToken(newRefreshToken);
-      localStorage.setItem("refreshToken", newRefreshToken);
-    }
     if (userObj) {
+      if (newToken) {
+        setToken(newToken);
+        localStorage.setItem("token", newToken);
+        sessionStorage.removeItem("token");
+      }
+      if (newRefreshToken) {
+        setRefreshToken(newRefreshToken);
+        localStorage.setItem("refreshToken", newRefreshToken);
+      }
       localStorage.setItem("user", JSON.stringify(userObj));
+    } else {
+      setToken(null);
+      setRefreshToken(null);
+      localStorage.clear();
+      sessionStorage.clear();
     }
-  };
-
-  const clearAuth = () => {
-    setUserState(null);
-    setToken(null);
-    setRefreshToken(null);
-    localStorage.removeItem("token");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("user");
-    localStorage.removeItem("hasSynced");
-    sessionStorage.clear();
-  };
-
-  const logout = () => {
-    clearAuth();
-    navigate("/");
   };
 
   const syncAllData = async (authToken) => {
     if (hasSynced) return;
+
     setIsSyncing(true);
     let retries = 3;
     const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -69,7 +60,7 @@ export const AuthProvider = ({ children }) => {
                 Authorization: `Bearer ${authToken}`,
               },
             }
-        );
+      );
 
         if (!response.ok) {
           const errText = await response.text();
@@ -92,7 +83,6 @@ export const AuthProvider = ({ children }) => {
   };
 
   const checkTokenValidity = async (accessToken) => {
-    if (!accessToken) return null;
     try {
       const response = await fetch(
           `${process.env.REACT_APP_API_URL}/auth/check-token`,
@@ -100,26 +90,27 @@ export const AuthProvider = ({ children }) => {
             method: "POST",
             headers: { Authorization: `Bearer ${accessToken}` },
           }
-      );
+    );
 
+      const data = await response.json();
       if (response.ok) {
-        const data = await response.json();
-        if (data?.token && data?.user) {
-          setUser(data.user, data.token, refreshToken);
-          return data.token;
-        }
+        setToken(data.token);
+        localStorage.setItem("token", data.token);
+        setUser(data.user, data.token, refreshToken);
+        return data.token;
       } else if (response.status === 401) {
         return await refreshAccessToken();
+      } else {
+        logout();
+        return null;
       }
     } catch (error) {
       console.error("❌ Token validation failed:", error);
       return await refreshAccessToken();
     }
-    return null;
   };
 
   const refreshAccessToken = async () => {
-    if (!refreshToken) return null;
     try {
       const response = await fetch(
           `${process.env.REACT_APP_API_URL}/auth/refresh-token`,
@@ -127,22 +118,32 @@ export const AuthProvider = ({ children }) => {
             method: "POST",
             headers: { Authorization: `Bearer ${refreshToken}` },
           }
-      );
+    );
 
       if (response.ok) {
         const data = await response.json();
-        if (data?.token && data?.user) {
-          setUser(data.user, data.token, data.refreshToken || refreshToken);
-          return data.token;
-        }
+        setToken(data.token);
+        localStorage.setItem("token", data.token);
+        setUser(data.user, data.token, refreshToken);
+        return data.token;
+      } else {
+        logout();
+        return null;
       }
     } catch (err) {
       console.error("❌ Refresh token lỗi:", err);
+      logout();
+      return null;
     }
+  };
 
-    // Nếu tất cả thất bại
-    logout();
-    return null;
+  const logout = () => {
+    setUserState(null);
+    setToken(null);
+    setRefreshToken(null);
+    localStorage.clear();
+    sessionStorage.clear();
+    navigate("/");
   };
 
   useEffect(() => {
@@ -160,8 +161,8 @@ export const AuthProvider = ({ children }) => {
           setToken(savedToken);
           if (savedRefreshToken) setRefreshToken(savedRefreshToken);
         } catch (e) {
-          console.error("❌ Lỗi parse user:", e);
-          clearAuth();
+          console.error("Lỗi parse dữ liệu lưu trữ:", e);
+          logout();
         }
       }
 
@@ -169,9 +170,7 @@ export const AuthProvider = ({ children }) => {
           ? await checkTokenValidity(savedToken)
           : null;
 
-      if (validToken) {
-        await syncAllData(validToken);
-      }
+      if (validToken) await syncAllData(validToken);
 
       setLoading(false);
     };

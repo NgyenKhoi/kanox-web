@@ -7,7 +7,6 @@ import com.example.social_media.entity.VerificationToken;
 import com.example.social_media.exception.EmailAlreadyExistsException;
 import com.example.social_media.exception.InvalidPasswordException;
 import com.example.social_media.exception.UserNotFoundException;
-import com.example.social_media.jwt.JwtService;
 import com.example.social_media.repository.UserRepository;
 import com.example.social_media.repository.VerificationTokenRepository;
 import jakarta.validation.ConstraintViolationException;
@@ -32,17 +31,14 @@ public class AuthService {
     private final MailService mailService;
     private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
     private final DataSyncService dataSyncService;
-    private final JwtService jwtService;
 
 
-    public AuthService(MailService mailService, UserRepository userRepository, PasswordEncoder passwordEncoder, VerificationTokenRepository verificationTokenRepository, DataSyncService dataSyncService,
-                       JwtService jwtService) {
+    public AuthService(MailService mailService, UserRepository userRepository, PasswordEncoder passwordEncoder, VerificationTokenRepository verificationTokenRepository, DataSyncService dataSyncService) {
         this.mailService = mailService;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.verificationTokenRepository = verificationTokenRepository;
         this.dataSyncService = dataSyncService;
-        this.jwtService = jwtService;
     }
 
     public Optional<User> getUserByUsername(String username) {
@@ -81,12 +77,10 @@ public class AuthService {
         }
     }
 
-    public void logout(User user, String token) {
+    public void logout(User user) {
         if (user == null) {
             throw new UserNotFoundException("Người dùng không tồn tại");
         }
-
-        jwtService.blacklistToken(token);
         user.setPersistentCookie(null);
         userRepository.save(user);
     }
