@@ -92,6 +92,32 @@ function TweetCard({ tweet, onPostUpdate }) {
 
   const totalCount = Object.values(reactionCountMap).reduce((sum, count) => sum + count, 0);
 
+  useEffect(() => {
+    if (!postId || !token) return;
+
+    setIsLoadingComments(true);
+
+    fetch(`${process.env.REACT_APP_API_URL}/comments/post/${postId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+        .then(res => {
+          if (!res.ok) throw new Error("Lỗi khi tải bình luận");
+          return res.json();
+        })
+        .then(data => {
+          setComments(data);
+        })
+        .catch(err => {
+          console.error("Comment fetch error:", err);
+          toast.error("Không thể tải bình luận");
+        })
+        .finally(() => {
+          setIsLoadingComments(false);
+        });
+  }, [postId, token]);
+
   return (
       <div className="mb-4 rounded-2xl shadow-sm border border-transparent bg-[var(--background-color)]">
         <div className="flex p-4">
