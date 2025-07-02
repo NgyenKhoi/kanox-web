@@ -488,10 +488,8 @@ function TweetCard({ tweet, onPostUpdate }) {
                 <BootstrapImage
                     src={avatarUrl}
                     alt="Avatar"
-                    width={50}
-                    height={50}
                     roundedCircle
-                    className="me-3 d-none d-md-block"
+                    className="me-3 d-none d-md-block w-[50px] h-[50px] object-cover"
                     aria-label={`Ảnh đại diện của ${owner?.displayName || "Người dùng"}`}
                 />
             ) : (

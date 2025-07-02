@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useRef } from "react";
 import {
   Card,
   Form,
@@ -40,6 +40,9 @@ function TweetInput({ onPostSuccess }) {
   const [mediaPreviews, setMediaPreviews] = useState([]);
   const [showMediaModal, setShowMediaModal] = useState(false);
   const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
+  const [showCustomList, setShowCustomList] = useState(false);
+  const [showPrivacyDropdown, setShowPrivacyDropdown] = useState(false);
+  const dropdownRef = useRef(null);
 
   useEffect(() => {
     const fetchPrivacySettings = async () => {
@@ -271,7 +274,7 @@ function TweetInput({ onPostSuccess }) {
     const renderRemoveButton = (index) => (
         <button
             type="button"
-            className="btn btn-dark btn-sm position-absolute top-0 end-0 m-2 p-1 rounded-circle shadow-sm"
+            className="absolute top-0 right-0 m-2 w-6 h-6 rounded-full text-white bg-black/70 text-xs"
             style={{
               zIndex: 2,
               width: "24px",
@@ -292,7 +295,7 @@ function TweetInput({ onPostSuccess }) {
     if (mediaPreviews.length === 1) {
       return (
           <div style={containerStyle}>
-            <div className="position-relative d-inline-block">
+            <div className="relative d-inline-block">
               {renderRemoveButton(0)}
               {mediaPreviews[0].includes("video") ? (
                   <video
@@ -317,26 +320,30 @@ function TweetInput({ onPostSuccess }) {
     if (mediaPreviews.length === 2) {
       return (
           <div style={{ ...containerStyle, gridTemplateColumns: "1fr 1fr" }}>
-            {mediaPreviews.map((url, i) => (
-                <div key={i} className="position-relative">
-                  {renderRemoveButton(i)}
-                  {url.includes("video") ? (
-                      <video
-                          src={url}
-                          controls
-                          style={mediaStyle}
-                          className="rounded"
-                      />
-                  ) : (
-                      <img
-                          src={url}
-                          alt="preview"
-                          style={mediaStyle}
-                          className="rounded"
-                      />
-                  )}
-                </div>
-            ))}
+            {mediaPreviews.map((url, i) => {
+              const isVideo = url.includes("video");
+              return (
+                  <div key={i} className="relative">
+                    {renderRemoveButton(i)}
+                    {isVideo ? (
+                        <video
+                            src={url}
+                            controls
+                            style={mediaStyle}
+                            className="rounded"
+                        />
+                    ) : (
+                        <img
+                            src={url}
+                            alt="preview"
+                            style={mediaStyle}
+                            className="rounded"
+                        />
+                    )}
+                  </div>
+              );
+            })}
+
           </div>
       );
     }
@@ -351,7 +358,7 @@ function TweetInput({ onPostSuccess }) {
               }}
           >
             <div
-                className="position-relative"
+                className="relative"
                 style={{ gridColumn: "1 / 3", marginBottom: "4px" }}
             >
               {renderRemoveButton(0)}
@@ -372,7 +379,7 @@ function TweetInput({ onPostSuccess }) {
               )}
             </div>
             {mediaPreviews.slice(1).map((url, i) => (
-                <div key={i + 1} className="position-relative">
+                <div key={i + 1} className="relative">
                   {renderRemoveButton(i + 1)}
                   {url.includes("video") ? (
                       <video
@@ -405,7 +412,7 @@ function TweetInput({ onPostSuccess }) {
               }}
           >
             {mediaPreviews.slice(0, 4).map((url, i) => (
-                <div key={i} className="position-relative">
+                <div key={i} className="relative">
                   {renderRemoveButton(i)}
                   {url.includes("video") ? (
                       <video
@@ -426,7 +433,7 @@ function TweetInput({ onPostSuccess }) {
             ))}
             {mediaPreviews.length > 4 && (
                 <div
-                    className="position-relative"
+                    className="relative"
                     style={{
                       gridColumn: "2 / 3",
                       gridRow: "2 / 3",
@@ -469,11 +476,11 @@ function TweetInput({ onPostSuccess }) {
               }}
           >
             {mediaPreviews.slice(0, 4).map((url, i) => (
-                <div key={i} className="position-relative">
+                <div key={i} className="relative">
                   <Button
                       variant="danger"
                       size="sm"
-                      className="position-absolute top-0 end-0 m-1 p-1 rounded-circle"
+                      className="position-absolute top-0 end-0 m-1 p-1 rounded-full"
                       onClick={() => handleRemoveMedia(i)}
                   >
                     ×
@@ -487,7 +494,7 @@ function TweetInput({ onPostSuccess }) {
             ))}
             {mediaPreviews.length > 4 && (
                 <div
-                    className="position-relative"
+                    className="relative"
                     style={{
                       gridColumn: "2 / 3",
                       gridRow: "2 / 3",
@@ -522,31 +529,29 @@ function TweetInput({ onPostSuccess }) {
 
   return (
       <>
-        <Card className="mb-3 rounded-4 shadow-sm border-0">
-          <Card.Body>
-            <Form.Control
-                as="textarea"
+        <div className="mb-3 rounded-2xl shadow-sm border border-[var(--border-color)] bg-[var(--background-color)] text-[var(--text-color)]">
+          <div className="p-3">
+            <textarea
                 rows={3}
                 placeholder="Bạn đang nghĩ gì?"
-                className="border-0 shadow-none mb-2"
+                className="w-full bg-transparent border-0 focus:ring-0 focus:outline-none mb-2 text-[var(--text-color)]"
                 style={{ resize: "none" }}
                 value={tweetContent}
                 onChange={(e) => setTweetContent(e.target.value)}
             />
-
             {renderMediaPreview()}
 
             {taggedUserIds.length > 0 && (
-                <div className="d-flex flex-wrap mb-2">
+                <div className="flex flex-wrap mb-2">
                   {taggedUserIds.map((tagId, index) => (
                       <span
                           key={index}
-                          className="badge bg-primary text-white me-2 mb-1"
+                          className="bg-[var(--primary-color)] text-white px-2 py-1 rounded mr-2 mb-1 text-sm"
                       >
                   @User_{tagId}
                         <Button
                             variant="link"
-                            className="text-white p-0 ms-1"
+                            className="text-white p-0 ml-1"
                             onClick={() => handleRemoveTag(tagId)}
                         >
                     x
@@ -557,42 +562,45 @@ function TweetInput({ onPostSuccess }) {
             )}
 
             {status === "custom" && (
-                <Dropdown className="mb-2">
-                  <Dropdown.Toggle
-                      variant="outline-primary"
-                      className="w-100 text-start rounded-pill"
-                  >
+                <div className="relative">
+                  <button onClick={() => setShowCustomList(!showCustomList)} className="w-full text-start rounded-full border border-[var(--border-color)] px-3 py-2">
                     {customListId
                         ? customLists.find((l) => l.id === customListId)?.listName
                         : "Chọn danh sách tùy chỉnh"}
-                  </Dropdown.Toggle>
-                  <Dropdown.Menu>
-                    {customLists.map((list) => (
-                        <Dropdown.Item
-                            key={list.id}
-                            onClick={() => handleCustomListSelect(list.id)}
-                        >
-                          {list.listName}
-                        </Dropdown.Item>
-                    ))}
-                  </Dropdown.Menu>
-                </Dropdown>
+                  </button>
+                  {showCustomList && (
+                      <div className="absolute z-50 mt-1 bg-[var(--background-color)] border border-[var(--border-color)] rounded shadow w-full">
+                        {customLists.map((list) => (
+                            <button
+                                key={list.id}
+                                onClick={() => {
+                                  handleCustomListSelect(list.id);
+                                  setShowCustomList(false);
+                                }}
+                                className="w-full text-left px-4 py-2 hover:bg-[var(--hover-bg-color)]"
+                            >
+                              {list.listName}
+                            </button>
+                        ))}
+                      </div>
+                  )}
+                </div>
             )}
 
-            {error && <p className="text-danger">{error}</p>}
+            {error && <p className="text-red-600">{error}</p>}
 
-            <div className="d-flex justify-content-between align-items-center mt-3 pt-3 border-top flex-wrap">
-              <div className="d-flex align-items-center mb-2 mb-md-0">
-                <div className="position-relative me-2">
-                  <Button
+        <div className="flex justify-between items-center mt-3 pt-3 border-t border-[var(--border-color)] flex-wrap">
+        <div className="flex align-items-center mb-2 mb-md-0">
+                <div className="relative mr-2">
+                  <button
                       variant="link"
-                      className="text-primary p-2 rounded-circle hover-bg-light"
+                      className="text-[var(--primary-color)] p-2 rounded-full hover:bg-[var(--hover-bg-color)] transition-colors"
                       onClick={() =>
                           document.getElementById("hiddenMediaInput").click()
                       }
                   >
                     <FaPollH size={20} />
-                  </Button>
+                  </button>
                   <input
                       type="file"
                       id="hiddenMediaInput"
@@ -605,44 +613,44 @@ function TweetInput({ onPostSuccess }) {
 
                 <Button
                     variant="link"
-                    className="text-primary p-2 rounded-circle hover-bg-light me-2"
+                    className="text-[var(--primary-color)] p-2 rounded-full hover-bg-light mr-2"
                 >
                   <FaSmile size={20} />
                 </Button>
                 <Button
                     variant="link"
-                    className="text-primary p-2 rounded-circle hover-bg-light me-2"
+                    className="text-[var(--primary-color)] p-2 rounded-full hover-bg-light mr-2"
                 >
                   <FaCalendarAlt size={20} />
                 </Button>
 
-                <Dropdown className="me-2">
-                  <Dropdown.Toggle
-                      variant="link"
-                      className="text-primary p-2 rounded-circle hover-bg-light"
+          <div className="relative mr-2">
+            <button
+                onClick={() => setShowCustomList(!showCustomList)} // bạn có thể tạo một state mới ví dụ showTagInput
+                className="p-2 rounded-full text-[var(--primary-color)] hover:bg-[var(--hover-bg-color)] transition-colors"
+            >
+              <FaUserFriends size={20} />
+            </button>
+
+            {showCustomList && ( // Hoặc state riêng như showTagInput
+                <div className="absolute z-50 mt-2 w-64 bg-[var(--background-color)] border border-[var(--border-color)] rounded shadow p-3">
+                  <input
+                      type="text"
+                      placeholder="Nhập username"
+                      value={tagInput}
+                      onChange={handleTagInputChange}
+                      className="border border-[var(--border-color)] bg-[var(--background-color)] text-[var(--text-color)] px-3 py-2 rounded w-full mb-2"
+                  />
+                  <button
+                      className="bg-[var(--primary-color)] text-white text-sm px-4 py-2 rounded w-full disabled:opacity-50"
+                      onClick={handleAddTag}
+                      disabled={!tagInput.trim()}
                   >
-                    <FaUserFriends size={20} />
-                  </Dropdown.Toggle>
-                  <Dropdown.Menu>
-                    <div className="p-2 d-flex align-items-center">
-                      <FormControl
-                          type="text"
-                          placeholder="Nhập username"
-                          value={tagInput}
-                          onChange={handleTagInputChange}
-                          className="me-2"
-                      />
-                      <Button
-                          variant="primary"
-                          size="sm"
-                          onClick={handleAddTag}
-                          disabled={!tagInput.trim()}
-                      >
-                        Thêm
-                      </Button>
-                    </div>
-                  </Dropdown.Menu>
-                </Dropdown>
+                    Thêm
+                  </button>
+                </div>
+            )}
+          </div>
 
                 <OverlayTrigger
                     placement="top"
@@ -652,33 +660,56 @@ function TweetInput({ onPostSuccess }) {
                       </Tooltip>
                     }
                 >
-                  <Dropdown>
-                    <Dropdown.Toggle
-                        variant="outline-primary"
-                        className="rounded-pill px-3 py-1 d-flex align-items-center"
+                  <div className="relative" ref={dropdownRef}>
+                    <button
+                        onClick={() => setShowPrivacyDropdown(!showPrivacyDropdown)}
+                        className="rounded-full border px-3 py-1 flex items-center gap-2 text-sm text-[var(--text-color)] border-[var(--border-color)] bg-transparent hover:bg-[var(--hover-bg-color)]"
                     >
                       {renderStatusIcon(status)}
                       {renderStatusText(status)}
-                    </Dropdown.Toggle>
-                    <Dropdown.Menu>
-                      <Dropdown.Item onClick={() => handleStatusChange("public")}>
-                        <FaGlobeAmericas className="me-2" /> Công khai
-                      </Dropdown.Item>
-                      <Dropdown.Item
-                          onClick={() => handleStatusChange("friends")}
-                      >
-                        <FaUserFriends className="me-2" /> Bạn bè
-                      </Dropdown.Item>
-                      <Dropdown.Item
-                          onClick={() => handleStatusChange("only_me")}
-                      >
-                        <FaLock className="me-2" /> Chỉ mình tôi
-                      </Dropdown.Item>
-                      <Dropdown.Item onClick={() => handleStatusChange("custom")}>
-                        <FaList className="me-2" /> Tùy chỉnh
-                      </Dropdown.Item>
-                    </Dropdown.Menu>
-                  </Dropdown>
+                    </button>
+
+                    {showPrivacyDropdown && (
+                        <div className="absolute left-0 mt-1 w-48 bg-[var(--background-color)] border border-[var(--border-color)] rounded shadow z-50 text-sm">
+                          <button
+                              onClick={() => {
+                                handleStatusChange("public");
+                                setShowPrivacyDropdown(false);
+                              }}
+                              className="w-full px-4 py-2 text-left hover:bg-[var(--hover-bg-color)] flex items-center gap-2"
+                          >
+                            <FaGlobeAmericas /> Công khai
+                          </button>
+                          <button
+                              onClick={() => {
+                                handleStatusChange("friends");
+                                setShowPrivacyDropdown(false);
+                              }}
+                              className="w-full px-4 py-2 text-left hover:bg-[var(--hover-bg-color)] flex items-center gap-2"
+                          >
+                            <FaUserFriends /> Bạn bè
+                          </button>
+                          <button
+                              onClick={() => {
+                                handleStatusChange("only_me");
+                                setShowPrivacyDropdown(false);
+                              }}
+                              className="w-full px-4 py-2 text-left hover:bg-[var(--hover-bg-color)] flex items-center gap-2"
+                          >
+                            <FaLock /> Chỉ mình tôi
+                          </button>
+                          <button
+                              onClick={() => {
+                                handleStatusChange("custom");
+                                setShowPrivacyDropdown(false);
+                              }}
+                              className="w-full px-4 py-2 text-left hover:bg-[var(--hover-bg-color)] flex items-center gap-2"
+                          >
+                            <FaList /> Tùy chỉnh
+                          </button>
+                        </div>
+                    )}
+                  </div>
                 </OverlayTrigger>
               </div>
 
@@ -695,39 +726,19 @@ function TweetInput({ onPostSuccess }) {
                 {loading ? "Đang đăng..." : "Đăng"}
               </Button>
             </div>
-          </Card.Body>
-        </Card>
+          </div>
+        </div>
 
-        <Modal
-            show={showMediaModal}
-            onHide={handleCloseMediaModal}
-            centered
-            size="lg"
-        >
-          <Modal.Body className="p-0 position-relative">
-            <Button
-                variant="dark"
-                className="position-absolute top-0 end-0 m-2"
-                onClick={handleCloseMediaModal}
-            >
-              ×
-            </Button>
-            <Button
-                variant="dark"
-                className="position-absolute top-50 start-0 translate-middle-y"
-                onClick={handlePrevMedia}
-                style={{ zIndex: 1 }}
-            >
+        {showMediaModal && (
+            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+          <div className="bg-[var(--background-color)] relative w-full max-w-4xl max-h-[80vh] overflow-hidden rounded-lg">
+            <button onClick={handleCloseMediaModal} className="absolute top-2 right-2 text-white text-xl">×</button>
+            <button onClick={handlePrevMedia} className="absolute left-2 top-1/2 transform -translate-y-1/2 text-white text-2xl">
               <FaChevronLeft />
-            </Button>
-            <Button
-                variant="dark"
-                className="position-absolute top-50 end-0 translate-middle-y"
-                onClick={handleNextMedia}
-                style={{ zIndex: 1 }}
-            >
+            </button>
+            <button onClick={handleNextMedia} className="absolute right-2 top-1/2 transform -translate-y-1/2 text-white text-2xl">
               <FaChevronRight />
-            </Button>
+            </button>
             {mediaPreviews[currentMediaIndex]?.includes("video") ? (
                 <video
                     src={mediaPreviews[currentMediaIndex]}
@@ -745,8 +756,9 @@ function TweetInput({ onPostSuccess }) {
                     }}
                 />
             )}
-          </Modal.Body>
-        </Modal>
+          </div>
+        </div>
+        )}
       </>
   );
 }
