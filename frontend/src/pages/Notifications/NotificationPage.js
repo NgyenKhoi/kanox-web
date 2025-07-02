@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useContext } from "react";
-import { Container, Row, Col, Button, Spinner } from "react-bootstrap";
 import { FaCog } from "react-icons/fa";
 import SidebarRight from "../../components/layout/SidebarRight/SidebarRight";
 import { AuthContext } from "../../context/AuthContext";
@@ -21,21 +20,21 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
       setLoading(true);
       try {
         const token =
-          sessionStorage.getItem("token") || localStorage.getItem("token");
+            sessionStorage.getItem("token") || localStorage.getItem("token");
         if (!token) {
           toast.error("Không tìm thấy token. Vui lòng đăng nhập lại.");
           return;
         }
 
         const response = await fetch(
-          `${process.env.REACT_APP_API_URL}/notifications?page=0&size=100`,
-          {
-            headers: {
-              "Content-Type": "application/json",
-              Accept: "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-          }
+            `${process.env.REACT_APP_API_URL}/notifications?page=0&size=100`,
+            {
+              headers: {
+                "Content-Type": "application/json",
+                Accept: "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+            }
         );
 
         if (!response.ok) {
@@ -45,7 +44,7 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
 
         const data = await response.json();
         const formattedNotifications = Array.isArray(data.data?.content)
-          ? data.data.content.map((notif) => ({
+            ? data.data.content.map((notif) => ({
               id: notif.id,
               type: notif.type,
               userId: notif.userId || null,
@@ -58,7 +57,7 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
               image: notif.image || null,
               targetId: notif.targetId || notif.userId,
             }))
-          : [];
+            : [];
 
         setNotifications(formattedNotifications);
       } catch (error) {
@@ -72,32 +71,9 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
     fetchNotifications();
   }, [user]);
 
-  // Handle real-time notification via WebSocket
-  // useWebSocket(
-  //   (notif) => {
-  //     const formatted = {
-  //       id: notif.id,
-  //       type: notif.type,
-  //       userId: notif.userId || null,
-  //       displayName: notif.displayName || "Người dùng",
-  //       username: notif.username || "unknown",
-  //       message: notif.message,
-  //       tags: notif.tags || [],
-  //       timestamp: notif.createdAt,
-  //       isRead: notif.status === "read",
-  //       image: notif.image || null,
-  //       targetId: notif.targetId || notif.userId,
-  //     };
-  //
-  //     setNotifications((prev) => [formatted, ...prev]);
-  //     toast.info(notif.message);
-  //   },
-  //   () => {}
-  // );
-
   const handleMarkRead = async (id, username = null) => {
     const token =
-      sessionStorage.getItem("token") || localStorage.getItem("token");
+        sessionStorage.getItem("token") || localStorage.getItem("token");
     if (!token) {
       toast.error("Không tìm thấy token!");
       return;
@@ -105,15 +81,15 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
 
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/notifications/${id}/mark-read`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
+          `${process.env.REACT_APP_API_URL}/notifications/${id}/mark-read`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          }
       );
 
       if (!response.ok) {
@@ -122,9 +98,9 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
       }
 
       setNotifications((prev) =>
-        prev.map((notif) =>
-          notif.id === id ? { ...notif, isRead: true } : notif
-        )
+          prev.map((notif) =>
+              notif.id === id ? { ...notif, isRead: true } : notif
+          )
       );
 
       if (username && username !== "unknown") {
@@ -138,7 +114,7 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
 
   const handleMarkUnread = async (id) => {
     const token =
-      sessionStorage.getItem("token") || localStorage.getItem("token");
+        sessionStorage.getItem("token") || localStorage.getItem("token");
     if (!token) {
       toast.error("Không tìm thấy token!");
       return;
@@ -146,15 +122,15 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
 
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/notifications/${id}/mark-unread`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
+          `${process.env.REACT_APP_API_URL}/notifications/${id}/mark-unread`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          }
       );
 
       if (!response.ok) {
@@ -163,9 +139,9 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
       }
 
       setNotifications((prev) =>
-        prev.map((notif) =>
-          notif.id === id ? { ...notif, isRead: false } : notif
-        )
+          prev.map((notif) =>
+              notif.id === id ? { ...notif, isRead: false } : notif
+          )
       );
 
       toast.success("Đã đánh dấu chưa đọc!");
@@ -178,62 +154,53 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
   const renderNotificationContent = () => {
     if (loading) {
       return (
-        <div className="d-flex justify-content-center align-items-center py-5">
-          <Spinner animation="border" role="status" />
-        </div>
+          <div className="flex justify-center items-center py-10">
+            <div className="w-6 h-6 border-4 border-gray-300 border-t-gray-900 rounded-full animate-spin"></div>
+          </div>
       );
     }
 
     return notifications.length === 0 ? (
-      <p className="text-muted text-center p-4">Không có thông báo nào.</p>
+        <p className="text-gray-500 text-center p-4">Không có thông báo nào.</p>
     ) : (
-      notifications.map((notification) => (
-        <NotificationItem
-          key={notification.id}
-          notification={notification}
-          handleMarkRead={handleMarkRead}
-          handleMarkUnread={handleMarkUnread}
-        />
-      ))
+        notifications.map((notification) => (
+            <NotificationItem
+                key={notification.id}
+                notification={notification}
+                handleMarkRead={handleMarkRead}
+                handleMarkUnread={handleMarkUnread}
+            />
+        ))
     );
   };
 
   return (
-    <>
-      <ToastContainer />
-      <div className="d-flex min-vh-100 bg-light">
-        <div className="d-flex flex-column flex-grow-1 border-start border-end bg-white">
-          <div
-            className="sticky-top bg-white border-bottom py-2"
-            style={{ zIndex: 1020 }}
-          >
-            <Container fluid>
-              <Row className="align-items-center">
-                <Col xs={7} className="text-start">
-                  <h5 className="fw-bold mb-0">Thông báo</h5>
-                </Col>
-                <Col xs={5} className="text-end">
-                  <Button variant="link" className="text-dark p-0">
-                    <FaCog />
-                  </Button>
-                </Col>
-              </Row>
-            </Container>
+      <>
+        <ToastContainer />
+        <div className="flex min-h-screen bg-[var(--background-color)]">
+          <div className="flex flex-col flex-grow border-x border-gray-300 bg-[var(--content-bg)]">
+            <div className="sticky top-0 bg-[var(--content-bg)] border-b border-gray-300 py-2 z-50">
+              <div className="px-4 flex justify-between items-center">
+                <h5 className="font-bold m-0 text-[var(--text-color)]">Thông báo</h5>
+                <button
+                    className="text-[var(--text-color)] hover:text-[var(--primary-color)] p-1"
+                    title="Cài đặt"
+                >
+                  <FaCog />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-grow overflow-auto">
+              {renderNotificationContent()}
+            </div>
           </div>
 
-          <div className="flex-grow-1 overflow-auto">
-            {renderNotificationContent()}
+          <div className="hidden lg:block border-l border-gray-300 w-[350px]">
+            <SidebarRight />
           </div>
         </div>
-
-        <div
-          className="d-none d-lg-block border-start"
-          style={{ width: "350px" }}
-        >
-          <SidebarRight />
-        </div>
-      </div>
-    </>
+      </>
   );
 }
 

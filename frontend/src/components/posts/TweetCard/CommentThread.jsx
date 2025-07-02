@@ -160,18 +160,22 @@ function CommentThread({
                         {/* Reply Box */}
                         {showReplyBox && (
                             <Form onSubmit={handleReplySubmit} className="mt-2">
-                                <div className="d-flex align-items-center">
+                                <div className="d-flex align-items-start">
                                     {avatarUrl ? (
                                         <Image
                                             src={avatarUrl}
                                             alt="avatar"
                                             roundedCircle
-                                            width={32}
-                                            height={32}
-                                            className="me-2"
+                                            width={40}
+                                            height={40}
+                                            className="me-2 flex-shrink-0"
+                                            style={{ objectFit: 'cover' }}
                                         />
                                     ) : (
-                                        <FaUserCircle size={32} className="me-2 text-[var(--text-color-muted)]" />
+                                        <FaUserCircle
+                                            size={40}
+                                            className="me-2 text-[var(--text-color-muted)] flex-shrink-0"
+                                        />
                                     )}
                                     <InputGroup>
                                         <Form.Control

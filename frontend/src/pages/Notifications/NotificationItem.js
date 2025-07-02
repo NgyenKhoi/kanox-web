@@ -1,5 +1,4 @@
 import React from "react";
-import { Button, Spinner, Image } from "react-bootstrap";
 import { FaCheckCircle, FaCircle, FaEllipsisH } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import useSingleMedia from "../../hooks/useSingleMedia";
@@ -15,103 +14,93 @@ function NotificationItem({ notification, handleMarkRead, handleMarkUnread }) {
 
   const renderAvatar = () => {
     if (mediaLoading) {
-      return <Spinner animation="border" size="sm" className="me-2 mt-1" />;
+      return (
+          <div className="w-10 h-10 rounded-full bg-gray-300 animate-pulse mr-3"></div>
+      );
     }
 
     return (
-      <Image
-        src={avatarUrl || "https://placehold.co/40x40?text=Avatar"}
-        roundedCircle
-        className="me-2"
-        style={{ width: "40px", height: "40px", objectFit: "cover" }}
-        alt={`Avatar của ${notification.displayName}`}
-      />
+        <img
+            src={avatarUrl || "https://placehold.co/40x40?text=Avatar"}
+            alt={`Avatar của ${notification.displayName}`}
+            className="w-10 h-10 rounded-full object-cover mr-3"
+        />
     );
   };
 
   return (
-    <div
-      className={`p-3 border-bottom ${
-        !notification.isRead ? "bg-light-primary" : "opacity-75"
-      }`}
-    >
-      <style>{`
-        .notif-body {
-          padding-top: 4px;
-          transition: background-color 0.2s ease;
-          border-radius: 6px;
-        }
-
-        .notif-body:hover {
-          background-color: rgba(0, 0, 0, 0.03);
-        }
-      `}</style>
-
-      <div className="d-flex align-items-start">
-        {renderAvatar()}
-        <div className="flex-grow-1">
-          <div className="d-flex justify-content-between align-items-center">
-            <p
-              className="fw-bold mb-0 cursor-pointer text-primary"
-              onClick={() => navigate(`/profile/${notification.username}`)}
-            >
-              {notification.displayName}
-            </p>
-            <div>
-              {!notification.isRead ? (
-                <Button
-                  variant="link"
-                  className="text-dark p-0 me-2"
-                  onClick={() => handleMarkRead(notification.id)}
+      <div
+          className={`p-3 border-b ${
+              !notification.isRead ? "bg-[var(--hover-bg-color)]" : "opacity-75"
+          } transition-colors duration-200`}
+      >
+        <div className="flex items-start">
+          {renderAvatar()}
+          <div className="flex-grow">
+            <div className="flex justify-between items-center">
+              <p
+                  className="font-bold text-[var(--primary-color)] cursor-pointer m-0"
+                  onClick={() => navigate(`/profile/${notification.username}`)}
+              >
+                {notification.displayName}
+              </p>
+              <div className="flex items-center space-x-2">
+                {!notification.isRead ? (
+                    <button
+                        onClick={() => handleMarkRead(notification.id)}
+                        className="text-[var(--text-color)] hover:text-[var(--primary-color)]"
+                        title="Đánh dấu đã đọc"
+                    >
+                      <FaCheckCircle />
+                    </button>
+                ) : (
+                    <button
+                        onClick={() => handleMarkUnread(notification.id)}
+                        className="text-[var(--text-color)] hover:text-[var(--primary-color)]"
+                        title="Đánh dấu chưa đọc"
+                    >
+                      <FaCircle />
+                    </button>
+                )}
+                <button
+                    className="text-[var(--text-color)] hover:text-[var(--primary-color)]"
+                    title="Tùy chọn"
                 >
-                  <FaCheckCircle />
-                </Button>
-              ) : (
-                <Button
-                  variant="link"
-                  className="text-dark p-0 me-2"
-                  onClick={() => handleMarkUnread(notification.id)}
-                >
-                  <FaCircle />
-                </Button>
-              )}
-              <Button variant="link" className="text-dark p-0">
-                <FaEllipsisH />
-              </Button>
+                  <FaEllipsisH />
+                </button>
+              </div>
             </div>
-          </div>
 
-          <div className="notif-body mt-1">
-            <p className="mb-1">{notification.message}</p>
+            <div className="mt-1 p-2 rounded-md hover:bg-black/5 dark:hover:bg-white/5 transition-colors duration-150">
+              <p className="mb-1">{notification.message}</p>
 
-            {notification.tags?.length > 0 && (
-              <p className="text-primary small mb-1">
-                {notification.tags.map((tag, idx) => (
-                  <span key={idx} className="me-1">
+              {notification.tags?.length > 0 && (
+                  <p className="text-[var(--primary-color)] text-sm mb-1">
+                    {notification.tags.map((tag, idx) => (
+                        <span key={idx} className="mr-2">
                     {tag}
                   </span>
-                ))}
-              </p>
-            )}
+                    ))}
+                  </p>
+              )}
 
-            {notification.image?.startsWith("http") && (
-              <Image
-                src={notification.image}
-                fluid
-                className="mt-2 rounded"
-                style={{ maxWidth: "100%", height: "auto" }}
-              />
-            )}
+              {notification.image?.startsWith("http") && (
+                  <img
+                      src={notification.image}
+                      alt="notification"
+                      className="mt-2 rounded max-w-full h-auto"
+                  />
+              )}
 
-            {notification.image?.startsWith("This image is generated by AI") && (
-              <p className="text-muted small mt-2">{notification.image}</p>
-            )}
+              {notification.image?.startsWith("This image is generated by AI") && (
+                  <p className="text-muted text-sm mt-2">{notification.image}</p>
+              )}
 
-            <p className="text-muted small mb-0">{notification.timestamp}</p>
+              <p className="text-muted text-xs mt-2">{notification.timestamp}</p>
+            </div>
           </div>
         </div>
       </div>
-    </div>
   );
 }
 

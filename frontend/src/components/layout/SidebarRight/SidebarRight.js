@@ -40,7 +40,7 @@ function SidebarRight() {
   const handleSubscribePremiumClick = () => navigate("/premium");
 
   return (
-      <div className="p-3 pt-2 hidden lg:block sticky top-0 h-screen overflow-y-auto bg-[var(--background-color)] text-[var(--text-color)]">
+      <div className="p-3 pt-2 hidden lg:block sticky top-0 h-screen overflow-y-auto scrollbar-hide bg-[var(--background-color)] text-[var(--text-color)]">
         <div className="sticky top-0 bg-[var(--background-color)] z-30">
           <div className="relative w-full mb-4">
             <FaSearch className="absolute top-1/2 left-3 transform -translate-y-1/2 text-gray-500" size={18} />

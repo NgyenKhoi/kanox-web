@@ -59,11 +59,8 @@ function HomePage({ onShowCreatePost, onToggleDarkMode }) {
         <Container fluid className="flex-grow-1">
           <Row className="h-100">
             <Col xs={12} lg={8} className="p-0">
-              <div
-                  className="sticky-top border-bottom fw-bold fs-5 px-3 py-2 d-flex justify-content-between align-items-center"
-                  style={{ zIndex: 1020 }}
-              >
-                <span className="text-[var(--text-color)]">Trang chủ</span>
+              <div className="sticky top-0 z-[1020] bg-[var(--background-color)] text-[var(--text-color)] font-bold text-lg px-3 py-2 border-b shadow-sm flex justify-between items-center">
+                <span>Trang chủ</span>
               </div>
               <TweetInput postOnSuccess={handlePostSuccess} />
               {loading ? (
