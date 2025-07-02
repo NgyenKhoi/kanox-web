@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from "react";
-import { Modal, Button } from "react-bootstrap";
+import { Container, Row, Col, Spinner, Modal, Button } from "react-bootstrap";
 import "./App.css";
 import PrivateRoute from "./components/common/PrivateRoute/PrivateRoute";
 
@@ -126,54 +126,76 @@ function AppContent() {
         {isLoading ? (
             <LoadingPage />
         ) : (
-            <div className="min-h-screen flex">
-              {user && (
-                  <SidebarLeft
-                      onToggleDarkMode={toggleDarkMode}
-                      isDarkMode={isDarkMode}
-                      onShowCreatePost={() => setShowCreatePost(true)}
-                  />
-              )}
-              <div className="flex-grow p-4">
-                <Routes>
-                  {/* Public Routes */}
-                  <Route path="/" element={<SignupPage />} />
-                  <Route path="/reset-password" element={<ResetPasswordPage />} />
-                  <Route path="/verify-email" element={<VerifyEmailPage />} />
+            <Container fluid className="min-vh-100 p-0">
+              <Row className="m-0">
+                {/* SidebarLeft */}
+                {user && (
+                    <Col xs={0} lg={3} className="p-0 d-none d-lg-block">
+                      <SidebarLeft
+                          onToggleDarkMode={toggleDarkMode}
+                          isDarkMode={isDarkMode}
+                          onShowCreatePost={() => setShowCreatePost(true)}
+                      />
+                    </Col>
+                )}
+                {/* Routes */}
+                <Col xs={12} lg={user ? 9 : 12} className="p-0">
+                  <Routes>
+                    {/* Public Routes */}
+                    <Route path="/" element={<SignupPage />} />
+                    <Route path="/reset-password" element={<ResetPasswordPage />} />
+                    <Route path="/verify-email" element={<VerifyEmailPage />} />
 
-                  {/* Private Routes */}
-                  <Route path="/home" element={<PrivateRoute><HomePage /></PrivateRoute>} />
-                  <Route path="/profile/:username" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
-                  <Route path="/profile/me" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
-                  <Route path="/explore" element={<PrivateRoute><ExplorePage /></PrivateRoute>} />
-                  <Route path="/notifications" element={<PrivateRoute><NotificationPage /></PrivateRoute>} />
-                  <Route path="/messages" element={<PrivateRoute><MessengerPage /></PrivateRoute>} />
-                  <Route path="/communities" element={<PrivateRoute><CommunityPage /></PrivateRoute>} />
-                  <Route path="/community/:communityId" element={<PrivateRoute><CommunityDetail /></PrivateRoute>} />
-                  <Route path="/privacy/lists" element={<PrivateRoute><CustomPrivacyListPage /></PrivateRoute>} />
-                  <Route path="/blocks" element={<PrivateRoute><BlockedUsersPage /></PrivateRoute>} />
-                  <Route path="/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
-                  <Route path="/friends" element={<PrivateRoute><FriendsPage /></PrivateRoute>} />
-                  <Route path="/admin" element={<PrivateRoute><AdminPage /></PrivateRoute>} />
-                  <Route path="/call/:chatId" element={<PrivateRoute><Call /></PrivateRoute>} />
-                </Routes>
+                    {/* Private Routes */}
+                    <Route
+                        path="/home"
+                        element={
+                          <PrivateRoute>
+                            <HomePage
+                                onShowCreatePost={() => setShowCreatePost(true)}
+                                onToggleDarkMode={toggleDarkMode}
+                                isDarkMode={isDarkMode}
+                            />
+                          </PrivateRoute>
+                        }
+                    />
+                    <Route path="/profile/:username" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
+                    <Route path="/profile/me" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
+                    <Route path="/explore" element={<PrivateRoute><ExplorePage /></PrivateRoute>} />
+                    <Route path="/notifications" element={<PrivateRoute><NotificationPage /></PrivateRoute>} />
+                    <Route path="/messages" element={<PrivateRoute><MessengerPage /></PrivateRoute>} />
+                    <Route path="/communities" element={<PrivateRoute><CommunityPage /></PrivateRoute>} />
+                    <Route path="/community/:communityId" element={<PrivateRoute><CommunityDetail /></PrivateRoute>} />
+                    <Route path="/privacy/lists" element={<PrivateRoute><CustomPrivacyListPage /></PrivateRoute>} />
+                    <Route path="/blocks" element={<PrivateRoute><BlockedUsersPage /></PrivateRoute>} />
+                    <Route path="/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
+                    <Route path="/friends" element={<PrivateRoute><FriendsPage /></PrivateRoute>} />
+                    <Route path="/admin" element={<PrivateRoute><AdminPage /></PrivateRoute>} />
+                    <Route path="/call/:chatId" element={<PrivateRoute><Call /></PrivateRoute>} />
+                  </Routes>
 
-                <Modal show={showCallModal} centered onHide={rejectCall} className="bg-[var(--background-color)] text-[var(--text-color)]">
-                  <Modal.Header closeButton>
-                    <Modal.Title>Cuộc gọi đến</Modal.Title>
-                  </Modal.Header>
-                  <Modal.Body>Bạn có muốn nhận cuộc gọi video?</Modal.Body>
-                  <Modal.Footer>
-                    <Button variant="secondary" onClick={rejectCall}>
-                      Từ chối
-                    </Button>
-                    <Button variant="primary" onClick={acceptCall}>
-                      Chấp nhận
-                    </Button>
-                  </Modal.Footer>
-                </Modal>
-              </div>
-            </div>
+                  <Modal
+                      show={showCallModal}
+                      centered
+                      onHide={rejectCall}
+                      className="bg-[var(--background-color)] text-[var(--text-color)]"
+                  >
+                    <Modal.Header closeButton>
+                      <Modal.Title>Cuộc gọi đến</Modal.Title>
+                    </Modal.Header>
+                    <Modal.Body>Bạn có muốn nhận cuộc gọi video?</Modal.Body>
+                    <Modal.Footer>
+                      <Button variant="secondary" onClick={rejectCall}>
+                        Từ chối
+                      </Button>
+                      <Button variant="primary" onClick={acceptCall}>
+                        Chấp nhận
+                      </Button>
+                    </Modal.Footer>
+                  </Modal>
+                </Col>
+              </Row>
+            </Container>
         )}
       </>
   );

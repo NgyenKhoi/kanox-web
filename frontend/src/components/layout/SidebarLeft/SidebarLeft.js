@@ -74,7 +74,7 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
   };
 
   return (
-      <aside className="hidden md:flex flex-col w-[280px] h-screen sticky top-0 bg-[var(--background-color)] text-[var(--text-color)] p-3 border-r border-[var(--border-color)] transition-colors">
+      <aside className="hidden md:flex flex-col h-screen sticky top-0 bg-[var(--background-color)] text-[var(--text-color)] p-3 border-r border-[var(--border-color)] transition-colors">
         <div className="flex items-center justify-between mb-4">
           <Link to="/home">
             <KLogoSvg width="50px" height="50px" />

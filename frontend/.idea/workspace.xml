@@ -6,9 +6,9 @@
   <component name="ChangeListManager">
     <list default="true" id="c6c17ae2-c6cb-4c94-a6b8-91c54839fa5e" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/layout/SidebarRight/SidebarRight.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/layout/SidebarRight/SidebarRight.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/posts/TweetCard/TweetCard.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/posts/TweetCard/TweetCard.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/posts/TweetInput/TweetInput.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/posts/TweetInput/TweetInput.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/App.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/App.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/layout/SidebarLeft/SidebarLeft.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/layout/SidebarLeft/SidebarLeft.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/pages/home/HomePage.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/pages/home/HomePage.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -130,7 +130,7 @@
       <workItem from="1751194526757" duration="15727000" />
       <workItem from="1751290210748" duration="3376000" />
       <workItem from="1751349869793" duration="3157000" />
-      <workItem from="1751420615598" duration="12568000" />
+      <workItem from="1751420615598" duration="14685000" />
     </task>
     <servers />
   </component>
