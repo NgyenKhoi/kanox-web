@@ -12,10 +12,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.beans.factory.annotation.Autowired;
-import java.time.Duration;
-
 @Service
 public class JwtService {
 
@@ -23,8 +19,6 @@ public class JwtService {
     private static final long EXPIRATION_MS = 86400000; // 1 day
     private final Map<String, String> sessionTokenMap = new ConcurrentHashMap<>();
     private final Key key = Keys.hmacShaKeyFor(SECRET.getBytes());
-    private RedisTemplate<String, String> redisTemplate;
-
 
     public String generateToken(String username) {
         return Jwts.builder()
@@ -91,12 +85,11 @@ public class JwtService {
     public boolean isTokenValid(String token, UserDetails userDetails) {
         try {
             final String username = extractUsername(token);
-            boolean valid = username != null
-                    && username.equals(userDetails.getUsername())
-                    && !isTokenExpired(token)
-                    && !isTokenBlacklisted(token); // 👈 NEW
+            boolean valid = username != null && username.equals(userDetails.getUsername()) && !isTokenExpired(token);
+            System.out.println("Token valid for user " + userDetails.getUsername() + ": " + valid); // Log
             return valid;
         } catch (JwtException e) {
+            System.err.println("Error validating token: " + e.getMessage());
             return false;
         }
     }
@@ -133,21 +126,5 @@ public class JwtService {
     }
     public String extractTokenFromSession(String sessionId) {
         return sessionTokenMap.get(sessionId); // Trả về token dựa trên sessionId
-    }
-
-    public void blacklistToken(String token) {
-        try {
-            Date expiration = extractExpiration(token);
-            long ttl = expiration.getTime() - System.currentTimeMillis();
-            if (ttl > 0) {
-                redisTemplate.opsForValue().set("blacklisted:" + token, "true", Duration.ofMillis(ttl));
-            }
-        } catch (Exception e) {
-            System.err.println("Không thể blacklist token: " + e.getMessage());
-        }
-    }
-
-    public boolean isTokenBlacklisted(String token) {
-        return redisTemplate.hasKey("blacklisted:" + token);
     }
 }
