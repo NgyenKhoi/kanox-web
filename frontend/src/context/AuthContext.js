@@ -27,7 +27,6 @@ export const AuthProvider = ({ children }) => {
       if (newToken) {
         setToken(newToken);
         localStorage.setItem("token", newToken);
-        sessionStorage.removeItem("token");
       }
       if (newRefreshToken) {
         setRefreshToken(newRefreshToken);
@@ -124,7 +123,7 @@ export const AuthProvider = ({ children }) => {
         const data = await response.json();
         setToken(data.token);
         localStorage.setItem("token", data.token);
-        setUser(data.user, data.token, refreshToken);
+        setUser(data.user, data.token, data.refreshToken || refreshToken);
         return data.token;
       } else {
         logout();
@@ -137,31 +136,14 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = async () => {
-    try {
-      const user = JSON.parse(localStorage.getItem("user"));
-      const token = localStorage.getItem("token");
-
-      if (user && token) {
-        await fetch(`${process.env.REACT_APP_API_URL}/auth/logout?userId=${user.id}`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-      }
-    } catch (err) {
-      console.error("Lỗi khi gọi API logout:", err);
-    } finally {
-      setUserState(null);
-      setToken(null);
-      setRefreshToken(null);
-      localStorage.clear();
-      sessionStorage.clear();
-      navigate("/");
-    }
+  const logout = () => {
+    setUserState(null);
+    setToken(null);
+    setRefreshToken(null);
+    localStorage.clear();
+    sessionStorage.clear();
+    navigate("/");
   };
-
 
   useEffect(() => {
     const initializeAuth = async () => {

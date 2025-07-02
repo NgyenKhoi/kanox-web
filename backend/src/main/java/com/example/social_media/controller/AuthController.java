@@ -75,9 +75,11 @@ public class AuthController {
         if (userOpt.isPresent()) {
             User user = userOpt.get();
             String token = jwtService.generateToken(user.getUsername());
+            String refreshToken = jwtService.generateRefreshToken(user.getUsername()); // ✅ Thêm dòng này
 
             Map<String, Object> result = new HashMap<>();
             result.put("token", token);
+            result.put("refreshToken", refreshToken); // ✅ Thêm dòng này
             result.put("user", Map.of(
                     "id", user.getId(),
                     "username", user.getUsername(),

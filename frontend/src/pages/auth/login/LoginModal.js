@@ -59,10 +59,11 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const storeUserSession = (user, token, remember) => {
-    setUser(user, remember);
+  const storeUserSession = (user, token, refreshToken, remember) => {
+    setUser(user, token, refreshToken); // ✅ chính xác
     const storage = remember ? localStorage : sessionStorage;
     storage.setItem("token", token);
+    storage.setItem("refreshToken", refreshToken);
   };
 
   const handleSubmit = async (e) => {
