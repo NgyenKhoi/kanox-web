@@ -191,4 +191,12 @@ export const AuthProvider = ({ children }) => {
       >
         {loading || isSyncing ? (
             <div className="d-flex justify-content-center align-items-center min-vh-100">
-              <Spinner animati
+              <Spinner animation="border" role="status" />
+              <span className="ms-2">Đang tải dữ liệu...</span>
+            </div>
+        ) : (
+            children
+        )}
+      </AuthContext.Provider>
+  );
+};
