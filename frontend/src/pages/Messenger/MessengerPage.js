@@ -108,7 +108,7 @@ function MessengerPage() {
     const subId = `chat-${chatId}`;
     const callback = (message) => {
       const newMessage = JSON.parse(message.body); // ✅ parse JSON
-      console.log(`📩 Tin nhắn mới từ /topic/chat/${chatId}:`, newMessage);
+      console.log("📩 Tin nhắn mới từ /topic/chat/${chatId}:", newMessage);
       setMessages((prev) => ({
         ...prev,
         [chatId]: [...(prev[chatId] || []), newMessage],
@@ -120,7 +120,7 @@ function MessengerPage() {
 
     const subscription = subscribe(topic, callback, subId);
     subscriptionsRef.current[chatId] = subscription;
-    console.log(`Subscribed to ${topic} with subId ${subId}`);
+    console.log("Subscribed to ${topic} with subId", `${subId}`);
   }, [subscribe, selectedChatId]);
 
   // Hủy subscribe khi không cần thiết
@@ -128,7 +128,6 @@ function MessengerPage() {
     if (unsubscribe && subscriptionsRef.current[chatId] && chatId) {
       unsubscribe(`chat-${chatId}`);
       delete subscriptionsRef.current[chatId];
-      console.log(`Unsubscribed from /topic/chat/${chatId}`);
     }
   }, [unsubscribe]);
 
@@ -210,282 +209,298 @@ function MessengerPage() {
         try {
           const token = sessionStorage.getItem("token") || localStorage.getItem("token");
           const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/${chatId}/messages`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          if (!response.ok) {
-            throw new Error("Lỗi khi tải tin nhắn.");
-          }
-          const data = await response.json();
-          setMessages((prev) => ({ ...prev, [chatId]: data }));
-        } catch (err) {
-          toast.error(err.message || "Lỗi khi tải tin nhắn.");
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!response.ok) {
+          throw new Error("Lỗi khi tải tin nhắn.");
         }
-      };
-      fetchMessages();
-      if (publish) {
-        publish("/app/resend", { chatId: Number(chatId) });
+        const data = await response.json();
+        setMessages((prev) => ({ ...prev, [chatId]: data }));
+      } catch (err) {
+        toast.error(err.message || "Lỗi khi tải tin nhắn.");
       }
-    } else if (selectedChatId) {
-      unsubscribeFromChatMessages(selectedChatId); // Hủy subscribe khi không chọn chat
+    };
+    fetchMessages();
+    if (publish) {
+      publish("/app/resend", { chatId: Number(chatId) });
     }
-  }, [searchParams, publish, subscribeToChatMessages, unsubscribeFromChatMessages]);
+  } else if (selectedChatId) {
+    unsubscribeFromChatMessages(selectedChatId); // Hủy subscribe khi không chọn chat
+  }
+}, [searchParams, publish, subscribeToChatMessages, unsubscribeFromChatMessages]);
 
-  const handleOpenUserSelectionModal = () => {
-    setSearchKeyword("");
-    setSearchQuery("");
-    setShowUserSelectionModal(true);
-  };
+const handleOpenUserSelectionModal = () => {
+  setSearchKeyword("");
+  setSearchQuery("");
+  setShowUserSelectionModal(true);
+};
 
-  const handleCloseUserSelectionModal = () => {
-    setShowUserSelectionModal(false);
-    setSearchKeyword("");
-    setSearchQuery("");
-  };
+const handleCloseUserSelectionModal = () => {
+  setShowUserSelectionModal(false);
+  setSearchKeyword("");
+  setSearchQuery("");
+};
 
-  const handleSelectUser = async (userId) => {
-    // if (!token) {
-    //   toast.error("Vui lòng đăng nhập lại.");
+const handleSelectUser = async (userId) => {
+  // if (!token) {
+  //   toast.error("Vui lòng đăng nhập lại.");
+  //   navigate("/");
+  //   return;
+  // }
+
+  try {
+    const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/create`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ targetUserId: userId }),
+    });
+
+    // if (response.status === 401) {
+    //   toast.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
+    //   localStorage.removeItem("token");
+    //   sessionStorage.removeItem("token");
     //   navigate("/");
     //   return;
     // }
 
-    try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/create`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ targetUserId: userId }),
-      });
-
-      // if (response.status === 401) {
-      //   toast.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
-      //   localStorage.removeItem("token");
-      //   sessionStorage.removeItem("token");
-      //   navigate("/");
-      //   return;
-      // }
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Lỗi khi tạo chat: ${errorText}`);
-      }
-
-      const data = await response.json();
-      setChats((prev) => {
-        if (!prev.some((chat) => chat.id === data.id)) {
-          return [...prev, { ...data, name: data.name || "Unknown User" }];
-        }
-        return prev.map((chat) => (chat.id === data.id ? { ...data, name: data.name || "Unknown User" } : chat));
-      });
-      setSelectedChatId(data.id);
-      navigate(`/messages?chatId=${data.id}`);
-      handleCloseUserSelectionModal();
-      if (publish) {
-        publish("/app/resend", { chatId: data.id });
-      }
-    } catch (error) {
-      toast.error("Không thể tạo chat: " + error.message);
-      console.error("Create chat error:", error);
-    }
-  };
-
-  const handleDeleteChat = async (chatId) => {
-    if (!token) {
-      toast.error("Vui lòng đăng nhập lại.");
-      navigate("/");
-      return;
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error("Lỗi khi tạo chat:", `${errorText}`);
     }
 
-    try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/${chatId}/delete`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (response.status === 401) {
-        toast.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
-        localStorage.removeItem("token");
-        sessionStorage.removeItem("token");
-        navigate("/");
-        return;
+    const data = await response.json();
+    setChats((prev) => {
+      if (!prev.some((chat) => chat.id === data.id)) {
+        return [...prev, { ...data, name: data.name || "Unknown User" }];
       }
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Lỗi khi xóa chat: ${errorText}`);
-      }
-
-      if (publish) {
-        publish("/app/chat/delete", { chatId, userId: user.id });
-      }
-      setChats((prev) => prev.filter((chat) => chat.id !== chatId));
-      setUnreadChats((prev) => {
-        const newUnread = new Set(prev);
-        newUnread.delete(chatId);
-        return newUnread;
-      });
-      if (selectedChatId === chatId) {
-        setSelectedChatId(null);
-        setMessages((prev) => {
-          const newMessages = { ...prev };
-          delete newMessages[chatId];
-          return newMessages;
-        });
-        navigate("/messages");
-      }
-      toast.success("Đã xóa chat.");
-    } catch (error) {
-      toast.error("Không thể xóa chat: " + error.message);
-      console.error("Delete chat error:", error);
-    }
-  };
-
-  const handleSelectChat = async (chatId) => {
-    setSelectedChatId(chatId);
-    navigate(`/messages?chatId=${chatId}`);
+      return prev.map((chat) => (chat.id === data.id ? { ...data, name: data.name || "Unknown User" } : chat));
+    });
+    setSelectedChatId(data.id);
+    navigate(`/messages?chatId=${data.id}`);
+    handleCloseUserSelectionModal();
     if (publish) {
-      publish("/app/resend", { chatId: Number(chatId) });
+      publish("/app/resend", { chatId: data.id });
     }
-    try {
-      const token = sessionStorage.getItem("token") || localStorage.getItem("token");
-      const messagesResponse = await fetch(`${process.env.REACT_APP_API_URL}/chat/${chatId}/messages`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!messagesResponse.ok) {
-        const errorText = await messagesResponse.text();
-        throw new Error(`Lỗi khi tải tin nhắn: ${errorText}`);
-      }
-      const data = await messagesResponse.json();
-      setMessages((prev) => ({ ...prev, [chatId]: data }));
-    } catch (error) {
-      console.error("Error in handleSelectChat:", error);
-      toast.error(error.message || "Lỗi khi tải tin nhắn.");
-    }
-  };
+  } catch (error) {
+    toast.error("Không thể tạo chat: " + error.message);
+    console.error("Create chat error:", error);
+  }
+};
 
-  const filteredChats = chats.filter((chat) =>
-      (chat.name || "").toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  if (loading) {
-    return (
-        <div className="flex justify-center items-center h-screen">
-          <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500"></div>
-        </div>
-    );
+const handleDeleteChat = async (chatId) => {
+  if (!token) {
+    toast.error("Vui lòng đăng nhập lại.");
+    navigate("/");
+    return;
   }
 
-  return (
-      <div className="flex h-screen bg-gray-100">
-        <div className="flex flex-col flex-grow">
-          <div className="bg-white border-b p-4">
-            <h5 className="font-bold mb-0">Tin nhắn</h5>
-            <div className="flex mt-3 gap-2">
-              <div className="flex items-center bg-gray-100 rounded-full px-3 flex-grow">
-                <FaSearch className="text-gray-400" />
-                <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => {
-                      setSearchQuery(e.target.value);
-                      if (showUserSelectionModal) {
-                        setSearchKeyword(e.target.value);
-                      }
-                    }}
-                    placeholder="Tìm kiếm người dùng hoặc tin nhắn"
-                    className="bg-gray-100 border-0 outline-none px-2 py-2 flex-grow rounded-full"
-                />
-              </div>
-              <button
-                  className="bg-blue-500 text-white px-4 py-2 rounded-full hover:bg-blue-600"
-                  onClick={handleOpenUserSelectionModal}
-              >
-                <FaPenSquare className="inline-block mr-1" /> Tin nhắn mới
-              </button>
-            </div>
-          </div>
+  try {
+    const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/${chatId}/delete`, {
+    method: "DELETE",
+        headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
 
-          <div className="flex flex-grow">
-            <div className="w-[350px] border-r bg-white overflow-y-auto">
+  if (response.status === 401) {
+    toast.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
+    localStorage.removeItem("token");
+    sessionStorage.removeItem("token");
+    navigate("/");
+    return;
+  }
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error("Lỗi khi xóa chat:", `${errorText}`);
+  }
+
+  if (publish) {
+    publish("/app/chat/delete", { chatId, userId: user.id });
+  }
+  setChats((prev) => prev.filter((chat) => chat.id !== chatId));
+  setUnreadChats((prev) => {
+    const newUnread = new Set(prev);
+    newUnread.delete(chatId);
+    return newUnread;
+  });
+  if (selectedChatId === chatId) {
+    setSelectedChatId(null);
+    setMessages((prev) => {
+      const newMessages = { ...prev };
+      delete newMessages[chatId];
+      return newMessages;
+    });
+    navigate("/messages");
+  }
+  toast.success("Đã xóa chat.");
+} catch (error) {
+  toast.error("Không thể xóa chat: " + error.message);
+  console.error("Delete chat error:", error);
+}
+};
+
+const handleSelectChat = async (chatId) => {
+  setSelectedChatId(chatId);
+  navigate(`/messages?chatId=${chatId}`);
+  if (publish) {
+    publish("/app/resend", { chatId: Number(chatId) });
+  }
+  try {
+    const token = sessionStorage.getItem("token") || localStorage.getItem("token");
+    const messagesResponse = await fetch(`${process.env.REACT_APP_API_URL}/chat/${chatId}/messages`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!messagesResponse.ok) {
+    const errorText = await messagesResponse.text();
+    throw new Error("Lỗi khi tải tin nhắn:", `${errorText}`);
+  }
+  const data = await messagesResponse.json();
+  setMessages((prev) => ({ ...prev, [chatId]: data }));
+} catch (error) {
+  console.error("Error in handleSelectChat:", error);
+  toast.error(error.message || "Lỗi khi tải tin nhắn.");
+}
+};
+
+const filteredChats = chats.filter((chat) =>
+    (chat.name || "").toLowerCase().includes(searchQuery.toLowerCase())
+);
+
+if (loading) {
+  return (
+      <div className="d-flex justify-content-center align-items-center h-100">
+        <Spinner animation="border" />
+      </div>
+  );
+}
+
+return (
+    <div className="d-flex h-100 bg-light">
+      {/*<style>*/}
+      {/*  .list-group-item-action.active {*/}
+      {/*    background-color: #e9ecef !important;*/}
+      {/*  border-color: #e9ecef !important;*/}
+      {/*  color: #212529 !important;*/}
+      {/*}*/}
+      {/*  .list-group-item-action:hover {*/}
+      {/*    background-color: #f8f9fa !important;*/}
+      {/*}*/}
+      {/*</style>*/}
+      <div className="flex-grow-1 d-flex flex-column">
+        <div className="bg-white border-bottom p-3">
+          <h5 className="fw-bold mb-0">Tin nhắn</h5>
+          <InputGroup className="mt-3 rounded-pill shadow-sm">
+            <InputGroup.Text className="bg-light border-0 rounded-pill ps-3">
+              <FaSearch className="text-muted" />
+            </InputGroup.Text>
+            <Form.Control
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  if (showUserSelectionModal) {
+                    setSearchKeyword(e.target.value);
+                  }
+                }}
+                placeholder="Tìm kiếm người dùng hoặc tin nhắn"
+                className="bg-light border-0 rounded-pill py-2"
+            />
+            <Button
+                variant="primary"
+                className="rounded-pill ms-2"
+                onClick={handleOpenUserSelectionModal}
+            >
+              <FaPenSquare /> Tin nhắn mới
+            </Button>
+          </InputGroup>
+        </div>
+        <div className="d-flex flex-grow-1">
+          <div className="border-end bg-white" style={{ width: "350px" }}>
+            <ListGroup variant="flush">
               {filteredChats.map((chat) => (
-                  <div
+                  <ListGroup.Item
                       key={chat.id}
-                      className={`flex items-center px-4 py-3 cursor-pointer hover:bg-gray-100 ${
-                          selectedChatId === chat.id ? "bg-gray-200" : ""
-                      } ${chat.unreadMessagesCount > 0 ? "font-bold" : ""}`}
-                      onClick={() => handleSelectChat(chat.id)}
+                      action
+                      active={selectedChatId === chat.id}
+                      className={`d-flex align-items-center p-3 ${
+                        chat.unreadMessagesCount > 0 ? "fw-bold" : ""
+                      }`}
                   >
                     <img
                         src="/assets/default-avatar.png"
                         alt="Avatar"
-                        className="rounded-full w-10 h-10 mr-3"
+                        className="rounded-circle me-2"
+                        style={{ width: "40px", height: "40px" }}
                     />
-                    <div className="flex-grow">
-                      <p className="mb-0">{chat.name || "Unknown User"}</p>
-                      <p className="text-gray-500 text-sm truncate">{chat.lastMessage}</p>
+                    <div
+                        className="flex-grow-1"
+                        onClick={() => handleSelectChat(chat.id)}
+                    >
+                      <p className="fw-bold mb-0">{chat.name || "Unknown User"}</p>
+                      <p className="text-muted small mb-0">{chat.lastMessage}</p>
                     </div>
-                    <button
+                    <Button
+                        variant="link"
+                        className="p-0"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleDeleteChat(chat.id);
                         }}
-                        className="text-red-500 hover:text-red-700"
+                        title="Delete chat"
                     >
-                      <FaTrash />
-                    </button>
-                  </div>
+                      <FaTrash className="text-danger" />
+                    </Button>
+                  </ListGroup.Item>
               ))}
-            </div>
-
-            <div className="flex-grow">
-              {selectedChatId ? (
-                  <Chat
-                      chatId={selectedChatId}
-                      messages={messages[selectedChatId] || []}
-                      onSendMessage={(message) => {
-                        if (publish) {
-                          publish("/app/sendMessage", {
-                            chatId: selectedChatId,
-                            userId: user.id,
-                            content: message,
-                          });
-                        }
-                      }}
-                      onMessageUpdate={(newMessage) => {
-                        setMessages((prev) => ({
-                          ...prev,
-                          [selectedChatId]: [...(prev[selectedChatId] || []), newMessage],
-                        }));
-                      }}
-                  />
-              ) : (
-                  <div className="flex justify-center items-center h-full">
-                    <p className="text-gray-500">Chọn một cuộc trò chuyện</p>
-                  </div>
-              )}
-            </div>
+            </ListGroup>
           </div>
-
-          <UserSelectionModal
-              show={showUserSelectionModal}
-              handleClose={handleCloseUserSelectionModal}
-              searchKeyword={searchQuery}
-              setSearchKeyword={(value) => {
-                setSearchKeyword(value);
-                setSearchQuery(value);
-              }}
-              searchResults={searchResults}
-              isSearching={isSearching}
-              handleSelectUser={handleSelectUser}
-          />
-          <ToastContainer />
+          <div className="flex-grow-1">
+            {selectedChatId ? (
+                <Chat
+                    chatId={selectedChatId}
+                    messages={messages[selectedChatId] || []}
+                    onSendMessage={(message) => {
+                      if (publish) {
+                        publish("/app/sendMessage", {
+                          chatId: selectedChatId,
+                          userId: user.id,
+                          content: message,
+                        });
+                      }
+                    }}
+                    onMessageUpdate={(newMessage) => {
+                      setMessages((prev) => ({
+                        ...prev,
+                        [selectedChatId]: [...(prev[selectedChatId] || []), newMessage],
+                      }));
+                    }}
+                />
+            ) : (
+                <div className="d-flex justify-content-center align-items-center h-100">
+                  <p className="text-muted">Chọn một cuộc trò chuyện</p>
+                </div>
+            )}
+          </div>
         </div>
+        <UserSelectionModal
+            show={showUserSelectionModal}
+            handleClose={handleCloseUserSelectionModal}
+            searchKeyword={searchQuery}
+            setSearchKeyword={(value) => {
+              setSearchKeyword(value);
+              setSearchQuery(value);
+            }}
+            searchResults={searchResults}
+            isSearching={isSearching}
+            handleSelectUser={handleSelectUser}
+        />
+        <ToastContainer />
       </div>
-  );
+    </div>
+);
 }
 
 export default MessengerPage;

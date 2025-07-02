@@ -5,8 +5,19 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="c6c17ae2-c6cb-4c94-a6b8-91c54839fa5e" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/service/MediaService.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/service/MediaService.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/community/CommunityMembersModal.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/community/CommunityMembersModal.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/community/CommunityRulesModal.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/community/CommunityRulesModal.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/friends/FriendList.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/friends/FriendList.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/messages/Call.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/messages/Call.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/messages/Chat.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/messages/Chat.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/posts/TweetCard/CommentItem.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/posts/TweetCard/CommentItem.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/posts/TweetCard/CommentThread.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/posts/TweetCard/CommentThread.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/posts/TweetCard/ReactionButtonGroup.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/posts/TweetCard/ReactionButtonGroup.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/posts/TweetCard/ReactionUserListModal.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/posts/TweetCard/ReactionUserListModal.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/posts/TweetCard/TweetCard.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/posts/TweetCard/TweetCard.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/posts/TweetInput/EditPostModal.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/posts/TweetInput/EditPostModal.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/pages/Messenger/MessengerPage.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/pages/Messenger/MessengerPage.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -128,7 +139,7 @@
       <workItem from="1751194526757" duration="15727000" />
       <workItem from="1751290210748" duration="3376000" />
       <workItem from="1751349869793" duration="3157000" />
-      <workItem from="1751420615598" duration="1448000" />
+      <workItem from="1751420615598" duration="8536000" />
     </task>
     <servers />
   </component>

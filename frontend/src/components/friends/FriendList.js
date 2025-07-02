@@ -19,14 +19,14 @@ function FriendList({ users, showActions = false, onAction }) {
 
             const response = await fetch(
                 `${process.env.REACT_APP_API_URL}/friends/accept/${userId}`,
-                {
-                    method: "PUT",
+            {
+                method: "PUT",
                     headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${token}`,
-                    },
-                }
-            );
+                "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+            },
+            }
+        );
 
             if (!response.ok) {
                 const errorData = await response.json();
@@ -52,15 +52,15 @@ function FriendList({ users, showActions = false, onAction }) {
             }
 
             const response = await fetch(
-                `${process.env.REACT_APP_API_URL}/api/friends/reject/${userId}`,
-                {
-                    method: "PUT",
+                `${process.env.REACT_APP_API_URL}/friends/reject/${userId}`,
+            {
+                method: "PUT",
                     headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${token}`,
-                    },
-                }
-            );
+                "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+            },
+            }
+        );
 
             if (!response.ok) {
                 const errorData = await response.json();

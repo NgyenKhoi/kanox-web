@@ -1,4 +1,17 @@
 import React, { useState, useEffect, useContext } from "react";
+import {
+    Modal,
+    Form,
+    Button,
+    FormControl,
+    FormGroup,
+    FormLabel,
+    Dropdown,
+    Badge,
+    Row,
+    Col,
+    Image as BootstrapImage,
+} from "react-bootstrap";
 import { AuthContext } from "../../../context/AuthContext";
 import { FaTrash } from "react-icons/fa";
 
@@ -10,9 +23,9 @@ function EditPostModal({ show, onHide, post, onSave }) {
         taggedUserIds: [],
         tagInput: "",
         customListId: null,
-        images: [],
-        existingImageUrls: [],
-        imagesToDelete: [],
+        images: [], // New images to upload
+        existingImageUrls: [], // Existing image URLs from the post
+        imagesToDelete: [], // Image IDs to delete
     });
     const [customLists, setCustomLists] = useState([]);
     const [error, setError] = useState(null);
@@ -102,7 +115,7 @@ function EditPostModal({ show, onHide, post, onSave }) {
     const handleImageUpload = (e) => {
         const files = Array.from(e.target.files);
         const validImageTypes = ["image/jpeg", "image/png", "image/gif"];
-        const maxSize = 5 * 1024 * 1024;
+        const maxSize = 5 * 1024 * 1024; // 5MB
 
         const validFiles = files.filter((file) => validImageTypes.includes(file.type) && file.size <= maxSize);
 
@@ -119,7 +132,7 @@ function EditPostModal({ show, onHide, post, onSave }) {
     const handleRemoveImage = (index, isExisting = false) => {
         if (isExisting) {
             const imageUrl = formData.existingImageUrls[index];
-            const imageId = imageUrl.split("/").pop();
+            const imageId = imageUrl.split("/").pop(); // Assuming imageUrl contains an ID
             setFormData((prev) => ({
                 ...prev,
                 existingImageUrls: prev.existingImageUrls.filter((_, i) => i !== index),
@@ -163,7 +176,9 @@ function EditPostModal({ show, onHide, post, onSave }) {
 
             const res = await fetch(`${process.env.REACT_APP_API_URL}/posts/${post.id}`, {
                 method: "PUT",
-                headers: { Authorization: `Bearer ${token}` },
+                    headers: {
+                    Authorization: `Bearer ${token}`,
+                },
                 body: formDataToSend,
             });
 
@@ -173,7 +188,7 @@ function EditPostModal({ show, onHide, post, onSave }) {
                 try {
                     errData = JSON.parse(text);
                 } catch {
-                    throw new Error(`Lỗi server: ${res.status} - ${text || "Không rõ lỗi"}`);
+                    throw new Error("Lỗi server:", `${res.status}` - `${text || "Không rõ lỗi"}`);
                 }
                 throw new Error(errData.message || "Không thể cập nhật bài đăng!");
             }
@@ -187,49 +202,174 @@ function EditPostModal({ show, onHide, post, onSave }) {
     };
 
     return (
-        show && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                <div className="bg-white dark:bg-[var(--background-color)] w-full max-w-2xl rounded-xl shadow-xl p-6">
-                    <div className="flex justify-between items-center mb-4">
-                        <h2 className="text-xl font-bold text-[var(--text-color)]">Chỉnh sửa bài đăng</h2>
-                        <button onClick={onHide} className="text-xl font-bold text-red-500">×</button>
-                    </div>
+        <Modal show={show} onHide={onHide} centered>
+            <Modal.Header closeButton>
+                <Modal.Title>Chỉnh sửa bài đăng</Modal.Title>
+            </Modal.Header>
+            <Modal.Body>
+                <Form onSubmit={handleSubmit}>
+                    <FormGroup className="mb-3">
+                        <FormLabel>Nội dung</FormLabel>
+                        <FormControl
+                            as="textarea"
+                            rows={4}
+                            name="content"
+                            value={formData.content}
+                            onChange={handleChange}
+                            placeholder="Bạn đang nghĩ gì?"
+                        />
+                    </FormGroup>
 
-                    <form onSubmit={handleSubmit} className="space-y-4">
-            <textarea
-                name="content"
-                value={formData.content}
-                onChange={handleChange}
-                rows={4}
-                placeholder="Bạn đang nghĩ gì?"
-                className="w-full p-2 rounded border border-[var(--border-color)] bg-[var(--background-color)] text-[var(--text-color)]"
-            />
+                    <FormGroup className="mb-3">
+                        <FormLabel>Trạng thái hiển thị</FormLabel>
+                        <Dropdown>
+                            <Dropdown.Toggle variant="outline-secondary" className="w-100 text-start">
+                                {formData.privacySetting === "only_me"
+                                    ? "Riêng tư"
+                                    : formData.privacySetting === "friends"
+                                        ? "Bạn bè"
+                                        : formData.privacySetting === "custom"
+                                            ? "Tùy chỉnh"
+                                            : "Công khai"}
+                            </Dropdown.Toggle>
+                            <Dropdown.Menu>
+                                <Dropdown.Item onClick={() => handleStatusChange("public")}>Công khai</Dropdown.Item>
+                                <Dropdown.Item onClick={() => handleStatusChange("friends")}>Bạn bè</Dropdown.Item>
+                                <Dropdown.Item onClick={() => handleStatusChange("only_me")}>Riêng tư</Dropdown.Item>
+                                <Dropdown.Item onClick={() => handleStatusChange("custom")}>Tùy chỉnh</Dropdown.Item>
+                            </Dropdown.Menu>
+                        </Dropdown>
+                    </FormGroup>
 
-                        {/* Other UI elements omitted for brevity */}
+                    {formData.privacySetting === "custom" && (
+                        <FormGroup className="mb-3">
+                            <FormLabel>Danh sách tùy chỉnh</FormLabel>
+                            <Dropdown>
+                                <Dropdown.Toggle variant="outline-secondary" className="w-100 text-start">
+                                    {formData.customListId
+                                        ? customLists.find((l) => l.id === formData.customListId)?.listName
+                                        : "Chọn danh sách"}
+                                </Dropdown.Toggle>
+                                <Dropdown.Menu>
+                                    {customLists.map((list) => (
+                                        <Dropdown.Item key={list.id} onClick={() => handleCustomListSelect(list.id)}>
+                                            {list.listName}
+                                        </Dropdown.Item>
+                                    ))}
+                                </Dropdown.Menu>
+                            </Dropdown>
+                        </FormGroup>
+                    )}
 
-                        {error && <p className="text-red-500 text-center">{error}</p>}
-
-                        <div className="flex justify-end gap-2">
-                            <button
-                                type="button"
-                                onClick={onHide}
-                                disabled={loading}
-                                className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 disabled:opacity-50"
-                            >
-                                Hủy
-                            </button>
-                            <button
-                                type="submit"
-                                disabled={loading || (formData.privacySetting === "custom" && !formData.customListId)}
-                                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-                            >
-                                {loading ? "Đang lưu..." : "Lưu"}
-                            </button>
+                    <FormGroup className="mb-3">
+                        <FormLabel>Tag người dùng</FormLabel>
+                        <Row className="g-2">
+                            <Col xs={9}>
+                                <FormControl
+                                    type="text"
+                                    placeholder="Nhập username"
+                                    value={formData.tagInput}
+                                    onChange={handleTagInputChange}
+                                />
+                            </Col>
+                            <Col xs={3}>
+                                <Button
+                                    variant="primary"
+                                    onClick={handleAddTag}
+                                    disabled={!formData.tagInput.trim()}
+                                    className="w-100"
+                                >
+                                    Thêm
+                                </Button>
+                            </Col>
+                        </Row>
+                        <div className="mt-2">
+                            {formData.taggedUserIds.map((tagId) => (
+                                <Badge key={tagId} bg="primary" className="me-2 mb-2">
+                                    @User_{tagId}{" "}
+                                    <Button
+                                        variant="link"
+                                        size="sm"
+                                        className="text-white p-0 ms-1"
+                                        onClick={() => handleRemoveTag(tagId)}
+                                    >
+                                        ×
+                                    </Button>
+                                </Badge>
+                            ))}
                         </div>
-                    </form>
-                </div>
-            </div>
-        )
+                    </FormGroup>
+
+                    <FormGroup className="mb-3">
+                        <FormLabel>Ảnh</FormLabel>
+                        <FormControl
+                            type="file"
+                            multiple
+                            accept="image/jpeg,image/png,image/gif"
+                            onChange={handleImageUpload}
+                        />
+                        <Row className="mt-2 g-2">
+                            {formData.existingImageUrls.map((url, index) => (
+                                <Col xs={4} key={`existing-${index}`}>
+                                    <div style={{ position: "relative" }}>
+                                        <BootstrapImage
+                                            src={url}
+                                            style={{ width: "100%", height: "100px", objectFit: "cover", borderRadius: "8px" }}
+                                            fluid
+                                        />
+                                        <Button
+                                            variant="danger"
+                                            size="sm"
+                                            style={{ position: "absolute", top: "5px", right: "5px" }}
+                                            onClick={() => handleRemoveImage(index, true)}
+                                        >
+                                            <FaTrash />
+                                        </Button>
+                                    </div>
+                                </Col>
+                            ))}
+                            {formData.images.map((file, index) => {
+                                const url = URL.createObjectURL(file);
+                                return (
+                                    <Col xs={4} key={`new-${index}`}>
+                                        <div style={{ position: "relative" }}>
+                                            <BootstrapImage
+                                                src={url}
+                                                style={{ width: "100%", height: "100px", objectFit: "cover", borderRadius: "8px" }}
+                                                fluid
+                                            />
+                                            <Button
+                                                variant="danger"
+                                                size="sm"
+                                                style={{ position: "absolute", top: "5px", right: "5px" }}
+                                                onClick={() => handleRemoveImage(index)}
+                                            >
+                                                <FaTrash />
+                                            </Button>
+                                        </div>
+                                    </Col>
+                                );
+                            })}
+                        </Row>
+                    </FormGroup>
+
+                    {error && <p className="text-danger text-center">{error}</p>}
+
+                    <div className="d-flex justify-content-end">
+                        <Button variant="secondary" onClick={onHide} className="me-2" disabled={loading}>
+                            Hủy
+                        </Button>
+                        <Button
+                            type="submit"
+                            variant="primary"
+                            disabled={loading || (formData.privacySetting === "custom" && !formData.customListId)}
+                        >
+                            {loading ? "Đang lưu..." : "Lưu"}
+                        </Button>
+                    </div>
+                </Form>
+            </Modal.Body>
+        </Modal>
     );
 }
 
