@@ -4,7 +4,6 @@ import { useParams, useNavigate } from "react-router-dom";
 // Corrected: Added FaUsers to the import
 import { FaArrowLeft, FaSearch, FaUsers } from "react-icons/fa";
 import SidebarRight from "../../components/layout/SidebarRight/SidebarRight";
-import SidebarLeft from "../../components/layout/SidebarLeft/SidebarLeft";
 import CommunityRulesModal from "../../components/community/CommunityRulesModal";
 import CommunityMembersModal from "../../components/community/CommunityMembersModal";
 import { AuthContext } from "../../context/AuthContext";
@@ -204,11 +203,11 @@ function CommunityDetail() {
   const handleCloseMembersModal = () => setShowMembersModal(false);
 
   const handleAgreeToJoin = async () => {
-    if (!user) {
-      alert("Bạn cần đăng nhập để tham gia cộng đồng.");
-      navigate("/login");
-      return;
-    }
+    // if (!user) {
+    //   alert("Bạn cần đăng nhập để tham gia cộng đồng.");
+    //   navigate("/login");
+    //   return;
+    // }
 
     setIsJoining(true);
     handleCloseRulesModal();
@@ -267,14 +266,7 @@ function CommunityDetail() {
       className="community-detail-page-container d-flex flex-grow-1"
     >
       <Row className="w-100 justify-content-center">
-        <Col xs={0} md={0} lg={3} className="p-0">
-          <SidebarLeft />
-        </Col>
-        <Col
-          xs={12}
-          lg={8}
-          className="community-detail-main-content border-start border-end py-3"
-        >
+        <Col xs={12} lg={8} className="community-detail-main-content border-start border-end py-3">
           {/* Header */}
           <div className="d-flex align-items-center mb-3 px-3">
             <Button

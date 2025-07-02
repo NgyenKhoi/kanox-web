@@ -3,7 +3,6 @@ import { Container, Row, Col, Nav, Button, Spinner, Alert } from "react-bootstra
 import { FaArrowLeft } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
-import SidebarLeft from "../../components/layout/SidebarLeft/SidebarLeft";
 import SidebarRight from "../../components/layout/SidebarRight/SidebarRight";
 import FriendList from "../../components/friends/FriendList";
 import { toast } from "react-toastify";
@@ -43,13 +42,13 @@ function FriendsPage() {
         setLoading(true);
         setError(null);
         const token = localStorage.getItem("token") || sessionStorage.getItem("token");
-        if (!token) {
-            setError("Không tìm thấy token. Vui lòng đăng nhập lại.");
-            setLoading(false);
-            logout();
-            navigate("/");
-            return;
-        }
+        // if (!token) {
+        //     setError("Không tìm thấy token. Vui lòng đăng nhập lại.");
+        //     setLoading(false);
+        //     logout();
+        //     navigate("/");
+        //     return;
+        // }
         if (!user?.id) {
             setError("Không tìm thấy thông tin người dùng.");
             setLoading(false);
@@ -135,10 +134,10 @@ function FriendsPage() {
 
     useEffect(() => {
         console.log("Current user:", user);
-        if (!user) {
-            navigate("/");
-            return;
-        }
+        // if (!user) {
+        //     navigate("/");
+        //     return;
+        // }
         if (activeTab === "friends") {
             fetchData("friends", page.friends);
         } else if (activeTab === "sent") {
@@ -217,14 +216,7 @@ function FriendsPage() {
 
             <Container fluid className="flex-grow-1">
                 <Row className="h-100">
-                    <Col xs={0} lg={3} className="d-none d-lg-block p-0">
-                        <SidebarLeft
-                            onToggleDarkMode={handleToggleDarkMode}
-                            isDarkMode={isDarkMode}
-                            onShowCreatePost={handleShowCreatePost}
-                        />
-                    </Col>
-                    <Col xs={12} lg={6} className="px-md-0">
+                    <Col xs={12} lg={9} className="px-md-0">
                         <div className="p-3">
                             {notifications.length > 0 && (
                                 <Alert variant="info" onClose={() => setNotifications([])} dismissible>

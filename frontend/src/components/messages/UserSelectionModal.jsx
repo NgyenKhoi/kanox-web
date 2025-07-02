@@ -51,15 +51,15 @@ function UserSelectionModal({
             </Modal.Header>
             <Modal.Body>
                 <InputGroup className="mb-3 rounded-pill shadow-sm">
-                    <InputGroup.Text className="bg-light border-0 rounded-pill ps-3">
-                        <FaSearch className="text-muted" />
+                    <InputGroup.Text className="bg-[var(--background-color)] border-0 rounded-pill ps-3">
+                        <FaSearch className="text-[var(--text-color-muted)]" />
                     </InputGroup.Text>
                     <Form.Control
                         type="text"
                         placeholder="Tìm kiếm theo tên hoặc email"
                         value={searchKeyword}
                         onChange={(e) => setSearchKeyword(e.target.value)}
-                        className="bg-light border-0 rounded-pill py-2"
+                        className="bg-[var(--background-color)] border-0 rounded-pill py-2"
                         autoFocus
                     />
                 </InputGroup>
@@ -76,7 +76,7 @@ function UserSelectionModal({
                                 return (
                                     <ListGroup.Item
                                         key={user.id}
-                                        className="d-flex align-items-center p-2 hover-bg-light"
+                                        className="d-flex align-items-center p-2 hover-bg-[var(--background-color)]"
                                     >
                                         <div
                                             onClick={() => navigate(`/profile/${user.username}`)}
@@ -108,7 +108,7 @@ function UserSelectionModal({
                                             >
                                                 {user.displayName || user.username}
                                             </p>
-                                            <p className="text-muted small mb-0">@{user.username}</p>
+                                            <p className="text-[var(--text-color-muted)] small mb-0">@{user.username}</p>
                                         </div>
                                         <Button
                                             variant="primary"
@@ -122,11 +122,11 @@ function UserSelectionModal({
                                 );
                             })
                         ) : searchKeyword.length > 0 ? (
-                            <p className="text-center text-muted p-4">
+                            <p className="text-center text-[var(--text-color-muted)] p-4">
                                 Không tìm thấy người dùng nào.
                             </p>
                         ) : (
-                            <p className="text-center text-muted p-4">
+                            <p className="text-center text-[var(--text-color-muted)] p-4">
                                 Nhập tên hoặc email để tìm kiếm.
                             </p>
                         )}

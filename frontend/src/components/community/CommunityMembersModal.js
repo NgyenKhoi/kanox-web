@@ -41,8 +41,12 @@ function CommunityMembersModal({ show, handleClose, communityName, members }) {
             placeholder="Tìm kiếm người"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="rounded-pill border-0 bg-light flex-grow-1"
-            style={{ boxShadow: "none" }}
+            className="rounded-pill border-0 flex-grow-1"
+            style={{
+              backgroundColor: "var(--input-background-color)",
+              color: "var(--text-color)",
+              boxShadow: "none",
+            }}
           />
         </Form>
 
@@ -71,7 +75,7 @@ function CommunityMembersModal({ show, handleClose, communityName, members }) {
         {/* Member List */}
         <ListGroup variant="flush">
           {filteredMembers.length === 0 ? (
-            <p className="text-center text-muted mt-4">
+              <p className="text-center mt-4" style={{ color: "var(--muted-color)" }}>
               Không tìm thấy thành viên nào.
             </p>
           ) : (
@@ -79,6 +83,11 @@ function CommunityMembersModal({ show, handleClose, communityName, members }) {
               <ListGroup.Item
                 key={member.id}
                 className="d-flex align-items-center py-2 px-0 member-list-item"
+                style={{
+                  backgroundColor: "var(--background-color)",
+                  color: "var(--text-color)",
+                  borderColor: "var(--border-color)",
+                }}
               >
                 <img
                   src={member.avatar}
@@ -93,7 +102,7 @@ function CommunityMembersModal({ show, handleClose, communityName, members }) {
                       <span className="badge bg-primary ms-1">QTV</span>
                     )}
                   </div>
-                  <div className="text-muted">
+                  <div style={{ color: "var(--muted-color)" }}>
                     @{member.handle} · {member.type}
                   </div>
                 </div>

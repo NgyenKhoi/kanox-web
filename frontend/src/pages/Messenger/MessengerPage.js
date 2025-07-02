@@ -12,7 +12,6 @@ import {
 import { FaSearch, FaPenSquare, FaTrash } from "react-icons/fa";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import SidebarLeft from "../../components/layout/SidebarLeft/SidebarLeft";
 import Chat from "../../components/messages/Chat";
 import { AuthContext } from "../../context/AuthContext";
 import { WebSocketContext } from "../../context/WebSocketContext";
@@ -134,12 +133,12 @@ function MessengerPage() {
   }, [unsubscribe]);
 
   useEffect(() => {
-    if (!token || !user) {
-      toast.error("Vui lòng đăng nhập để xem tin nhắn.");
-      navigate("/");
-      setLoading(false);
-      return;
-    }
+    // if (!token || !user) {
+    //   toast.error("Vui lòng đăng nhập để xem tin nhắn.");
+    //   navigate("/");
+    //   setLoading(false);
+    //   return;
+    // }
 
     if (!subscribe || !unsubscribe || !publish) {
       console.error("WebSocketContext is not available");
@@ -244,11 +243,11 @@ function MessengerPage() {
   };
 
   const handleSelectUser = async (userId) => {
-    if (!token) {
-      toast.error("Vui lòng đăng nhập lại.");
-      navigate("/");
-      return;
-    }
+    // if (!token) {
+    //   toast.error("Vui lòng đăng nhập lại.");
+    //   navigate("/");
+    //   return;
+    // }
 
     try {
       const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/create`, {
@@ -260,13 +259,13 @@ function MessengerPage() {
         body: JSON.stringify({ targetUserId: userId }),
       });
 
-      if (response.status === 401) {
-        toast.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
-        localStorage.removeItem("token");
-        sessionStorage.removeItem("token");
-        navigate("/");
-        return;
-      }
+      // if (response.status === 401) {
+      //   toast.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
+      //   localStorage.removeItem("token");
+      //   sessionStorage.removeItem("token");
+      //   navigate("/");
+      //   return;
+      // }
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -374,99 +373,75 @@ function MessengerPage() {
 
   if (loading) {
     return (
-        <div className="d-flex justify-content-center align-items-center h-100">
-          <Spinner animation="border" />
+        <div className="flex justify-center items-center h-screen">
+          <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500"></div>
         </div>
     );
   }
 
   return (
-      <div className="d-flex h-100 bg-light">
-        <style>
-          {`
-          .list-group-item-action.active {
-            background-color: #e9ecef !important;
-            border-color: #e9ecef !important;
-            color: #212529 !important;
-          }
-          .list-group-item-action:hover {
-            background-color: #f8f9fa !important;
-          }
-        `}
-        </style>
-        <SidebarLeft
-            onShowCreatePost={() => console.log("Create Post clicked")}
-            isDarkMode={false}
-            onToggleDarkMode={() => console.log("Toggle Dark Mode")}
-        />
-        <div className="flex-grow-1 d-flex flex-column">
-          <div className="bg-white border-bottom p-3">
-            <h5 className="fw-bold mb-0">Tin nhắn</h5>
-            <InputGroup className="mt-3 rounded-pill shadow-sm">
-              <InputGroup.Text className="bg-light border-0 rounded-pill ps-3">
-                <FaSearch className="text-muted" />
-              </InputGroup.Text>
-              <Form.Control
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    if (showUserSelectionModal) {
-                      setSearchKeyword(e.target.value);
-                    }
-                  }}
-                  placeholder="Tìm kiếm người dùng hoặc tin nhắn"
-                  className="bg-light border-0 rounded-pill py-2"
-              />
-              <Button
-                  variant="primary"
-                  className="rounded-pill ms-2"
+      <div className="flex h-screen bg-gray-100">
+        <div className="flex flex-col flex-grow">
+          <div className="bg-white border-b p-4">
+            <h5 className="font-bold mb-0">Tin nhắn</h5>
+            <div className="flex mt-3 gap-2">
+              <div className="flex items-center bg-gray-100 rounded-full px-3 flex-grow">
+                <FaSearch className="text-gray-400" />
+                <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      if (showUserSelectionModal) {
+                        setSearchKeyword(e.target.value);
+                      }
+                    }}
+                    placeholder="Tìm kiếm người dùng hoặc tin nhắn"
+                    className="bg-gray-100 border-0 outline-none px-2 py-2 flex-grow rounded-full"
+                />
+              </div>
+              <button
+                  className="bg-blue-500 text-white px-4 py-2 rounded-full hover:bg-blue-600"
                   onClick={handleOpenUserSelectionModal}
               >
-                <FaPenSquare /> Tin nhắn mới
-              </Button>
-            </InputGroup>
-          </div>
-          <div className="d-flex flex-grow-1">
-            <div className="border-end bg-white" style={{ width: "350px" }}>
-              <ListGroup variant="flush">
-                {filteredChats.map((chat) => (
-                    <ListGroup.Item
-                        key={chat.id}
-                        action
-                        active={selectedChatId === chat.id}
-                        className={`d-flex align-items-center p-3 ${
-                            chat.unreadMessagesCount > 0 ? "fw-bold" : ""
-                        }`}
-                    >
-                      <img
-                          src="/assets/default-avatar.png"
-                          alt="Avatar"
-                          className="rounded-circle me-2"
-                          style={{ width: "40px", height: "40px" }}
-                      />
-                      <div
-                          className="flex-grow-1"
-                          onClick={() => handleSelectChat(chat.id)}
-                      >
-                        <p className="fw-bold mb-0">{chat.name || "Unknown User"}</p>
-                        <p className="text-muted small mb-0">{chat.lastMessage}</p>
-                      </div>
-                      <Button
-                          variant="link"
-                          className="p-0"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteChat(chat.id);
-                          }}
-                          title="Delete chat"
-                      >
-                        <FaTrash className="text-danger" />
-                      </Button>
-                    </ListGroup.Item>
-                ))}
-              </ListGroup>
+                <FaPenSquare className="inline-block mr-1" /> Tin nhắn mới
+              </button>
             </div>
-            <div className="flex-grow-1">
+          </div>
+
+          <div className="flex flex-grow">
+            <div className="w-[350px] border-r bg-white overflow-y-auto">
+              {filteredChats.map((chat) => (
+                  <div
+                      key={chat.id}
+                      className={`flex items-center px-4 py-3 cursor-pointer hover:bg-gray-100 ${
+                          selectedChatId === chat.id ? "bg-gray-200" : ""
+                      } ${chat.unreadMessagesCount > 0 ? "font-bold" : ""}`}
+                      onClick={() => handleSelectChat(chat.id)}
+                  >
+                    <img
+                        src="/assets/default-avatar.png"
+                        alt="Avatar"
+                        className="rounded-full w-10 h-10 mr-3"
+                    />
+                    <div className="flex-grow">
+                      <p className="mb-0">{chat.name || "Unknown User"}</p>
+                      <p className="text-gray-500 text-sm truncate">{chat.lastMessage}</p>
+                    </div>
+                    <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteChat(chat.id);
+                        }}
+                        className="text-red-500 hover:text-red-700"
+                    >
+                      <FaTrash />
+                    </button>
+                  </div>
+              ))}
+            </div>
+
+            <div className="flex-grow">
               {selectedChatId ? (
                   <Chat
                       chatId={selectedChatId}
@@ -488,12 +463,13 @@ function MessengerPage() {
                       }}
                   />
               ) : (
-                  <div className="d-flex justify-content-center align-items-center h-100">
-                    <p className="text-muted">Chọn một cuộc trò chuyện</p>
+                  <div className="flex justify-center items-center h-full">
+                    <p className="text-gray-500">Chọn một cuộc trò chuyện</p>
                   </div>
               )}
             </div>
           </div>
+
           <UserSelectionModal
               show={showUserSelectionModal}
               handleClose={handleCloseUserSelectionModal}

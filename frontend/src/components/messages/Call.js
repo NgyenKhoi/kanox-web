@@ -347,55 +347,28 @@ const Call = ({ onEndCall }) => {
     };
 
     return (
-        <div className="p-3 bg-light">
+        <div className="p-3 bg-[var(--background-color)]">
             <Row>
                 <Col xs={6}>
                     <h6>Video của bạn</h6>
-                    <video
-                        ref={localVideoRef}
-                        autoPlay
-                        muted
-                        style={{ width: "100%", borderRadius: 8, backgroundColor: "#000" }}
-                    />
+                    <video ref={localVideoRef} autoPlay muted style={{ width: "100%", borderRadius: 8, backgroundColor: "var(--video-bg-color)" }} />
                     <div className="mt-2 d-flex justify-content-around">
-                        <Button
-                            size="sm"
-                            variant={isMuted ? "danger" : "outline-danger"}
-                            onClick={toggleMute}
-                        >
+                        <Button size="sm" variant={isMuted ? "danger" : "outline-danger"} onClick={toggleMute}>
                             <FaMicrophoneSlash />
                         </Button>
-                        <Button
-                            size="sm"
-                            variant={isVideoOff ? "danger" : "outline-danger"}
-                            onClick={toggleVideo}
-                        >
+                        <Button size="sm" variant={isVideoOff ? "danger" : "outline-danger"} onClick={toggleVideo}>
                             <FaVideoSlash />
                         </Button>
                     </div>
                 </Col>
                 <Col xs={6}>
                     <h6>Video của người nhận</h6>
-                    <video
-                        ref={remoteVideoRef}
-                        autoPlay
-                        style={{ width: "100%", borderRadius: 8, backgroundColor: "#000" }}
-                    />
-                    <Button
-                        variant="danger"
-                        className="w-100 mt-2"
-                        onClick={endCall}
-                    >
-                        Thoát cuộc gọi
-                    </Button>
+                    <video ref={remoteVideoRef} autoPlay style={{ width: "100%", borderRadius: 8, backgroundColor: "var(--video-bg-color)" }} />
+                    <Button variant="danger" className="w-100 mt-2" onClick={endCall}>Thoát cuộc gọi</Button>
                 </Col>
             </Row>
             {!callStarted && (
-                <Button
-                    variant="outline-primary"
-                    className="w-100 mt-2"
-                    onClick={startCall}
-                >
+                <Button variant="outline-primary" className="w-100 mt-2" onClick={startCall}>
                     <FaPhone /> Bắt đầu cuộc gọi
                 </Button>
             )}

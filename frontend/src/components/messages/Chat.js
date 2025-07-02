@@ -219,90 +219,37 @@ const Chat = ({ chatId }) => {
     };
 
     return (
-        <div className="d-flex flex-column h-100 bg-light">
-            <div className="p-3 border-bottom bg-white shadow-sm d-flex align-items-center">
-                <h5 className="mb-0 flex-grow-1">{recipientName}</h5>
-                <OverlayTrigger
-                    placement="left"
-                    overlay={<Tooltip id="call-tooltip">Gọi video</Tooltip>}
-                >
-                    <Button
-                        variant="outline-primary"
-                        size="sm"
-                        onClick={handleStartCall}
-                        className="ms-2"
-                    >
+        <div className="d-flex flex-column h-100 bg-[var(--background-color)]">
+            <div className="p-3 border-b border-[var(--border-color)] bg-[var(--background-color)] shadow-sm d-flex align-items-center">
+                <h5 className="mb-0 flex-grow-1 text-[var(--text-color)]">{recipientName}</h5>
+                <OverlayTrigger placement="left" overlay={<Tooltip id="call-tooltip" className="text-[var(--text-color)] bg-[var(--tooltip-bg-color)]">Gọi video</Tooltip>}>
+                    <Button variant="outline-primary" size="sm" onClick={handleStartCall} className="ms-2">
                         <FaPhone />
                     </Button>
                 </OverlayTrigger>
             </div>
-
-            <div
-                className="flex-grow-1 overflow-auto p-3"
-                ref={chatContainerRef}
-                style={{ maxHeight: "calc(100vh - 200px)", overflowY: "scroll" }}
-            >
+            <div className="flex-grow-1 overflow-auto p-3" ref={chatContainerRef} style={{ maxHeight: "calc(100vh - 200px)", overflowY: "scroll" }}>
                 {messages.map((msg) => (
-                    <div
-                        key={msg.id}
-                        className={`mb-2 d-flex ${
-                            msg.senderId === user?.id
-                                ? "justify-content-end"
-                                : "justify-content-start"
-                        }`}
-                    >
-                        <div
-                            className={`p-2 rounded-3 shadow-sm ${
-                                msg.senderId === user?.id
-                                    ? "bg-dark text-white"
-                                    : "bg-white text-dark"
-                            }`}
-                            style={{ borderRadius: "20px" }}
-                        >
+                    <div key={msg.id} className={`mb-2 d-flex ${msg.senderId === user?.id ? "justify-content-end" : "justify-content-start"}`}>
+                        <div className={`p-2 rounded-3 shadow-sm ${msg.senderId === user?.id ? "bg-[var(--primary-bg-color)] text-[var(--light-text-color)]" : "bg-[var(--input-bg-color)] text-[var(--text-color)]"}`} style={{ borderRadius: "20px" }}>
                             {msg.content}
                             <div className="text-end">
-                                <small
-                                    className={
-                                        msg.senderId === user?.id ? "text-light" : "text-muted"
-                                    }
-                                    style={{ fontSize: "0.75rem" }}
-                                >
+                                <small className={msg.senderId === user?.id ? "text-[var(--light-text-color)]" : "text-[var(--text-color-muted)]"} style={{ fontSize: "0.75rem" }}>
                                     {new Date(msg.createdAt).toLocaleTimeString()}
                                 </small>
                             </div>
                         </div>
                     </div>
                 ))}
-                {typingUsers.length > 0 && (
-                    <div className="text-muted">{typingUsers.join(", ")} đang nhập...</div>
-                )}
+                {typingUsers.length > 0 && <div className="text-[var(--text-color-muted)]">{typingUsers.join(", ")} đang nhập...</div>}
             </div>
-
-            <div className="p-3 border-top bg-white">
-                <InputGroup
-                    className="shadow-sm rounded-3 overflow-hidden"
-                    style={{ backgroundColor: "#f8f9fa" }}
-                >
-                    <Button variant="outline-secondary" className="border-0">
-                        <FaPaperclip />
-                    </Button>
-                    <Form.Control
-                        placeholder="Nhập tin nhắn..."
-                        value={message}
-                        onChange={(e) => {
-                            setMessage(e.target.value);
-                            sendTyping();
-                        }}
-                        onKeyPress={handleKeyPress}
-                        className="border-0"
-                        style={{ backgroundColor: "#f8f9fa" }}
-                    />
-                    <Button onClick={sendMessage} variant="primary" className="border-0">
-                        <FaPaperPlane />
-                    </Button>
+            <div className="p-3 border-t border-[var(--border-color)] bg-[var(--background-color)]">
+                <InputGroup className="shadow-sm rounded-3 overflow-hidden" style={{ backgroundColor: "var(--input-bg-color)" }}>
+                    <Button variant="outline-secondary" className="border-0"><FaPaperclip /></Button>
+                    <Form.Control placeholder="Nhập tin nhắn..." value={message} onChange={(e) => { setMessage(e.target.value); sendTyping(); }} onKeyPress={handleKeyPress} className="border-0" />
+                    <Button onClick={sendMessage} variant="primary" className="border-0"><FaPaperPlane /></Button>
                 </InputGroup>
             </div>
-
             <ToastContainer />
         </div>
     );

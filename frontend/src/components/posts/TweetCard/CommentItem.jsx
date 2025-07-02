@@ -1,85 +1,37 @@
 import React from "react";
-import Image from "react-bootstrap/Image";
 import { FaUserCircle } from "react-icons/fa";
 import moment from "moment";
 import useCommentAvatar from "../../../hooks/useCommentAvatar";
-
-// 💅 Style giống Facebook
-const commentStyles = {
-    display: "flex",
-    alignItems: "flex-start",
-    gap: "10px",
-    marginBottom: "16px",
-};
-
-const commentAvatarStyles = {
-    width: "36px",
-    height: "36px",
-    objectFit: "cover",
-    flexShrink: 0,
-};
-
-const commentContentWrapper = {
-    display: "flex",
-    flexDirection: "column",
-};
-
-const commentBubbleStyles = {
-    backgroundColor: "#f0f2f5",
-    padding: "8px 12px",
-    borderRadius: "18px",
-    maxWidth: "100%",
-    wordBreak: "break-word",
-};
-
-const nameAndTimeStyles = {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    marginBottom: "4px",
-};
-
-const displayNameStyles = {
-    fontWeight: "600",
-    fontSize: "14px",
-};
-
-const timeStyles = {
-    fontSize: "12px",
-    color: "#65676b",
-};
 
 const CommentItem = ({ comment }) => {
     const { avatarUrl } = useCommentAvatar(comment?.user?.id);
 
     return (
-        <div style={commentStyles}>
+        <div className="flex items-start gap-2.5 mb-4">
             {avatarUrl ? (
-                <Image
+                <img
                     src={avatarUrl}
-                    style={commentAvatarStyles}
-                    roundedCircle
-                    alt="Ảnh đại diện"
+                    alt="Avatar"
+                    className="w-9 h-9 rounded-full object-cover flex-shrink-0"
                 />
             ) : (
                 <FaUserCircle
                     size={36}
-                    style={{ ...commentAvatarStyles, color: "#6c757d" }}
-                    aria-label="Ảnh đại diện mặc định"
+                    className="text-[var(--text-color-muted)] flex-shrink-0"
                 />
             )}
 
-            <div style={commentContentWrapper}>
-                <div style={commentBubbleStyles}>
-                    <div style={nameAndTimeStyles}>
-            <span style={displayNameStyles}>
+            <div className="flex flex-col">
+                <div className="bg-[var(--comment-bg-color)] p-2 rounded-2xl text-[var(--text-color)] break-words max-w-full">
+                    <div className="flex items-center gap-2 mb-1">
+            <span className="font-semibold text-sm">
               {comment?.user?.displayName || "Người dùng"}
             </span>
-                        <span style={timeStyles}>
+                        <span className="text-xs text-[var(--text-color-muted)]">
               {moment(comment.createdAt * 1000).fromNow()}
             </span>
                     </div>
-                    <div style={{ fontSize: "14px" }}>{comment.content}</div>
+                    <div className="text-sm">{comment.content}</div>
                 </div>
             </div>
         </div>

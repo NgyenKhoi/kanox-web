@@ -15,7 +15,6 @@ import { FaSearch, FaEllipsisH } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 
-import SidebarLeft from "../../components/layout/SidebarLeft/SidebarLeft";
 import SidebarRight from "../../components/layout/SidebarRight/SidebarRight";
 import { AuthContext } from "../../context/AuthContext";
 import useSingleMedia from "../../hooks/useSingleMedia";
@@ -36,12 +35,12 @@ function ExplorePage() {
   const [activeTab, setActiveTab] = useState("for-you");
 
   // Check login & redirect
-  useEffect(() => {
-    if (!loading && !token) {
-      toast.warning("Bạn cần đăng nhập để truy cập trang khám phá.");
-      navigate("/");
-    }
-  }, [loading, token, navigate]);
+  // useEffect(() => {
+  //   if (!loading && !token) {
+  //     toast.warning("Bạn cần đăng nhập để truy cập trang khám phá.");
+  //     navigate("/");
+  //   }
+  // }, [loading, token, navigate]);
 
   // Handle debounced search
   useEffect(() => {
@@ -208,9 +207,6 @@ function ExplorePage() {
 
   return (
     <div className="d-flex min-vh-100 bg-white">
-      <div className="d-none d-lg-block">
-        <SidebarLeft />
-      </div>
       <div className="d-flex flex-column flex-grow-1">
         <div
           className="sticky-top bg-white border-bottom py-2"
@@ -218,7 +214,7 @@ function ExplorePage() {
         >
           <Container fluid>
             <Row>
-              <Col xs={12} lg={6} className="mx-auto px-md-0 position-relative">
+              <Col xs={12} lg={8} className="px-md-0 border-start border-end">
                 <InputGroup className="me-2">
                   <InputGroup.Text className="bg-light border border-light rounded-pill ps-3">
                     <FaSearch className="text-muted" />

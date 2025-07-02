@@ -1,8 +1,15 @@
 import React, { useState, useEffect, useContext } from "react";
 import { Modal, Button } from "react-bootstrap";
 import "./App.css";
+import PrivateRoute from "./components/common/PrivateRoute/PrivateRoute";
 
-//import important page
+import SidebarLeft from "./components/layout/SidebarLeft/SidebarLeft";
+import { ThemeContext, ThemeProvider } from "./context/ThemeContext";
+import { AuthContext, AuthProvider } from "./context/AuthContext";
+import { WebSocketContext, WebSocketProvider } from "./context/WebSocketContext";
+import { BrowserRouter as Router, Routes, Route, useNavigate } from "react-router-dom";
+
+// Import các page
 import SignupPage from "./pages/auth/signup/signupPage";
 import HomePage from "./pages/home/HomePage";
 import ProfilePage from "./pages/profile/ProfilePage";
@@ -21,11 +28,6 @@ import FriendsPage from "./pages/friends/FriendsPage";
 import AdminPage from "./pages/admin/adminpage";
 import Call from "./components/messages/Call";
 
-//context & router
-import { BrowserRouter as Router, Routes, Route, useNavigate } from "react-router-dom";
-import { AuthContext, AuthProvider } from "./context/AuthContext";
-import { WebSocketContext, WebSocketProvider } from "./context/WebSocketContext";
-
 function AppContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [showCallModal, setShowCallModal] = useState(false);
@@ -33,7 +35,9 @@ function AppContent() {
   const [chatIds, setChatIds] = useState([]);
   const { user, token } = useContext(AuthContext);
   const { subscribe, unsubscribe, publish } = useContext(WebSocketContext) || {};
+  const { isDarkMode, toggleDarkMode } = useContext(ThemeContext);
   const navigate = useNavigate();
+  const [showCreatePost, setShowCreatePost] = useState(false);
 
   useEffect(() => {
     if (!user || !token) {
@@ -98,7 +102,7 @@ function AppContent() {
       subscriptions.forEach((_, index) => unsubscribe(`call-${chatIds[index]}`));
       window.removeEventListener("incomingCall", handleIncomingCall);
     };
-  }, [chatIds, subscribe, unsubscribe]);
+  }, [chatIds, subscribe, unsubscribe, user, navigate]);
 
   const acceptCall = () => {
     setShowCallModal(false);
@@ -122,29 +126,39 @@ function AppContent() {
         {isLoading ? (
             <LoadingPage />
         ) : (
-            <div className="app-container d-flex">
-              <div className="main-content flex-grow-1">
+            <div className="min-h-screen flex">
+              {user && (
+                  <SidebarLeft
+                      onToggleDarkMode={toggleDarkMode}
+                      isDarkMode={isDarkMode}
+                      onShowCreatePost={() => setShowCreatePost(true)}
+                  />
+              )}
+              <div className="flex-grow p-4">
                 <Routes>
+                  {/* Public Routes */}
                   <Route path="/" element={<SignupPage />} />
                   <Route path="/reset-password" element={<ResetPasswordPage />} />
                   <Route path="/verify-email" element={<VerifyEmailPage />} />
-                  <Route path="/home" element={<HomePage />} />
-                  <Route path="/profile/:username" element={<ProfilePage />} />
-                  <Route path="/profile/me" element={<ProfilePage />} />
-                  <Route path="/explore" element={<ExplorePage />} />
-                  <Route path="/notifications" element={<NotificationPage />} />
-                  <Route path="/messages" element={<MessengerPage />} />
-                  <Route path="/communities" element={<CommunityPage />} />
-                  <Route path="/community/:communityId" element={<CommunityDetail />} />
-                  <Route path="/privacy/lists" element={<CustomPrivacyListPage />} />
-                  <Route path="/blocks" element={<BlockedUsersPage />} />
-                  <Route path="/settings" element={<SettingsPage />} />
-                  <Route path="/friends" element={<FriendsPage />} />
-                  <Route path="/admin" element={<AdminPage />} />
-                  <Route path="/call/:chatId" element={<Call />} />
+
+                  {/* Private Routes */}
+                  <Route path="/home" element={<PrivateRoute><HomePage /></PrivateRoute>} />
+                  <Route path="/profile/:username" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
+                  <Route path="/profile/me" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
+                  <Route path="/explore" element={<PrivateRoute><ExplorePage /></PrivateRoute>} />
+                  <Route path="/notifications" element={<PrivateRoute><NotificationPage /></PrivateRoute>} />
+                  <Route path="/messages" element={<PrivateRoute><MessengerPage /></PrivateRoute>} />
+                  <Route path="/communities" element={<PrivateRoute><CommunityPage /></PrivateRoute>} />
+                  <Route path="/community/:communityId" element={<PrivateRoute><CommunityDetail /></PrivateRoute>} />
+                  <Route path="/privacy/lists" element={<PrivateRoute><CustomPrivacyListPage /></PrivateRoute>} />
+                  <Route path="/blocks" element={<PrivateRoute><BlockedUsersPage /></PrivateRoute>} />
+                  <Route path="/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
+                  <Route path="/friends" element={<PrivateRoute><FriendsPage /></PrivateRoute>} />
+                  <Route path="/admin" element={<PrivateRoute><AdminPage /></PrivateRoute>} />
+                  <Route path="/call/:chatId" element={<PrivateRoute><Call /></PrivateRoute>} />
                 </Routes>
 
-                <Modal show={showCallModal} centered onHide={rejectCall}>
+                <Modal show={showCallModal} centered onHide={rejectCall} className="bg-[var(--background-color)] text-[var(--text-color)]">
                   <Modal.Header closeButton>
                     <Modal.Title>Cuộc gọi đến</Modal.Title>
                   </Modal.Header>
@@ -170,7 +184,9 @@ function App() {
       <Router>
         <AuthProvider>
           <WebSocketProvider>
-            <AppContent />
+            <ThemeProvider>
+              <AppContent />
+            </ThemeProvider>
           </WebSocketProvider>
         </AuthProvider>
       </Router>

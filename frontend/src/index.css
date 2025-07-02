@@ -1,13 +1,108 @@
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+  sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+  monospace;
+}
+
+/* Thêm Tailwind CSS */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background-color: #ffffff;
+  --text-color: #212529;
+  --text-color-muted: #6c757d;
+  --hover-bg-color: #f8f9fa;
+  --primary-color: #007bff;
+  --border-color: #dee2e6;
+  --text-color-filter: none;
+}
+
+.dark {
+  --background-color: #222222;
+  --text-color: #ffffff;
+  --text-color-muted: #adb5bd;
+  --hover-bg-color: #333333;
+  --primary-color: #4dabf7;
+  --border-color: #444444;
+  --text-color-filter: invert(1);
+}
+
+body {
+  @apply bg-[var(--background-color)] text-[var(--text-color)] transition-colors duration-200;
+}
+
+.text-dark {
+  @apply text-[var(--text-color)];
+}
+
+.text-muted {
+  @apply text-[var(--text-color-muted)];
+}
+
+.bg-dark {
+  @apply bg-[var(--background-color)];
+}
+
+.border-dark {
+  @apply border-[var(--border-color)];
+}
+
+.hover-bg-dark:hover {
+  @apply bg-[var(--hover-bg-color)];
+}
+
+* {
+  @apply transition-colors duration-200;
+}
+
+/* Bootstrap override for dark mode */
+.dark .modal-content {
+  background-color: var(--background-color) !important;
+  color: var(--text-color) !important;
+}
+
+.dark .modal-header,
+.dark .modal-footer {
+  border-color: var(--border-color) !important;
+}
+
+.dark .text-muted {
+  color: var(--text-color-muted) !important;
+}
+
+.dark .bg-light {
+  background-color: var(--hover-bg-color) !important;
+}
+
+.dark .border {
+  border-color: var(--border-color) !important;
+}
+
+.dark .btn-light {
+  background-color: var(--hover-bg-color) !important;
+  color: var(--text-color) !important;
+  border-color: var(--border-color) !important;
+}
+
+.dark .text-secondary {
+  color: var(--text-color-muted) !important;
+}
+
+.dark .border-bottom {
+  border-color: var(--border-color) !important;
+}
+
+.dark .list-group-item {
+  background-color: var(--background-color) !important;
+  color: var(--text-color) !important;
 }
