@@ -17,7 +17,7 @@ function HomePage({ onShowCreatePost, onToggleDarkMode }) {
     if (!user) return;
     setLoading(true);
     try {
-      const { token } = useContext(AuthContext);
+      const token = localStorage.getItem("token");
       const response = await fetch(`${process.env.REACT_APP_API_URL}/posts/newsfeed`, {
         headers: {
           "Content-Type": "application/json",
