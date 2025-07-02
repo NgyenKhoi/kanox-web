@@ -1,53 +1,22 @@
 import React, { useState } from "react";
-import { Card, ListGroup, Button, Form, Nav, Image } from "react-bootstrap";
+import { useNavigate, Link } from "react-router-dom";
 import { FaSearch, FaEllipsisH } from "react-icons/fa";
-import { Link, useNavigate } from "react-router-dom";
 
 function SidebarRight() {
   const [showFullFooter, setShowFullFooter] = useState(false);
   const navigate = useNavigate();
 
   const trends = [
-    {
-      id: 1,
-      name: "Doanh nghiệp & Tài chính - nổi bật",
-      title: "Investing",
-      tweets: "143 N bài đăng",
-    },
-    {
-      id: 2,
-      name: "Chủ đề nổi trội ở Việt Nam",
-      title: "Quời",
-      tweets: "436 N bài đăng",
-    },
-    {
-      id: 3,
-      name: "Chủ đề nổi trội ở Việt Nam",
-      title: "#riyadh",
-      tweets: "989 N bài đăng",
-    },
+    { id: 1, name: "Doanh nghiệp & Tài chính - nổi bật", title: "Investing", tweets: "143 N bài đăng" },
+    { id: 2, name: "Chủ đề nổi trội ở Việt Nam", title: "Quời", tweets: "436 N bài đăng" },
+    { id: 3, name: "Chủ đề nổi trội ở Việt Nam", title: "#riyadh", tweets: "989 N bài đăng" },
     { id: 4, name: "Count", title: "Count", tweets: "82.2 N bài đăng" },
   ];
 
   const suggestedUsers = [
-    {
-      id: 1,
-      name: "Ayii",
-      username: "Ayiiyiii",
-      avatar: "https://via.placeholder.com/40?text=Ayii",
-    },
-    {
-      id: 2,
-      name: "無一",
-      username: "cero_09051",
-      avatar: "https://via.placeholder.com/40?text=無一",
-    },
-    {
-      id: 3,
-      name: "Dilibay ✨💛",
-      username: "Dilibay_heaven",
-      avatar: "https://via.placeholder.com/40?text=Dilibay",
-    },
+    { id: 1, name: "Ayii", username: "Ayiiyiii", avatar: "https://via.placeholder.com/40?text=Ayii" },
+    { id: 2, name: "無一", username: "cero_09051", avatar: "https://via.placeholder.com/40?text=無一" },
+    { id: 3, name: "Dilibay ✨💛", username: "Dilibay_heaven", avatar: "https://via.placeholder.com/40?text=Dilibay" },
   ];
 
   const fullFooterLinks = [
@@ -68,183 +37,89 @@ function SidebarRight() {
 
   const defaultFooterLinks = fullFooterLinks.slice(0, 5);
 
-  const handleSubscribePremiumClick = () => {
-    navigate("/premium");
-  };
+  const handleSubscribePremiumClick = () => navigate("/premium");
 
   return (
-      <div
-          className="p-3 pt-2 d-none d-lg-block position-sticky top-0"
-          style={{
-            height: "100vh",
-            overflowY: "auto",
-            backgroundColor: "#fff",
-            scrollbarWidth: "none", /* Ẩn thanh cuộn trên Firefox */
-          }}
-      >
-        {/* Ẩn thanh cuộn trên Webkit (Chrome, Safari) */}
-        <style>
-          {`
-          div::-webkit-scrollbar {
-            display: none; /* Ẩn thanh cuộn */
-          }
-        `}
-        </style>
-
-        <Form className="mb-4 sticky-top bg-white" style={{ top: "0", zIndex: 1020 }}>
-          <div className="position-relative w-100">
-            <FaSearch
-                className="position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"
-                size={18}
-            />
-            <Form.Control
+      <div className="p-3 pt-2 hidden lg:block sticky top-0 h-screen overflow-y-auto bg-[var(--background-color)] text-[var(--text-color)]">
+        <div className="sticky top-0 bg-[var(--background-color)] z-30">
+          <div className="relative w-full mb-4">
+            <FaSearch className="absolute top-1/2 left-3 transform -translate-y-1/2 text-gray-500" size={18} />
+            <input
                 type="search"
                 placeholder="Tìm kiếm"
-                className="rounded-pill ps-5 bg-white border border-dark shadow-sm"
-                aria-label="Search"
-                style={{ height: "48px", fontSize: "1rem", color: "#000" }}
+                className="w-full pl-10 pr-4 py-3 rounded-full bg-[var(--background-color)] border border-[var(--border-color)] text-[var(--text-color)] shadow-sm text-sm"
             />
           </div>
-        </Form>
+        </div>
 
-        <Card className="mb-4 rounded-3 shadow-sm border border-dark">
-          <Card.Body className="p-4">
-            <h5 className="fw-bold mb-3" style={{ color: "#000" }}>
-              Đăng ký gói Premium
-            </h5>
-            <p className="mb-3" style={{ color: "#000", fontSize: "0.95rem" }}>
-              Đăng ký để mở khóa các tính năng mới và nhận chia sẻ doanh thu nếu bạn là người sáng tạo nội dung.
-            </p>
-            <Button
-                variant="dark"
-                className="rounded-pill px-4 py-2 fw-bold"
-                onClick={handleSubscribePremiumClick}
-            >
-              Đăng ký
-            </Button>
-          </Card.Body>
-        </Card>
-
-        <Card className="mb-4 rounded-3 shadow-sm border border-dark">
-          <Card.Header
-              className="fw-bold bg-white border-0 p-4 pb-2"
-              style={{ color: "#000" }}
+        <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-2xl shadow-sm mb-4 p-4">
+          <h5 className="font-bold mb-2">Đăng ký gói Premium</h5>
+          <p className="text-sm mb-3">
+            Đăng ký để mở khóa các tính năng mới và nhận chia sẻ doanh thu nếu bạn là người sáng tạo nội dung.
+          </p>
+          <button
+              onClick={handleSubscribePremiumClick}
+              className="bg-black text-white px-4 py-2 rounded-full font-bold"
           >
-            Những điều đang diễn ra
-          </Card.Header>
-          <ListGroup variant="flush">
-            {trends.map((trend) => (
-                <ListGroup.Item
-                    key={trend.id}
-                    action
-                    className="d-flex flex-column align-items-start py-3 px-4 border-0"
-                    style={{ backgroundColor: "transparent" }}
-                >
-                  <div className="d-flex justify-content-between w-100">
-                    <div>
-                      <small style={{ color: "#666", fontSize: "0.85rem" }}>{trend.name}</small>
-                      <h6 className="mb-1 fw-bold" style={{ color: "#000" }}>{trend.title}</h6>
-                      <small style={{ color: "#666", fontSize: "0.85rem" }}>{trend.tweets}</small>
-                    </div>
-                    <Button variant="link" className="text-dark p-0">
-                      <FaEllipsisH size={16} />
-                    </Button>
-                  </div>
-                </ListGroup.Item>
-            ))}
-            <ListGroup.Item
-                action
-                className="py-2 px-4 fw-bold border-0"
-                style={{ color: "#000" }}
-            >
-              Hiển thị thêm
-            </ListGroup.Item>
-          </ListGroup>
-        </Card>
+            Đăng ký
+          </button>
+        </div>
 
-        <Card className="mb-4 rounded-3 shadow-sm border border-dark">
-          <Card.Header
-              className="fw-bold bg-white border-0 p-4 pb-2"
-              style={{ color: "#000" }}
+        <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-2xl shadow-sm mb-4">
+          <div className="p-4 pb-2 font-bold">Những điều đang diễn ra</div>
+          {trends.map(trend => (
+              <div key={trend.id} className="px-4 py-3 hover:bg-[var(--hover-bg-color)] cursor-pointer border-b border-[var(--border-color)]">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <div className="text-xs text-gray-500">{trend.name}</div>
+                    <div className="font-bold text-sm">{trend.title}</div>
+                    <div className="text-xs text-gray-500">{trend.tweets}</div>
+                  </div>
+                  <FaEllipsisH className="text-gray-500" size={16} />
+                </div>
+              </div>
+          ))}
+          <div className="px-4 py-2 font-bold text-sm hover:bg-[var(--hover-bg-color)] cursor-pointer">
+            Hiển thị thêm
+          </div>
+        </div>
+
+        <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-2xl shadow-sm mb-4">
+          <div className="p-4 pb-2 font-bold">Gợi ý theo dõi</div>
+          {suggestedUsers.map(user => (
+              <div key={user.id} className="flex items-center px-4 py-3 hover:bg-[var(--hover-bg-color)] cursor-pointer border-b border-[var(--border-color)]">
+                <img src={user.avatar} alt={user.name} className="w-10 h-10 rounded-full border border-[var(--border-color)] mr-3" />
+                <div className="flex-1">
+                  <div className="font-bold text-sm">{user.name}</div>
+                  <div className="text-xs text-gray-500">@{user.username}</div>
+                </div>
+                <button className="border border-[var(--border-color)] text-sm rounded-full px-3 py-1 font-bold">
+                  Theo dõi
+                </button>
+              </div>
+          ))}
+          <div className="px-4 py-2 font-bold text-sm hover:bg-[var(--hover-bg-color)] cursor-pointer">
+            Hiển thị thêm
+          </div>
+        </div>
+
+        <div className="px-3 flex flex-wrap text-sm text-gray-500">
+          {[...(showFullFooter ? fullFooterLinks : defaultFooterLinks)].map((link, index) => (
+              <Link
+                  key={index}
+                  to={link.to}
+                  className="mr-3 mb-1 hover:underline"
+              >
+                {link.text}
+              </Link>
+          ))}
+          <button
+              onClick={() => setShowFullFooter(!showFullFooter)}
+              className="text-left mr-3 mb-1 hover:underline"
           >
-            Gợi ý theo dõi
-          </Card.Header>
-          <ListGroup variant="flush">
-            {suggestedUsers.map((user) => (
-                <ListGroup.Item
-                    key={user.id}
-                    className="d-flex align-items-center py-3 px-4 border-0"
-                    style={{ backgroundColor: "transparent" }}
-                >
-                  <Image
-                      src={user.avatar}
-                      alt={user.name}
-                      width="40"
-                      height="40"
-                      roundedCircle
-                      className="me-3 border border-dark"
-                  />
-                  <div className="d-flex flex-column flex-grow-1">
-                <span className="fw-bold" style={{ fontSize: "0.95rem", color: "#000" }}>
-                  {user.name}
-                </span>
-                    <span style={{ fontSize: "0.85rem", color: "#666" }}>@{user.username}</span>
-                  </div>
-                  <Button
-                      variant="outline-dark"
-                      size="sm"
-                      className="col-auto rounded-pill px-3 py-1 fw-bold"
-                  >
-                    Theo dõi
-                  </Button>
-                </ListGroup.Item>
-            ))}
-            <ListGroup.Item
-                action
-                className="py-2 px-4 fw-bold border-0"
-                style={{ color: "#000" }}
-            >
-              Hiển thị thêm
-            </ListGroup.Item>
-          </ListGroup>
-        </Card>
-
-        <div className="px-3">
-          <Nav className="flex-wrap">
-            {defaultFooterLinks.map((link, index) => (
-                <Nav.Link
-                    key={index}
-                    as={Link}
-                    to={link.to}
-                    className="text-muted small me-3 my-1 p-0"
-                    style={{ fontSize: "0.85rem", color: "#666" }}
-                >
-                  {link.text}
-                </Nav.Link>
-            ))}
-            {showFullFooter &&
-                fullFooterLinks.slice(defaultFooterLinks.length).map((link, index) => (
-                    <Nav.Link
-                        key={`full-${index}`}
-                        as={Link}
-                        to={link.to}
-                        className="text-muted small me-3 my-1 p-0"
-                        style={{ fontSize: "0.85rem", color: "#666" }}
-                    >
-                      {link.text}
-                    </Nav.Link>
-                ))}
-            <Nav.Link
-                onClick={() => setShowFullFooter(!showFullFooter)}
-                className="text-muted small mep-0 my-1"
-                style={{ fontSize: "0.85rem", color: "#666" }}
-            >
-              {showFullFooter ? "Ẩn bớt" : "Thêm..."}
-            </Nav.Link>
-            <span className="text-muted small my-1 p-0" style={{ color: "#666", fontSize: "0.85rem" }}>
-            © 2025 KaNox Corp.
-          </span>
-          </Nav>
+            {showFullFooter ? "Ẩn bớt" : "Thêm..."}
+          </button>
+          <span className="w-full mt-2">© 2025 KaNox Corp.</span>
         </div>
       </div>
   );

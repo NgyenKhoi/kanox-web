@@ -216,7 +216,7 @@ function FriendsPage() {
 
             <Container fluid className="flex-grow-1">
                 <Row className="h-100">
-                    <Col xs={12} lg={7} className="px-md-0">
+                    <Col xs={12} lg={8} className="px-md-0">
                         <div className="p-3">
                             {notifications.length > 0 && (
                                 <Alert variant="info" onClose={() => setNotifications([])} dismissible>
@@ -283,7 +283,7 @@ function FriendsPage() {
                             </div>
                         </div>
                     </Col>
-                    <Col xs={0} lg={5} className="d-none d-lg-block p-0">
+                    <Col xs={0} lg={4} className="d-none d-lg-block p-0">
                         <SidebarRight />
                     </Col>
                 </Row>
