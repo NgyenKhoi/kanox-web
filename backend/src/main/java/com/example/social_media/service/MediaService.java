@@ -3,6 +3,7 @@ package com.example.social_media.service;
 import com.example.social_media.dto.media.MediaDto;
 import com.example.social_media.entity.*;
 import com.example.social_media.repository.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,10 +22,10 @@ public class MediaService {
         private final MediaTypeRepository mediaTypeRepository;
         private final TargetTypeRepository targetTypeRepository;
         private final GcsService gcsService;
-        private final RedisTemplate<String, List<MediaDto>> redisTemplate;
         private final RedisTemplate<String, String> redisAvatarTemplate;
+        private final RedisTemplate<String, List<MediaDto>> redisMediaTemplate;
 
-        private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
+    private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
                         "image/jpeg", "image/jpg",
                         "video/mp4",
                         "audio/mpeg");
@@ -37,14 +38,17 @@ public class MediaService {
                             MediaTypeRepository mediaTypeRepository,
                             TargetTypeRepository targetTypeRepository,
                             GcsService gcsService,
-                            RedisTemplate<String, List<MediaDto>> redisTemplate, RedisTemplate<String, String> redisAvatarTemplate) {
+                            RedisTemplate<String, String> redisAvatarTemplate,
+                            RedisTemplate<String, List<MediaDto>> redisMediaTemplate,
+                            ObjectMapper objectMapper
+                            ) {
                 this.mediaRepository = mediaRepository;
                 this.userRepository = userRepository;
                 this.mediaTypeRepository = mediaTypeRepository;
                 this.targetTypeRepository = targetTypeRepository;
                 this.gcsService = gcsService;
-                this.redisTemplate = redisTemplate;
             this.redisAvatarTemplate = redisAvatarTemplate;
+            this.redisMediaTemplate = redisMediaTemplate;
         }
 
         private String buildCacheKey(List<Integer> targetIds, String targetTypeCode, String mediaTypeName) {
@@ -250,9 +254,8 @@ public class MediaService {
                                                                 Boolean status) {
                 String cacheKey = buildCacheKey(targetIds, targetTypeCode, mediaTypeName);
 
-                List<MediaDto> cached = redisTemplate.opsForValue().get(cacheKey);
+                List<MediaDto> cached = redisMediaTemplate.opsForValue().get(cacheKey);
                 if (cached != null) {
-                        // 🔄 Group cached result by targetId
                         return cached.stream()
                                 .collect(Collectors.groupingBy(MediaDto::getTargetId));
                 }
@@ -266,12 +269,12 @@ public class MediaService {
                 List<Media> mediaList = mediaRepository.findByTargetIdInAndTargetTypeIdAndMediaTypeIdAndStatus(
                         targetIds, targetType.getId(), mediaType.getId(), status);
 
-                List<MediaDto> dtoList = mediaList.stream().map(this::toDto).collect(Collectors.toList());
+                List<MediaDto> dtoList = mediaList.stream()
+                        .map(this::toDto)
+                        .collect(Collectors.toList());
 
-                // ❗ Cache raw list (vì RedisTemplate không lưu được Map dạng động)
-                redisTemplate.opsForValue().set(cacheKey, dtoList, CACHE_TTL);
+                redisMediaTemplate.opsForValue().set(cacheKey, dtoList, CACHE_TTL);
 
-                // ✅ Trả về map theo targetId
                 return dtoList.stream()
                         .collect(Collectors.groupingBy(MediaDto::getTargetId));
         }
