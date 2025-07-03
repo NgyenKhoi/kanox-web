@@ -419,7 +419,6 @@ return (
 
         </div>
         <div className="d-flex flex-grow-1">
-          <div className="border-end bg-white" style={{ width: "350px" }}>
             <div className="w-[350px] border-r border-[var(--border-color)] bg-[var(--card-bg)] overflow-y-auto">
               {filteredChats.map(chat => (
                   <div
@@ -495,7 +494,7 @@ return (
         />
         <ToastContainer />
       </div>
-    </div>
+
 );
 }
 
