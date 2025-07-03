@@ -13,7 +13,6 @@ import {
 import { Link, useNavigate } from "react-router-dom";
 import SidebarRight from "../../components/layout/SidebarRight/SidebarRight"; // Assuming you have a right sidebar
 
-
 // YOU MUST DESTRUCTURE THE PROPS HERE
 function CommunityPage({ onShowCreatePost, isDarkMode, onToggleDarkMode }) {
   const navigate = useNavigate();
@@ -110,12 +109,21 @@ function CommunityPage({ onShowCreatePost, isDarkMode, onToggleDarkMode }) {
   };
 
   return (
-    <Container fluid className="community-page-container d-flex flex-grow-1">
+    <Container
+      fluid
+      className="community-page-container d-flex flex-grow-1 bg-[var(--background-color)] text-[var(--text-color)] transition-colors duration-200"
+    >
       <Row className="w-100 justify-content-center">
         {/* Main Content Area */}
-        <Col xs={12} lg={8} className="community-main-content border-start border-end py-3">
+        <Col
+          xs={12}
+          lg={8}
+          className="community-main-content border-start border-end py-3"
+        >
           <div className="d-flex align-items-center mb-3 px-3">
-            <h2 className="mb-0 me-auto">Cộng đồng</h2>
+            <h2 className="mb-0 me-auto bg-[var(--background-color)] text-[var(--text-color)] transition-colors duration-200">
+              Cộng đồng
+            </h2>
             <div className="search-icon me-3">
               <FaSearch size={20} />
             </div>
@@ -126,7 +134,10 @@ function CommunityPage({ onShowCreatePost, isDarkMode, onToggleDarkMode }) {
           </div>
 
           {/* Category Tabs */}
-          <Nav variant="underline" className="community-category-nav mb-4">
+          <Nav
+            variant="underline"
+            className="community-category-nav mb-4  text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700 bg-[var(--content-bg)]"
+          >
             {categories.map((category) => (
               <Nav.Item key={category.key}>
                 <Nav.Link
@@ -152,7 +163,10 @@ function CommunityPage({ onShowCreatePost, isDarkMode, onToggleDarkMode }) {
           ) : (
             <div className="posts-list">
               {posts.map((post) => (
-                <Card key={post.id} className="mb-3 post-card">
+                <Card
+                  key={post.id}
+                  className="mb-3 post-card bg-[var(--background-color)] text-[var(--text-color)]"
+                >
                   <Card.Body>
                     <div className="d-flex align-items-start mb-2">
                       <img

@@ -7,7 +7,7 @@ function LoadingPage() {
   return (
     <Container
       fluid
-      className="d-flex flex-column justify-content-center align-items-center vh-100 bg-light"
+      className="d-flex flex-column justify-content-center align-items-center vh-100 bg-[var(--background-color)]"
     >
       {/* Logo của web */}
       <KLogoSvg

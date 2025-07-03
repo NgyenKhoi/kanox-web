@@ -37,11 +37,15 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
     { icon: <FaHome />, label: "Trang chủ", path: "/home" },
     { icon: <FaSearch />, label: "Khám phá", path: "/explore" },
     {
-      icon: <FaBell />, label: "Thông báo", path: "/notifications",
+      icon: <FaBell />,
+      label: "Thông báo",
+      path: "/notifications",
       badge: unreadNotificationCount,
     },
     {
-      icon: <FaEnvelope />, label: "Tin nhắn", path: "/messages",
+      icon: <FaEnvelope />,
+      label: "Tin nhắn",
+      path: "/messages",
       badge: unreadMessageCount,
     },
     { icon: <FaUserAlt />, label: "Cộng đồng", path: "/communities" },
@@ -58,8 +62,10 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
   ];
 
   const isLinkActive = (path) => {
-    if (path.startsWith("/profile") && location.pathname.startsWith("/profile")) return true;
-    if (path === "/home" && ["/", "/home"].includes(location.pathname)) return true;
+    if (path.startsWith("/profile") && location.pathname.startsWith("/profile"))
+      return true;
+    if (path === "/home" && ["/", "/home"].includes(location.pathname))
+      return true;
     return location.pathname === path;
   };
 
@@ -74,91 +80,88 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
   };
 
   return (
-      <aside className="hidden md:flex flex-col h-screen sticky top-0 bg-[var(--background-color)] text-[var(--text-color)] p-3 border-r border-[var(--border-color)] transition-colors">
-        <div className="flex items-center justify-between mb-4">
-          <Link to="/home">
-            <KLogoSvg width="50px" height="50px" />
-          </Link>
-          <button onClick={onToggleDarkMode} className="text-xl">
-            {isDarkMode ? <FaSun /> : <FaMoon />}
-          </button>
-        </div>
+    <aside className="hidden md:flex flex-col h-screen sticky top-0 bg-[var(--background-color)] text-[var(--text-color)] p-3 border-r border-[var(--border-color)] transition-colors">
+      <div className="flex items-center justify-between mb-4">
+        <Link to="/home">
+          <KLogoSvg width="50px" height="50px" />
+        </Link>
+        <button onClick={onToggleDarkMode} className="text-xl">
+          {isDarkMode ? <FaSun /> : <FaMoon />}
+        </button>
+      </div>
 
-        <nav className="flex flex-col space-y-2">
-          {mainTabs.map((tab) => (
-              <button
-                  key={tab.label}
-                  onClick={() => handleNavClick(tab)}
-                  className={`flex items-center px-4 py-2 rounded-full hover:bg-[var(--hover-bg-color)] transition-colors ${
-                      isLinkActive(tab.path) ? "bg-[var(--hover-bg-color)] font-bold text-[var(--primary-color)]" : ""
-                  }`}
-              >
+      <nav className="flex flex-col space-y-2">
+        {mainTabs.map((tab) => (
+          <button
+            key={tab.label}
+            onClick={() => handleNavClick(tab)}
+            className={`flex items-center px-4 py-2 rounded-full hover:bg-[var(--hover-bg-color)] transition-colors ${
+              isLinkActive(tab.path)
+                ? "bg-[var(--hover-bg-color)] font-bold text-[var(--primary-color)]"
+                : ""
+            }`}
+          >
             <span className="mr-3 text-xl relative">
               {tab.icon}
               {tab.badge > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
                   {tab.badge}
                 </span>
               )}
             </span>
-                <span className="text-base hidden lg:inline">{tab.label}</span>
-              </button>
-          ))}
+            <span className="text-base hidden lg:inline">{tab.label}</span>
+          </button>
+        ))}
 
-          {/* Additional dropdown */}
-          <div className="relative">
-            <button
-                onClick={() => setShowMenu(!showMenu)}
-                className="flex items-center px-4 py-2 rounded-full hover:bg-[var(--hover-bg-color)] w-full"
-            >
-              <FaEllipsisH className="mr-3 text-xl" />
-              <span className="hidden lg:inline">Thêm</span>
-            </button>
-            {showMenu && (
-                <div className="absolute z-10 mt-1 w-full bg-[var(--background-color)] shadow-md rounded-lg border border-[var(--border-color)]">
-                  {additionalTabs.map((tab) => (
-                      <button
-                          key={tab.label}
-                          onClick={() => handleNavClick(tab)}
-                          className="flex items-center px-4 py-2 hover:bg-[var(--hover-bg-color)] w-full text-left"
-                      >
-                        <span className="mr-3 text-xl">{tab.icon}</span>
-                        {tab.label}
-                      </button>
-                  ))}
-                </div>
-            )}
-          </div>
-        </nav>
-
-        <button
-            onClick={onShowCreatePost}
-            className="mt-6 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 rounded-full hidden lg:block"
-        >
-          Đăng
-        </button>
-
-        {/* User info bottom */}
-        <div className="mt-auto pt-4">
-          <div className="flex items-center cursor-pointer hover:bg-[var(--hover-bg-color)] p-2 rounded-full">
-            <img
-                src={avatarUrl || "https://placehold.co/40x40"}
-                alt="Avatar"
-                className="w-10 h-10 rounded-full object-cover mr-3"
-            />
-            <div className="hidden lg:block">
-              <div className="font-bold">{user?.displayName || "Người dùng"}</div>
-              <div className="text-sm text-[var(--text-color-muted)]">@{user?.username}</div>
+        {/* Additional dropdown */}
+        <div className="relative">
+          <button
+            onClick={() => setShowMenu(!showMenu)}
+            className="flex items-center px-4 py-2 rounded-full hover:bg-[var(--hover-bg-color)] w-full"
+          >
+            <FaEllipsisH className="mr-3 text-xl" />
+            <span className="hidden lg:inline">Thêm</span>
+          </button>
+          {showMenu && (
+            <div className="absolute z-10 mt-1 w-full bg-[var(--background-color)] shadow-md rounded-lg border border-[var(--border-color)]">
+              {additionalTabs.map((tab) => (
+                <button
+                  key={tab.label}
+                  onClick={() => handleNavClick(tab)}
+                  className="flex items-center px-4 py-2 hover:bg-[var(--hover-bg-color)] w-full text-left"
+                >
+                  <span className="mr-3 text-xl">{tab.icon}</span>
+                  {tab.label}
+                </button>
+              ))}
             </div>
-            <button
-                onClick={() => handleNavClick({ action: "logout" })}
-                className="ml-auto text-xl"
-            >
-              <FaSignOutAlt />
-            </button>
-          </div>
+          )}
         </div>
-      </aside>
+      </nav>
+
+      {/* User info bottom */}
+      <div className="mt-auto pt-4">
+        <div className="flex items-center cursor-pointer hover:bg-[var(--hover-bg-color)] p-2 rounded-full">
+          <img
+            src={avatarUrl || "https://placehold.co/40x40"}
+            alt="Avatar"
+            className="w-10 h-10 rounded-full object-cover mr-3"
+          />
+          <div className="hidden lg:block">
+            <div className="font-bold">{user?.displayName || "Người dùng"}</div>
+            <div className="text-sm text-[var(--text-color-muted)]">
+              @{user?.username}
+            </div>
+          </div>
+          <button
+            onClick={() => handleNavClick({ action: "logout" })}
+            className="ml-auto text-xl"
+          >
+            <FaSignOutAlt />
+          </button>
+        </div>
+      </div>
+    </aside>
   );
 }
 
