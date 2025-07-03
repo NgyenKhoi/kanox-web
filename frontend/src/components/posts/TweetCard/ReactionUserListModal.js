@@ -12,7 +12,13 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useReaction from "../../../hooks/useReaction";
 
-export default function ReactionUserListModal({ show, onHide, targetId, targetTypeCode }) {
+export default function ReactionUserListModal({
+                                                  show,
+                                                  onHide,
+                                                  targetId,
+                                                  targetTypeCode,
+                                                  emojiName,
+                                              }) {
     const [loading, setLoading] = useState(false);
     const [users, setUsers] = useState([]);
     const [selectedReaction, setSelectedReaction] = useState(null);
@@ -24,10 +30,19 @@ export default function ReactionUserListModal({ show, onHide, targetId, targetTy
     const {
         emojiMap,
         reactionCountMap,
-        topReactions, // top 3 emoji react nhiều nhất
+        topReactions,
     } = useReaction({ user: { id: currentUserId }, targetId, targetTypeCode });
 
+    // ✅ Đồng bộ selectedReaction khi modal mở lần đầu
+    useEffect(() => {
+        if (show) {
+            setSelectedReaction(emojiName || null);
+        }
+    }, [show, emojiName]);
+
     const fetchUsers = async (reactionName) => {
+        if (!reactionName && reactionName !== null) return;
+
         setLoading(true);
         try {
             const res = await fetch(
@@ -38,11 +53,11 @@ export default function ReactionUserListModal({ show, onHide, targetId, targetTy
                     },
                 }
             );
+
             const data = await res.json();
             const validUsers = Array.isArray(data) ? data : [];
             setUsers(validUsers);
 
-            // Fetch friendship status
             const statusMap = {};
             await Promise.all(
                 validUsers.map(async (u) => {
@@ -86,7 +101,9 @@ export default function ReactionUserListModal({ show, onHide, targetId, targetTy
     };
 
     useEffect(() => {
-        if (show && targetId && targetTypeCode) fetchUsers(selectedReaction);
+        if (show && targetId && targetTypeCode) {
+            fetchUsers(selectedReaction);
+        }
     }, [show, targetId, targetTypeCode, selectedReaction]);
 
     const top3Reactions = topReactions.slice(0, 3);
@@ -177,24 +194,19 @@ export default function ReactionUserListModal({ show, onHide, targetId, targetTy
                                             <span>{user.displayName || user.username}</span>
                                         </div>
                                         {user.id !== currentUserId && (
-                                            <>
-                                                {friendshipStatus[user.id] === "FRIENDS" ? null : (
-                                                    friendshipStatus[user.id] === "SENT" ? (
-                                                        <small className="text-muted">Đã gửi</small>
-                                                    ) : (
-                                                        <Button
-                                                            variant="outline-primary"
-                                                            size="sm"
-                                                            onClick={() => handleAddFriend(user.id)}
-                                                        >
-                                                            Thêm bạn bè
-                                                        </Button>
-                                                    )
-                                                )}
-                                            </>
-                                        )}
-                                        {friendshipStatus[user.id] === "SENT" && (
-                                            <small className="text-muted">Đã gửi</small>
+                                            friendshipStatus[user.id] === "FRIENDS" ? null : (
+                                                friendshipStatus[user.id] === "SENT" ? (
+                                                    <small className="text-muted">Đã gửi</small>
+                                                ) : (
+                                                    <Button
+                                                        variant="outline-primary"
+                                                        size="sm"
+                                                        onClick={() => handleAddFriend(user.id)}
+                                                    >
+                                                        Thêm bạn bè
+                                                    </Button>
+                                                )
+                                            )
                                         )}
                                     </ListGroup.Item>
                                 ))
