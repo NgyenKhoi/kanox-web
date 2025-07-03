@@ -134,6 +134,40 @@ function MessengerPage() {
             [chatId]: [...currentMessages, newMessage],
           };
         });
+
+          setChats((prevChats) =>
+              prevChats.map((chat) =>
+                  chat.id === chatId
+                      ? {
+                        ...chat,
+                        lastMessage: newMessage.content,
+                        lastSenderId: newMessage.senderId,
+                        unreadMessagesCount:
+                            selectedChatId === chatId
+                                ? 0
+                                : (chat.unreadMessagesCount || 0) + 1,
+                      }
+                      : chat
+              )
+          );
+
+          setUnreadChats((prev) => {
+            const newUnread = new Set(prev);
+            if (selectedChatId !== chatId) {
+              newUnread.add(chatId);
+            } else {
+              newUnread.delete(chatId);
+            }
+            window.dispatchEvent(
+                new CustomEvent("updateUnreadCount", {
+                  detail: { unreadCount: newUnread.size },
+                })
+            );
+            return newUnread;
+          });
+
+
+
       } catch (err) {
         console.error("Lỗi khi xử lý message:", err);
       }
@@ -382,6 +416,16 @@ function MessengerPage() {
       }
       const data = await messagesResponse.json();
       setMessages((prev) => ({ ...prev, [chatId]: data }));
+      setUnreadChats((prev) => {
+        const newUnread = new Set(prev);
+        newUnread.delete(chatId);
+        window.dispatchEvent(
+            new CustomEvent("updateUnreadCount", {
+              detail: { unreadCount: newUnread.size },
+            })
+        );
+        return newUnread;
+      });
     } catch (error) {
       console.error("Error in handleSelectChat:", error);
       toast.error(error.message || "Lỗi khi tải tin nhắn.");
@@ -441,35 +485,45 @@ return (
         </div>
         <div className="flex flex-grow h-full overflow-hidden min-h-0">
             <div className="w-1/3 border-r border-[var(--border-color)] bg-[var(--card-bg)] overflow-y-auto">
-              {filteredChats.map(chat => (
-                  <div
-                      key={chat.id}
-                      onClick={() => handleSelectChat(chat.id)}
-                      className={`flex items-center justify-between p-4 border-b border-[var(--border-color)] hover:bg-[var(--hover-bg-color)] cursor-pointer ${
-                          selectedChatId === chat.id ? "bg-gray-200 dark:bg-gray-700" : ""
-                      }`}
-                  >
-                    <img
-                        src="/assets/default-avatar.png"
-                        alt="Avatar"
-                        className="w-10 h-10 rounded-full mr-3"
-                    />
-                    <div className="flex-1">
-                      <p className="font-bold text-sm">{chat.name || "Unknown User"}</p>
-                      <p className="text-gray-500 text-xs truncate">{chat.lastMessage}</p>
-                    </div>
-                    <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteChat(chat.id);
-                        }}
-                        className="text-red-500 hover:text-red-700"
-                        title="Xóa chat"
+              {filteredChats.map(chat => {
+                const isUnread = unreadChats.has(chat.id) && selectedChatId !== chat.id;
+                const isFromOthers = chat.lastSenderId && chat.lastSenderId !== user.id;
+
+                return (
+                    <div
+                        key={chat.id}
+                        onClick={() => handleSelectChat(chat.id)}
+                        className={`flex items-center justify-between p-4 border-b border-[var(--border-color)] hover:bg-[var(--hover-bg-color)] cursor-pointer ${
+                            selectedChatId === chat.id ? "bg-gray-200 dark:bg-gray-700" : ""
+                        }`}
                     >
-                      <FaTrash />
-                    </button>
-                  </div>
-              ))}
+                      <img
+                          src="/assets/default-avatar.png"
+                          alt="Avatar"
+                          className="w-10 h-10 rounded-full mr-3"
+                      />
+                      <div className="flex-1">
+                        <p className={`text-sm ${isUnread ? "font-bold" : ""}`}>
+                          {chat.name || "Unknown User"}
+                        </p>
+                        <p className={`text-xs truncate ${isUnread ? "font-semibold" : "text-gray-500"}`}>
+                          {isFromOthers ? <span className="text-blue-500">Họ:</span> : null} {chat.lastMessage}
+                        </p>
+                      </div>
+                      <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteChat(chat.id);
+                          }}
+                          className="text-red-500 hover:text-red-700"
+                          title="Xóa chat"
+                      >
+                        <FaTrash />
+                      </button>
+                    </div>
+                );
+              })}
+
             </div>
 
 

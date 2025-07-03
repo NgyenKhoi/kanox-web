@@ -47,7 +47,7 @@ public class NotificationController {
         }
     }
 
-    @PutMapping(URLConfig.MARK_READ)
+    @PutMapping(URLConfig.MARK_READ_NOTIFICATION)
     public ResponseEntity<?> markNotificationAsRead(@PathVariable Integer id) {
         try {
             String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();

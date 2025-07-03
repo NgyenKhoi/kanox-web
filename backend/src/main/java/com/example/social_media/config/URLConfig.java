@@ -37,6 +37,7 @@ public class URLConfig {
     public static final String MESSAGE_DELETE = "/message/delete";
     public static final String CALL_END = "/call/end/{callSessionId}";
     public static final String UNREAD_MESSAGE_COUNT = "/messages/unread-count";
+    public static final String MARK_READ = "/{chatId}/mark-read";
     public static final String WEBSOCKET_CALL_OFFER = "/call/offer";
     public static final String WEBSOCKET_CALL_ANSWER = "/call/answer";
     public static final String TYPING = "/typing";
@@ -87,7 +88,7 @@ public class URLConfig {
     public static final String GET_FOLLOW_STATUS = "/status/{targetId}";
     // Notifications
     public static final String NOTIFICATION_BASE = "/api/notifications";
-    public static final String MARK_READ = "/{id}/mark-read";
+    public static final String MARK_READ_NOTIFICATION = "/{id}/mark-read";
     public static final String MARK_UNREAD = "/{id}/mark-unread";
     // Privacy URLs
     public static final String PRIVACY_BASE = "/api/privacy";
