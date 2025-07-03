@@ -165,7 +165,7 @@ function CommunityPage({ onShowCreatePost, isDarkMode, onToggleDarkMode }) {
               {posts.map((post) => (
                 <Card
                   key={post.id}
-                  className="mb-3 post-card bg-[var(--background-color)]"
+                  className="mb-3 post-card bg-[var(--background-color)] text-[var(--text-color)]"
                 >
                   <Card.Body>
                     <div className="d-flex align-items-start mb-2">
