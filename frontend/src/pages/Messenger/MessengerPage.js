@@ -121,17 +121,19 @@ function MessengerPage() {
 
     const callback = (newMessage) => {
       try {
-        const currentMessages = messages[chatId] || [];
-        const exists = currentMessages.some((msg) => msg.id === newMessage.id);
-        if (exists) {
-          console.warn("Tin nhắn trùng (bỏ qua):", newMessage);
-          return;
-        }
+        setMessages((prev) => {
+          const currentMessages = prev[chatId] || [];
+          const exists = currentMessages.some((msg) => msg.id === newMessage.id);
+          if (exists) {
+            console.warn("🚫 Duplicate message (callback ignored):", newMessage);
+            return prev;
+          }
 
-        setMessages((prev) => ({
-          ...prev,
-          [chatId]: [...(prev[chatId] || []), newMessage],
-        }));
+          return {
+            ...prev,
+            [chatId]: [...currentMessages, newMessage],
+          };
+        });
       } catch (err) {
         console.error("Lỗi khi xử lý message:", err);
       }
