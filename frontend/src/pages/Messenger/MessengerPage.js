@@ -109,7 +109,10 @@ function MessengerPage() {
     const callback = (newMessage) => {
       try {
         console.log("✅ New message received:", newMessage);
-        console.log("📌 newMessage.chatId =", newMessage.chatId, "| typeof =", typeof newMessage.chatId);
+        const currentMessages = messages[chatId] || [];
+        const exists = currentMessages.some((msg) => msg.id === newMessage.id);
+        if (exists) return;
+
         setMessages((prev) => ({
           ...prev,
           [chatId]: [...(prev[chatId] || []), newMessage],
@@ -118,6 +121,7 @@ function MessengerPage() {
         console.error("❌ [MessengerPage] Lỗi khi parse message:", err, newMessage);
       }
     };
+
 
 
     const subscription = subscribe(topic, callback, subId);
