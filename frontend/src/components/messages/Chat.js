@@ -128,18 +128,18 @@ useEffect(() => {
 
     // subscriptions.push(subscribe(`/topic/chat/${chatId}`, handleMessage, `chat-${chatId}`));
     subscriptions.push(subscribe(`/topic/typing/${chatId}`, handleMessage, `typing-${chatId}`));
-    subscriptions.push(subscribe(`/topic/messages/${user.id}`, handleMessage, `messages-${user.id}`));
+    //subscriptions.push(subscribe(`/topic/messages/${user.id}`, handleMessage, `messages-${user.id}`));
     subscriptions.push(subscribe(`/topic/unread-count/${user.id}`, handleMessage, `unread-count-${user.id}`));
 
-    const sendResend = () => {
-        if (publish && isConnectedRef.current) {
-            publish("/app/resend", { chatId: Number(chatId) });
-            console.log("Sent /app/resend for chatId:", `${chatId}`);
-        } else {
-            console.warn("Retrying /app/resend for chatId:", `${chatId}`);
-            setTimeout(sendResend, 100);
-        }
-    };
+    // const sendResend = () => {
+    //     if (publish && isConnectedRef.current) {
+    //         publish("/app/resend", { chatId: Number(chatId) });
+    //         console.log("Sent /app/resend for chatId:", `${chatId}`);
+    //     } else {
+    //         console.warn("Retrying /app/resend for chatId:", `${chatId}`);
+    //         setTimeout(sendResend, 100);
+    //     }
+    // };
 
     // const checkConnection = setInterval(() => {
     //     if (publish && !isConnectedRef.current) {
@@ -148,9 +148,9 @@ useEffect(() => {
     //     }
     // }, 100);
 
-    if (publish) {
-        publish("/app/resend", { chatId: Number(chatId) });
-    }
+    // if (publish) {
+    //     publish("/app/resend", { chatId: Number(chatId) });
+    // }
 
     fetch(`${process.env.REACT_APP_API_URL}/chat/${chatId}`, {
         headers: { Authorization: `Bearer ${token}` },
