@@ -418,7 +418,7 @@ return (
           </div>
 
         </div>
-        <div className="d-flex flex-grow-1">
+        <div className="flex flex-grow h-full overflow-hidden">
             <div className="w-[350px] border-r border-[var(--border-color)] bg-[var(--card-bg)] overflow-y-auto">
               {filteredChats.map(chat => (
                   <div
