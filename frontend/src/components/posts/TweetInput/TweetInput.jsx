@@ -281,45 +281,6 @@ function TweetInput({ onPostSuccess }) {
     );
   };
 
-  const renderMediaPreview = () => {
-    if (mediaPreviews.length === 0) return null;
-
-    const containerStyle = {
-      display: "grid",
-      gap: "4px",
-      marginBottom: "10px",
-      position: "relative",
-      maxWidth: "100%",
-    };
-
-    const mediaStyle = {
-      maxWidth: "100%",
-      maxHeight: "200px",
-      objectFit: "cover",
-      borderRadius: "8px",
-    };
-
-    const renderRemoveButton = (index) => (
-        <button
-            type="button"
-            className="absolute top-0 right-0 m-2 w-6 h-6 rounded-full text-white bg-black/70 text-xs"
-            style={{
-              zIndex: 2,
-              width: "24px",
-              height: "24px",
-              lineHeight: "12px",
-              textAlign: "center",
-              fontWeight: "bold",
-              fontSize: "16px",
-              opacity: 0.85,
-            }}
-            onClick={() => handleRemoveMedia(index)}
-            title="Xoá"
-        >
-          &times;
-        </button>
-    );
-
       const renderMediaPreview = () => {
           if (mediaPreviews.length === 0) return null;
 
@@ -331,9 +292,9 @@ function TweetInput({ onPostSuccess }) {
               return (
                   <div key={index} className="relative group w-full h-full overflow-hidden">
                       {isVideo ? (
-                          <video src={preview.url} controls className={mediaStyle} />
+                          <video src={preview.url} controls className={mediaStyle}/>
                       ) : (
-                          <img src={preview.url} alt="preview" className={mediaStyle} />
+                          <img src={preview.url} alt="preview" className={mediaStyle}/>
                       )}
                       <button
                           className="absolute top-1 right-1 text-white bg-black/60 rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
@@ -380,9 +341,11 @@ function TweetInput({ onPostSuccess }) {
                   {filesToShow.map((url, i) => {
                       if (i === 3 && extraCount > 0) {
                           return (
-                              <div key={i} className="relative group w-full h-full overflow-hidden cursor-pointer" onClick={() => handleOpenMediaModal(3)}>
-                                  <img src={url} alt="preview" className={`${mediaStyle} opacity-70`} />
-                                  <div className="absolute inset-0 flex items-center justify-center text-white text-xl font-bold bg-black/50">
+                              <div key={i} className="relative group w-full h-full overflow-hidden cursor-pointer"
+                                   onClick={() => handleOpenMediaModal(3)}>
+                                  <img src={url} alt="preview" className={`${mediaStyle} opacity-70`}/>
+                                  <div
+                                      className="absolute inset-0 flex items-center justify-center text-white text-xl font-bold bg-black/50">
                                       +{extraCount}
                                   </div>
                                   <button
