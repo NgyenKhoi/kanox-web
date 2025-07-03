@@ -43,8 +43,17 @@ public class ReactionController {
     }
 
     @GetMapping(URLConfig.GET_REACTION_FOR_MESSAGE)
-    public ResponseEntity<List<ReactionType>> getReactionsForMessaging() {
-        return ResponseEntity.ok(reactionService.getAvailableReactionsForMessaging());
+    public ResponseEntity<List<Map<String, String>>> getReactionsForMessaging() {
+        List<ReactionType> types = reactionService.getAvailableReactionsForMessaging();
+
+        List<Map<String, String>> result = types.stream()
+                .map(rt -> Map.of(
+                        "name", rt.getName(),
+                        "emoji", rt.getEmoji()
+                ))
+                .toList();
+
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping(URLConfig.GET_MAIN_REACTION)

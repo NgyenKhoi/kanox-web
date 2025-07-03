@@ -11,6 +11,8 @@ import {
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useReaction from "../../../hooks/useReaction";
+import FriendshipButton from "../../friendship/FriendshipButton";
+import FollowActionButton from "../../utils/FollowActionButton";
 
 export default function ReactionUserListModal({
                                                   show,
@@ -22,7 +24,6 @@ export default function ReactionUserListModal({
     const [loading, setLoading] = useState(false);
     const [users, setUsers] = useState([]);
     const [selectedReaction, setSelectedReaction] = useState(null);
-    const [friendshipStatus, setFriendshipStatus] = useState({});
     const token = localStorage.getItem("token");
     const currentUserId = localStorage.getItem("userId");
     const navigate = useNavigate();
@@ -33,7 +34,6 @@ export default function ReactionUserListModal({
         topReactions,
     } = useReaction({ user: { id: currentUserId }, targetId, targetTypeCode });
 
-    // ✅ Đồng bộ selectedReaction khi modal mở lần đầu
     useEffect(() => {
         if (show) {
             setSelectedReaction(emojiName || null);
@@ -55,48 +55,12 @@ export default function ReactionUserListModal({
             );
 
             const data = await res.json();
-            const validUsers = Array.isArray(data) ? data : [];
-            setUsers(validUsers);
-
-            const statusMap = {};
-            await Promise.all(
-                validUsers.map(async (u) => {
-                    if (u.id === currentUserId) return;
-                    const res = await fetch(
-                        `${process.env.REACT_APP_API_URL}/friends/users/${currentUserId}/friendship-status/${u.id}`,
-                        { headers: { Authorization: `Bearer ${token}` } }
-                    );
-                    if (res.ok) {
-                        const json = await res.json();
-                        statusMap[u.id] = json.status;
-                    }
-                })
-            );
-            setFriendshipStatus(statusMap);
+            setUsers(Array.isArray(data) ? data : []);
         } catch (err) {
             console.error("Lỗi khi tải danh sách người dùng:", err.message);
             setUsers([]);
         } finally {
             setLoading(false);
-        }
-    };
-
-    const handleAddFriend = async (userId) => {
-        try {
-            const res = await fetch(
-                `${process.env.REACT_APP_API_URL}/friends/send-request/${userId}`,
-                {
-                    method: "POST",
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                }
-            );
-            if (res.ok) {
-                setFriendshipStatus((prev) => ({ ...prev, [userId]: "SENT" }));
-            }
-        } catch (error) {
-            console.error("Không thể gửi lời mời kết bạn", error.message);
         }
     };
 
@@ -130,9 +94,7 @@ export default function ReactionUserListModal({
                             <div className="d-flex gap-2 flex-wrap mb-3 ps-3 pe-3 align-items-center">
                                 <Button
                                     variant="link"
-                                    className={`p-1 rounded-pill fw-semibold ${
-                                        !selectedReaction ? "text-primary" : "text-muted"
-                                    }`}
+                                    className={`p-1 rounded-pill fw-semibold ${!selectedReaction ? "text-primary" : "text-muted"}`}
                                     onClick={() => setSelectedReaction(null)}
                                 >
                                     Tất cả
@@ -142,9 +104,7 @@ export default function ReactionUserListModal({
                                     <OverlayTrigger key={name} placement="top" overlay={<Tooltip>{name}</Tooltip>}>
                                         <Button
                                             variant="link"
-                                            className={`p-1 rounded-circle fs-4 ${
-                                                selectedReaction === name ? "text-primary" : "text-muted"
-                                            }`}
+                                            className={`p-1 rounded-circle fs-4 ${selectedReaction === name ? "text-primary" : "text-muted"}`}
                                             onClick={() => setSelectedReaction(name)}
                                         >
                                             {emoji} {count}
@@ -194,19 +154,10 @@ export default function ReactionUserListModal({
                                             <span>{user.displayName || user.username}</span>
                                         </div>
                                         {user.id !== currentUserId && (
-                                            friendshipStatus[user.id] === "FRIENDS" ? null : (
-                                                friendshipStatus[user.id] === "SENT" ? (
-                                                    <small className="text-muted">Đã gửi</small>
-                                                ) : (
-                                                    <Button
-                                                        variant="outline-primary"
-                                                        size="sm"
-                                                        onClick={() => handleAddFriend(user.id)}
-                                                    >
-                                                        Thêm bạn bè
-                                                    </Button>
-                                                )
-                                            )
+                                            <div className="d-flex gap-2 align-items-center">
+                                                <FriendshipButton targetId={user.id} />
+                                                <FollowActionButton targetId={user.id} />
+                                            </div>
                                         )}
                                     </ListGroup.Item>
                                 ))

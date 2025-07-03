@@ -14,6 +14,7 @@ import {
     Popover,
 } from "react-bootstrap";
 import {
+  FaImage, FaVideo, FaSmile,
   FaBookmark,
   FaRegComment,
   FaRetweet,
@@ -46,6 +47,7 @@ import useReaction from "../../../hooks/useReaction";
 import ReactionUserListModal from "./ReactionUserListModal";
 import PostImages from "./PostImages";
 import { useCommentActions } from "../../../hooks/useCommentAction";
+import useEmojiList from "../../../hooks/useEmojiList";
 
 function TweetCard({ tweet, onPostUpdate }) {
   const { user, loading, token } = useContext(AuthContext);
@@ -71,10 +73,13 @@ function TweetCard({ tweet, onPostUpdate }) {
   const [newComment, setNewComment] = useState("");
   const [isCommenting, setIsCommenting] = useState(false);
   const [showCommentBox, setShowCommentBox] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isLoadingComments, setIsLoadingComments] = useState(true);
   const [showReactionUserModal, setShowReactionUserModal] = useState(false);
   const [selectedEmojiName, setSelectedEmojiName] = useState("");
   const [commentUserList, setCommentUserList] = useState([]);
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const { emojiList } = useEmojiList();
 
   const currentUserId = user?.id;
   const ownerId = owner?.id || null;
@@ -167,6 +172,16 @@ function TweetCard({ tweet, onPostUpdate }) {
   useEffect(() => {
     if (id) fetchComments();
   }, [id]);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (!e.target.closest(".emoji-picker")) {
+        setShowEmojiPicker(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const {
     handleReplyToComment,
@@ -390,7 +405,7 @@ function TweetCard({ tweet, onPostUpdate }) {
             <div className="flex-grow-1">
               {/* header */}
               <div className="position-relative mb-1">
-                <div className="d-flex align-items-center pe-5"> {/* padding để tránh đè lên nút X */}
+                <div className="d-flex align-items-center pe-5">
                   <h6
                       className="mb-0 fw-bold me-1 cursor-pointer text-[var(--text-color)]"
                       onClick={handleNavigateToProfile}
@@ -398,11 +413,11 @@ function TweetCard({ tweet, onPostUpdate }) {
                     {owner?.displayName || "Người dùng"}
                   </h6>
                   <span className="text-[var(--text-color-muted)] small me-1">
-      @{owner?.username || "unknown"}
-    </span>
+                  @{owner?.username || "unknown"}
+                </span>
                   <span className="text-[var(--text-color-muted)] small me-1">
-      · {moment(createdAt * 1000).fromNow()}
-    </span>
+                  · {moment(createdAt * 1000).fromNow()}
+                </span>
                   <OverlayTrigger
                       placement="top"
                       overlay={<Tooltip>{renderStatusText(privacySetting)}</Tooltip>}
@@ -410,62 +425,63 @@ function TweetCard({ tweet, onPostUpdate }) {
                     <span>{renderStatusIcon(privacySetting)}</span>
                   </OverlayTrigger>
                 </div>
-                {/* dropdown */}
-                <div className="position-absolute top-0 end-0 d-flex align-items-center gap-1">
-                <Dropdown>
-                  <Dropdown.Toggle
-                      variant="link"
-                      className="text-[var(--text-color-muted)] p-1 rounded-circle"
-                  >
-                    <FaEllipsisH />
-                  </Dropdown.Toggle>
-                  <Dropdown.Menu>
-                    {isOwnTweet && (
-                        <>
-                          <Dropdown.Item onClick={handleEditTweet}>
-                            <FaEdit className="me-2 text-[var(--text-color)]" /> Chỉnh sửa
-                          </Dropdown.Item>
-                          <Dropdown.Item onClick={handleDeleteTweet}>
-                            <FaTrash className="me-2 text-[var(--text-color)]" /> Xóa
-                          </Dropdown.Item>
-                          <Dropdown drop="end">
-                            <Dropdown.Toggle
-                                variant="link"
-                                className="text-[var(--text-color)] p-0 w-100 text-start"
-                            >
-                              <FaShareAlt className="me-2 text-[var(--text-color)]" /> Trạng thái:{" "}
-                              {renderStatusText(privacySetting)}
-                            </Dropdown.Toggle>
-                            <Dropdown.Menu>
-                              <Dropdown.Item onClick={() => handleStatusChange("public")}>
-                                <FaGlobeAmericas className="me-2 text-primary" /> Công khai
-                              </Dropdown.Item>
-                              <Dropdown.Item onClick={() => handleStatusChange("friends")}>
-                                <FaUserFriends className="me-2 text-success" /> Bạn bè
-                              </Dropdown.Item>
-                              <Dropdown.Item onClick={() => handleStatusChange("only_me")}>
-                                <FaLock className="me-2 text-danger" /> Chỉ mình tôi
-                              </Dropdown.Item>
-                              <Dropdown.Item onClick={() => handleStatusChange("custom")}>
-                                <FaList className="me-2 text-info" /> Tùy chỉnh
-                              </Dropdown.Item>
-                            </Dropdown.Menu>
-                          </Dropdown>
-                        </>
-                    )}
-                    <Dropdown.Item onClick={handleSavePost()}>
-                      <FaSave className="me-2 text-[var(--text-color)]" /> Lưu bài đăng
-                    </Dropdown.Item>
-                    <Dropdown.Item>
-                      <FaFlag className="me-2 text-[var(--text-color)]" /> Báo cáo
-                    </Dropdown.Item>
-                  </Dropdown.Menu>
-                </Dropdown>
+                {/* dropdown và nút X */}
+                <div className="position-absolute top-0 end-0 d-flex align-items-center gap-2">
+                  <Dropdown>
+                    <Dropdown.Toggle
+                        variant="link"
+                        className="text-[var(--text-color-muted)] p-1 rounded-circle"
+                        style={{ width: "36px", height: "36px", fontSize: "1.2rem" }}
+                    >
+                      <FaEllipsisH />
+                    </Dropdown.Toggle>
+                    <Dropdown.Menu>
+                      {isOwnTweet && (
+                          <>
+                            <Dropdown.Item onClick={handleEditTweet}>
+                              <FaEdit className="me-2 text-[var(--text-color)]" /> Chỉnh sửa
+                            </Dropdown.Item>
+                            <Dropdown.Item onClick={handleDeleteTweet}>
+                              <FaTrash className="me-2 text-[var(--text-color)]" /> Xóa
+                            </Dropdown.Item>
+                            <Dropdown drop="end">
+                              <Dropdown.Toggle
+                                  variant="link"
+                                  className="text-[var(--text-color)] p-0 w-100 text-start"
+                              >
+                                <FaShareAlt className="me-2 text-[var(--text-color)]" /> Trạng thái:{" "}
+                                {renderStatusText(privacySetting)}
+                              </Dropdown.Toggle>
+                              <Dropdown.Menu>
+                                <Dropdown.Item onClick={() => handleStatusChange("public")}>
+                                  <FaGlobeAmericas className="me-2 text-primary" /> Công khai
+                                </Dropdown.Item>
+                                <Dropdown.Item onClick={() => handleStatusChange("friends")}>
+                                  <FaUserFriends className="me-2 text-success" /> Bạn bè
+                                </Dropdown.Item>
+                                <Dropdown.Item onClick={() => handleStatusChange("only_me")}>
+                                  <FaLock className="me-2 text-danger" /> Chỉ mình tôi
+                                </Dropdown.Item>
+                                <Dropdown.Item onClick={() => handleStatusChange("custom")}>
+                                  <FaList className="me-2 text-info" /> Tùy chỉnh
+                                </Dropdown.Item>
+                              </Dropdown.Menu>
+                            </Dropdown>
+                          </>
+                      )}
+                      <Dropdown.Item onClick={handleSavePost}>
+                        <FaSave className="me-2 text-[var(--text-color)]" /> Lưu bài đăng
+                      </Dropdown.Item>
+                      <Dropdown.Item>
+                        <FaFlag className="me-2 text-[var(--text-color)]" /> Báo cáo
+                      </Dropdown.Item>
+                    </Dropdown.Menu>
+                  </Dropdown>
                   <Button
                       variant="link"
                       className="p-1 text-muted hover:text-danger"
                       style={{
-                        fontSize: "1.4rem",
+                        fontSize: "1rem", // Smaller size for the X button
                         lineHeight: 1,
                       }}
                       onClick={handleHidePost}
@@ -487,8 +503,8 @@ function TweetCard({ tweet, onPostUpdate }) {
                           .filter((tag) => tag?.username)
                           .map((tag, index) => (
                               <span key={index} className="text-primary me-1">
-                      @{tag.username}
-                    </span>
+                        @{tag.username}
+                      </span>
                           ))}
                     </small>
                   </div>
@@ -515,7 +531,13 @@ function TweetCard({ tweet, onPostUpdate }) {
 
               {/* reaction count + actions */}
               {(totalCount > 0 || commentCount > 0) && (
-                  <div className="d-flex justify-content-between align-items-center mt-2 px-2">
+                  <div
+                      className={[
+                        "d-flex justify-content-between align-items-center px-2 py-2",
+                        imageUrls.length > 0 ? "border-t border-[var(--border-color)]" : "",
+                        "border-b border-[var(--border-color)]"
+                      ].join(" ")}
+                  >
                     <div className="d-flex align-items-center gap-1">
                       {topReactions.map(({ emoji, name }) => (
                           <OverlayTrigger
@@ -546,33 +568,30 @@ function TweetCard({ tweet, onPostUpdate }) {
                                 </Popover>
                               }
                           >
-                    <span
-                        onMouseEnter={() => {
-                          if (!reactionUserMap[name]) {
-                            fetchUsersByReaction(name);
-                          }
-                        }}
-                        onClick={() => {
-                          if (name) {
-                            setSelectedEmojiName(name);
-                            setShowReactionUserModal(true);
-                          } else {
-                            toast.error("Tên emoji không hợp lệ!");
-                          }
-                        }}
-                        style={{ fontSize: "1.2rem", cursor: "pointer", marginRight: "4px" }}
-                    >
-                          {emoji}
-                        </span>
-
+                      <span
+                          onMouseEnter={() => {
+                            if (!reactionUserMap[name]) {
+                              fetchUsersByReaction(name);
+                            }
+                          }}
+                          onClick={() => {
+                            if (name) {
+                              setSelectedEmojiName(name);
+                              setShowReactionUserModal(true);
+                            } else {
+                              toast.error("Tên emoji không hợp lệ!");
+                            }
+                          }}
+                          style={{ fontSize: "1.2rem", cursor: "pointer", marginRight: "4px" }}
+                      >
+                        {emoji}
+                      </span>
                           </OverlayTrigger>
                       ))}
-
                       {totalCount > 0 && (
                           <span className="text-[var(--text-color-muted)] ms-1">{totalCount}</span>
                       )}
                     </div>
-
                     <div className="text-[var(--text-color-muted)] small text-end">
                       <OverlayTrigger
                           placement="top"
@@ -596,14 +615,14 @@ function TweetCard({ tweet, onPostUpdate }) {
                             </Popover>
                           }
                       >
-                      <span
-                          className="text-[var(--text-color-muted)] small text-end cursor-pointer"
-                          onMouseEnter={() => {
-                            // Nếu sau này muốn fetch động, có thể làm ở đây
-                          }}
-                      >
-                        {commentCount} bình luận
-                      </span>
+                    <span
+                        className="text-[var(--text-color-muted)] small text-end cursor-pointer"
+                        onMouseEnter={() => {
+                          // Nếu sau này muốn fetch động, có thể làm ở đây
+                        }}
+                    >
+                      {commentCount} bình luận
+                    </span>
                       </OverlayTrigger>
                       {shareCount > 0 && ` · ${shareCount} lượt chia sẻ`}
                     </div>
@@ -653,12 +672,12 @@ function TweetCard({ tweet, onPostUpdate }) {
                   <div className="mt-2 pt-2 border-t border-[var(--border-color)]">
                     {renderComments()}
                     <Form onSubmit={handleCommentSubmit} className="mt-2">
-                      <div className="d-flex align-items-center">
+                      <div className="d-flex align-items-start"> {/* Changed to align-items-start */}
                         {user?.avatarUrl ? (
                             <BootstrapImage
                                 src={user.avatarUrl}
-                                style={{ width: 32, height: 32, objectFit: 'cover' }}
-                                className="mr-2 rounded-full"
+                                style={{ width: 32, height: 32, objectFit: "cover", flexShrink: 0 }} // Prevent shrinking
+                                className="me-2 rounded-full"
                                 roundedCircle
                                 alt={`Ảnh đại diện của ${user.displayName}`}
                             />
@@ -666,10 +685,11 @@ function TweetCard({ tweet, onPostUpdate }) {
                             <FaUserCircle
                                 size={32}
                                 className="me-2 text-[var(--text-color-muted)]"
+                                style={{ flexShrink: 0 }} // Prevent shrinking
                                 aria-label="Ảnh đại diện mặc định"
                             />
                         )}
-                        <InputGroup>
+                        <InputGroup className="flex-grow-1">
                           <Form.Control
                               type="text"
                               placeholder="Viết bình luận..."
@@ -678,6 +698,52 @@ function TweetCard({ tweet, onPostUpdate }) {
                               className="rounded-full border-[var(--border-color)] bg-[var(--background-color)] text-[var(--text-color)]"
                               disabled={isCommenting}
                           />
+                          <div className="d-flex gap-3 align-items-center mt-2 ps-1">
+                            <OverlayTrigger placement="top" overlay={<Tooltip>Biểu tượng cảm xúc</Tooltip>}>
+                              <Button
+                                  variant="light"
+                                  size="sm"
+                                  className="rounded-circle p-2"
+                                  type="button"
+                                  onClick={() => setShowEmojiPicker((prev) => !prev)}
+                              >
+                                <FaSmile />
+                              </Button>
+                            </OverlayTrigger>
+
+                            <OverlayTrigger placement="top" overlay={<Tooltip>Hình ảnh</Tooltip>}>
+                              <Button variant="light" size="sm" className="rounded-circle p-2">
+                                <FaImage />
+                              </Button>
+                            </OverlayTrigger>
+
+                            <OverlayTrigger placement="top" overlay={<Tooltip>Video</Tooltip>}>
+                              <Button variant="light" size="sm" className="rounded-circle p-2">
+                                <FaVideo />
+                              </Button>
+                            </OverlayTrigger>
+                          </div>
+                          {showEmojiPicker && (
+                              <div
+                                  className="emoji-picker bg-white dark:bg-gray-800 shadow-lg rounded-lg p-3 border border-gray-200 dark:border-gray-700 mt-2 z-50"
+                                  style={{ maxWidth: 300, maxHeight: 200, overflowY: "auto" }}
+                              >
+                                <div className="flex flex-wrap">
+                                  {emojiList.map((emoji, idx) => (
+                                      <span
+                                          key={idx}
+                                          className="text-2xl cursor-pointer m-1"
+                                          onClick={() => {
+                                            setNewComment((prev) => prev + emoji.emoji);
+                                            setShowEmojiPicker(false);
+                                          }}
+                                      >
+          {emoji.emoji}
+        </span>
+                                  ))}
+                                </div>
+                              </div>
+                          )}
                           <Button
                               type="submit"
                               size="sm"
