@@ -25,6 +25,8 @@ code {
   --primary-color: #007bff;
   --border-color: #dee2e6;
   --text-color-filter: none;
+  --tooltip-bg-color: #222;
+  --message-other-bg: #e5e7eb;
 }
 
 .dark {
@@ -35,6 +37,8 @@ code {
   --primary-color: #4dabf7;
   --border-color: #444444;
   --text-color-filter: invert(1);
+  --tooltip-bg-color: #444;
+  --message-other-bg: #374151;
 }
 
 body {

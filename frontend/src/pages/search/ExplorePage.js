@@ -103,7 +103,7 @@ function ExplorePage() {
     return (
         <div
             onClick={() => navigate(`/profile/${item.username}`)}
-            className="flex items-start gap-2 px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
+            className="flex bg-[var(--background-color)] items-start gap-2 px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
         >
           <img
               src={mediaUrl || "https://via.placeholder.com/30?text=Avatar"}
@@ -121,7 +121,7 @@ function ExplorePage() {
 
   const renderSearchResults = () =>
       searchKeyword.trim() && (
-          <div className="absolute bg-[var(--content-bg)] dark:bg-[var(--content-bg)] w-full mt-1 rounded-md shadow-lg z-50 max-h-96 overflow-y-auto">
+          <div className="absolute bg-bg-[var(--content-bg)] dark:bg-[var(--content-bg)] w-full mt-1 rounded-md shadow-lg z-50 max-h-96 overflow-y-auto">
             {isSearching ? (
                 <div className="px-4 py-3 text-center text-sm text-gray-500">Đang tải...</div>
             ) : searchResults.length > 0 ? (
