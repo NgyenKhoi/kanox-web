@@ -261,202 +261,208 @@ function CommunityDetail() {
   }
 
   return (
-    <Container
-      fluid
-      className="community-detail-page-container d-flex flex-grow-1"
-    >
-      <Row className="w-100 justify-content-center">
-        <Col xs={12} lg={8} className="community-detail-main-content border-start border-end py-3">
-          {/* Header */}
-          <div className="d-flex align-items-center mb-3 px-3">
-            <Button
-              variant="link"
-              onClick={() => navigate("/communities")}
-              className="text-dark p-0 me-3"
-            >
-              <FaArrowLeft size={20} />
-            </Button>
-            <h2 className="mb-0 me-auto">{community.name}</h2>
-            <div className="search-icon me-3">
-              <FaSearch size={20} />
+    <div>
+      <Container
+        fluid
+        className="community-detail-page-container d-flex flex-grow-1 bg-[var(--background-color)]"
+      >
+        <Row className="w-100 justify-content-center">
+          <Col
+            xs={12}
+            lg={8}
+            className="community-detail-main-content border-start border-end py-3"
+          >
+            {/* Header */}
+            <div className="d-flex align-items-center mb-3 px-3">
+              <Button
+                variant="link"
+                onClick={() => navigate("/communities")}
+                className="bg-[var(--background-color)] text-[var(--text-color)] p-0 me-3"
+              >
+                <FaArrowLeft size={20} />
+              </Button>
+              <h2 className="mb-0 me-auto">{community.name}</h2>
+              <div className="search-icon me-3">
+                <FaSearch size={20} />
+              </div>
+              <div className="settings-icon">
+                <i className="bi bi-gear"></i>
+              </div>
             </div>
-            <div className="settings-icon">
-              <i className="bi bi-gear"></i>
+
+            {/* Community Banner */}
+            <div className="community-banner mb-3">
+              <img
+                src={community.banner}
+                alt="Community Banner"
+                className="img-fluid w-100"
+              />
+              <img
+                src={community.avatar}
+                alt="Community Avatar"
+                className="community-avatar rounded-circle border border-3 border-white"
+              />
             </div>
-          </div>
 
-          {/* Community Banner */}
-          <div className="community-banner mb-3">
-            <img
-              src={community.banner}
-              alt="Community Banner"
-              className="img-fluid w-100"
-            />
-            <img
-              src={community.avatar}
-              alt="Community Avatar"
-              className="community-avatar rounded-circle border border-3 border-white"
-            />
-          </div>
-
-          {/* Community Info */}
-          <div className="px-3 pb-3">
-            <h3 className="mb-0">
-              {community.name}{" "}
-              {community.isVerified && (
-                <i className="bi bi-patch-check-fill text-primary ms-1"></i>
-              )}
-            </h3>
-            <p className="text-muted">{community.handle}</p>
-            <Button
-              variant="primary"
-              className="rounded-pill px-4 mb-3"
-              onClick={handleShowRulesModal}
-              disabled={isJoining}
-            >
-              {isJoining ? "Đang gửi yêu cầu..." : "Tham gia"}
-            </Button>
-            <p>{community.description}</p>
-            <div className="d-flex small text-muted mb-3">
-              <span className="me-3 d-flex align-items-center">
-                {/* Added FaUsers icon */}
-                <FaUsers className="me-1" />
-                {/* Updated onClick to open members modal */}
-                <span
-                  onClick={handleShowMembersModal}
-                  style={{ cursor: "pointer", textDecoration: "underline" }}
-                >
-                  {community.members} thành viên
+            {/* Community Info */}
+            <div className="px-3 pb-3">
+              <h3 className="mb-0">
+                {community.name}{" "}
+                {community.isVerified && (
+                  <i className="bi bi-patch-check-fill text-primary ms-1"></i>
+                )}
+              </h3>
+              <p className="text-muted">{community.handle}</p>
+              <Button
+                variant="primary"
+                className="rounded-pill px-4 mb-3"
+                onClick={handleShowRulesModal}
+                disabled={isJoining}
+              >
+                {isJoining ? "Đang gửi yêu cầu..." : "Tham gia"}
+              </Button>
+              <p>{community.description}</p>
+              <div className="d-flex small text-muted mb-3">
+                <span className="me-3 d-flex align-items-center">
+                  {/* Added FaUsers icon */}
+                  <FaUsers className="me-1" />
+                  {/* Updated onClick to open members modal */}
+                  <span
+                    onClick={handleShowMembersModal}
+                    style={{ cursor: "pointer", textDecoration: "underline" }}
+                  >
+                    {community.members} thành viên
+                  </span>
                 </span>
-              </span>
-              <span>Tạo {community.founded}</span>
-              <span className="ms-auto">Cộng đồng {community.category}</span>
+                <span>Tạo {community.founded}</span>
+                <span className="ms-auto">Cộng đồng {community.category}</span>
+              </div>
             </div>
-          </div>
 
-          {/* Navigation Tabs (Hàng đầu, Mới nhất, Media, Giới thiệu) */}
-          <Nav variant="underline" className="community-detail-nav mb-4">
-            <Nav.Item>
-              <Nav.Link
-                eventKey="top"
-                active={activeTab === "top"}
-                onClick={() => setActiveTab("top")}
-              >
-                Hàng đầu
-              </Nav.Link>
-            </Nav.Item>
-            <Nav.Item>
-              <Nav.Link
-                eventKey="latest"
-                active={activeTab === "latest"}
-                onClick={() => setActiveTab("latest")}
-              >
-                Mới nhất
-              </Nav.Link>
-            </Nav.Item>
-            <Nav.Item>
-              <Nav.Link
-                eventKey="media"
-                active={activeTab === "media"}
-                onClick={() => setActiveTab("media")}
-              >
-                Media
-              </Nav.Link>
-            </Nav.Item>
-            <Nav.Item>
-              <Nav.Link
-                eventKey="about"
-                active={activeTab === "about"}
-                onClick={() => setActiveTab("about")}
-              >
-                Giới thiệu
-              </Nav.Link>
-            </Nav.Item>
-          </Nav>
+            {/* Navigation Tabs (Hàng đầu, Mới nhất, Media, Giới thiệu) */}
+            <Nav variant="underline" className="community-detail-nav mb-4">
+              <Nav.Item>
+                <Nav.Link
+                  eventKey="top"
+                  active={activeTab === "top"}
+                  onClick={() => setActiveTab("top")}
+                >
+                  Hàng đầu
+                </Nav.Link>
+              </Nav.Item>
+              <Nav.Item>
+                <Nav.Link
+                  eventKey="latest"
+                  active={activeTab === "latest"}
+                  onClick={() => setActiveTab("latest")}
+                >
+                  Mới nhất
+                </Nav.Link>
+              </Nav.Item>
+              <Nav.Item>
+                <Nav.Link
+                  eventKey="media"
+                  active={activeTab === "media"}
+                  onClick={() => setActiveTab("media")}
+                >
+                  Media
+                </Nav.Link>
+              </Nav.Item>
+              <Nav.Item>
+                <Nav.Link
+                  eventKey="about"
+                  active={activeTab === "about"}
+                  onClick={() => setActiveTab("about")}
+                >
+                  Giới thiệu
+                </Nav.Link>
+              </Nav.Item>
+            </Nav>
 
-          {/* Content based on active tab */}
-          <div className="tab-content px-3">
-            {activeTab === "top" && (
-              <div>
-                {/* Render top posts for this community */}
-                {community.posts.map((post) => (
-                  <Card key={post.id} className="mb-3 post-card">
-                    <Card.Body>
-                      <div className="d-flex align-items-start mb-2">
-                        <img
-                          src={post.userAvatar}
-                          alt="User Avatar"
-                          className="rounded-circle me-2"
-                          style={{ width: "40px", height: "40px" }}
-                        />
-                        <div className="flex-grow-1">
-                          <div className="d-flex align-items-center">
-                            <span className="fw-bold me-1">
-                              {post.username}
-                            </span>
-                          </div>
-                          <div className="d-flex align-items-center text-muted small">
-                            <span className="me-1">{post.userHandle}</span>
-                            <span>· {post.time}</span>
+            {/* Content based on active tab */}
+            <div className="tab-content px-3">
+              {activeTab === "top" && (
+                <div>
+                  {/* Render top posts for this community */}
+                  {community.posts.map((post) => (
+                    <Card key={post.id} className="mb-3 post-card">
+                      <Card.Body>
+                        <div className="d-flex align-items-start mb-2">
+                          <img
+                            src={post.userAvatar}
+                            alt="User Avatar"
+                            className="rounded-circle me-2"
+                            style={{ width: "40px", height: "40px" }}
+                          />
+                          <div className="flex-grow-1">
+                            <div className="d-flex align-items-center">
+                              <span className="fw-bold me-1">
+                                {post.username}
+                              </span>
+                            </div>
+                            <div className="d-flex align-items-center text-muted small">
+                              <span className="me-1">{post.userHandle}</span>
+                              <span>· {post.time}</span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <Card.Text>{post.content}</Card.Text>
-                    </Card.Body>
-                  </Card>
-                ))}
-                {community.posts.length === 0 && (
-                  <p className="text-muted text-center">
-                    Không có bài đăng nào.
-                  </p>
-                )}
-              </div>
-            )}
-            {activeTab === "latest" && (
-              <div>
-                <p>Nội dung các bài đăng mới nhất...</p>
-              </div>
-            )}
-            {activeTab === "media" && (
-              <div>
-                <p>Nội dung media của cộng đồng...</p>
-              </div>
-            )}
-            {activeTab === "about" && (
-              <div>
-                <p>Thông tin giới thiệu chi tiết về cộng đồng này.</p>
-              </div>
-            )}
-          </div>
-        </Col>
+                        <Card.Text>{post.content}</Card.Text>
+                      </Card.Body>
+                    </Card>
+                  ))}
+                  {community.posts.length === 0 && (
+                    <p className="text-muted text-center">
+                      Không có bài đăng nào.
+                    </p>
+                  )}
+                </div>
+              )}
+              {activeTab === "latest" && (
+                <div>
+                  <p>Nội dung các bài đăng mới nhất...</p>
+                </div>
+              )}
+              {activeTab === "media" && (
+                <div>
+                  <p>Nội dung media của cộng đồng...</p>
+                </div>
+              )}
+              {activeTab === "about" && (
+                <div>
+                  <p>Thông tin giới thiệu chi tiết về cộng đồng này.</p>
+                </div>
+              )}
+            </div>
+          </Col>
 
-        {/* Right Sidebar */}
-        <Col lg={4} className="d-none d-lg-block community-sidebar-right">
-          <SidebarRight />
-        </Col>
-      </Row>
+          {/* Right Sidebar */}
+          <Col lg={4} className="d-none d-lg-block community-sidebar-right">
+            <SidebarRight />
+          </Col>
+        </Row>
 
-      {/* Community Rules Modal */}
-      {community && (
-        <CommunityRulesModal
-          show={showRulesModal}
-          handleClose={handleCloseRulesModal}
-          communityName={community.name}
-          rules={community.rules || []} // Pass rules from community data
-          onAgreeToJoin={handleAgreeToJoin}
-        />
-      )}
+        {/* Community Rules Modal */}
+        {community && (
+          <CommunityRulesModal
+            show={showRulesModal}
+            handleClose={handleCloseRulesModal}
+            communityName={community.name}
+            rules={community.rules || []} // Pass rules from community data
+            onAgreeToJoin={handleAgreeToJoin}
+          />
+        )}
 
-      {/* Added: Community Members Modal */}
-      {community && (
-        <CommunityMembersModal
-          show={showMembersModal}
-          handleClose={handleCloseMembersModal}
-          communityName={community.name}
-          members={community.memberList || []} // Pass the member list
-        />
-      )}
-    </Container>
+        {/* Added: Community Members Modal */}
+        {community && (
+          <CommunityMembersModal
+            show={showMembersModal}
+            handleClose={handleCloseMembersModal}
+            communityName={community.name}
+            members={community.memberList || []} // Pass the member list
+          />
+        )}
+      </Container>
+    </div>
   );
 }
 
