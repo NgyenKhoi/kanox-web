@@ -19,6 +19,14 @@ public class SavedPostId implements Serializable {
     @Column(name = "post_id", nullable = false)
     private Integer postId;
 
+    public SavedPostId() {
+    }
+
+    public SavedPostId(Integer userId, Integer postId) {
+        this.userId = userId;
+        this.postId = postId;
+    }
+
     public Integer getUserId() {
         return userId;
     }

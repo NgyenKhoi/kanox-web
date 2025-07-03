@@ -299,7 +299,7 @@ public class PostService {
 
         if (savedPostOpt.isPresent()) {
             SavedPost savedPost = savedPostOpt.get();
-            savedPost.setStatus(true); // Nếu đã lưu trước đó và bị ẩn
+            savedPost.setStatus(true);
             savedPost.setSaveTime(Instant.now());
             savedPostRepository.save(savedPost);
         } else {
@@ -308,9 +308,14 @@ public class PostService {
             savedPost.setPost(post);
             savedPost.setStatus(true);
             savedPost.setSaveTime(Instant.now());
+
+            SavedPostId savedPostId = new SavedPostId(user.getId(), post.getId());
+            savedPost.setId(savedPostId);
+
             savedPostRepository.save(savedPost);
         }
     }
+
 
     @Transactional
     public void hidePost(Integer postId, String username) {
@@ -333,6 +338,10 @@ public class PostService {
             hiddenPost.setPost(post);
             hiddenPost.setStatus(true);
             hiddenPost.setHiddenTime(Instant.now());
+
+            HiddenPostId hiddenPostId = new HiddenPostId(user.getId(), post.getId());
+            hiddenPost.setId(hiddenPostId);
+
             hiddenPostRepository.save(hiddenPost);
         }
     }

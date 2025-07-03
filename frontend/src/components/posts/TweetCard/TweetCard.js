@@ -427,11 +427,12 @@ function TweetCard({ tweet, onPostUpdate }) {
                 </div>
                 {/* dropdown và nút X */}
                 <div className="position-absolute top-0 end-0 d-flex align-items-center gap-2">
+                  {/* Dấu ba chấm (Dropdown) */}
                   <Dropdown>
                     <Dropdown.Toggle
                         variant="link"
-                        className="text-[var(--text-color-muted)] p-1 rounded-circle"
-                        style={{ width: "36px", height: "36px", fontSize: "1.2rem" }}
+                        className="text-[var(--text-color-muted)] p-0 w-9 h-9 rounded-full d-flex align-items-center justify-content-center hover:bg-gray-700 hover:text-white"
+                        style={{ fontSize: "1.2rem", textDecoration: "none" }}
                     >
                       <FaEllipsisH />
                     </Dropdown.Toggle>
@@ -479,9 +480,10 @@ function TweetCard({ tweet, onPostUpdate }) {
                   </Dropdown>
                   <Button
                       variant="link"
-                      className="p-1 text-muted hover:text-danger"
+                      className="w-9 h-9 d-flex align-items-center justify-content-center text-[var(--text-color-muted)] rounded-full hover:bg-gray-700 hover:text-white"
                       style={{
-                        fontSize: "1rem", // Smaller size for the X button
+                        fontSize: "1.2rem",
+                        textDecoration: "none",
                         lineHeight: 1,
                       }}
                       onClick={handleHidePost}
@@ -672,24 +674,33 @@ function TweetCard({ tweet, onPostUpdate }) {
                   <div className="mt-2 pt-2 border-t border-[var(--border-color)]">
                     {renderComments()}
                     <Form onSubmit={handleCommentSubmit} className="mt-2">
-                      <div className="d-flex align-items-start"> {/* Changed to align-items-start */}
+                      <div className="d-flex align-items-start">
                         {user?.avatarUrl ? (
                             <BootstrapImage
                                 src={user.avatarUrl}
-                                style={{ width: 32, height: 32, objectFit: "cover", flexShrink: 0 }} // Prevent shrinking
-                                className="me-2 rounded-full"
-                                roundedCircle
                                 alt={`Ảnh đại diện của ${user.displayName}`}
+                                roundedCircle
+                                className="me-2 rounded-full"
+                                style={{
+                                  width: "32px",
+                                  height: "32px",
+                                  objectFit: "cover",
+                                  flexShrink: 0,
+                                  flexGrow: 0,
+                                  display: "block"
+                                }}
                             />
                         ) : (
                             <FaUserCircle
                                 size={32}
                                 className="me-2 text-[var(--text-color-muted)]"
-                                style={{ flexShrink: 0 }} // Prevent shrinking
+                                style={{ flexShrink: 0 }}
                                 aria-label="Ảnh đại diện mặc định"
                             />
                         )}
-                        <InputGroup className="flex-grow-1">
+
+                        <div className="flex-grow-1 w-100">
+                          {/* Comment Input */}
                           <Form.Control
                               type="text"
                               placeholder="Viết bình luận..."
@@ -698,62 +709,78 @@ function TweetCard({ tweet, onPostUpdate }) {
                               className="rounded-full border-[var(--border-color)] bg-[var(--background-color)] text-[var(--text-color)]"
                               disabled={isCommenting}
                           />
-                          <div className="d-flex gap-3 align-items-center mt-2 ps-1">
-                            <OverlayTrigger placement="top" overlay={<Tooltip>Biểu tượng cảm xúc</Tooltip>}>
-                              <Button
-                                  variant="light"
-                                  size="sm"
-                                  className="rounded-circle p-2"
-                                  type="button"
-                                  onClick={() => setShowEmojiPicker((prev) => !prev)}
+
+                          {/* Action bar below the input */}
+                          <div className="d-flex justify-content-between align-items-center mt-2 px-1">
+                            <div className="d-flex gap-2">
+                              {/* Emoji Popover */}
+                              <OverlayTrigger
+                                  trigger="click"
+                                  placement="top"
+                                  show={showEmojiPicker}
+                                  onToggle={() => setShowEmojiPicker(!showEmojiPicker)}
+                                  overlay={
+                                    <Popover id="emoji-popover" className="z-50">
+                                      <Popover.Body style={{ maxWidth: 300, maxHeight: 200, overflowY: "auto" }}>
+                                        <div className="flex flex-wrap">
+                                          {emojiList.map((emoji, idx) => (
+                                              <span
+                                                  key={idx}
+                                                  className="text-2xl cursor-pointer m-1"
+                                                  onClick={() => {
+                                                    setNewComment((prev) => prev + emoji.emoji);
+                                                    setShowEmojiPicker(false);
+                                                  }}
+                                              >
+                        {emoji.emoji}
+                      </span>
+                                          ))}
+                                        </div>
+                                      </Popover.Body>
+                                    </Popover>
+                                  }
                               >
-                                <FaSmile />
-                              </Button>
-                            </OverlayTrigger>
+                                <Button
+                                    variant="light"
+                                    size="sm"
+                                    className="rounded-circle p-2"
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.preventDefault(); // prevent form submit
+                                      setShowEmojiPicker((prev) => !prev);
+                                    }}
+                                >
+                                  <FaSmile />
+                                </Button>
+                              </OverlayTrigger>
 
-                            <OverlayTrigger placement="top" overlay={<Tooltip>Hình ảnh</Tooltip>}>
-                              <Button variant="light" size="sm" className="rounded-circle p-2">
-                                <FaImage />
-                              </Button>
-                            </OverlayTrigger>
+                              {/* Image button */}
+                              <OverlayTrigger placement="top" overlay={<Tooltip>Hình ảnh</Tooltip>}>
+                                <Button variant="light" size="sm" className="rounded-circle p-2">
+                                  <FaImage />
+                                </Button>
+                              </OverlayTrigger>
 
-                            <OverlayTrigger placement="top" overlay={<Tooltip>Video</Tooltip>}>
-                              <Button variant="light" size="sm" className="rounded-circle p-2">
-                                <FaVideo />
-                              </Button>
-                            </OverlayTrigger>
+                              {/* Video button */}
+                              <OverlayTrigger placement="top" overlay={<Tooltip>Video</Tooltip>}>
+                                <Button variant="light" size="sm" className="rounded-circle p-2">
+                                  <FaVideo />
+                                </Button>
+                              </OverlayTrigger>
+                            </div>
+
+                            {/* Send button */}
+                            <Button
+                                type="submit"
+                                size="sm"
+                                variant="primary"
+                                className="rounded-full"
+                                disabled={isCommenting}
+                            >
+                              Gửi
+                            </Button>
                           </div>
-                          {showEmojiPicker && (
-                              <div
-                                  className="emoji-picker bg-white dark:bg-gray-800 shadow-lg rounded-lg p-3 border border-gray-200 dark:border-gray-700 mt-2 z-50"
-                                  style={{ maxWidth: 300, maxHeight: 200, overflowY: "auto" }}
-                              >
-                                <div className="flex flex-wrap">
-                                  {emojiList.map((emoji, idx) => (
-                                      <span
-                                          key={idx}
-                                          className="text-2xl cursor-pointer m-1"
-                                          onClick={() => {
-                                            setNewComment((prev) => prev + emoji.emoji);
-                                            setShowEmojiPicker(false);
-                                          }}
-                                      >
-          {emoji.emoji}
-        </span>
-                                  ))}
-                                </div>
-                              </div>
-                          )}
-                          <Button
-                              type="submit"
-                              size="sm"
-                              variant="primary"
-                              className="rounded-full"
-                              disabled={isCommenting}
-                          >
-                            Gửi
-                          </Button>
-                        </InputGroup>
+                        </div>
                       </div>
                     </Form>
                   </div>

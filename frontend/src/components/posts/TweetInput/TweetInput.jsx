@@ -25,6 +25,7 @@ import { AiOutlineClose } from "react-icons/ai";
 import { AuthContext } from "../../../context/AuthContext";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import useEmojiList from "../../../hooks/useEmojiList";
 
 function TweetInput({ onPostSuccess }) {
   const { user } = useContext(AuthContext);
@@ -41,10 +42,34 @@ function TweetInput({ onPostSuccess }) {
   const [showMediaModal, setShowMediaModal] = useState(false);
   const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
   const [showCustomList, setShowCustomList] = useState(false);
+  const [showTagInput, setShowTagInput] = useState(false);
   const [showPrivacyDropdown, setShowPrivacyDropdown] = useState(false);
   const dropdownRef = useRef(null);
+  const { emojiList, loading: emojiLoading, error: emojiError } = useEmojiList();
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const emojiPickerRef = useRef(null);
 
-  useEffect(() => {
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (
+                emojiPickerRef.current &&
+                !emojiPickerRef.current.contains(event.target)
+            ) {
+                setShowEmojiPicker(false);
+            }
+        };
+
+        if (showEmojiPicker) {
+            document.addEventListener("mousedown", handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [showEmojiPicker]);
+
+    useEffect(() => {
     const fetchPrivacySettings = async () => {
       try {
         const token = localStorage.getItem("token");
@@ -123,16 +148,19 @@ function TweetInput({ onPostSuccess }) {
 
   const handleCustomListSelect = (listId) => setCustomListId(listId);
 
-  const handleMediaChange = (e) => {
-    const files = Array.from(e.target.files);
-    if (files.length > 0) {
-      setMediaFiles((prev) => [...prev, ...files]);
-      setMediaPreviews((prev) => [
-        ...prev,
-        ...files.map((f) => URL.createObjectURL(f)),
-      ]);
-    }
-  };
+    const handleMediaChange = (e) => {
+        const files = Array.from(e.target.files);
+        if (files.length > 0) {
+            setMediaFiles((prev) => [...prev, ...files]);
+            setMediaPreviews((prev) => [
+                ...prev,
+                ...files.map((f) => ({
+                    url: URL.createObjectURL(f),
+                    type: f.type, // <- thêm dòng này
+                })),
+            ]);
+        }
+    };
 
   const handleRemoveMedia = (index) => {
     setMediaFiles((prev) => prev.filter((_, i) => i !== index));
@@ -253,279 +281,90 @@ function TweetInput({ onPostSuccess }) {
     );
   };
 
-  const renderMediaPreview = () => {
-    if (mediaPreviews.length === 0) return null;
+      const renderMediaPreview = () => {
+          if (mediaPreviews.length === 0) return null;
 
-    const containerStyle = {
-      display: "grid",
-      gap: "4px",
-      marginBottom: "10px",
-      position: "relative",
-      maxWidth: "100%",
-    };
+          const mediaStyle = "w-full h-full object-cover rounded-lg";
+          const baseContainer = "grid gap-1 mb-3 overflow-hidden rounded-lg";
 
-    const mediaStyle = {
-      maxWidth: "100%",
-      maxHeight: "200px",
-      objectFit: "cover",
-      borderRadius: "8px",
-    };
-
-    const renderRemoveButton = (index) => (
-        <button
-            type="button"
-            className="absolute top-0 right-0 m-2 w-6 h-6 rounded-full text-white bg-black/70 text-xs"
-            style={{
-              zIndex: 2,
-              width: "24px",
-              height: "24px",
-              lineHeight: "12px",
-              textAlign: "center",
-              fontWeight: "bold",
-              fontSize: "16px",
-              opacity: 0.85,
-            }}
-            onClick={() => handleRemoveMedia(index)}
-            title="Xoá"
-        >
-          &times;
-        </button>
-    );
-
-    if (mediaPreviews.length === 1) {
-      return (
-          <div style={containerStyle}>
-            <div className="relative d-inline-block">
-              {renderRemoveButton(0)}
-              {mediaPreviews[0].includes("video") ? (
-                  <video
-                      src={mediaPreviews[0]}
-                      controls
-                      style={mediaStyle}
-                      className="rounded"
-                  />
-              ) : (
-                  <img
-                      src={mediaPreviews[0]}
-                      alt="preview"
-                      style={mediaStyle}
-                      className="rounded"
-                  />
-              )}
-            </div>
-          </div>
-      );
-    }
-
-    if (mediaPreviews.length === 2) {
-      return (
-          <div style={{ ...containerStyle, gridTemplateColumns: "1fr 1fr" }}>
-            {mediaPreviews.map((url, i) => {
-              const isVideo = url.includes("video");
+          const getMediaItem = (preview, index) => {
+              const isVideo = preview.type.startsWith("video/");
               return (
-                  <div key={i} className="relative">
-                    {renderRemoveButton(i)}
-                    {isVideo ? (
-                        <video
-                            src={url}
-                            controls
-                            style={mediaStyle}
-                            className="rounded"
-                        />
-                    ) : (
-                        <img
-                            src={url}
-                            alt="preview"
-                            style={mediaStyle}
-                            className="rounded"
-                        />
-                    )}
+                  <div key={index} className="relative group w-full h-full overflow-hidden">
+                      {isVideo ? (
+                          <video src={preview.url} controls className={mediaStyle}/>
+                      ) : (
+                          <img src={preview.url} alt="preview" className={mediaStyle}/>
+                      )}
+                      <button
+                          className="absolute top-1 right-1 text-white bg-black/60 rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+                          onClick={() => handleRemoveMedia(index)}
+                      >
+                          ×
+                      </button>
                   </div>
               );
-            })}
+          };
 
-          </div>
-      );
-    }
+          const filesToShow = mediaPreviews.slice(0, 4);
+          const extraCount = mediaPreviews.length - 4;
 
-    if (mediaPreviews.length === 3) {
-      return (
-          <div
-              style={{
-                ...containerStyle,
-                gridTemplateRows: "auto auto",
-                gridTemplateColumns: "1fr 1fr",
-              }}
-          >
-            <div
-                className="relative"
-                style={{ gridColumn: "1 / 3", marginBottom: "4px" }}
-            >
-              {renderRemoveButton(0)}
-              {mediaPreviews[0].includes("video") ? (
-                  <video
-                      src={mediaPreviews[0]}
-                      controls
-                      style={mediaStyle}
-                      className="rounded"
-                  />
-              ) : (
-                  <img
-                      src={mediaPreviews[0]}
-                      alt="preview"
-                      style={mediaStyle}
-                      className="rounded"
-                  />
-              )}
-            </div>
-            {mediaPreviews.slice(1).map((url, i) => (
-                <div key={i + 1} className="relative">
-                  {renderRemoveButton(i + 1)}
-                  {url.includes("video") ? (
-                      <video
-                          src={url}
-                          controls
-                          style={mediaStyle}
-                          className="rounded"
-                      />
-                  ) : (
-                      <img
-                          src={url}
-                          alt="preview"
-                          style={mediaStyle}
-                          className="rounded"
-                      />
-                  )}
-                </div>
-            ))}
-          </div>
-      );
-    }
-
-    if (mediaPreviews.length >= 5) {
-      return (
-          <div
-              style={{
-                ...containerStyle,
-                gridTemplateColumns: "1fr 1fr",
-                gridTemplateRows: "auto auto",
-              }}
-          >
-            {mediaPreviews.slice(0, 4).map((url, i) => (
-                <div key={i} className="relative">
-                  {renderRemoveButton(i)}
-                  {url.includes("video") ? (
-                      <video
-                          src={url}
-                          controls
-                          style={mediaStyle}
-                          className="rounded"
-                      />
-                  ) : (
-                      <img
-                          src={url}
-                          alt="preview"
-                          style={mediaStyle}
-                          className="rounded"
-                      />
-                  )}
-                </div>
-            ))}
-            {mediaPreviews.length > 4 && (
-                <div
-                    className="relative"
-                    style={{
-                      gridColumn: "2 / 3",
-                      gridRow: "2 / 3",
-                      cursor: "pointer",
-                    }}
-                    onClick={() => handleOpenMediaModal(4)}
-                >
-                  <img
-                      src={mediaPreviews[4]}
-                      alt="preview"
-                      style={{ ...mediaStyle, opacity: 0.7 }}
-                      className="rounded"
-                  />
-                  <div
-                      style={{
-                        position: "absolute",
-                        top: "50%",
-                        left: "50%",
-                        transform: "translate(-50%, -50%)",
-                        color: "white",
-                        fontSize: "24px",
-                        fontWeight: "bold",
-                      }}
-                  >
-                    <FaPlus /> +{mediaPreviews.length - 4}
+          if (filesToShow.length === 1) {
+              return (
+                  <div className={`${baseContainer} grid-cols-1`}>
+                      {getMediaItem(filesToShow[0], 0)}
                   </div>
-                </div>
-            )}
-          </div>
-      );
-    }
+              );
+          }
 
-    if (mediaPreviews.length >= 5) {
-      return (
-          <div
-              style={{
-                ...containerStyle,
-                gridTemplateColumns: "1fr 1fr",
-                gridTemplateRows: "auto auto",
-              }}
-          >
-            {mediaPreviews.slice(0, 4).map((url, i) => (
-                <div key={i} className="relative">
-                  <Button
-                      variant="danger"
-                      size="sm"
-                      className="position-absolute top-0 end-0 m-1 p-1 rounded-full"
-                      onClick={() => handleRemoveMedia(i)}
-                  >
-                    ×
-                  </Button>
-                  {url.includes("video") ? (
-                      <video src={url} controls style={mediaStyle} />
-                  ) : (
-                      <img src={url} alt="preview" style={mediaStyle} />
-                  )}
-                </div>
-            ))}
-            {mediaPreviews.length > 4 && (
-                <div
-                    className="relative"
-                    style={{
-                      gridColumn: "2 / 3",
-                      gridRow: "2 / 3",
-                      cursor: "pointer",
-                    }}
-                    onClick={() => handleOpenMediaModal(4)}
-                >
-                  <img
-                      src={mediaPreviews[4]}
-                      alt="preview"
-                      style={{ ...mediaStyle, opacity: 0.7 }}
-                  />
-                  <div
-                      style={{
-                        position: "absolute",
-                        top: "50%",
-                        left: "50%",
-                        transform: "translate(-50%, -50%)",
-                        color: "white",
-                        fontSize: "24px",
-                        fontWeight: "bold",
-                      }}
-                  >
-                    <FaPlus /> +{mediaPreviews.length - 4}
+          if (filesToShow.length === 2) {
+              return (
+                  <div className={`${baseContainer} grid-cols-2`}>
+                      {filesToShow.map((url, i) => getMediaItem(url, i))}
                   </div>
-                </div>
-            )}
-          </div>
-      );
-    }
-  };
+              );
+          }
+
+          if (filesToShow.length === 3) {
+              return (
+                  <div className={`${baseContainer} grid-rows-2 grid-cols-2`}>
+                      <div className="col-span-2 row-span-1">{getMediaItem(filesToShow[0], 0)}</div>
+                      <div>{getMediaItem(filesToShow[1], 1)}</div>
+                      <div>{getMediaItem(filesToShow[2], 2)}</div>
+                  </div>
+              );
+          }
+
+          // 4 files hoặc hơn
+          return (
+              <div className={`${baseContainer} grid-cols-2`}>
+                  {filesToShow.map((url, i) => {
+                      if (i === 3 && extraCount > 0) {
+                          return (
+                              <div key={i} className="relative group w-full h-full overflow-hidden cursor-pointer"
+                                   onClick={() => handleOpenMediaModal(3)}>
+                                  <img src={url} alt="preview" className={`${mediaStyle} opacity-70`}/>
+                                  <div
+                                      className="absolute inset-0 flex items-center justify-center text-white text-xl font-bold bg-black/50">
+                                      +{extraCount}
+                                  </div>
+                                  <button
+                                      className="absolute top-1 right-1 text-white bg-black/60 rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+                                      onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleRemoveMedia(i);
+                                      }}
+                                  >
+                                      ×
+                                  </button>
+                              </div>
+                          );
+                      }
+                      return getMediaItem(url, i);
+                  })}
+              </div>
+          );
+      };
 
   return (
       <>
@@ -611,12 +450,41 @@ function TweetInput({ onPostSuccess }) {
                   />
                 </div>
 
-                <Button
-                    variant="link"
-                    className="text-[var(--primary-color)] p-2 rounded-full hover-bg-light mr-2"
-                >
-                  <FaSmile size={20} />
-                </Button>
+                <div className="relative mr-2">
+                    <Button
+                        variant="link"
+                        className="text-[var(--primary-color)] p-2 rounded-full hover-bg-light"
+                        onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                    >
+                        <FaSmile size={20} />
+                    </Button>
+
+                    {showEmojiPicker && (
+                        <div
+                            ref={emojiPickerRef}
+                            className="absolute z-50 mt-2 w-64 max-h-64 overflow-y-auto bg-[var(--background-color)] border border-[var(--border-color)] rounded shadow p-2 grid grid-cols-6 gap-2"
+                        >
+                            {emojiLoading ? (
+                                <div className="text-sm text-gray-400 px-2 py-1">Đang tải...</div>
+                            ) : emojiList.length > 0 ? (
+                                emojiList.map((emoji, i) => (
+                                    <button
+                                        key={i}
+                                        className="text-xl hover:bg-[var(--hover-bg-color)] rounded p-1"
+                                        onClick={() => {
+                                            setTweetContent((prev) => prev + emoji.emoji);
+                                            setShowEmojiPicker(false);
+                                        }}
+                                    >
+                                        {emoji.emoji}
+                                    </button>
+                                ))
+                            ) : (
+                                <div className="text-sm text-gray-400 px-2 py-1">Không có emoji nào.</div>
+                            )}
+                        </div>
+                    )}
+                </div>
                 <Button
                     variant="link"
                     className="text-[var(--primary-color)] p-2 rounded-full hover-bg-light mr-2"
@@ -626,13 +494,13 @@ function TweetInput({ onPostSuccess }) {
 
           <div className="relative mr-2">
             <button
-                onClick={() => setShowCustomList(!showCustomList)} // bạn có thể tạo một state mới ví dụ showTagInput
+                onClick={() => setShowTagInput(!showTagInput)} // bạn có thể tạo một state mới ví dụ showTagInput
                 className="p-2 rounded-full text-[var(--primary-color)] hover:bg-[var(--hover-bg-color)] transition-colors"
             >
               <FaUserFriends size={20} />
             </button>
 
-            {showCustomList && ( // Hoặc state riêng như showTagInput
+              {showTagInput && (
                 <div className="absolute z-50 mt-2 w-64 bg-[var(--background-color)] border border-[var(--border-color)] rounded shadow p-3">
                   <input
                       type="text"
@@ -739,23 +607,19 @@ function TweetInput({ onPostSuccess }) {
             <button onClick={handleNextMedia} className="absolute right-2 top-1/2 transform -translate-y-1/2 text-white text-2xl">
               <FaChevronRight />
             </button>
-            {mediaPreviews[currentMediaIndex]?.includes("video") ? (
-                <video
-                    src={mediaPreviews[currentMediaIndex]}
-                    controls
-                    style={{ width: "100%", maxHeight: "60vh", objectFit: "contain" }}
-                />
-            ) : (
-                <img
-                    src={mediaPreviews[currentMediaIndex]}
-                    alt="media"
-                    style={{
-                      width: "100%",
-                      maxHeight: "60vh",
-                      objectFit: "contain",
-                    }}
-                />
-            )}
+              {mediaPreviews[currentMediaIndex]?.type.startsWith("video/") ? (
+                  <video
+                      src={mediaPreviews[currentMediaIndex].url}
+                      controls
+                      style={{ width: "100%", maxHeight: "60vh", objectFit: "contain" }}
+                  />
+              ) : (
+                  <img
+                      src={mediaPreviews[currentMediaIndex].url}
+                      alt="media"
+                      style={{ width: "100%", maxHeight: "60vh", objectFit: "contain" }}
+                  />
+              )}
           </div>
         </div>
         )}
