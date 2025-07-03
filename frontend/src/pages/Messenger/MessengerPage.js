@@ -55,9 +55,15 @@ function MessengerPage() {
       if (selectedChatId === message.chatId) {
         setSelectedChatId(null);
         setMessages((prev) => {
-          const newMessages = { ...prev };
-          delete newMessages[message.chatId];
-          return newMessages;
+          const current = prev[message.chatId] || [];
+          if (current.some((m) => m.id === message.id)) {
+            console.warn("Duplicate in MessengerPage");
+            return prev;
+          }
+          return {
+            ...prev,
+            [message.chatId]: [...current, message],
+          };
         });
         navigate("/messages");
       }

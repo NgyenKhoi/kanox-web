@@ -88,8 +88,14 @@ useEffect(() => {
             //     return prev;
             // });
             if (onMessageUpdate && typeof data.id !== "undefined") {
-                onMessageUpdate(data);
+                const isDuplicate = messages.some((msg) => msg.id === data.id);
+                if (!isDuplicate) {
+                    onMessageUpdate(data);
+                } else {
+                    console.warn("Duplicate message ignored:", data);
+                }
             }
+
             fetchUnreadMessageCount();
         } else if (data.isTyping !== undefined && data.userId !== user?.id) { // Typing
             setTypingUsers((prev) => {
