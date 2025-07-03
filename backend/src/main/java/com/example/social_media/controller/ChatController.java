@@ -291,6 +291,14 @@ public class ChatController {
         System.out.println("Resend requested for chatId: " + chatId);
         messageQueueService.resendQueuedMessages(chatId, sessionId);
     }
+    @PutMapping(URLConfig.MARK_READ)
+    public void markMessagesAsRead(@PathVariable Integer chatId) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        messageService.markMessagesAsRead(chatId, user.getId());
+    }
+
 
     @PostMapping("/generate-token")
     public Map<String, String> generateToken(@RequestBody Map<String, String> request) {

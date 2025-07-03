@@ -160,9 +160,13 @@ public class MessageService {
 
     @Transactional(readOnly = true)
     public int getUnreadMessageCount(Integer userId) {
-        // Đếm tin nhắn có trạng thái 'unread' cho userId
-        int count = messageStatusRepository.countUnreadByUserId(userId);
-        System.out.println("Unread message count for userId " + userId + ": " + count);
+        int count = messageStatusRepository.countUnreadChatsByUserId(userId);
+        System.out.println("Unread **chat** count for userId " + userId + ": " + count);
         return count;
     }
+
+    public void markMessagesAsRead(Integer chatId, Integer userId) {
+        messageStatusRepository.markAllAsReadByChatIdAndUserId(chatId, userId);
+    }
+
 }

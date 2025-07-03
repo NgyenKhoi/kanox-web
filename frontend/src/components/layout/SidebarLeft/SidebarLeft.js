@@ -78,6 +78,37 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
       navigate(tab.path);
     }
   };
+  useEffect(() => {
+    const handleUnreadCountUpdate = (e) => {
+      if (typeof e.detail?.unreadCount === "number") {
+        setUnreadMessageCount(e.detail.unreadCount);
+      }
+    };
+
+    window.addEventListener("updateUnreadCount", handleUnreadCountUpdate);
+
+    return () => {
+      window.removeEventListener("updateUnreadCount", handleUnreadCountUpdate);
+    };
+  }, []);
+  useEffect(() => {
+    const fetchUnreadMessageCount = async () => {
+      try {
+        const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+        const res = await fetch(`${process.env.REACT_APP_API_URL}/chat/unread-count`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error("Lỗi khi lấy số tin nhắn chưa đọc");
+        const count = await res.json();
+        setUnreadMessageCount(count);
+      } catch (err) {
+        console.error("Không thể tải số tin nhắn chưa đọc:", err.message);
+      }
+    };
+
+    fetchUnreadMessageCount();
+  }, []);
+
 
   return (
     <aside className="hidden md:flex flex-col h-screen sticky top-0 bg-[var(--background-color)] text-[var(--text-color)] p-3 border-r border-[var(--border-color)] transition-colors">
