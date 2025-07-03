@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useContext } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { FaSearch, FaEllipsisH } from "react-icons/fa";
-import useUserSearch from "../../hooks/useUserSearch";
-import { AuthContext } from "../../context/AuthContext";
+import useUserSearch from "../../../hooks/useUserSearch";
+import { AuthContext } from "../../../context/AuthContext";
 
 function SidebarRight() {
   const [showFullFooter, setShowFullFooter] = useState(false);
