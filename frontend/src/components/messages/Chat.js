@@ -232,7 +232,8 @@ return (
         <div className="flex-grow overflow-y-auto p-3 max-h-[calc(100vh-200px)]" ref={chatContainerRef}>
         {messages.map((msg) => (
                 <div key={msg.id} className={`mb-2 flex ${msg.senderId === user?.id ? "justify-end" : "justify-start"}`}>
-                    <div className={`p-2 rounded-2xl shadow-sm ${msg.senderId === user?.id ? "bg-[var(--primary-bg-color)] text-[var(--light-text-color)]" : "bg-[var(--input-bg-color)] text-[var(--text-color)]"}`}>
+                    <div className={`p-3 rounded-3xl shadow-md transition-colors duration-200 ${msg.senderId === user?.id ? "bg-[var(--primary-color)] text-white"
+                        : "bg-[var(--message-other-bg)] text-[var(--text-color)]"}`}>
                         {msg.content}
                         <div className="text-end">
                             <small className={`${msg.senderId === user?.id ? "text-[var(--light-text-color)]" : "text-[var(--text-color-muted)]"} text-xs`}>
