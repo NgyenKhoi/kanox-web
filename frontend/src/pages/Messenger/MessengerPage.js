@@ -109,6 +109,7 @@ function MessengerPage() {
     const callback = (newMessage) => {
       try {
         console.log("✅ New message received:", newMessage);
+        console.log("📌 newMessage.chatId =", newMessage.chatId, "| typeof =", typeof newMessage.chatId);
         setMessages((prev) => ({
           ...prev,
           [chatId]: [...(prev[chatId] || []), newMessage],
