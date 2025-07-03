@@ -108,32 +108,40 @@ function MessengerPage() {
 
   // Subscribe đến tin nhắn theo thời gian thực cho từng chat
   const subscribeToChatMessages = useCallback((chatId) => {
-    if (!subscribe || subscriptionsRef.current[chatId] || !chatId) return;
+    if (!subscribe || !chatId) return;
+
+    // ✅ Nếu đã subscribe rồi, thì bỏ qua
+    if (subscriptionsRef.current[chatId]) {
+      console.warn("Đã subscribe rồi:", chatId);
+      return;
+    }
 
     const topic = `/topic/chat/${chatId}`;
     const subId = `chat-${chatId}`;
+
     const callback = (newMessage) => {
       try {
-        console.log("✅ New message received:", newMessage);
         const currentMessages = messages[chatId] || [];
         const exists = currentMessages.some((msg) => msg.id === newMessage.id);
-        if (exists) return;
+        if (exists) {
+          console.warn("Tin nhắn trùng (bỏ qua):", newMessage);
+          return;
+        }
 
         setMessages((prev) => ({
           ...prev,
           [chatId]: [...(prev[chatId] || []), newMessage],
         }));
       } catch (err) {
-        console.error("❌ [MessengerPage] Lỗi khi parse message:", err, newMessage);
+        console.error("Lỗi khi xử lý message:", err);
       }
     };
 
-
-
-    const subscription = subscribe(topic, callback, subId);
-    subscriptionsRef.current[chatId] = subscription;
-    console.log("Subscribed to ${topic} with subId", `${subId}`);
-  }, [subscribe, selectedChatId]);
+    // 👉 Gọi subscribe và gắn cờ đã subscribe
+    subscribe(topic, callback, subId);
+    subscriptionsRef.current[chatId] = true; // ✅ dùng boolean để đánh dấu đã subscribe
+    console.log("✅ Subscribed to", topic);
+  }, [subscribe, messages]);
 
   // Hủy subscribe khi không cần thiết
   const unsubscribeFromChatMessages = useCallback((chatId) => {
