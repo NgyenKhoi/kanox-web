@@ -115,7 +115,7 @@ function MessengerPage() {
           [chatId]: [...(prev[chatId] || []), newMessage],
         }));
       } catch (err) {
-        console.error("❌ Lỗi khi parse message:", err, newMessage);
+        console.error("❌ [MessengerPage] Lỗi khi parse message:", err, newMessage);
       }
     };
 
@@ -455,25 +455,25 @@ return (
 
           <div className="w-2/3 bg-[var(--background-color)] h-full">
           {selectedChatId ? (
-                <Chat
-                    chatId={selectedChatId}
-                    messages={messages[selectedChatId] || []}
-                    onSendMessage={(message) => {
-                      if (publish) {
-                        publish("/app/sendMessage", {
-                          chatId: selectedChatId,
-                          userId: user.id,
-                          content: message,
-                        });
-                      }
-                    }}
-                    onMessageUpdate={(newMessage) => {
-                      setMessages((prev) => ({
-                        ...prev,
-                        [selectedChatId]: [...(prev[selectedChatId] || []), newMessage],
-                      }));
-                    }}
-                />
+              <Chat
+                  chatId={selectedChatId}
+                  messages={messages[selectedChatId] || []}
+                  onMessageUpdate={(newMessage) => {
+                    setMessages((prev) => ({
+                      ...prev,
+                      [selectedChatId]: [...(prev[selectedChatId] || []), newMessage],
+                    }));
+                  }}
+                  onSendMessage={(message) => {
+                    if (publish) {
+                      publish("/app/sendMessage", {
+                        chatId: selectedChatId,
+                        userId: user.id,
+                        content: message,
+                      });
+                    }
+                  }}
+              />
             ) : (
               <div className="flex justify-center items-center h-full text-gray-400">
                 <p>Chọn một cuộc trò chuyện</p>
