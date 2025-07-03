@@ -305,7 +305,7 @@ function CommunityDetail() {
             </div>
 
             {/* Community Info */}
-            <div className="px-3 pb-3">
+            <div className="px-3 pb-3 ">
               <h3 className="mb-0">
                 {community.name}{" "}
                 {community.isVerified && (

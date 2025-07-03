@@ -109,7 +109,10 @@ function CommunityPage({ onShowCreatePost, isDarkMode, onToggleDarkMode }) {
   };
 
   return (
-    <Container fluid className="community-page-container d-flex flex-grow-1 ">
+    <Container
+      fluid
+      className="community-page-container d-flex flex-grow-1 bg-[var(--background-color)] text-[var(--text-color)] transition-colors duration-200"
+    >
       <Row className="w-100 justify-content-center">
         {/* Main Content Area */}
         <Col
@@ -118,7 +121,9 @@ function CommunityPage({ onShowCreatePost, isDarkMode, onToggleDarkMode }) {
           className="community-main-content border-start border-end py-3"
         >
           <div className="d-flex align-items-center mb-3 px-3">
-            <h2 className="mb-0 me-auto">Cộng đồng</h2>
+            <h2 className="mb-0 me-auto bg-[var(--background-color)] text-[var(--text-color)] transition-colors duration-200">
+              Cộng đồng
+            </h2>
             <div className="search-icon me-3">
               <FaSearch size={20} />
             </div>
@@ -129,7 +134,10 @@ function CommunityPage({ onShowCreatePost, isDarkMode, onToggleDarkMode }) {
           </div>
 
           {/* Category Tabs */}
-          <Nav variant="underline" className="community-category-nav mb-4">
+          <Nav
+            variant="underline"
+            className="community-category-nav mb-4 bg-[var(--background-color)] text-[var(--text-color)] transition-colors duration-200"
+          >
             {categories.map((category) => (
               <Nav.Item key={category.key}>
                 <Nav.Link
