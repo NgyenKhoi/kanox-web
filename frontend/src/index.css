@@ -110,3 +110,11 @@ body {
   background-color: var(--background-color) !important;
   color: var(--text-color) !important;
 }
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

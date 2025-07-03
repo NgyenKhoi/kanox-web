@@ -23,7 +23,7 @@ public class URLConfig {
     public static final String USER_POST = "/user/{username}";
     public static final String SAVE_POST = "/{postId}/save";
     public static final String HIDE_POST = "/{postId}/hide";
-    public static final String UNSAVE_POST = "/{postId}/unsave";
+    public static final String UNSAVE_POST = "/unsave/{postId}";
     public static final String GET_SAVE_POST ="/saved-posts";
     // Upload Management URLs
     public static final String UPLOAD_BASE = "/api/upload";
