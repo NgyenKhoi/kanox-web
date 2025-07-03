@@ -21,6 +21,11 @@ const Chat = ({ chatId, messages, onMessageUpdate, onSendMessage }) => {
     const isConnectedRef = useRef(false);
     const lastMessageIdRef = useRef(null);
     const typingTimeoutRef = useRef(null);
+    const messagesRef = useRef(messages);
+
+    useEffect(() => {
+        messagesRef.current = messages;
+    }, [messages]);
 
     const fetchUnreadMessageCount = async () => {
         try {
@@ -88,7 +93,7 @@ useEffect(() => {
             //     return prev;
             // });
             if (onMessageUpdate && typeof data.id !== "undefined") {
-                const isDuplicate = messages.some((msg) => msg.id === data.id);
+                const isDuplicate = messagesRef.current.some((msg) => msg.id === data.id);
                 if (!isDuplicate) {
                     onMessageUpdate(data);
                 } else {

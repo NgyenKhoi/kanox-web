@@ -469,10 +469,18 @@ return (
                   chatId={selectedChatId}
                   messages={messages[selectedChatId] || []}
                   onMessageUpdate={(newMessage) => {
-                    setMessages((prev) => ({
-                      ...prev,
-                      [selectedChatId]: [...(prev[selectedChatId] || []), newMessage],
-                    }));
+                    setMessages((prev) => {
+                      const existing = prev[selectedChatId] || [];
+                      const isDuplicate = existing.some((msg) => msg.id === newMessage.id);
+                      if (isDuplicate) {
+                        console.warn("⚠️ Duplicate message ignored in MessengerPage:", newMessage);
+                        return prev;
+                      }
+                      return {
+                        ...prev,
+                        [selectedChatId]: [...existing, newMessage],
+                      };
+                    });
                   }}
                   onSendMessage={(message) => {
                     if (publish) {
