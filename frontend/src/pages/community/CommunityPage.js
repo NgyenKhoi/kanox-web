@@ -136,7 +136,7 @@ function CommunityPage({ onShowCreatePost, isDarkMode, onToggleDarkMode }) {
           {/* Category Tabs */}
           <Nav
             variant="underline"
-            className="community-category-nav mb-4 bg-[var(--background-color)] text-[var(--text-color)] transition-colors duration-200"
+            className="community-category-nav mb-4  text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700 bg-[var(--content-bg)]"
           >
             {categories.map((category) => (
               <Nav.Item key={category.key}>
