@@ -1,4 +1,4 @@
-import React, { useContext, useMemo } from "react";
+import React, {useContext, useMemo} from "react";
 import {
     Modal,
     Form,
@@ -8,10 +8,10 @@ import {
     Image,
     Button,
 } from "react-bootstrap";
-import { FaSearch } from "react-icons/fa";
-import { useNavigate } from "react-router-dom";
-import { AuthContext } from "../../context/AuthContext";
-import { toast } from "react-toastify";
+import {FaSearch} from "react-icons/fa";
+import {useNavigate} from "react-router-dom";
+import {AuthContext} from "../../context/AuthContext";
+import {toast} from "react-toastify";
 import useMedia from "../../hooks/useMedia";
 
 function UserSelectionModal({
@@ -24,11 +24,11 @@ function UserSelectionModal({
                                 handleSelectUser,
                             }) {
     const navigate = useNavigate();
-    const { token } = useContext(AuthContext);
+    const {token} = useContext(AuthContext);
 
     // 📦 Lấy danh sách userId từ searchResults
     const userIds = useMemo(() => searchResults.map((user) => user.id), [searchResults]);
-    const { mediaData, loading: mediaLoading } = useMedia(userIds, "PROFILE", "image");
+    const {mediaData, loading: mediaLoading} = useMedia(userIds, "PROFILE", "image");
 
     const handleSelectUserWithAuth = async (userId) => {
         if (!token) {
@@ -47,99 +47,104 @@ function UserSelectionModal({
     return (
         <Modal show={show} onHide={handleClose} centered size="md">
             <Modal.Header closeButton>
-                <Modal.Title className="fw-bold">Tin nhắn mới</Modal.Title>
+                <Modal.Title className="font-bold text-[var(--text-color)]">
+                    Tin nhắn mới
+                </Modal.Title>
             </Modal.Header>
-            <Modal.Body>
-                <InputGroup className="mb-3 rounded-pill shadow-sm">
-                    <InputGroup.Text className="bg-[var(--background-color)] border-0 rounded-pill ps-3">
-                        <FaSearch className="text-[var(--text-color-muted)]" />
-                    </InputGroup.Text>
-                    <Form.Control
-                        type="text"
-                        placeholder="Tìm kiếm theo tên hoặc email"
-                        value={searchKeyword}
-                        onChange={(e) => setSearchKeyword(e.target.value)}
-                        className="bg-[var(--background-color)] border-0 rounded-pill py-2"
-                        autoFocus
-                    />
-                </InputGroup>
-
-                {isSearching || mediaLoading ? (
-                    <div className="d-flex justify-content-center my-3">
-                        <Spinner animation="border" role="status" />
+            <>
+                <Modal.Body>
+                    <div
+                        className="flex items-center mb-3 px-3 py-2 bg-[var(--background-color)] border border-[var(--border-color)] rounded-full shadow-sm">
+                        <FaSearch className="text-[var(--text-color-muted)] mr-2"/>
+                        <input
+                            type="text"
+                            placeholder="Tìm kiếm theo tên hoặc email"
+                            value={searchKeyword}
+                            onChange={(e) => setSearchKeyword(e.target.value)}
+                            className="bg-transparent flex-grow border-0 outline-none text-sm text-[var(--text-color)] placeholder:text-[var(--text-color-muted)]"
+                            autoFocus
+                        />
                     </div>
-                ) : (
-                    <ListGroup variant="flush">
-                        {searchResults.length > 0 ? (
-                            searchResults.map((user) => {
-                                const avatarUrl = mediaData?.[user.id]?.[0]?.url || null;
-                                return (
-                                    <ListGroup.Item
-                                        key={user.id}
-                                        className="d-flex align-items-center p-2 hover-bg-[var(--background-color)]"
-                                    >
+
+                    {isSearching || mediaLoading ? (
+                        <div className="flex justify-center my-3">
+                            <div
+                                className="w-6 h-6 border-4 border-t-transparent border-[var(--primary-color)] border-solid rounded-full animate-spin"/>
+                        </div>
+                    ) : (
+                        <ListGroup variant="flush">
+                            {searchResults.length > 0 ? (
+                                searchResults.map((user) => {
+                                    const avatarUrl = mediaData?.[user.id]?.[0]?.url || null;
+                                    return (
                                         <div
-                                            onClick={() => navigate(`/profile/${user.username}`)}
-                                            style={{ cursor: "pointer" }}
+                                            key={user.id}
+                                            className="flex items-center p-2 hover:bg-[var(--hover-bg-color)] transition-colors duration-200"
                                         >
-                                            {avatarUrl ? (
-                                                <Image
-                                                    src={avatarUrl}
-                                                    roundedCircle
-                                                    width="40"
-                                                    height="40"
-                                                    className="me-2"
-                                                    alt={`Avatar của ${user.username}`}
-                                                />
-                                            ) : (
-                                                <div
-                                                    className="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center me-2"
-                                                    style={{ width: "40px", height: "40px" }}
-                                                >
-                                                    <span>{user.username?.charAt(0).toUpperCase() || "U"}</span>
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="flex-grow-1">
-                                            <p
-                                                className="fw-bold mb-0"
+                                            <div
                                                 onClick={() => navigate(`/profile/${user.username}`)}
-                                                style={{ cursor: "pointer" }}
+                                                style={{cursor: "pointer"}}
                                             >
-                                                {user.displayName || user.username}
-                                            </p>
-                                            <p className="text-[var(--text-color-muted)] small mb-0">@{user.username}</p>
+                                                {avatarUrl ? (
+                                                    <Image
+                                                        src={avatarUrl}
+                                                        roundedCircle
+                                                        width="40"
+                                                        height="40"
+                                                        className="me-2"
+                                                        alt={`Avatar của ${user.username}`}
+                                                    />
+                                                ) : (
+                                                    <div
+                                                        className="w-10 h-10 rounded-full bg-gray-500 text-white flex items-center justify-center mr-2">
+                                                        <span>{user.username?.charAt(0).toUpperCase() || "U"}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="flex-grow">
+                                                <p
+                                                    className="font-bold text-sm mb-0 cursor-pointer hover:underline"
+                                                    onClick={() => navigate(`/profile/${user.username}`)}
+                                                >
+                                                    {user.displayName || user.username}
+                                                </p>
+                                                <p className="text-[var(--text-color-muted)] text-xs">
+                                                    @{user.username}
+                                                </p>
+                                            </div>
+                                            <button
+                                                onClick={() => handleSelectUserWithAuth(user.id)}
+                                                className="bg-[var(--primary-color)] hover:brightness-110 text-white text-sm px-3 py-1 rounded-full transition"
+                                            >
+                                                Nhắn tin
+                                            </button>
                                         </div>
-                                        <Button
-                                            variant="primary"
-                                            size="sm"
-                                            className="rounded-pill"
-                                            onClick={() => handleSelectUserWithAuth(user.id)}
-                                        >
-                                            Nhắn tin
-                                        </Button>
-                                    </ListGroup.Item>
-                                );
-                            })
-                        ) : searchKeyword.length > 0 ? (
-                            <p className="text-center text-[var(--text-color-muted)] p-4">
-                                Không tìm thấy người dùng nào.
-                            </p>
-                        ) : (
-                            <p className="text-center text-[var(--text-color-muted)] p-4">
-                                Nhập tên hoặc email để tìm kiếm.
-                            </p>
-                        )}
-                    </ListGroup>
-                )}
-            </Modal.Body>
-            <Modal.Footer>
-                <Button variant="secondary" onClick={handleClose}>
-                    Đóng
-                </Button>
-            </Modal.Footer>
+                                    );
+                                })
+                            ) : searchKeyword.length > 0 ? (
+                                <p className="text-center text-[var(--text-color-muted)] text-sm p-4">
+                                    Không tìm thấy người dùng nào.
+                                </p>
+                            ) : (
+                                <p className="text-center text-[var(--text-color-muted)] p-4">
+                                    Nhập tên hoặc email để tìm kiếm.
+                                </p>
+                            )}
+                        </ListGroup>
+                    )}
+                </Modal.Body>
+
+                <div className="flex justify-end px-4 py-2 border-t border-[var(--border-color)]">
+                    <button
+                        onClick={handleClose}
+                        className="bg-[var(--hover-bg-color)] border border-[var(--border-color)] text-[var(--text-color)] px-4 py-2 rounded-md hover:bg-[var(--border-color)] transition"
+                    >
+                        Đóng
+                    </button>
+                </div>
+            </>
         </Modal>
     );
-}
+};
 
 export default UserSelectionModal;

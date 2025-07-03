@@ -372,14 +372,16 @@ const filteredChats = chats.filter((chat) =>
 
 if (loading) {
   return (
-      <div className="d-flex justify-content-center align-items-center h-100">
-        <Spinner animation="border" />
+      <div className="flex justify-center items-center h-screen text-gray-400">
+        <span className="animate-spin border-t-2 border-gray-500 rounded-full h-6 w-6 mr-2"></span>
+        Đang tải...
       </div>
+
   );
 }
 
 return (
-    <div className="d-flex h-100 bg-light">
+    <div className="flex h-screen bg-[var(--background-color)] text-[var(--text-color)]">
       {/*<style>*/}
       {/*  .list-group-item-action.active {*/}
       {/*    background-color: #e9ecef !important;*/}
@@ -390,75 +392,69 @@ return (
       {/*    background-color: #f8f9fa !important;*/}
       {/*}*/}
       {/*</style>*/}
-      <div className="flex-grow-1 d-flex flex-column">
-        <div className="bg-white border-bottom p-3">
-          <h5 className="fw-bold mb-0">Tin nhắn</h5>
-          <InputGroup className="mt-3 rounded-pill shadow-sm">
-            <InputGroup.Text className="bg-light border-0 rounded-pill ps-3">
-              <FaSearch className="text-muted" />
-            </InputGroup.Text>
-            <Form.Control
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  if (showUserSelectionModal) {
-                    setSearchKeyword(e.target.value);
-                  }
-                }}
-                placeholder="Tìm kiếm người dùng hoặc tin nhắn"
-                className="bg-light border-0 rounded-pill py-2"
-            />
-            <Button
-                variant="primary"
-                className="rounded-pill ms-2"
+      <div className="flex flex-col flex-grow h-full">
+        <div className="bg-[var(--card-bg)] border-b border-[var(--border-color)] p-4">
+        <h5 className="fw-bold mb-0">Tin nhắn</h5>
+          <div className="flex items-center gap-2 mt-3">
+            <div className="relative w-full">
+              <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    if (showUserSelectionModal) setSearchKeyword(e.target.value);
+                  }}
+                  placeholder="Tìm kiếm người dùng hoặc tin nhắn"
+                  className="w-full pl-10 pr-4 py-2 rounded-full border border-[var(--border-color)] bg-gray-100 dark:bg-gray-800 focus:outline-none text-sm"
+              />
+            </div>
+            <button
                 onClick={handleOpenUserSelectionModal}
+                className="bg-blue-500 text-white px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-1 hover:bg-blue-600"
             >
               <FaPenSquare /> Tin nhắn mới
-            </Button>
-          </InputGroup>
+            </button>
+          </div>
+
         </div>
         <div className="d-flex flex-grow-1">
           <div className="border-end bg-white" style={{ width: "350px" }}>
-            <ListGroup variant="flush">
-              {filteredChats.map((chat) => (
-                  <ListGroup.Item
+            <div className="w-[350px] border-r border-[var(--border-color)] bg-[var(--card-bg)] overflow-y-auto">
+              {filteredChats.map(chat => (
+                  <div
                       key={chat.id}
-                      action
-                      active={selectedChatId === chat.id}
-                      className={`d-flex align-items-center p-3 ${
-                        chat.unreadMessagesCount > 0 ? "fw-bold" : ""
+                      onClick={() => handleSelectChat(chat.id)}
+                      className={`flex items-center justify-between p-4 border-b border-[var(--border-color)] hover:bg-[var(--hover-bg-color)] cursor-pointer ${
+                          selectedChatId === chat.id ? "bg-gray-200 dark:bg-gray-700" : ""
                       }`}
                   >
                     <img
                         src="/assets/default-avatar.png"
                         alt="Avatar"
-                        className="rounded-circle me-2"
-                        style={{ width: "40px", height: "40px" }}
+                        className="w-10 h-10 rounded-full mr-3"
                     />
-                    <div
-                        className="flex-grow-1"
-                        onClick={() => handleSelectChat(chat.id)}
-                    >
-                      <p className="fw-bold mb-0">{chat.name || "Unknown User"}</p>
-                      <p className="text-muted small mb-0">{chat.lastMessage}</p>
+                    <div className="flex-1">
+                      <p className="font-bold text-sm">{chat.name || "Unknown User"}</p>
+                      <p className="text-gray-500 text-xs truncate">{chat.lastMessage}</p>
                     </div>
-                    <Button
-                        variant="link"
-                        className="p-0"
+                    <button
                         onClick={(e) => {
                           e.stopPropagation();
                           handleDeleteChat(chat.id);
                         }}
-                        title="Delete chat"
+                        className="text-red-500 hover:text-red-700"
+                        title="Xóa chat"
                     >
-                      <FaTrash className="text-danger" />
-                    </Button>
-                  </ListGroup.Item>
+                      <FaTrash />
+                    </button>
+                  </div>
               ))}
-            </ListGroup>
+            </div>
+
           </div>
-          <div className="flex-grow-1">
-            {selectedChatId ? (
+          <div className="flex-1 bg-[var(--background-color)]">
+          {selectedChatId ? (
                 <Chat
                     chatId={selectedChatId}
                     messages={messages[selectedChatId] || []}
@@ -479,10 +475,10 @@ return (
                     }}
                 />
             ) : (
-                <div className="d-flex justify-content-center align-items-center h-100">
-                  <p className="text-muted">Chọn một cuộc trò chuyện</p>
-                </div>
-            )}
+              <div className="flex justify-center items-center h-full text-gray-400">
+                <p>Chọn một cuộc trò chuyện</p>
+              </div>
+          )}
           </div>
         </div>
         <UserSelectionModal
