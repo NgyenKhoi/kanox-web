@@ -54,8 +54,8 @@ function CommentThread({
                         src={avatarUrl}
                         alt="avatar"
                         roundedCircle
-                        width={40}
-                        height={40}
+                        width={36}
+                        height={36}
                         style={{ objectFit: 'cover' }}
                         className="me-2 flex-shrink-0"
                     />
@@ -167,8 +167,8 @@ function CommentThread({
                                             src={avatarUrl}
                                             alt="avatar"
                                             roundedCircle
-                                            width={40}
-                                            height={40}
+                                            width={36}
+                                            height={36}
                                             style={{ objectFit: 'cover' }}
                                             className="me-2 flex-shrink-0"
                                         />

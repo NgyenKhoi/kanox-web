@@ -72,6 +72,7 @@ function TweetCard({ tweet, onPostUpdate }) {
   const [isLoadingComments, setIsLoadingComments] = useState(true);
   const [showReactionUserModal, setShowReactionUserModal] = useState(false);
   const [selectedEmojiName, setSelectedEmojiName] = useState("");
+  const [commentUserList, setCommentUserList] = useState([]);
 
   const currentUserId = user?.id;
   const ownerId = owner?.id || null;
@@ -103,6 +104,7 @@ function TweetCard({ tweet, onPostUpdate }) {
   } = useReaction({ user, targetId: tweet.id, targetTypeCode: "POST" });
 
   const totalCount = Object.values(reactionCountMap).reduce((sum, count) => sum + count, 0);
+
 
   const handleNextImage = () => {
     if (currentImageIndex < imageUrls.length - 1) {
@@ -142,6 +144,23 @@ function TweetCard({ tweet, onPostUpdate }) {
       setIsLoadingComments(false);
     }
   };
+
+  useEffect(() => {
+    if (comments.length > 0) {
+      const uniqueUsers = [];
+      const seen = new Set();
+
+      comments.forEach((comment) => {
+        const u = comment?.user;
+        if (u && !seen.has(u.id)) {
+          seen.add(u.id);
+          uniqueUsers.push(u);
+        }
+      });
+
+      setCommentUserList(uniqueUsers);
+    }
+  }, [comments]);
 
   useEffect(() => {
     if (id) fetchComments();
@@ -655,13 +674,18 @@ function TweetCard({ tweet, onPostUpdate }) {
                           }
                         }}
                         onClick={() => {
-                          setSelectedEmojiName(name);
-                          setShowReactionUserModal(true);
+                          if (name) {
+                            setSelectedEmojiName(name);
+                            setShowReactionUserModal(true);
+                          } else {
+                            toast.error("Tên emoji không hợp lệ!");
+                          }
                         }}
                         style={{ fontSize: "1.2rem", cursor: "pointer", marginRight: "4px" }}
                     >
-                      {emoji}
-                    </span>
+                          {emoji}
+                        </span>
+
                           </OverlayTrigger>
                       ))}
 
@@ -671,7 +695,37 @@ function TweetCard({ tweet, onPostUpdate }) {
                     </div>
 
                     <div className="text-[var(--text-color-muted)] small text-end">
-                      {commentCount} bình luận
+                      <OverlayTrigger
+                          placement="top"
+                          overlay={
+                            <Popover id="popover-comment-users">
+                              <Popover.Header as="h3">Người bình luận</Popover.Header>
+                              <Popover.Body>
+                                {commentUserList.length === 0 ? (
+                                    <div>Chưa có ai bình luận</div>
+                                ) : (
+                                    commentUserList.slice(0, 5).map((u, idx) => (
+                                        <div key={idx}>{u.displayName || u.username}</div>
+                                    ))
+                                )}
+                                {commentUserList.length > 5 && (
+                                    <div className="text-muted small mt-1">
+                                      +{commentUserList.length - 5} người khác
+                                    </div>
+                                )}
+                              </Popover.Body>
+                            </Popover>
+                          }
+                      >
+                      <span
+                          className="text-[var(--text-color-muted)] small text-end cursor-pointer"
+                          onMouseEnter={() => {
+                            // Nếu sau này muốn fetch động, có thể làm ở đây
+                          }}
+                      >
+                        {commentCount} bình luận
+                      </span>
+                      </OverlayTrigger>
                       {shareCount > 0 && ` · ${shareCount} lượt chia sẻ`}
                     </div>
                   </div>
@@ -723,8 +777,10 @@ function TweetCard({ tweet, onPostUpdate }) {
                         {user?.avatarUrl ? (
                             <BootstrapImage
                                 src={user.avatarUrl}
-                                className="w-8 h-8 object-cover mr-2 rounded-full"
-                                aria-label={`Ảnh đại diện của ${user.displayName}`}
+                                style={{ width: 32, height: 32, objectFit: 'cover' }}
+                                className="mr-2 rounded-full"
+                                roundedCircle
+                                alt={`Ảnh đại diện của ${user.displayName}`}
                             />
                         ) : (
                             <FaUserCircle
@@ -773,14 +829,15 @@ function TweetCard({ tweet, onPostUpdate }) {
             />
         )}
 
-        {/* Modal xem người reaction */}
-        <ReactionUserListModal
-            show={showReactionUserModal}
-            onHide={() => setShowReactionUserModal(false)}
-            targetId={postId}
-            targetTypeCode="POST"
-            emojiName={selectedEmojiName}
-        />
+        {selectedEmojiName && (
+            <ReactionUserListModal
+                show={showReactionUserModal}
+                onHide={() => setShowReactionUserModal(false)}
+                targetId={postId}
+                targetTypeCode="POST"
+                emojiName={selectedEmojiName}
+            />
+        )}
 
         {/* Modal ảnh */}
         <Modal

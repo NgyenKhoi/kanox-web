@@ -12,9 +12,12 @@ const CommentItem = ({ comment }) => {
             {avatarUrl ? (
                 <Image
                     src={avatarUrl}
-                    className="w-9 h-9 object-cover flex-shrink-0 rounded-full"
+                    alt="avatar"
                     roundedCircle
-                    alt="Ảnh đại diện"
+                    width={36}
+                    height={36}
+                    style={{ objectFit: 'cover' }}
+                    className="me-2 flex-shrink-0"
                 />
             ) : (
                 <FaUserCircle

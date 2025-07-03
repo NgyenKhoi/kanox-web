@@ -24,6 +24,12 @@ const SignupPage = () => {
   const handleShowLoginModal = () => setShowLoginModal(true);
   const handleCloseLoginModal = () => setShowLoginModal(false);
 
+  useEffect(() => {
+    if (user && token) {
+      navigate("/home");
+    }
+  }, [user, token]);
+
   const handleGoogleLoginSuccess = async (credentialResponse) => {
     setLoading(true);
     try {

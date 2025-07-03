@@ -127,14 +127,15 @@ export default function useReaction({ user, targetId, targetTypeCode }) {
 
     const removeReaction = async () => {
         try {
-            const res = await fetch(`${process.env.REACT_APP_API_URL}/reactions/by-name`, {
-                method: "DELETE",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({ userId: user.id, targetId, targetTypeCode }),
-            });
+            const res = await fetch(
+                `${process.env.REACT_APP_API_URL}/reactions/by-name?userId=${user.id}&targetId=${targetId}&targetTypeCode=${targetTypeCode}`,
+                {
+                    method: "DELETE",
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
 
             if (!res.ok) throw new Error("Không thể gỡ cảm xúc.");
             setCurrentEmoji(null);
