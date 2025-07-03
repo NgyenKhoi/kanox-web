@@ -106,17 +106,18 @@ function MessengerPage() {
 
     const topic = `/topic/chat/${chatId}`;
     const subId = `chat-${chatId}`;
-    const callback = (message) => {
-      const newMessage = JSON.parse(message.body); // ✅ parse JSON
-      console.log("📩 Tin nhắn mới từ /topic/chat/${chatId}:", newMessage);
-      setMessages((prev) => ({
-        ...prev,
-        [chatId]: [...(prev[chatId] || []), newMessage],
-      }));
-      if (selectedChatId !== chatId) {
-        setUnreadChats((prev) => new Set(prev).add(chatId));
+    const callback = (newMessage) => {
+      try {
+        console.log("✅ New message received:", newMessage);
+        setMessages((prev) => ({
+          ...prev,
+          [chatId]: [...(prev[chatId] || []), newMessage],
+        }));
+      } catch (err) {
+        console.error("❌ Lỗi khi parse message:", err, newMessage);
       }
     };
+
 
     const subscription = subscribe(topic, callback, subId);
     subscriptionsRef.current[chatId] = subscription;
@@ -209,175 +210,174 @@ function MessengerPage() {
         try {
           const token = sessionStorage.getItem("token") || localStorage.getItem("token");
           const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/${chatId}/messages`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!response.ok) {
-          throw new Error("Lỗi khi tải tin nhắn.");
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (!response.ok) {
+            throw new Error("Lỗi khi tải tin nhắn.");
+          }
+          const data = await response.json();
+          setMessages((prev) => ({ ...prev, [chatId]: data }));
+        } catch (err) {
+          toast.error(err.message || "Lỗi khi tải tin nhắn.");
         }
-        const data = await response.json();
-        setMessages((prev) => ({ ...prev, [chatId]: data }));
-      } catch (err) {
-        toast.error(err.message || "Lỗi khi tải tin nhắn.");
+      };
+      fetchMessages();
+      if (publish) {
+        publish("/app/resend", { chatId: Number(chatId) });
       }
-    };
-    fetchMessages();
-    if (publish) {
-      publish("/app/resend", { chatId: Number(chatId) });
+    } else if (selectedChatId) {
+      unsubscribeFromChatMessages(selectedChatId); // Hủy subscribe khi không chọn chat
     }
-  } else if (selectedChatId) {
-    unsubscribeFromChatMessages(selectedChatId); // Hủy subscribe khi không chọn chat
-  }
-}, [searchParams, publish, subscribeToChatMessages, unsubscribeFromChatMessages]);
+  }, [searchParams, publish, subscribeToChatMessages, unsubscribeFromChatMessages]);
 
-const handleOpenUserSelectionModal = () => {
-  setSearchKeyword("");
-  setSearchQuery("");
-  setShowUserSelectionModal(true);
-};
+  const handleOpenUserSelectionModal = () => {
+    setSearchKeyword("");
+    setSearchQuery("");
+    setShowUserSelectionModal(true);
+  };
 
-const handleCloseUserSelectionModal = () => {
-  setShowUserSelectionModal(false);
-  setSearchKeyword("");
-  setSearchQuery("");
-};
+  const handleCloseUserSelectionModal = () => {
+    setShowUserSelectionModal(false);
+    setSearchKeyword("");
+    setSearchQuery("");
+  };
 
-const handleSelectUser = async (userId) => {
-  // if (!token) {
-  //   toast.error("Vui lòng đăng nhập lại.");
-  //   navigate("/");
-  //   return;
-  // }
-
-  try {
-    const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/create`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ targetUserId: userId }),
-    });
-
-    // if (response.status === 401) {
-    //   toast.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
-    //   localStorage.removeItem("token");
-    //   sessionStorage.removeItem("token");
+  const handleSelectUser = async (userId) => {
+    // if (!token) {
+    //   toast.error("Vui lòng đăng nhập lại.");
     //   navigate("/");
     //   return;
     // }
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error("Lỗi khi tạo chat:", `${errorText}`);
-    }
-
-    const data = await response.json();
-    setChats((prev) => {
-      if (!prev.some((chat) => chat.id === data.id)) {
-        return [...prev, { ...data, name: data.name || "Unknown User" }];
-      }
-      return prev.map((chat) => (chat.id === data.id ? { ...data, name: data.name || "Unknown User" } : chat));
-    });
-    setSelectedChatId(data.id);
-    navigate(`/messages?chatId=${data.id}`);
-    handleCloseUserSelectionModal();
-    if (publish) {
-      publish("/app/resend", { chatId: data.id });
-    }
-  } catch (error) {
-    toast.error("Không thể tạo chat: " + error.message);
-    console.error("Create chat error:", error);
-  }
-};
-
-const handleDeleteChat = async (chatId) => {
-  if (!token) {
-    toast.error("Vui lòng đăng nhập lại.");
-    navigate("/");
-    return;
-  }
-
-  try {
-    const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/${chatId}/delete`, {
-    method: "DELETE",
+    try {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/create`, {
+        method: "POST",
         headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ targetUserId: userId }),
+      });
 
-  if (response.status === 401) {
-    toast.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
-    localStorage.removeItem("token");
-    sessionStorage.removeItem("token");
-    navigate("/");
-    return;
-  }
+      // if (response.status === 401) {
+      //   toast.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
+      //   localStorage.removeItem("token");
+      //   sessionStorage.removeItem("token");
+      //   navigate("/");
+      //   return;
+      // }
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error("Lỗi khi xóa chat:", `${errorText}`);
-  }
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error("Lỗi khi tạo chat:", `${errorText}`);
+      }
 
-  if (publish) {
-    publish("/app/chat/delete", { chatId, userId: user.id });
-  }
-  setChats((prev) => prev.filter((chat) => chat.id !== chatId));
-  setUnreadChats((prev) => {
-    const newUnread = new Set(prev);
-    newUnread.delete(chatId);
-    return newUnread;
-  });
-  if (selectedChatId === chatId) {
-    setSelectedChatId(null);
-    setMessages((prev) => {
-      const newMessages = { ...prev };
-      delete newMessages[chatId];
-      return newMessages;
-    });
-    navigate("/messages");
-  }
-  toast.success("Đã xóa chat.");
-} catch (error) {
-  toast.error("Không thể xóa chat: " + error.message);
-  console.error("Delete chat error:", error);
-}
-};
+      const data = await response.json();
+      setChats((prev) => {
+        if (!prev.some((chat) => chat.id === data.id)) {
+          return [...prev, { ...data, name: data.name || "Unknown User" }];
+        }
+        return prev.map((chat) => (chat.id === data.id ? { ...data, name: data.name || "Unknown User" } : chat));
+      });
+      setSelectedChatId(data.id);
+      navigate(`/messages?chatId=${data.id}`);
+      handleCloseUserSelectionModal();
+      if (publish) {
+        publish("/app/resend", { chatId: data.id });
+      }
+    } catch (error) {
+      toast.error("Không thể tạo chat: " + error.message);
+      console.error("Create chat error:", error);
+    }
+  };
 
-const handleSelectChat = async (chatId) => {
-  setSelectedChatId(chatId);
-  navigate(`/messages?chatId=${chatId}`);
-  if (publish) {
-    publish("/app/resend", { chatId: Number(chatId) });
-  }
-  try {
-    const token = sessionStorage.getItem("token") || localStorage.getItem("token");
-    const messagesResponse = await fetch(`${process.env.REACT_APP_API_URL}/chat/${chatId}/messages`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!messagesResponse.ok) {
-    const errorText = await messagesResponse.text();
-    throw new Error("Lỗi khi tải tin nhắn:", `${errorText}`);
-  }
-  const data = await messagesResponse.json();
-  setMessages((prev) => ({ ...prev, [chatId]: data }));
-} catch (error) {
-  console.error("Error in handleSelectChat:", error);
-  toast.error(error.message || "Lỗi khi tải tin nhắn.");
-}
-};
+  const handleDeleteChat = async (chatId) => {
+    if (!token) {
+      toast.error("Vui lòng đăng nhập lại.");
+      navigate("/");
+      return;
+    }
 
-const filteredChats = chats.filter((chat) =>
-    (chat.name || "").toLowerCase().includes(searchQuery.toLowerCase())
-);
+    try {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/${chatId}/delete`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-if (loading) {
-  return (
-      <div className="flex justify-center items-center h-screen text-gray-400">
-        <span className="animate-spin border-t-2 border-gray-500 rounded-full h-6 w-6 mr-2"></span>
-        Đang tải...
-      </div>
+      if (response.status === 401) {
+        toast.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
+        localStorage.removeItem("token");
+        sessionStorage.removeItem("token");
+        navigate("/");
+        return;
+      }
 
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error("Lỗi khi xóa chat:", `${errorText}`);
+      }
+
+      if (publish) {
+        publish("/app/chat/delete", { chatId, userId: user.id });
+      }
+      setChats((prev) => prev.filter((chat) => chat.id !== chatId));
+      setUnreadChats((prev) => {
+        const newUnread = new Set(prev);
+        newUnread.delete(chatId);
+        return newUnread;
+      });
+      if (selectedChatId === chatId) {
+        setSelectedChatId(null);
+        setMessages((prev) => {
+          const newMessages = { ...prev };
+          delete newMessages[chatId];
+          return newMessages;
+        });
+        navigate("/messages");
+      }
+      toast.success("Đã xóa chat.");
+    } catch (error) {
+      toast.error("Không thể xóa chat: " + error.message);
+      console.error("Delete chat error:", error);
+    }
+  };
+
+  const handleSelectChat = async (chatId) => {
+    setSelectedChatId(chatId);
+    navigate(`/messages?chatId=${chatId}`);
+    if (publish) {
+      publish("/app/resend", { chatId: Number(chatId) });
+    }
+    try {
+      const token = sessionStorage.getItem("token") || localStorage.getItem("token");
+      const messagesResponse = await fetch(`${process.env.REACT_APP_API_URL}/chat/${chatId}/messages`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!messagesResponse.ok) {
+        const errorText = await messagesResponse.text();
+        throw new Error("Lỗi khi tải tin nhắn:", `${errorText}`);
+      }
+      const data = await messagesResponse.json();
+      setMessages((prev) => ({ ...prev, [chatId]: data }));
+    } catch (error) {
+      console.error("Error in handleSelectChat:", error);
+      toast.error(error.message || "Lỗi khi tải tin nhắn.");
+    }
+  };
+
+  const filteredChats = chats.filter((chat) =>
+      (chat.name || "").toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  if (loading) {
+    return (
+        <div className="d-flex justify-content-center align-items-center h-100">
+          <Spinner animation="border" />
+        </div>
+    );
+
 }
 
 return (
@@ -418,8 +418,8 @@ return (
           </div>
 
         </div>
-        <div className="flex flex-grow h-full overflow-hidden">
-            <div className="w-[350px] border-r border-[var(--border-color)] bg-[var(--card-bg)] overflow-y-auto">
+        <div className="flex flex-grow h-full overflow-hidden min-h-0">
+            <div className="w-1/3 border-r border-[var(--border-color)] bg-[var(--card-bg)] overflow-y-auto">
               {filteredChats.map(chat => (
                   <div
                       key={chat.id}
@@ -451,8 +451,8 @@ return (
               ))}
             </div>
 
-          </div>
-          <div className="flex-1 bg-[var(--background-color)]">
+
+          <div className="w-2/3 bg-[var(--background-color)] h-full">
           {selectedChatId ? (
                 <Chat
                     chatId={selectedChatId}
@@ -480,6 +480,7 @@ return (
           )}
           </div>
         </div>
+      </div>
         <UserSelectionModal
             show={showUserSelectionModal}
             handleClose={handleCloseUserSelectionModal}
