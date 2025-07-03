@@ -7,6 +7,7 @@ import { AuthContext } from "../../../context/AuthContext";
 function SidebarRight() {
   const [showFullFooter, setShowFullFooter] = useState(false);
   const { token, hasSynced, loading } = useContext(AuthContext);
+  const navigate = useNavigate();
   const {
     searchKeyword,
     setSearchKeyword,
@@ -14,8 +15,6 @@ function SidebarRight() {
     isSearching,
     debouncedSearch,
   } = useUserSearch(token, navigate);
-
-  const navigate = useNavigate();
 
   useEffect(() => {
     if (searchKeyword.trim()) {
