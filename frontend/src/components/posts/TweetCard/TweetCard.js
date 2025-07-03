@@ -11,8 +11,10 @@ import {
   Modal,
   Form,
   InputGroup,
+    Popover,
 } from "react-bootstrap";
 import {
+  FaImage, FaVideo, FaSmile,
   FaBookmark,
   FaRegComment,
   FaRetweet,
@@ -43,6 +45,9 @@ import "./TweetCard.css";
 import ReactionButtonGroup from "./ReactionButtonGroup";
 import useReaction from "../../../hooks/useReaction";
 import ReactionUserListModal from "./ReactionUserListModal";
+import PostImages from "./PostImages";
+import { useCommentActions } from "../../../hooks/useCommentAction";
+import useEmojiList from "../../../hooks/useEmojiList";
 
 function TweetCard({ tweet, onPostUpdate }) {
   const { user, loading, token } = useContext(AuthContext);
@@ -68,9 +73,13 @@ function TweetCard({ tweet, onPostUpdate }) {
   const [newComment, setNewComment] = useState("");
   const [isCommenting, setIsCommenting] = useState(false);
   const [showCommentBox, setShowCommentBox] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isLoadingComments, setIsLoadingComments] = useState(true);
   const [showReactionUserModal, setShowReactionUserModal] = useState(false);
   const [selectedEmojiName, setSelectedEmojiName] = useState("");
+  const [commentUserList, setCommentUserList] = useState([]);
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const { emojiList } = useEmojiList();
 
   const currentUserId = user?.id;
   const ownerId = owner?.id || null;
@@ -97,9 +106,12 @@ function TweetCard({ tweet, onPostUpdate }) {
     currentEmoji,
     sendReaction,
     removeReaction,
+    fetchUsersByReaction,
+    reactionUserMap
   } = useReaction({ user, targetId: tweet.id, targetTypeCode: "POST" });
 
   const totalCount = Object.values(reactionCountMap).reduce((sum, count) => sum + count, 0);
+
 
   const handleNextImage = () => {
     if (currentImageIndex < imageUrls.length - 1) {
@@ -141,8 +153,46 @@ function TweetCard({ tweet, onPostUpdate }) {
   };
 
   useEffect(() => {
+    if (comments.length > 0) {
+      const uniqueUsers = [];
+      const seen = new Set();
+
+      comments.forEach((comment) => {
+        const u = comment?.user;
+        if (u && !seen.has(u.id)) {
+          seen.add(u.id);
+          uniqueUsers.push(u);
+        }
+      });
+
+      setCommentUserList(uniqueUsers);
+    }
+  }, [comments]);
+
+  useEffect(() => {
     if (id) fetchComments();
   }, [id]);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (!e.target.closest(".emoji-picker")) {
+        setShowEmojiPicker(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const {
+    handleReplyToComment,
+    handleUpdateComment,
+    handleDeleteComment,
+  } = useCommentActions({
+    user,
+    postId,
+    setComments,
+    fetchComments,
+  });
 
   const handleCommentSubmit = async (e) => {
     e.preventDefault();
@@ -204,8 +254,54 @@ function TweetCard({ tweet, onPostUpdate }) {
     }
   };
 
-  const handleSaveTweet = () => alert(`Đã lưu bài đăng: ${content}`);
-  const handleReportTweet = () => alert(`Đã báo cáo bài đăng: ${content}`);
+  const handleSavePost = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("Vui lòng đăng nhập để lưu bài viết!");
+
+      const response = await fetch(
+          `${process.env.REACT_APP_API_URL}/posts/${id}/save`,
+          {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+          }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Không thể lưu bài viết.");
+      }
+
+      toast.success("Đã lưu bài viết!");
+    } catch (err) {
+      toast.error("Lỗi khi lưu bài viết: " + err.message);
+    }
+  };
+
+  const handleHidePost = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("Vui lòng đăng nhập để ẩn bài viết!");
+
+      const response = await fetch(
+          `${process.env.REACT_APP_API_URL}/posts/${id}/hide`,
+          {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+          }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Không thể ẩn bài viết.");
+      }
+
+      toast.success("Đã ẩn bài viết!");
+      if (onPostUpdate) onPostUpdate(); // để cập nhật view nếu cần
+    } catch (err) {
+      toast.error("Lỗi khi ẩn bài viết: " + err.message);
+    }
+  };
 
   const handleStatusChange = async (newStatus) => {
     try {
@@ -268,199 +364,6 @@ function TweetCard({ tweet, onPostUpdate }) {
     }
   };
 
-  const renderImages = (images) => {
-    if (!Array.isArray(images) || images.length === 0) return null;
-
-    const imageCount = images.length;
-
-    if (imageCount === 1) {
-      return (
-          <div className="overflow-hidden rounded-2xl mb-2">
-            <BootstrapImage
-                src={images[0]}
-                className="w-full h-auto max-h-[500px] object-cover block cursor-pointer rounded-2xl"
-                fluid
-                onClick={() => handleImageClick(images[0], 0)}
-                aria-label="Hình ảnh bài đăng"
-            />
-          </div>
-      );
-    }
-
-    if (imageCount === 2) {
-      return (
-          <Row className="overflow-hidden rounded-2xl g-2 mb-2">
-            {images.map((url, idx) => (
-                <Col key={idx} xs={6}>
-                  <BootstrapImage
-                      src={url}
-                      className="w-full h-[300px] object-cover rounded-2xl cursor-pointer"
-                      fluid
-                      onClick={() => handleImageClick(url, idx)}
-                      aria-label={`Hình ảnh bài đăng ${idx + 1}`}
-                  />
-                </Col>
-            ))}
-          </Row>
-      );
-    }
-
-    if (imageCount === 3) {
-      return (
-          <Row className="overflow-hidden rounded-2xl g-2 mb-2">
-            <Col xs={6}>
-              <BootstrapImage
-                  src={images[0]}
-                  className="w-full h-[400px] object-cover rounded-2xl cursor-pointer"
-                  fluid
-                  onClick={() => handleImageClick(images[0], 0)}
-                  aria-label="Hình ảnh bài đăng chính"
-              />
-            </Col>
-            <Col xs={6}>
-              <div className="flex flex-col h-full g-1">
-                <BootstrapImage
-                    src={images[1]}
-                    className="w-full h-[198px] object-cover rounded-2xl mb-1 cursor-pointer"
-                    fluid
-                    onClick={() => handleImageClick(images[1], 1)}
-                    aria-label="Hình ảnh bài đăng phụ 1"
-                />
-                <BootstrapImage
-                    src={images[2]}
-                    className="w-full h-[198px] object-cover rounded-2xl cursor-pointer"
-                    fluid
-                    onClick={() => handleImageClick(images[2], 2)}
-                    aria-label="Hình ảnh bài đăng phụ 2"
-                />
-              </div>
-            </Col>
-          </Row>
-      );
-    }
-
-    return (
-        <Row className="overflow-hidden rounded-2xl g-2 mb-2">
-          {images.slice(0, 4).map((url, idx) => (
-              <Col key={idx} xs={6}>
-                <div className="relative">
-                  <BootstrapImage
-                      src={url}
-                      className="w-full h-[200px] object-cover rounded-2xl cursor-pointer"
-                      fluid
-                      onClick={() => idx < 4 ? handleImageClick(url, idx) : null}
-                      aria-label={`Hình ảnh bài đăng ${idx + 1}`}
-                  />
-                  {idx === 3 && images.length > 4 && (
-                      <div className="absolute top-0 left-0 w-full h-full bg-[rgba(0,0,0,0.5)] flex items-center justify-center text-white text-2xl font-bold rounded-2xl pointer-events-none">
-                        +{images.length - 4}
-                      </div>
-                  )}
-                </div>
-              </Col>
-          ))}
-        </Row>
-    );
-  };
-
-  const handleReplyToComment = async (parentId, replyText) => {
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) throw new Error("Vui lòng đăng nhập để bình luận!");
-
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/comments`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          userId: user.id,
-          postId: postId,
-          content: replyText,
-          privacySetting: "default",
-          parentCommentId: parentId,
-        }),
-      });
-
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || "Không thể phản hồi");
-
-      toast.success("Phản hồi thành công");
-
-      const newReply = data.data;
-
-      setComments((prevComments) =>
-          prevComments.map((comment) => {
-            if (comment.commentId === parentId) {
-              return {
-                ...comment,
-                replies: [...(comment.replies || []), newReply],
-              };
-            }
-            return comment;
-          })
-      );
-    } catch (error) {
-      console.error("Lỗi phản hồi:", error);
-      toast.error("Không thể phản hồi bình luận: " + error.message);
-    }
-  };
-
-  const handleUpdateComment = async (commentId, newText) => {
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) throw new Error("Vui lòng đăng nhập để chỉnh sửa!");
-
-      const response = await fetch(
-          `${process.env.REACT_APP_API_URL}/comments/${commentId}`,
-          {
-            method: "PUT",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              userId: currentUserId,
-              content: newText,
-            }),
-          }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) throw new Error(data.message || "Không thể cập nhật bình luận.");
-
-      toast.success("Đã cập nhật bình luận!");
-      fetchComments();
-    } catch (err) {
-      toast.error("Lỗi khi cập nhật bình luận: " + err.message);
-    }
-  };
-
-  const handleDeleteComment = async (commentId) => {
-    if (!window.confirm("Bạn có chắc muốn xóa bình luận này?")) return;
-
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) throw new Error("Vui lòng đăng nhập để xóa bình luận!");
-
-      const response = await fetch(
-          `${process.env.REACT_APP_API_URL}/comments/${commentId}`,
-          { method: "DELETE", headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Xóa bình luận thất bại.");
-      }
-
-      toast.success("Đã xóa bình luận!");
-      fetchComments();
-    } catch (err) {
-      toast.error("Lỗi khi xóa bình luận: " + err.message);
-    }
-  };
 
   const renderComments = () => {
     if (isLoadingComments) return <div className="text-[var(--text-color-muted)]">Đang tải bình luận...</div>;
@@ -479,11 +382,11 @@ function TweetCard({ tweet, onPostUpdate }) {
         />
     ));
   };
-
   return (
       <>
         <Card className="mb-3 rounded-2xl shadow-sm border-0 bg-[var(--background-color)]">
           <Card.Body className="d-flex p-3">
+            {/* avatar và info */}
             {avatarUrl ? (
                 <BootstrapImage
                     src={avatarUrl}
@@ -500,8 +403,9 @@ function TweetCard({ tweet, onPostUpdate }) {
                 />
             )}
             <div className="flex-grow-1">
-              <div className="d-flex align-items-center justify-content-between mb-1">
-                <div className="d-flex align-items-center">
+              {/* header */}
+              <div className="position-relative mb-1">
+                <div className="d-flex align-items-center pe-5">
                   <h6
                       className="mb-0 fw-bold me-1 cursor-pointer text-[var(--text-color)]"
                       onClick={handleNavigateToProfile}
@@ -521,60 +425,76 @@ function TweetCard({ tweet, onPostUpdate }) {
                     <span>{renderStatusIcon(privacySetting)}</span>
                   </OverlayTrigger>
                 </div>
-                <Dropdown>
-                  <Dropdown.Toggle
+                {/* dropdown và nút X */}
+                <div className="position-absolute top-0 end-0 d-flex align-items-center gap-2">
+                  <Dropdown>
+                    <Dropdown.Toggle
+                        variant="link"
+                        className="text-[var(--text-color-muted)] p-1 rounded-circle"
+                        style={{ width: "36px", height: "36px", fontSize: "1.2rem" }}
+                    >
+                      <FaEllipsisH />
+                    </Dropdown.Toggle>
+                    <Dropdown.Menu>
+                      {isOwnTweet && (
+                          <>
+                            <Dropdown.Item onClick={handleEditTweet}>
+                              <FaEdit className="me-2 text-[var(--text-color)]" /> Chỉnh sửa
+                            </Dropdown.Item>
+                            <Dropdown.Item onClick={handleDeleteTweet}>
+                              <FaTrash className="me-2 text-[var(--text-color)]" /> Xóa
+                            </Dropdown.Item>
+                            <Dropdown drop="end">
+                              <Dropdown.Toggle
+                                  variant="link"
+                                  className="text-[var(--text-color)] p-0 w-100 text-start"
+                              >
+                                <FaShareAlt className="me-2 text-[var(--text-color)]" /> Trạng thái:{" "}
+                                {renderStatusText(privacySetting)}
+                              </Dropdown.Toggle>
+                              <Dropdown.Menu>
+                                <Dropdown.Item onClick={() => handleStatusChange("public")}>
+                                  <FaGlobeAmericas className="me-2 text-primary" /> Công khai
+                                </Dropdown.Item>
+                                <Dropdown.Item onClick={() => handleStatusChange("friends")}>
+                                  <FaUserFriends className="me-2 text-success" /> Bạn bè
+                                </Dropdown.Item>
+                                <Dropdown.Item onClick={() => handleStatusChange("only_me")}>
+                                  <FaLock className="me-2 text-danger" /> Chỉ mình tôi
+                                </Dropdown.Item>
+                                <Dropdown.Item onClick={() => handleStatusChange("custom")}>
+                                  <FaList className="me-2 text-info" /> Tùy chỉnh
+                                </Dropdown.Item>
+                              </Dropdown.Menu>
+                            </Dropdown>
+                          </>
+                      )}
+                      <Dropdown.Item onClick={handleSavePost}>
+                        <FaSave className="me-2 text-[var(--text-color)]" /> Lưu bài đăng
+                      </Dropdown.Item>
+                      <Dropdown.Item>
+                        <FaFlag className="me-2 text-[var(--text-color)]" /> Báo cáo
+                      </Dropdown.Item>
+                    </Dropdown.Menu>
+                  </Dropdown>
+                  <Button
                       variant="link"
-                      className="text-[var(--text-color-muted)] p-1 rounded-circle"
-                      aria-label="Tùy chọn bài đăng"
+                      className="p-1 text-muted hover:text-danger"
+                      style={{
+                        fontSize: "1rem", // Smaller size for the X button
+                        lineHeight: 1,
+                      }}
+                      onClick={handleHidePost}
                   >
-                    <FaEllipsisH />
-                  </Dropdown.Toggle>
-                  <Dropdown.Menu>
-                    {isOwnTweet && (
-                        <>
-                          <Dropdown.Item onClick={handleEditTweet}>
-                            <FaEdit className="me-2 text-[var(--text-color)]" /> Chỉnh sửa
-                          </Dropdown.Item>
-                          <Dropdown.Item onClick={handleDeleteTweet}>
-                            <FaTrash className="me-2 text-[var(--text-color)]" /> Xóa
-                          </Dropdown.Item>
-                          <Dropdown drop="end">
-                            <Dropdown.Toggle
-                                variant="link"
-                                className="text-[var(--text-color)] p-0 w-100 text-start"
-                            >
-                              <FaShareAlt className="me-2 text-[var(--text-color)]" /> Trạng thái:{" "}
-                              {renderStatusText(privacySetting)}
-                            </Dropdown.Toggle>
-                            <Dropdown.Menu>
-                              <Dropdown.Item onClick={() => handleStatusChange("public")}>
-                                <FaGlobeAmericas className="me-2 text-primary" /> Công khai
-                              </Dropdown.Item>
-                              <Dropdown.Item onClick={() => handleStatusChange("friends")}>
-                                <FaUserFriends className="me-2 text-success" /> Bạn bè
-                              </Dropdown.Item>
-                              <Dropdown.Item onClick={() => handleStatusChange("only_me")}>
-                                <FaLock className="me-2 text-danger" /> Chỉ mình tôi
-                              </Dropdown.Item>
-                              <Dropdown.Item onClick={() => handleStatusChange("custom")}>
-                                <FaList className="me-2 text-info" /> Tùy chỉnh
-                              </Dropdown.Item>
-                            </Dropdown.Menu>
-                          </Dropdown>
-                        </>
-                    )}
-                    <Dropdown.Item onClick={handleSaveTweet}>
-                      <FaSave className="me-2 text-[var(--text-color)]" /> Lưu bài đăng
-                    </Dropdown.Item>
-                    <Dropdown.Item onClick={handleReportTweet}>
-                      <FaFlag className="me-2 text-[var(--text-color)]" /> Báo cáo
-                    </Dropdown.Item>
-                  </Dropdown.Menu>
-                </Dropdown>
+                    ✕
+                  </Button>
+                </div>
               </div>
 
+              {/* nội dung */}
               <p className="mb-2 text-[var(--text-color)]">{content}</p>
 
+              {/* tag người */}
               {Array.isArray(taggedUsers) && taggedUsers.length > 0 && (
                   <div className="mb-2">
                     <small className="text-[var(--text-color-muted)]">
@@ -590,8 +510,9 @@ function TweetCard({ tweet, onPostUpdate }) {
                   </div>
               )}
 
-              {renderImages(imageUrls.map((img) => img.url))}
+              <PostImages images={imageUrls.map((img) => img.url)} onClickImage={handleImageClick} />
 
+              {/* video */}
               {Array.isArray(videoUrls) &&
                   videoUrls.length > 0 &&
                   videoUrls.map((url, idx) => (
@@ -608,173 +529,263 @@ function TweetCard({ tweet, onPostUpdate }) {
                       </div>
                   ))}
 
-              {/* Thanh tổng hợp cảm xúc + bình luận với điều kiện */}
+              {/* reaction count + actions */}
               {(totalCount > 0 || commentCount > 0) && (
-                  <>
-                    {imageUrls.length === 0 && (
-                        <div
-                            style={{
-                              borderTop: "1px solid #e6ecf0",
-                              marginTop: "10px",
-                            }}
-                        />
-                    )}
-                    <div className="d-flex justify-content-between align-items-center mt-2 px-2">
-                      {/* Emojis phổ biến với tooltip hiển thị tên người dùng */}
+                  <div
+                      className={[
+                        "d-flex justify-content-between align-items-center px-2 py-2",
+                        imageUrls.length > 0 ? "border-t border-[var(--border-color)]" : "",
+                        "border-b border-[var(--border-color)]"
+                      ].join(" ")}
+                  >
+                    <div className="d-flex align-items-center gap-1">
+                      {topReactions.map(({ emoji, name }) => (
+                          <OverlayTrigger
+                              key={name}
+                              placement="top"
+                              delay={{ show: 250, hide: 200 }}
+                              overlay={
+                                <Popover id={`popover-${name}`}>
+                                  <Popover.Header as="h3">
+                                    {emoji} {name}
+                                  </Popover.Header>
+                                  <Popover.Body>
+                                    {!reactionUserMap[name] ? (
+                                        <div>Đang tải...</div>
+                                    ) : reactionUserMap[name]?.length > 0 ? (
+                                        reactionUserMap[name].slice(0, 5).map((u, idx) => (
+                                            <div key={idx}>{u.displayName || u.username}</div>
+                                        ))
+                                    ) : (
+                                        <div>Chưa có ai</div>
+                                    )}
+                                    {reactionUserMap[name]?.length > 5 && (
+                                        <div className="text-muted small mt-1">
+                                          +{reactionUserMap[name].length - 5} người khác
+                                        </div>
+                                    )}
+                                  </Popover.Body>
+                                </Popover>
+                              }
+                          >
+                      <span
+                          onMouseEnter={() => {
+                            if (!reactionUserMap[name]) {
+                              fetchUsersByReaction(name);
+                            }
+                          }}
+                          onClick={() => {
+                            if (name) {
+                              setSelectedEmojiName(name);
+                              setShowReactionUserModal(true);
+                            } else {
+                              toast.error("Tên emoji không hợp lệ!");
+                            }
+                          }}
+                          style={{ fontSize: "1.2rem", cursor: "pointer", marginRight: "4px" }}
+                      >
+                        {emoji}
+                      </span>
+                          </OverlayTrigger>
+                      ))}
                       {totalCount > 0 && (
-                          <div className="d-flex align-items-center gap-1">
-                            {topReactions.map(({ emoji, name }) => (
-                                <OverlayTrigger
-                                    key={name}
-                                    placement="top"
-                                    overlay={
-                                      <Tooltip id={`tooltip-${name}`}>
-                                        {reactionCountMap[name] > 0
-                                            ? `Người dùng: ${Array(reactionCountMap[name])
-                                                .fill()
-                                                .map((_, i) => `User${i + 1}`)
-                                                .join(", ")}`
-                                            : "Chưa có ai phản hồi"}
-                                      </Tooltip>
-                                    }
-                                >
-                          <span
-                              onClick={() => {
-                                setSelectedEmojiName(name);
-                                setTimeout(() => {
-                                  setShowReactionUserModal(true);
-                                }, 0);
-                              }}
-                              style={{ fontSize: "1.2rem", cursor: "pointer" }}
-                              title={`Xem ai đã thả ${name}`}
-                          >
-                            {emoji}
-                          </span>
-                                </OverlayTrigger>
-                            ))}
-                            {totalCount > 0 && (
-                                <span className="text-[var(--text-color-muted)] ms-1">{totalCount.toLocaleString("vi-VN")}</span>
-                            )}
-                          </div>
+                          <span className="text-[var(--text-color-muted)] ms-1">{totalCount}</span>
                       )}
-
-                      {/* Bình luận + chia sẻ */}
-                      <div className="text-[var(--text-color-muted)] small">
-                        {commentCount} bình luận {shareCount > 0 && ` · ${shareCount} lượt chia sẻ`}
-                      </div>
                     </div>
-
-                    <div className="d-flex justify-content-between text-[var(--text-color-muted)] mt-2 w-100 px-0">
-                      <div className="text-center">
-                        <OverlayTrigger placement="top" overlay={<Tooltip>Bình luận</Tooltip>}>
-                          <Button
-                              variant="link"
-                              className="p-2 rounded-full hover-bg-light text-[var(--text-color)]"
-                              onClick={() => setShowCommentBox((prev) => !prev)}
-                              aria-label="Mở/đóng hộp bình luận"
-                          >
-                            <FaRegComment size={20} />
-                          </Button>
-                        </OverlayTrigger>
-                      </div>
-
-                      <div className="text-center">
-                        <OverlayTrigger placement="top" overlay={<Tooltip>Lưu bài viết</Tooltip>}>
-                          <Button
-                              variant="link"
-                              className="p-2 rounded-full hover-bg-light text-[var(--text-color)]"
-                              aria-label="Lưu bài viết"
-                          >
-                            <FaBookmark size={20} />
-                          </Button>
-                        </OverlayTrigger>
-                      </div>
-
-                      <div className="text-center">
-                        <ReactionButtonGroup user={user} targetId={postId} targetTypeCode="POST" />
-                      </div>
-
-                      <div className="text-center">
-                        <OverlayTrigger placement="top" overlay={<Tooltip>Chia sẻ</Tooltip>}>
-                          <Button
-                              variant="link"
-                              className="p-2 rounded-full hover-bg-light text-[var(--text-color)]"
-                              aria-label="Chia sẻ"
-                          >
-                            <FaShareAlt size={20} />
-                          </Button>
-                        </OverlayTrigger>
-                      </div>
+                    <div className="text-[var(--text-color-muted)] small text-end">
+                      <OverlayTrigger
+                          placement="top"
+                          overlay={
+                            <Popover id="popover-comment-users">
+                              <Popover.Header as="h3">Người bình luận</Popover.Header>
+                              <Popover.Body>
+                                {commentUserList.length === 0 ? (
+                                    <div>Chưa có ai bình luận</div>
+                                ) : (
+                                    commentUserList.slice(0, 5).map((u, idx) => (
+                                        <div key={idx}>{u.displayName || u.username}</div>
+                                    ))
+                                )}
+                                {commentUserList.length > 5 && (
+                                    <div className="text-muted small mt-1">
+                                      +{commentUserList.length - 5} người khác
+                                    </div>
+                                )}
+                              </Popover.Body>
+                            </Popover>
+                          }
+                      >
+                    <span
+                        className="text-[var(--text-color-muted)] small text-end cursor-pointer"
+                        onMouseEnter={() => {
+                          // Nếu sau này muốn fetch động, có thể làm ở đây
+                        }}
+                    >
+                      {commentCount} bình luận
+                    </span>
+                      </OverlayTrigger>
+                      {shareCount > 0 && ` · ${shareCount} lượt chia sẻ`}
                     </div>
+                  </div>
+              )}
 
-                    {showCommentBox && (
-                        <div className="mt-2 pt-2 border-t border-[var(--border-color)]">
-                          {renderComments()}
-                          <Form onSubmit={handleCommentSubmit} className="mt-2">
-                            <div className="d-flex align-items-center">
-                              {user?.avatarUrl ? (
-                                  <BootstrapImage
-                                      src={user.avatarUrl}
-                                      className="w-8 h-8 object-cover mr-2 rounded-full"
-                                      aria-label={`Ảnh đại diện của ${user.displayName}`}
-                                  />
-                              ) : (
-                                  <FaUserCircle
-                                      size={32}
-                                      className="me-2 text-[var(--text-color-muted)]"
-                                      aria-label="Ảnh đại diện mặc định"
-                                  />
-                              )}
-                              <InputGroup>
-                                <Form.Control
-                                    type="text"
-                                    placeholder="Viết bình luận..."
-                                    value={newComment}
-                                    onChange={(e) => setNewComment(e.target.value)}
-                                    className="rounded-full border-[var(--border-color)] bg-[var(--background-color)] text-[var(--text-color)]"
-                                    disabled={isCommenting}
-                                    aria-label="Viết bình luận"
-                                />
-                                <Button
-                                    type="submit"
-                                    size="sm"
-                                    variant="primary"
-                                    className="rounded-full"
-                                    disabled={isCommenting}
-                                >
-                                  Gửi
-                                </Button>
-                              </InputGroup>
-                            </div>
-                          </Form>
-                        </div>
-                    )}
-                  </>
+              <div className="d-flex justify-content-between text-[var(--text-color-muted)] mt-2 w-100 px-0">
+                <div className="text-center">
+                  <OverlayTrigger placement="top" overlay={<Tooltip>Bình luận</Tooltip>}>
+                    <Button
+                        variant="link"
+                        className="p-2 rounded-full hover-bg-light text-[var(--text-color)]"
+                        onClick={() => setShowCommentBox((prev) => !prev)}
+                    >
+                      <FaRegComment size={20} />
+                    </Button>
+                  </OverlayTrigger>
+                </div>
+                <div className="text-center">
+                  <OverlayTrigger placement="top" overlay={<Tooltip>Lưu bài viết</Tooltip>}>
+                    <Button
+                        variant="link"
+                        className="p-2 rounded-full hover-bg-light text-[var(--text-color)]"
+                        onClick={handleSavePost}
+                    >
+                      <FaBookmark size={20} />
+                    </Button>
+                  </OverlayTrigger>
+                </div>
+                <div className="text-center">
+                  <ReactionButtonGroup user={user} targetId={postId} targetTypeCode="POST" />
+                </div>
+                <div className="text-center">
+                  <OverlayTrigger placement="top" overlay={<Tooltip>Chia sẻ</Tooltip>}>
+                    <Button
+                        variant="link"
+                        className="p-2 rounded-full hover-bg-light text-[var(--text-color)]"
+                    >
+                      <FaShareAlt size={20} />
+                    </Button>
+                  </OverlayTrigger>
+                </div>
+              </div>
+
+              {/* comments */}
+              {showCommentBox && (
+                  <div className="mt-2 pt-2 border-t border-[var(--border-color)]">
+                    {renderComments()}
+                    <Form onSubmit={handleCommentSubmit} className="mt-2">
+                      <div className="d-flex align-items-start"> {/* Changed to align-items-start */}
+                        {user?.avatarUrl ? (
+                            <BootstrapImage
+                                src={user.avatarUrl}
+                                style={{ width: 32, height: 32, objectFit: "cover", flexShrink: 0 }} // Prevent shrinking
+                                className="me-2 rounded-full"
+                                roundedCircle
+                                alt={`Ảnh đại diện của ${user.displayName}`}
+                            />
+                        ) : (
+                            <FaUserCircle
+                                size={32}
+                                className="me-2 text-[var(--text-color-muted)]"
+                                style={{ flexShrink: 0 }} // Prevent shrinking
+                                aria-label="Ảnh đại diện mặc định"
+                            />
+                        )}
+                        <InputGroup className="flex-grow-1">
+                          <Form.Control
+                              type="text"
+                              placeholder="Viết bình luận..."
+                              value={newComment}
+                              onChange={(e) => setNewComment(e.target.value)}
+                              className="rounded-full border-[var(--border-color)] bg-[var(--background-color)] text-[var(--text-color)]"
+                              disabled={isCommenting}
+                          />
+                          <div className="d-flex gap-3 align-items-center mt-2 ps-1">
+                            <OverlayTrigger placement="top" overlay={<Tooltip>Biểu tượng cảm xúc</Tooltip>}>
+                              <Button
+                                  variant="light"
+                                  size="sm"
+                                  className="rounded-circle p-2"
+                                  type="button"
+                                  onClick={() => setShowEmojiPicker((prev) => !prev)}
+                              >
+                                <FaSmile />
+                              </Button>
+                            </OverlayTrigger>
+
+                            <OverlayTrigger placement="top" overlay={<Tooltip>Hình ảnh</Tooltip>}>
+                              <Button variant="light" size="sm" className="rounded-circle p-2">
+                                <FaImage />
+                              </Button>
+                            </OverlayTrigger>
+
+                            <OverlayTrigger placement="top" overlay={<Tooltip>Video</Tooltip>}>
+                              <Button variant="light" size="sm" className="rounded-circle p-2">
+                                <FaVideo />
+                              </Button>
+                            </OverlayTrigger>
+                          </div>
+                          {showEmojiPicker && (
+                              <div
+                                  className="emoji-picker bg-white dark:bg-gray-800 shadow-lg rounded-lg p-3 border border-gray-200 dark:border-gray-700 mt-2 z-50"
+                                  style={{ maxWidth: 300, maxHeight: 200, overflowY: "auto" }}
+                              >
+                                <div className="flex flex-wrap">
+                                  {emojiList.map((emoji, idx) => (
+                                      <span
+                                          key={idx}
+                                          className="text-2xl cursor-pointer m-1"
+                                          onClick={() => {
+                                            setNewComment((prev) => prev + emoji.emoji);
+                                            setShowEmojiPicker(false);
+                                          }}
+                                      >
+          {emoji.emoji}
+        </span>
+                                  ))}
+                                </div>
+                              </div>
+                          )}
+                          <Button
+                              type="submit"
+                              size="sm"
+                              variant="primary"
+                              className="rounded-full"
+                              disabled={isCommenting}
+                          >
+                            Gửi
+                          </Button>
+                        </InputGroup>
+                      </div>
+                    </Form>
+                  </div>
               )}
             </div>
           </Card.Body>
-
-          {isOwnTweet && (
-              <EditPostModal
-                  post={tweet}
-                  show={showEditModal}
-                  onHide={() => setShowEditModal(false)}
-                  onSave={() => {
-                    setShowEditModal(false);
-                    if (onPostUpdate) onPostUpdate();
-                  }}
-              />
-          )}
         </Card>
 
-        <ReactionUserListModal
-            show={showReactionUserModal}
-            onHide={() => setShowReactionUserModal(false)}
-            targetId={postId}
-            targetTypeCode="POST"
-            emojiName={selectedEmojiName}
-        />
+        {/* Modal edit post */}
+        {isOwnTweet && (
+            <EditPostModal
+                post={tweet}
+                show={showEditModal}
+                onHide={() => setShowEditModal(false)}
+                onSave={() => {
+                  setShowEditModal(false);
+                  if (onPostUpdate) onPostUpdate();
+                }}
+            />
+        )}
 
+        {selectedEmojiName && (
+            <ReactionUserListModal
+                show={showReactionUserModal}
+                onHide={() => setShowReactionUserModal(false)}
+                targetId={postId}
+                targetTypeCode="POST"
+                emojiName={selectedEmojiName}
+            />
+        )}
+
+        {/* Modal ảnh */}
         <Modal
             show={showImageModal}
             onHide={() => setShowImageModal(false)}
@@ -787,7 +798,6 @@ function TweetCard({ tweet, onPostUpdate }) {
                 variant="secondary"
                 className="position-absolute top-2 end-2 rounded-full"
                 onClick={() => setShowImageModal(false)}
-                aria-label="Đóng modal hình ảnh"
             >
               ✕
             </Button>
@@ -798,7 +808,6 @@ function TweetCard({ tweet, onPostUpdate }) {
                       className="position-absolute top-1/2 -translate-y-1/2 left-2 rounded-full"
                       onClick={handlePrevImage}
                       disabled={currentImageIndex === 0}
-                      aria-label="Ảnh trước đó"
                   >
                     <FaArrowLeft />
                   </Button>
@@ -807,7 +816,6 @@ function TweetCard({ tweet, onPostUpdate }) {
                       className="position-absolute top-1/2 -translate-y-1/2 right-2 rounded-full"
                       onClick={handleNextImage}
                       disabled={currentImageIndex === imageUrls.length - 1}
-                      aria-label="Ảnh tiếp theo"
                   >
                     <FaArrowRight />
                   </Button>
@@ -818,7 +826,6 @@ function TweetCard({ tweet, onPostUpdate }) {
                     src={selectedImage}
                     className="max-w-full max-h-[80vh] mx-auto object-contain"
                     fluid
-                    aria-label={`Hình ảnh bài đăng ${currentImageIndex + 1}`}
                 />
             )}
           </Modal.Body>
@@ -826,5 +833,4 @@ function TweetCard({ tweet, onPostUpdate }) {
       </>
   );
 }
-
 export default TweetCard;

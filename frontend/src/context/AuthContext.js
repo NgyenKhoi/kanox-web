@@ -8,15 +8,15 @@ export const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [user, setUserState] = useState(null);
   const [token, setToken] = useState(
-    sessionStorage.getItem("token") || localStorage.getItem("token") || null
+      sessionStorage.getItem("token") || localStorage.getItem("token") || null
   );
   const [refreshToken, setRefreshToken] = useState(
-    localStorage.getItem("refreshToken") || null
+      localStorage.getItem("refreshToken") || null
   );
   const [loading, setLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [hasSynced, setHasSynced] = useState(
-    localStorage.getItem("hasSynced") === "true"
+      localStorage.getItem("hasSynced") === "true"
   );
 
   const navigate = useNavigate();
@@ -52,15 +52,15 @@ export const AuthProvider = ({ children }) => {
     while (retries > 0) {
       try {
         const response = await fetch(
-          `${process.env.REACT_APP_API_URL}/search/sync`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${authToken}`,
-            },
-          }
-        );
+            `${process.env.REACT_APP_API_URL}/search/sync`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${authToken}`,
+              },
+            }
+      );
 
         if (!response.ok) {
           const errText = await response.text();
@@ -85,12 +85,12 @@ export const AuthProvider = ({ children }) => {
   const checkTokenValidity = async (accessToken) => {
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/auth/check-token`,
-        {
-          method: "POST",
-          headers: { Authorization: `Bearer ${accessToken}` },
-        }
-      );
+          `${process.env.REACT_APP_API_URL}/auth/check-token`,
+          {
+            method: "POST",
+            headers: { Authorization: `Bearer ${accessToken}` },
+          }
+    );
 
       const data = await response.json();
       if (response.ok) {
@@ -113,12 +113,12 @@ export const AuthProvider = ({ children }) => {
   const refreshAccessToken = async () => {
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/auth/refresh-token`,
-        {
-          method: "POST",
-          headers: { Authorization: `Bearer ${refreshToken}` },
-        }
-      );
+          `${process.env.REACT_APP_API_URL}/auth/refresh-token`,
+          {
+            method: "POST",
+            headers: { Authorization: `Bearer ${refreshToken}` },
+          }
+    );
 
       if (response.ok) {
         const data = await response.json();
@@ -152,7 +152,7 @@ export const AuthProvider = ({ children }) => {
 
       const savedUser = localStorage.getItem("user");
       const savedToken =
-        sessionStorage.getItem("token") || localStorage.getItem("token");
+          sessionStorage.getItem("token") || localStorage.getItem("token");
       const savedRefreshToken = localStorage.getItem("refreshToken");
 
       if (savedUser && savedToken) {
@@ -167,8 +167,8 @@ export const AuthProvider = ({ children }) => {
       }
 
       const validToken = savedToken
-        ? await checkTokenValidity(savedToken)
-        : null;
+          ? await checkTokenValidity(savedToken)
+          : null;
 
       if (validToken) await syncAllData(validToken);
 
@@ -185,17 +185,17 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   return (
-    <AuthContext.Provider
-      value={{ user, setUser, token, logout, loading, isSyncing, hasSynced }}
-    >
-      {loading || isSyncing ? (
-        <div className="d-flex justify-content-center align-items-center min-vh-100">
-          <Spinner animation="border" role="status" />
-          <span className="ms-2">Đang tải dữ liệu...</span>
-        </div>
-      ) : (
-        children
-      )}
-    </AuthContext.Provider>
+      <AuthContext.Provider
+          value={{ user, setUser, token, logout, loading, isSyncing, hasSynced }}
+      >
+        {loading || isSyncing ? (
+            <div className="d-flex justify-content-center align-items-center min-vh-100">
+              <Spinner animation="border" role="status" />
+              <span className="ms-2">Đang tải dữ liệu...</span>
+            </div>
+        ) : (
+            children
+        )}
+      </AuthContext.Provider>
   );
 };

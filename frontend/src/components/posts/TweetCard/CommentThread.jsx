@@ -54,9 +54,10 @@ function CommentThread({
                         src={avatarUrl}
                         alt="avatar"
                         roundedCircle
-                        width={40}
-                        height={40}
-                        className="me-2"
+                        width={36}
+                        height={36}
+                        style={{ objectFit: 'cover' }}
+                        className="me-2 flex-shrink-0"
                     />
                 ) : (
                     <FaUserCircle size={40} className="me-2 text-[var(--text-color-muted)]" />
@@ -166,10 +167,10 @@ function CommentThread({
                                             src={avatarUrl}
                                             alt="avatar"
                                             roundedCircle
-                                            width={40}
-                                            height={40}
-                                            className="me-2 flex-shrink-0"
+                                            width={36}
+                                            height={36}
                                             style={{ objectFit: 'cover' }}
+                                            className="me-2 flex-shrink-0"
                                         />
                                     ) : (
                                         <FaUserCircle
@@ -199,7 +200,16 @@ function CommentThread({
                             </Form>
                         )}
                     </div>
-
+                    {comment.replies?.length > 0 && (
+                        <Button
+                            variant="link"
+                            size="sm"
+                            className="text-[var(--text-color-muted)] px-0 mt-1"
+                            onClick={() => setShowReplies(!showReplies)}
+                        >
+                            {showReplies ? "Ẩn phản hồi" : `Xem ${comment.replies.length} phản hồi`}
+                        </Button>
+                    )}
                     {/* Replies */}
                     <Collapse in={showReplies}>
                         <div className="mt-2 ms-4">

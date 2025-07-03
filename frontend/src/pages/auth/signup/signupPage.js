@@ -17,15 +17,18 @@ const SignupPage = () => {
   const [loading, setLoading] = useState(false);
   const { user, setUser, token, logout } = useContext(AuthContext);
 
-  if (user && token) {
-    return <Navigate to="/home" replace />;
-  }
 
   const handleShowCreateAccountModal = () => setShowCreateAccountModal(true);
   const handleCloseCreateAccountModal = () => setShowCreateAccountModal(false);
 
   const handleShowLoginModal = () => setShowLoginModal(true);
   const handleCloseLoginModal = () => setShowLoginModal(false);
+
+  useEffect(() => {
+    if (user && token) {
+      navigate("/home");
+    }
+  }, [user, token]);
 
   const handleGoogleLoginSuccess = async (credentialResponse) => {
     setLoading(true);
@@ -43,9 +46,7 @@ const SignupPage = () => {
       const data = await response.json();
       if (response.ok) {
         const { token, refreshToken, user } = data;
-        setUser(user); // Không cần rememberMe
-        localStorage.setItem("token", token); // Lưu token vào localStorage
-        localStorage.setItem("refreshToken", refreshToken); // Lưu refreshToken vào localStorage
+        setUser(user, token, refreshToken);
         toast.success("Đăng nhập bằng Google thành công! Đang chuyển hướng...");
         navigate("/home");
       } else {
@@ -61,6 +62,7 @@ const SignupPage = () => {
   const handleGoogleLoginError = () => {
     toast.error("Đăng nhập Google thất bại hoặc bị hủy.");
   };
+  
 
   return (
     <Container

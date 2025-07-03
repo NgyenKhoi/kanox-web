@@ -7,6 +7,7 @@ export default function useReaction({ user, targetId, targetTypeCode }) {
     const [reactionCountMap, setReactionCountMap] = useState({});
     const [topReactions, setTopReactions] = useState([]);
     const { emojiMap } = useEmojiMap();
+    const [reactionUserMap, setReactionUserMap] = useState({});
 
     const token = localStorage.getItem("token");
 
@@ -107,16 +108,34 @@ export default function useReaction({ user, targetId, targetTypeCode }) {
         }
     };
 
+    const fetchUsersByReaction = async (emojiName) => {
+        if (reactionUserMap[emojiName]) return; // Đã có thì không gọi lại
+
+        try {
+            const res = await fetch(
+                `${process.env.REACT_APP_API_URL}/reactions/list-by-type?targetId=${targetId}&targetTypeCode=${targetTypeCode}&emojiName=${emojiName}`,
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            if (!res.ok) throw new Error("Không thể lấy danh sách người dùng thả reaction.");
+            const data = await res.json();
+            setReactionUserMap(prev => ({ ...prev, [emojiName]: data }));
+        } catch (err) {
+            console.error("Lỗi khi lấy user reaction:", err.message);
+        }
+    };
+
     const removeReaction = async () => {
         try {
-            const res = await fetch(`${process.env.REACT_APP_API_URL}/reactions/by-name`, {
-                method: "DELETE",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({ userId: user.id, targetId, targetTypeCode }),
-            });
+            const res = await fetch(
+                `${process.env.REACT_APP_API_URL}/reactions/by-name?userId=${user.id}&targetId=${targetId}&targetTypeCode=${targetTypeCode}`,
+                {
+                    method: "DELETE",
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
 
             if (!res.ok) throw new Error("Không thể gỡ cảm xúc.");
             setCurrentEmoji(null);
@@ -133,5 +152,7 @@ export default function useReaction({ user, targetId, targetTypeCode }) {
         sendReaction,
         removeReaction,
         topReactions,
+        fetchUsersByReaction,
+        reactionUserMap,
     };
 }

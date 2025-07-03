@@ -24,27 +24,7 @@ public class ReactionController {
     public ReactionController(ReactionService reactionService) {
         this.reactionService = reactionService;
     }
-
-    @PostMapping(URLConfig.ADD_REACTION)
-    public ResponseEntity<Void> addReaction(
-            @RequestParam Integer userId,
-            @RequestParam Integer targetId,
-            @RequestParam String targetTypeCode,
-            @RequestParam String emojiName
-    ) {
-        reactionService.addOrUpdateReaction(userId, targetId, targetTypeCode, emojiName);
-        return ResponseEntity.ok().build();
-    }
-
-    @DeleteMapping(URLConfig.REMOVE_REACTION)
-    public ResponseEntity<Void> removeReaction(
-            @RequestParam Integer userId,
-            @RequestParam Integer targetId,
-            @RequestParam String targetTypeCode
-    ) {
-        reactionService.removeReaction(userId, targetId, targetTypeCode);
-        return ResponseEntity.ok().build();
-    }
+    
 
     @GetMapping(URLConfig.GET_TOP_REACTION)
     public ResponseEntity<List<ReactionTypeCountDto>> getTop3Reactions(
@@ -63,8 +43,17 @@ public class ReactionController {
     }
 
     @GetMapping(URLConfig.GET_REACTION_FOR_MESSAGE)
-    public ResponseEntity<List<ReactionType>> getReactionsForMessaging() {
-        return ResponseEntity.ok(reactionService.getAvailableReactionsForMessaging());
+    public ResponseEntity<List<Map<String, String>>> getReactionsForMessaging() {
+        List<ReactionType> types = reactionService.getAvailableReactionsForMessaging();
+
+        List<Map<String, String>> result = types.stream()
+                .map(rt -> Map.of(
+                        "name", rt.getName(),
+                        "emoji", rt.getEmoji()
+                ))
+                .toList();
+
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping(URLConfig.GET_MAIN_REACTION)
@@ -84,10 +73,15 @@ public class ReactionController {
     }
 
     @DeleteMapping(URLConfig.REMOVE_REACTION_BY_NAME)
-    public ResponseEntity<Void> removeReactionByName(@RequestBody RemoveReactionRequestDto dto) {
-        reactionService.removeReaction(dto.getUserId(), dto.getTargetId(), dto.getTargetTypeCode());
+    public ResponseEntity<Void> removeReactionByName(
+            @RequestParam Integer userId,
+            @RequestParam Integer targetId,
+            @RequestParam String targetTypeCode
+    ) {
+        reactionService.removeReaction(userId, targetId, targetTypeCode);
         return ResponseEntity.ok().build();
     }
+
 
     @GetMapping("/emoji-main-list")
     public ResponseEntity<List<Map<String, String>>> getMainEmojiList() {
