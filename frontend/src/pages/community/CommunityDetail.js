@@ -385,7 +385,10 @@ function CommunityDetail() {
                 <div>
                   {/* Render top posts for this community */}
                   {community.posts.map((post) => (
-                    <Card key={post.id} className="mb-3 post-card">
+                    <Card
+                      key={post.id}
+                      className="mb-3 post-card bg-[var(--background-color)] text-[var(--text-color)]"
+                    >
                       <Card.Body>
                         <div className="d-flex align-items-start mb-2">
                           <img
