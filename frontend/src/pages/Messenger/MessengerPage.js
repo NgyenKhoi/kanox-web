@@ -134,6 +134,33 @@ function MessengerPage() {
             [chatId]: [...currentMessages, newMessage],
           };
         });
+
+          setChats((prevChats) =>
+              prevChats.map((chat) =>
+                  chat.id === chatId
+                      ? {
+                        ...chat,
+                        lastMessage: newMessage.content,
+                        unreadMessagesCount:
+                            selectedChatId === chatId
+                                ? 0
+                                : (chat.unreadMessagesCount || 0) + 1,
+                      }
+                      : chat
+              )
+          );
+
+          setUnreadChats((prev) => {
+            const newUnread = new Set(prev);
+            if (selectedChatId !== chatId) {
+              newUnread.add(chatId);
+            } else {
+              newUnread.delete(chatId);
+            }
+            return newUnread;
+          });
+
+
       } catch (err) {
         console.error("Lỗi khi xử lý message:", err);
       }
