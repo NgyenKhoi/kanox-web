@@ -19,6 +19,14 @@ public class HiddenPostId implements Serializable {
     @Column(name = "post_id", nullable = false)
     private Integer postId;
 
+    public HiddenPostId() {
+    }
+
+    public HiddenPostId(Integer userId, Integer postId) {
+        this.userId = userId;
+        this.postId = postId;
+    }
+
     public Integer getUserId() {
         return userId;
     }

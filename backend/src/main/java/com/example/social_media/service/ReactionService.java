@@ -13,6 +13,8 @@ import com.example.social_media.repository.TargetTypeRepository;
 import com.example.social_media.repository.UserRepository;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
@@ -73,7 +75,7 @@ public class ReactionService {
 
         clearCache(targetId, targetTypeCode);
     }
-
+    @Transactional
     public void removeReaction(Integer userId, Integer targetId, String targetTypeCode) {
         TargetType targetType = getTargetTypeByCode(targetTypeCode);
         reactionRepository.deleteByIdUserIdAndIdTargetIdAndIdTargetTypeId(userId, targetId, targetType.getId());
