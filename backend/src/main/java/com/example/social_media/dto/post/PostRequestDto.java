@@ -12,6 +12,7 @@ public class PostRequestDto {
 
     private List<Integer> taggedUserIds;
     private Integer customListId;
+    private Integer groupId;
 
     public String getContent() { return content; }
     public void setContent(String content) { this.content = content; }
@@ -29,4 +30,13 @@ public class PostRequestDto {
     public void setCustomListId(Integer customListId) {
         this.customListId = customListId;
     }
+
+    public Integer getGroupId() {
+        return groupId;
+    }
+
+    public void setGroupId(Integer groupId) {
+        this.groupId = groupId;
+    }
+
 }

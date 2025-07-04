@@ -44,6 +44,9 @@ public class Group {
     @OneToMany(mappedBy = "group")
     private Set<GroupMember> tblGroupMembers = new LinkedHashSet<>();
 
+    @OneToMany(mappedBy = "group")
+    private Set<Post> tblPosts = new LinkedHashSet<>();
+
     public Integer getId() {
         return id;
     }
@@ -98,6 +101,14 @@ public class Group {
 
     public void setTblGroupMembers(Set<GroupMember> tblGroupMembers) {
         this.tblGroupMembers = tblGroupMembers;
+    }
+
+    public Set<Post> getTblPosts() {
+        return tblPosts;
+    }
+
+    public void setTblPosts(Set<Post> tblPosts) {
+        this.tblPosts = tblPosts;
     }
 
 }

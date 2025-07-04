@@ -407,6 +407,24 @@ function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
     }
   };
 
+  useEffect(() => {
+    if (!selectedMediaFiles || selectedMediaFiles.length === 0) {
+      setSelectedMediaPreviews([]);
+      return;
+    }
+
+    const previews = selectedMediaFiles.map((file) => {
+      const url = URL.createObjectURL(file);
+      return { url, type: file.type };
+    });
+
+    setSelectedMediaPreviews(previews);
+
+    return () => {
+      previews.forEach((p) => URL.revokeObjectURL(p.url));
+    };
+  }, [selectedMediaFiles]);
+
 
   const renderComments = () => {
     if (isLoadingComments) return <div className="text-[var(--text-color-muted)]">Đang tải bình luận...</div>;
@@ -804,6 +822,37 @@ function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
                                 }}
                             />
 
+                            {selectedMediaPreviews.length > 0 && (
+                                <div className="flex flex-wrap gap-3 my-2">
+                                  {selectedMediaPreviews.map((media, index) => {
+                                    if (media.type.startsWith("image/")) {
+                                      return (
+                                          <img
+                                              key={index}
+                                              src={media.url}
+                                              alt={`preview-${index}`}
+                                              className="w-24 h-24 object-cover rounded border"
+                                          />
+                                      );
+                                    } else if (media.type.startsWith("video/")) {
+                                      return (
+                                          <video
+                                              key={index}
+                                              controls
+                                              src={media.url}
+                                              className="w-24 h-24 object-cover rounded border"
+                                          />
+                                      );
+                                    } else if (media.type.startsWith("audio/")) {
+                                      return (
+                                          <audio key={index} controls src={media.url} className="w-full" />
+                                      );
+                                    } else {
+                                      return null;
+                                    }
+                                  })}
+                                </div>
+                            )}
                             {/* Send button */}
                             <Button
                                 type="submit"

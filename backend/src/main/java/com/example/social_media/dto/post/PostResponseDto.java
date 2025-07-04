@@ -16,7 +16,9 @@ public class PostResponseDto {
     private int likeCount;
     private int shareCount;
     private boolean isSaved;
-
+    private Integer groupId;
+    private String groupName;
+    private String groupAvatarUrl;
     public Integer getId() { return id; }
     public void setId(Integer id) { this.id = id; }
 
@@ -46,4 +48,13 @@ public class PostResponseDto {
 
     public boolean isSaved() { return isSaved; }
     public void setSaved(boolean saved) { isSaved = saved; }
+
+    public Integer getGroupId() { return groupId; }
+    public void setGroupId(Integer groupId) { this.groupId = groupId; }
+
+    public String getGroupName() { return groupName; }
+    public void setGroupName(String groupName) { this.groupName = groupName; }
+
+    public String getGroupAvatarUrl() { return groupAvatarUrl; }
+    public void setGroupAvatarUrl(String groupAvatarUrl) { this.groupAvatarUrl = groupAvatarUrl; }
 }

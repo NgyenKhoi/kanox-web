@@ -17,7 +17,8 @@ public interface PostRepository extends JpaRepository<Post, Integer> {
             @Param("privacy_setting") String privacySetting,
             @Param("media_urls") String mediaUrls,
             @Param("tagged_user_ids") String taggedUserIds,
-            @Param("custom_list_id") Integer customListId
+            @Param("custom_list_id") Integer customListId,
+            @Param("group_id") Integer groupId
     );
 
     @Query(value = """
