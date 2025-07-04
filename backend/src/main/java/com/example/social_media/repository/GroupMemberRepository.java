@@ -30,5 +30,7 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, GroupM
 
     @Query("SELECT gm.group FROM GroupMember gm WHERE gm.user.id = :userId AND gm.inviteStatus = :status")
     List<Group> findGroupsByUserIdAndInviteStatus(@Param("userId") Integer userId, @Param("status") String status);
+
+    List<GroupMember> findById_GroupIdAndInviteStatus(Integer groupId, String inviteStatus);
 }
 

@@ -47,8 +47,6 @@ public class URLConfig {
     public static final String CHAT_PING = "/ping";
     // Reaction URLs
     public static final String REACTION_BASE = "/api/reactions";
-    public static final String ADD_REACTION = "/add";
-    public static final String REMOVE_REACTION = "/remove";
     public static final String GET_TOP_REACTION = "/top3";
     public static final String COUNT_REACTION = "/count";
     public static final String GET_REACTION_FOR_MESSAGE = "/messaging";
@@ -107,7 +105,7 @@ public class URLConfig {
     public static final String GET_MEDIA_BY_TARGET = "/target";
     public static final String MEDIA_FOR_POST = "/posts/{postId}/media";
     public static final String DELETE_MEDIA = "/{mediaId}";
-
+    // Group URLs
     public static final String GROUP_BASE = "/api/groups";
     public static final String CREATE_GROUP ="/create";
     public static final String ADD_MEMBER = "/{groupId}/add";
@@ -118,4 +116,8 @@ public class URLConfig {
     public static final String ACCEPT_INVITE ="/{groupId}/accept";
     public static final String REJECT_INVITE ="/{groupId}/reject";
     public static final String PENDING_INVITE ="/pending-invites";
+    public static final String REQUEST_JOIN_GROUP = "/{groupId}/request-join";
+    public static final String APPROVE_JOIN_REQUEST = "/{groupId}/approve-request";
+    public static final String REJECT_JOIN_REQUEST = "/{groupId}/reject-request";
+    public static final String GET_JOIN_REQUESTS = "/{groupId}/join-requests";
 }

@@ -97,4 +97,40 @@ public class GroupController {
             @RequestParam String username) {
         return ResponseEntity.ok(groupService.getPendingInvites(username));
     }
+
+    @PostMapping(URLConfig.REQUEST_JOIN_GROUP)
+    public ResponseEntity<Void> requestToJoinGroup(
+            @PathVariable Integer groupId,
+            @RequestParam String username) {
+        groupService.requestToJoinGroup(groupId, username);
+        return ResponseEntity.ok().build();
+    }
+
+    // Admin duyệt yêu cầu tham gia
+    @PostMapping(URLConfig.APPROVE_JOIN_REQUEST)
+    public ResponseEntity<Void> approveJoinRequest(
+            @PathVariable Integer groupId,
+            @RequestParam Integer userId,
+            @RequestParam String adminUsername) {
+        groupService.approveJoinRequest(groupId, userId, adminUsername);
+        return ResponseEntity.ok().build();
+    }
+
+    // Admin từ chối yêu cầu tham gia
+    @PostMapping(URLConfig.REJECT_JOIN_REQUEST)
+    public ResponseEntity<Void> rejectJoinRequest(
+            @PathVariable Integer groupId,
+            @RequestParam Integer userId,
+            @RequestParam String adminUsername) {
+        groupService.rejectJoinRequest(groupId, userId, adminUsername);
+        return ResponseEntity.ok().build();
+    }
+
+    // Lấy danh sách yêu cầu vào group (cho admin)
+    @GetMapping(URLConfig.GET_JOIN_REQUESTS)
+    public ResponseEntity<List<UserBasicDisplayDto>> getJoinRequestsForGroup(
+            @PathVariable Integer groupId,
+            @RequestParam String adminUsername) {
+        return ResponseEntity.ok(groupService.getJoinRequestsForGroup(groupId, adminUsername));
+    }
 }

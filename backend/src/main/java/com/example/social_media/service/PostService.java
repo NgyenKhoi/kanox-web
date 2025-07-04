@@ -290,60 +290,40 @@ public class PostService {
 
     @Transactional
     public void savePost(Integer postId, String username) {
+        logger.info("Lưu bài viết {} cho người dùng: {}", postId, username);
+
         var user = userRepository.findByUsernameAndStatusTrue(username)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException("Không tìm thấy người dùng hoặc người dùng không hoạt động"));
 
         var post = postRepository.findById(postId)
-                .orElseThrow(() -> new IllegalArgumentException("Post not found"));
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy bài viết với id: " + postId));
 
-        var savedPostOpt = savedPostRepository.findByUserIdAndPostId(user.getId(), postId);
-
-        if (savedPostOpt.isPresent()) {
-            SavedPost savedPost = savedPostOpt.get();
-            savedPost.setStatus(true);
-            savedPost.setSaveTime(Instant.now());
-            savedPostRepository.save(savedPost);
-        } else {
-            SavedPost savedPost = new SavedPost();
-            savedPost.setUser(user);
-            savedPost.setPost(post);
-            savedPost.setStatus(true);
-            savedPost.setSaveTime(Instant.now());
-
-            SavedPostId savedPostId = new SavedPostId(user.getId(), post.getId());
-            savedPost.setId(savedPostId);
-
-            savedPostRepository.save(savedPost);
+        try {
+            savedPostRepository.callSavePost(user.getId(), postId);
+            logger.debug("Đã gọi stored procedure sp_SavePost cho userId: {}, postId: {}", user.getId(), postId);
+        } catch (Exception e) {
+            logger.error("Lỗi khi gọi stored procedure sp_SavePost: {}", e.getMessage());
+            throw new RuntimeException("Không thể lưu bài viết: " + e.getMessage(), e);
         }
     }
 
 
     @Transactional
     public void hidePost(Integer postId, String username) {
+        logger.info("Ẩn bài viết {} cho người dùng: {}", postId, username);
+
         var user = userRepository.findByUsernameAndStatusTrue(username)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException("Không tìm thấy người dùng hoặc người dùng không hoạt động"));
 
         var post = postRepository.findById(postId)
-                .orElseThrow(() -> new IllegalArgumentException("Post not found"));
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy bài viết với id: " + postId));
 
-        var hiddenPostOpt = hiddenPostRepository.findByUserIdAndPostId(user.getId(), postId);
-
-        if (hiddenPostOpt.isPresent()) {
-            HiddenPost hiddenPost = hiddenPostOpt.get();
-            hiddenPost.setStatus(true);
-            hiddenPost.setHiddenTime(Instant.now());
-            hiddenPostRepository.save(hiddenPost);
-        } else {
-            HiddenPost hiddenPost = new HiddenPost();
-            hiddenPost.setUser(user);
-            hiddenPost.setPost(post);
-            hiddenPost.setStatus(true);
-            hiddenPost.setHiddenTime(Instant.now());
-
-            HiddenPostId hiddenPostId = new HiddenPostId(user.getId(), post.getId());
-            hiddenPost.setId(hiddenPostId);
-
-            hiddenPostRepository.save(hiddenPost);
+        try {
+            hiddenPostRepository.callHidePost(user.getId(), postId);
+            logger.debug("Đã gọi stored procedure sp_HidePost cho userId: {}, postId: {}", user.getId(), postId);
+        } catch (Exception e) {
+            logger.error("Lỗi khi gọi stored procedure sp_HidePost: {}", e.getMessage());
+            throw new RuntimeException("Không thể ẩn bài viết: " + e.getMessage(), e);
         }
     }
 

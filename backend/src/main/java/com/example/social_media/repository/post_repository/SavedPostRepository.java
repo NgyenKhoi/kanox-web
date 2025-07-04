@@ -2,16 +2,19 @@ package com.example.social_media.repository.post_repository;
 
 import com.example.social_media.entity.SavedPost;
 import com.example.social_media.entity.SavedPostId;
-import io.lettuce.core.dynamic.annotation.Param;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.query.Procedure;
+import org.springframework.data.repository.query.Param;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
 public interface SavedPostRepository extends JpaRepository<SavedPost, SavedPostId> {
+
     Optional<SavedPost> findByUserIdAndPostId(Integer userId, Integer postId);
+
     @Query("SELECT sp FROM SavedPost sp " +
             "WHERE sp.user.id = :userId " +
             "AND sp.status = true " +
@@ -23,4 +26,8 @@ public interface SavedPostRepository extends JpaRepository<SavedPost, SavedPostI
             @Param("userId") Integer userId,
             @Param("from") Instant from,
             @Param("to") Instant to);
+
+    // Gọi stored procedure sp_SavePost
+    @Procedure(procedureName = "sp_SavePost")
+    void callSavePost(@Param("user_id") Integer userId, @Param("post_id") Integer postId);
 }

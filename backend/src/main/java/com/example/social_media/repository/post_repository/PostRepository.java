@@ -53,4 +53,6 @@ public interface PostRepository extends JpaRepository<Post, Integer> {
 
     @Query("SELECT p FROM Post p WHERE p.owner.username = :username AND p.status = true ORDER BY p.createdAt DESC")
     List<Post> findActivePostsByUsername(String username);
+
+    int countByOwnerIdAndStatusTrue(Integer ownerId);
 }
