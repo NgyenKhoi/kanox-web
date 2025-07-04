@@ -37,7 +37,6 @@ function ProfilePage() {
   const [userProfile, setUserProfile] = useState(null);
   const [activeTab, setActiveTab] = useState("posts");
   const [posts, setPosts] = useState([]);
-  const [sentRequests, setSentRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showPremiumAlert, setShowPremiumAlert] = useState(true);
@@ -70,7 +69,6 @@ function ProfilePage() {
         toast.error("Tên người dùng không hợp lệ.");
         setUserProfile(defaultUserProfile);
         setPosts([]);
-        setSentRequests([]);
         setLoading(false);
         if (user?.username) {
           navigate(`/profile/${user.username}`);
@@ -154,29 +152,11 @@ function ProfilePage() {
         } else {
           setPosts([]);
         }
-
-        if (user.username === username) {
-          const sentRequestsResponse = await fetch(
-              `${process.env.REACT_APP_API_URL}/friends/users/sent-pending?page=0&size=10`,
-              {
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${token}`,
-                },
-              }
-          );
-
-          const sentRequestsData = await sentRequestsResponse.json();
-          if (sentRequestsResponse.ok) {
-            setSentRequests(sentRequestsData.data.content || []);
-          }
-        }
       } catch (error) {
         console.error("Lỗi khi lấy hồ sơ:", error);
         toast.error(error.message || "Lỗi khi lấy hồ sơ.");
         setUserProfile(null);
         setPosts([]);
-        setSentRequests([]);
       } finally {
         setLoading(false);
       }
@@ -313,22 +293,6 @@ function ProfilePage() {
 
       setPosts(Array.isArray(postsData.data) ? postsData.data : []);
 
-      if (user.username === username) {
-        const sentRequestsResponse = await fetch(
-            `${process.env.REACT_APP_API_URL}/friends/users/sent-pending?page=0&size=10`,
-            {
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-            }
-        );
-
-        const sentRequestsData = await sentRequestsResponse.json();
-        if (sentRequestsResponse.ok) {
-          setSentRequests(sentRequestsData.data.content || []);
-        }
-      }
     } catch (error) {
       console.error("Lỗi khi làm mới dữ liệu:", error);
       toast.error(error.message || "Lỗi khi làm mới dữ liệu!");
@@ -382,40 +346,6 @@ function ProfilePage() {
               Không có bài viết đã lưu nào.
             </p>
         );
-
-      case "sentRequests":
-        return sentRequests.length > 0 ? (
-            <ListGroup>
-              {sentRequests.map((req) => (
-                  <ListGroup.Item
-                      key={`request-${req.id}`}
-                      className="d-flex align-items-center justify-between"
-                  >
-                    <div className="d-flex align-items-center gap-3">
-                      <Image
-                          src={mediaUrl || "https://via.placeholder.com/150?text=Avatar"}
-                          roundedCircle
-                          className="border"
-                          style={{ width: 50, height: 50, objectFit: "cover" }}
-                      />
-                      <div>
-                        <strong>{req.displayName || req.username}</strong>
-                        <p className="text-muted small mb-0">@{req.username}</p>
-                      </div>
-                    </div>
-                    <FriendshipButton
-                        targetId={req.id}
-                        onAction={fetchProfileAndPosts}
-                    />
-                  </ListGroup.Item>
-              ))}
-            </ListGroup>
-        ) : (
-            <p className="text-dark text-center p-4">
-              Không có yêu cầu kết bạn đã gửi.
-            </p>
-        );
-
       default:
         return null;
     }
@@ -458,16 +388,23 @@ function ProfilePage() {
         <ToastContainer />
 
         <div className="sticky top-0 bg-[var(--background-color)] border-b border-gray-300 py-2 z-50">
-          <div className="container mx-auto px-4 flex items-center">
-            <Link to="/home" className="btn btn-light mr-3">
-              <FaArrowLeft />
-            </Link>
-            <div>
-              <h5 className="font-bold mb-0">{userProfile.displayName}</h5>
-              <span className="text-sm">
-              {hasAccess ? `${userProfile.postCount || 0} bài đăng` : "Hồ sơ bị hạn chế"}
-            </span>
+          <div className="container mx-auto px-4 flex items-center justify-between">
+            <div className="flex items-center">
+              <Link to="/home" className="btn btn-light mr-3">
+                <FaArrowLeft />
+              </Link>
+              <div>
+                <h5 className="font-bold mb-0">{userProfile.displayName}</h5>
+                <span className="text-sm">
+        {hasAccess ? `${userProfile.postCount || 0} bài đăng` : "Hồ sơ bị hạn chế"}
+      </span>
+              </div>
             </div>
+            {hasAccess && (
+                <div className="text-sm text-muted">
+                  Tổng bài đăng: {userProfile.postCount || 0}
+                </div>
+            )}
           </div>
         </div>
 
@@ -540,9 +477,15 @@ function ProfilePage() {
 
             {hasAccess && (
                 <Nav variant="tabs" className="mb-4">
-                  {["posts", "shares", "savedArticles", ...(isOwnProfile ? ["sentRequests"] : [])].map((tab) => (
-                      <Nav.Item key={tab}>
-                        <Nav.Link active={activeTab === tab} onClick={() => setActiveTab(tab)}>
+                  {["posts", "shares", ...(isOwnProfile ? ["savedArticles"] : [])].map((tab) => (
+                      <Nav.Item key={tab} className="flex-1">
+                        <Nav.Link
+                            active={activeTab === tab}
+                            onClick={() => setActiveTab(tab)}
+                            className={`text-center w-full font-semibold ${
+                                activeTab === tab ? "border-b-2 border-blue-500 text-blue-500" : "text-gray-500"
+                            }`}
+                        >
                           {tab === "posts" && "Bài đăng"}
                           {tab === "shares" && "Chia sẻ"}
                           {tab === "savedArticles" && "Đã lưu"}
@@ -553,22 +496,7 @@ function ProfilePage() {
             )}
 
             <div>
-              {activeTab === "posts" && posts.map((item) => (
-                  <TweetCard key={item.id} tweet={item} onPostUpdate={fetchProfileAndPosts} />
-              ))}
-
-              {activeTab === "sentRequests" && sentRequests.map((req) => (
-                  <ListGroup.Item key={req.id} className="flex justify-between items-center">
-                    <div className="flex items-center gap-3">
-                      <Image src={mediaUrl || "https://via.placeholder.com/150?text=Avatar"} className="rounded-full" style={{ width: 50, height: 50 }} />
-                      <div>
-                        <strong>{req.displayName || req.username}</strong>
-                        <p className="text-sm text-gray-500">@{req.username}</p>
-                      </div>
-                    </div>
-                    <FriendshipButton targetId={req.id} onAction={fetchProfileAndPosts} />
-                  </ListGroup.Item>
-              ))}
+              {renderTabContent()}
             </div>
           </div>
 

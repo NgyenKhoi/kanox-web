@@ -2778,14 +2778,6 @@ WHERE definition LIKE '%friendship%';
 
     ----the second-----
 
-    -- tblUser (Người dùng)
-    INSERT INTO tblUser (email, username, phone_number, password, persistent_cookie, google_id, is_admin, display_name, date_of_birth, bio, gender, profile_privacy_setting, status) VALUES
-    ('emma.wilson@example.com', 'emma_wilson', '555-0101', 'hashed_pass_emma', NULL, NULL, 0, N'Emma Wilson', '1992-03-15', N'Yêu thích leo núi và nhiếp ảnh!', 1, 'public', 1),
-    ('liam.johnson@example.com', 'liam_johnson', '555-0102', 'hashed_pass_liam', NULL, NULL, 0, N'Liam Johnson', '1988-07-22', N'Đam mê công nghệ và game', 2, 'friends', 1),
-    ('sophia.martinez@example.com', 'sophia_martinez', '555-0103', 'hashed_pass_sophia', NULL, NULL, 0, N'Sophia Martinez', '1995-11-10', N'Đầu bếp đầy triển vọng', 0, 'only_me', 1),
-    ('noah.brown@example.com', 'noah_brown', '555-0104', 'hashed_pass_noah', NULL, NULL, 0, N'Noah Brown', '1990-04-05', N'Nghệ sĩ và du khách', 1, 'custom', 1),
-    ('olivia.smith@example.com', 'olivia_smith', '555-0105', 'hashed_pass_olivia', NULL, NULL, 1, N'Olivia Smith', '1985-09-30', N'Quản trị viên nền tảng', 2, 'public', 1);
-
 	--insert admin account
 	INSERT INTO tblUser (
   email, username, phone_number, password, persistent_cookie,
@@ -2829,39 +2821,11 @@ WHERE definition LIKE '%friendship%';
     (1, 47, GETDATE(), 1), -- User 2 trong danh sách CloseFriends của User 4
     (2, 49, GETDATE(), 1); -- User 3 trong danh sách Family của User 4
 
-    ------the third-----
-
-    -- tblFriendship (Mối quan hệ bạn bè)
-    INSERT INTO tblFriendship (user_id, friend_id, friendship_status, created_at, status) VALUES
-    (1, 2, 'accepted', GETDATE(), 1), -- User 1 và User 2 là bạn
-    (2, 3, 'pending', GETDATE(), 1),  -- User 2 gửi yêu cầu kết bạn cho User 3
-    (3, 4, 'accepted', GETDATE(), 1); -- User 3 và User 4 là bạn
-
-    -- tblFriendSuggestion (Gợi ý bạn bè)
-    INSERT INTO tblFriendSuggestion (user_id, suggested_user_id, mutual_friend_count, suggested_at, expiration_date) VALUES
-    (1, 3, 1, GETDATE(), DATEADD(DAY, 7, GETDATE())), -- Gợi ý User 3 cho User 1
-    (2, 4, 1, GETDATE(), DATEADD(DAY, 7, GETDATE())); -- Gợi ý User 4 cho User 2
-
-    -- tblFollow (Theo dõi)
-    INSERT INTO tblFollow (follower_id, followee_id, created_at, status) VALUES
-    (1, 3, GETDATE(), 1), -- User 1 theo dõi User 3
-    (2, 4, GETDATE(), 1); -- User 2 theo dõi User 4
-
-    -- tblBlock (Chặn người dùng)
-    INSERT INTO tblBlock (user_id, blocked_user_id, created_at, status) VALUES
-    (3, 1, GETDATE(), 1); -- User 3 chặn User 1
-
-    ----the forth----
-    -- tblPost (Bài viết)
 
     -- tblContentPrivacy (Quyền riêng tư cho bài viết)
     INSERT INTO tblContentPrivacy (content_id, content_type_id, privacy_setting, custom_list_id, updated_at, status) VALUES
     (3, 1, 'custom', 1, GETDATE(), 1); -- Bài viết ID=3 của User 4 có quyền riêng tư tùy chỉnh
 
-    -- tblComment (Bình luận)
-    INSERT INTO tblComment (user_id, post_id, parent_comment_id, content, privacy_setting, created_at, status) VALUES
-    (2, 1, NULL, N'Wow, bài viết hay quá!', 'public', GETDATE(), 1),
-    (3, 1, 1, N'Cảm ơn bạn!', 'public', GETDATE(), 1); -- Bình luận trả lời
 
     -- tblStory (Câu chuyện)
 
@@ -2869,75 +2833,11 @@ WHERE definition LIKE '%friendship%';
     INSERT INTO tblContentPrivacy (content_id, content_type_id, privacy_setting, custom_list_id, updated_at, status) VALUES
     (2, 3, 'custom', 1, GETDATE(), 1); -- Câu chuyện ID=2 của User 4 có quyền riêng tư tùy chỉnh
 
-    -- tblStoryViewer (Lượt xem câu chuyện)
-    INSERT INTO tblStoryViewer (story_id, viewer_id, view_time, status) VALUES
-    (1, 1, GETDATE(), 1); -- User 1 xem câu chuyện của User 2
-
-    -- tblStoryReply (Phản hồi câu chuyện)
-    INSERT INTO tblStoryReply (story_id, sender_id, message, sent_time, status) VALUES
-    (1, 1, N'Tuyệt vời quá!', GETDATE(), 1); -- User 1 phản hồi câu chuyện của User 2
-
     ------the fifth----------
     -- tblReaction (Phản hồi)
     INSERT INTO tblReaction (user_id, reaction_type_id, target_id, target_type_id, created_at, status) VALUES
     (2, 1, 1, 1, GETDATE(), 1), -- User 2 thích bài viết ID=1
     (3, 2, 1, 3, GETDATE(), 1); -- User 3 yêu thích câu chuyện ID=1
-
-    -- tblNotification (Thông báo)
-    INSERT INTO tblNotification (user_id, type_id, message, created_at, target_id, target_type_id, status_id) VALUES
-    (1, 1, N'User 2 sent you a friend request.', GETDATE(), 2, NULL, 1),
-    (1, 2, N'User 2 commented on your post.', GETDATE(), 1, 1, 1),
-    (2, 3, N'User 1 viewed your story.', GETDATE(), 1, 3, 1);
-
-    -- tblReport (Báo cáo)
-    INSERT INTO tblReport (reporter_id, target_id, target_type_id, reason, report_time, status) VALUES
-    (3, 1, 1, N'Inappropriate content', GETDATE(), 1); -- User 3 báo cáo bài viết ID=1
-
-    --the 6th----
-    -- tblChat (Phiên trò chuyện)
-    INSERT INTO tblChat (is_group, name, created_at, status) VALUES
-    (0, NULL, GETDATE(), 1), -- Trò chuyện cá nhân
-    (1, N'Nhóm bạn thân', GETDATE(), 1); -- Nhóm
-
-    -- tblChatMember (Thành viên trò chuyện)
-    INSERT INTO tblChatMember (chat_id, user_id, joined_at, is_admin, status) VALUES
-    (1, 1, GETDATE(), 0, 1), -- User 1 trong trò chuyện cá nhân
-    (1, 2, GETDATE(), 0, 1), -- User 2 trong trò chuyện cá nhân
-    (2, 1, GETDATE(), 1, 1), -- User 1 là admin nhóm
-    (2, 2, GETDATE(), 0, 1), -- User 2 trong nhóm
-    (2, 3, GETDATE(), 0, 1); -- User 3 trong nhóm
-
-    -- tblMessage (Tin nhắn)
-    INSERT INTO tblMessage (chat_id, sender_id, type_id, content, created_at, status) VALUES
-    (1, 1, 1, N'Chào bạn!', GETDATE(), 1), -- Tin nhắn văn bản trong trò chuyện cá nhân
-    (2, 2, 2, NULL, GETDATE(), 1); -- Tin nhắn hình ảnh trong nhóm
-
-    ----the 7th-------
-    -- tblSession (Phiên đăng nhập)
-    INSERT INTO tblSession (user_id, device, ip_address, created_at, expired_time, status) VALUES
-    (1, 'Mobile', '192.168.1.1', GETDATE(), DATEADD(DAY, 7, GETDATE()), 1),
-    (2, 'Desktop', '192.168.1.2', GETDATE(), DATEADD(DAY, 7, GETDATE()), 1);
-
-    -- tblPasswordReset (Yêu cầu đặt lại mật khẩu)
-    INSERT INTO tblPasswordReset (user_id, token, token_expire_time, is_used, status) VALUES
-    (1, 'reset_token_123', DATEADD(HOUR, 1, GETDATE()), 0, 1);
-
-    -- tblGroup (Nhóm)
-    INSERT INTO tblGroup (owner_id, name, description, created_at, status) VALUES
-    (1, N'Nhóm yêu công nghệ', N'Chia sẻ kiến thức công nghệ', GETDATE(), 1);
-
-    -- tblGroupMember (Thành viên nhóm)
-    INSERT INTO tblGroupMember (group_id, user_id, join_at, is_admin, status) VALUES
-    (1, 1, GETDATE(), 1, 1),
-    (1, 2, GETDATE(), 0, 1);
-
-    -- tblPage (Trang)
-    INSERT INTO tblPage (owner_id, name, description, created_at, status) VALUES
-    (2, N'Trang ẩm thực', N'Chia sẻ món ăn ngon', GETDATE(), 1);
-
-    -- tblAccountUpgrade (Nâng cấp tài khoản)
-    INSERT INTO tblAccountUpgrade (user_id, upgrade_type_id, upgrade_at, expire_time, status) VALUES
-    (1, 1, GETDATE(), DATEADD(MONTH, 1, GETDATE()), 1); -- User 1 nâng cấp Premium
 
     -- tblAnalytics (Phân tích)
     INSERT INTO tblAnalytics (field_name, field_value, update_time, status) VALUES

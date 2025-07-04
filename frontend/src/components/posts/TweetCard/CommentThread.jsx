@@ -20,6 +20,7 @@ function CommentThread({
                            onUpdate,
                            onDelete,
                            currentUserId,
+                           currentUser,
                        }) {
     const [showReplyBox, setShowReplyBox] = useState(false);
     const [replyText, setReplyText] = useState("");
@@ -162,9 +163,9 @@ function CommentThread({
                         {showReplyBox && (
                             <Form onSubmit={handleReplySubmit} className="mt-2">
                                 <div className="d-flex align-items-start">
-                                    {avatarUrl ? (
+                                    {currentUser?.avatarUrl ? (
                                         <Image
-                                            src={avatarUrl}
+                                            src={currentUser.avatarUrl}
                                             alt="avatar"
                                             roundedCircle
                                             width={36}

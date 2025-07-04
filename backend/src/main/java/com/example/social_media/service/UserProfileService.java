@@ -8,6 +8,7 @@ import com.example.social_media.entity.User;
 import com.example.social_media.exception.UserNotFoundException;
 import com.example.social_media.repository.FollowRepository;
 import com.example.social_media.repository.UserRepository;
+import com.example.social_media.repository.post_repository.PostRepository;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,19 +25,22 @@ public class UserProfileService {
     private final MediaService mediaService;
     private final GcsService gcsService;
     private final PrivacyService privacyService;
+    private final PostRepository postRepository;
 
     public UserProfileService(
             UserRepository userRepository,
             FollowRepository followRepository,
             MediaService mediaService,
             GcsService gcsService,
-            PrivacyService privacyService
+            PrivacyService privacyService,
+            PostRepository postRepository
     ) {
         this.userRepository = userRepository;
         this.followRepository = followRepository;
         this.mediaService = mediaService;
         this.gcsService = gcsService;
         this.privacyService = privacyService;
+        this.postRepository = postRepository;
     }
 
     public UserProfileDto getUserProfile(String username) {
@@ -61,6 +65,8 @@ public class UserProfileService {
             profileImageUrl = profileMedia.getFirst().getUrl();
         }
 
+        int postCount = postRepository.countByOwnerIdAndStatusTrue(targetUser.getId());
+
         // Nếu không có quyền truy cập, trả về thông tin hạn chế
         if (!hasAccess) {
             return new UserProfileDto(
@@ -73,7 +79,8 @@ public class UserProfileService {
                     null, // dateOfBirth
                     0,    // followerCount
                     0,    // followeeCount
-                    profileImageUrl
+                    profileImageUrl,
+                    0     // hoặc postCount nếu muốn công khai số bài viết
             );
         }
 
@@ -91,7 +98,8 @@ public class UserProfileService {
                 targetUser.getDateOfBirth(),
                 followerCount,
                 followeeCount,
-                profileImageUrl
+                profileImageUrl,
+                postCount
         );
     }
 
@@ -117,6 +125,7 @@ public class UserProfileService {
 
         int followerCount = followRepository.countByFolloweeAndStatusTrue(user);
         int followeeCount = followRepository.countByFollowerAndStatusTrue(user);
+        int postCount = postRepository.countByOwnerIdAndStatusTrue(user.getId());
 
         return new UserProfileDto(
                 user.getId(),
@@ -128,7 +137,8 @@ public class UserProfileService {
                 user.getDateOfBirth(),
                 followerCount,
                 followeeCount,
-                profileImageUrl
+                profileImageUrl,
+                postCount
         );
     }
 

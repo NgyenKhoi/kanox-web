@@ -6,7 +6,7 @@ import {
   OverlayTrigger,
   Overlay,
   Tooltip,
-  Image as BootstrapImage,
+  Image,
   Row,
   Col,
   Modal,
@@ -409,6 +409,7 @@ function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
             onReply={handleReplyToComment}
             onUpdate={handleUpdateComment}
             onDelete={handleDeleteComment}
+            currentUser={user}
         />
     ));
   };
@@ -418,7 +419,7 @@ function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
           <Card.Body className="d-flex p-3">
             {/* avatar và info */}
             {avatarUrl ? (
-                <BootstrapImage
+                <Image
                     src={avatarUrl}
                     alt="Avatar"
                     roundedCircle
@@ -709,31 +710,24 @@ function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
                     <Form onSubmit={handleCommentSubmit} className="mt-2">
                       <div className="d-flex align-items-start">
                         {user?.avatarUrl ? (
-                            <BootstrapImage
+                            <Image
                                 src={user.avatarUrl}
-                                alt={`Ảnh đại diện của ${user.displayName}`}
+                                alt={`Ảnh đại diện của ${user.displayName || "Người dùng"}`}
                                 roundedCircle
-                                className="me-2 rounded-full"
-                                style={{
-                                  width: "32px",
-                                  height: "32px",
-                                  objectFit: "cover",
-                                  flexShrink: 0,
-                                  flexGrow: 0,
-                                  display: "block"
-                                }}
+                                width={36}
+                                height={36}
+                                style={{ objectFit: "cover" }}
+                                className="me-2 flex-shrink-0"
                             />
                         ) : (
                             <FaUserCircle
-                                size={32}
-                                className="me-2 text-[var(--text-color-muted)]"
-                                style={{ flexShrink: 0 }}
+                                size={36}
+                                className="me-2 text-[var(--text-color-muted)] flex-shrink-0"
                                 aria-label="Ảnh đại diện mặc định"
                             />
                         )}
 
                         <div className="flex-grow-1 w-100">
-                          {/* Comment Input */}
                           <Form.Control
                               type="text"
                               placeholder="Viết bình luận..."
@@ -741,6 +735,7 @@ function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
                               onChange={(e) => setNewComment(e.target.value)}
                               className="rounded-full border-[var(--border-color)] bg-[var(--background-color)] text-[var(--text-color)]"
                               disabled={isCommenting}
+                              ref={commentInputRef}
                           />
 
                           {/* Action bar below the input */}
@@ -886,7 +881,7 @@ function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
                 </>
             )}
             {selectedImage && (
-                <BootstrapImage
+                <Image
                     src={selectedImage}
                     className="max-w-full max-h-[80vh] mx-auto object-contain"
                     fluid

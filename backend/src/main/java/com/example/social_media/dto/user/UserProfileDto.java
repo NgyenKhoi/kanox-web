@@ -12,13 +12,14 @@ public class UserProfileDto {
     private LocalDate dateOfBirth;
     private int followerCount;
     private int followeeCount;
-    private String profileImageUrl; // Thêm trường cho URL ảnh đại diện
+    private String profileImageUrl;
+    private int postCount;
 
     // Constructors
     public UserProfileDto() {}
 
     public UserProfileDto(Integer id, String username, String displayName, String email, String bio, Short gender,
-                          LocalDate dateOfBirth, int followerCount, int followeeCount, String profileImageUrl) {
+                          LocalDate dateOfBirth, int followerCount, int followeeCount, String profileImageUrl, int postCount) {
         this.id = id;
         this.username = username;
         this.displayName = displayName;
@@ -29,6 +30,7 @@ public class UserProfileDto {
         this.followerCount = followerCount;
         this.followeeCount = followeeCount;
         this.profileImageUrl = profileImageUrl;
+        this.postCount = postCount;
     }
 
     // Getters và setters
@@ -61,4 +63,12 @@ public class UserProfileDto {
 
     public String getProfileImageUrl() { return profileImageUrl; }
     public void setProfileImageUrl(String profileImageUrl) { this.profileImageUrl = profileImageUrl; }
+
+    public int getPostCount() {
+        return postCount;
+    }
+
+    public void setPostCount(int postCount) {
+        this.postCount = postCount;
+    }
 }
