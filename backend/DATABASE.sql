@@ -1416,6 +1416,30 @@ GO
         privacy_setting VARCHAR(20) CHECK (privacy_setting IN ('public', 'friends', 'only_me', 'custom', 'default')) DEFAULT 'default',
         status BIT DEFAULT 1
     );
+
+    CREATE TABLE tblSavedPost (
+        user_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
+        post_id INT NOT NULL FOREIGN KEY REFERENCES tblPost(id),
+        save_time DATETIME DEFAULT GETDATE(),
+        status BIT DEFAULT 1,
+        PRIMARY KEY (user_id, post_id)
+        );
+
+    CREATE TABLE tblHiddenPost (
+        user_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
+        post_id INT NOT NULL FOREIGN KEY REFERENCES tblPost(id),
+        hidden_time DATETIME DEFAULT GETDATE(),
+        status BIT DEFAULT 1,
+        PRIMARY KEY (user_id, post_id)
+        );
+
+    CREATE TABLE tblPostTag (
+        id INT PRIMARY KEY IDENTITY(1, 1),
+        post_id INT NOT NULL FOREIGN KEY REFERENCES tblPost(id),
+        tagged_user_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
+        status BIT DEFAULT 1
+        );
+
     CREATE TABLE tblComment (
         id INT PRIMARY KEY IDENTITY(1, 1),
         parent_comment_id INT NULL,
@@ -1629,29 +1653,6 @@ GO
 		END;
 
     ---------------------------------------------------------------------
-
-    CREATE TABLE tblSavedPost (
-        user_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
-        post_id INT NOT NULL FOREIGN KEY REFERENCES tblPost(id),
-        save_time DATETIME DEFAULT GETDATE(),
-        status BIT DEFAULT 1,
-        PRIMARY KEY (user_id, post_id)
-    );
-
-    CREATE TABLE tblHiddenPost (
-        user_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
-        post_id INT NOT NULL FOREIGN KEY REFERENCES tblPost(id),
-        hidden_time DATETIME DEFAULT GETDATE(),
-        status BIT DEFAULT 1,
-        PRIMARY KEY (user_id, post_id)
-    );
-
-    CREATE TABLE tblPostTag (
-        id INT PRIMARY KEY IDENTITY(1, 1),
-        post_id INT NOT NULL FOREIGN KEY REFERENCES tblPost(id),
-        tagged_user_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
-        status BIT DEFAULT 1
-    );
 
     --CHAT
 

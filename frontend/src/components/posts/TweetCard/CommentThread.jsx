@@ -53,18 +53,19 @@ function CommentThread({
     };
 
     return (
-        <div className="mb-3">
-            <div className="d-flex">
+        <div className="flex gap-3 w-full mb-2">
+            <div className="flex-shrink-0">
                 {avatarUrl ? (
                     <img
                         src={avatarUrl}
                         alt="avatar"
-                        className="w-9 h-9 rounded-full object-cover mr-3 flex-shrink-0"
+                        className="w-9 h-9 rounded-full object-cover"
                     />
                 ) : (
-                    <FaUserCircle size={36} className="text-[var(--text-color-muted)] mr-3 flex-shrink-0" />
+                    <FaUserCircle size={36} className="text-[var(--text-color-muted)]" />
                 )}
-                <div className="flex-grow-1">
+            </div>
+            <div className="flex-grow min-w-0">
                     <div
                         className="rounded-2xl p-3 text-base"
                         style={{ backgroundColor: "var(--comment-bg-color)" }}
@@ -133,47 +134,46 @@ function CommentThread({
                             </Form>
                         ) : (
                             <>
-                            <p className="mb-1 mt-2 text-[var(--text-color)]">{comment.content}</p>
-                        {comment.media?.length > 0 && (
-                            <div className="mt-2 d-flex flex-wrap gap-2">
-                        {comment.media.map((media, index) => {
-                            const isImage = media.type === "image";
-                            const isVideo = media.type === "video";
-                            const isAudio = media.type === "audio";
+                                <p className="mb-1 mt-2 text-[var(--text-color)]">{comment.content}</p>
+                                {comment.media?.length > 0 && (
+                                    <div className="mt-2 d-flex flex-wrap gap-2">
+                                        {comment.media.map((media, index) => {
+                                            const isImage = media.type === "image";
+                                            const isVideo = media.type === "video";
+                                            const isAudio = media.type === "audio";
 
-                            return (
-                            <div key={index} className="rounded overflow-hidden">
-                        {isImage && (
-                            <Image
-                                src={media.url}
-                                alt={`comment-media-${index}`}
-                                thumbnail
-                                className="max-w-[200px] max-h-[200px] object-cover"
-                            />
-                        )}
-                        {isVideo && (
-                            <video
-                                controls
-                                className="max-w-[200px] max-h-[200px] rounded"
-                            >
-                                <source src={media.url} type="video/mp4" />
-                                Trình duyệt của bạn không hỗ trợ video.
-                            </video>
-                        )}
-                        {isAudio && (
-                            <audio controls>
-                                <source src={media.url} type="audio/mpeg" />
-                                Trình duyệt không hỗ trợ audio.
-                            </audio>
-                        )}
-                    </div>
-                    );
-                    })}
-                </div>
-                )}
+                                            return (
+                                                <div key={index} className="rounded overflow-hidden">
+                                                    {isImage && (
+                                                        <Image
+                                                            src={media.url}
+                                                            alt={`comment-media-${index}`}
+                                                            thumbnail
+                                                            className="max-w-[200px] max-h-[200px] object-cover"
+                                                        />
+                                                    )}
+                                                    {isVideo && (
+                                                        <video
+                                                            controls
+                                                            className="max-w-[200px] max-h-[200px] rounded"
+                                                        >
+                                                            <source src={media.url} type="video/mp4" />
+                                                            Trình duyệt của bạn không hỗ trợ video.
+                                                        </video>
+                                                    )}
+                                                    {isAudio && (
+                                                        <audio controls>
+                                                            <source src={media.url} type="audio/mpeg" />
+                                                            Trình duyệt không hỗ trợ audio.
+                                                        </audio>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
                             </>
                         )}
-
                         {/* Reaction & Reply Buttons */}
                         <div className="d-flex align-items-center gap-2 mt-2">
                             <OverlayTrigger
@@ -304,8 +304,9 @@ function CommentThread({
                         </Button>
                     )}
                     {/* Replies */}
-                    <Collapse in={showReplies}>
-                        <div className="mt-2 ms-4">
+                <Collapse in={showReplies}>
+                    <div>
+                        <>
                             {comment.replies?.map((reply) => (
                                 <CommentThread
                                     key={reply.commentId}
@@ -314,11 +315,12 @@ function CommentThread({
                                     onUpdate={onUpdate}
                                     onDelete={onDelete}
                                     currentUserId={currentUserId}
+                                    currentUser={currentUser} // nếu cần
                                 />
                             ))}
-                        </div>
-                    </Collapse>
-                </div>
+                        </>
+                    </div>
+                </Collapse>
             </div>
         </div>
     );

@@ -234,15 +234,22 @@ function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
       if (!token) throw new Error("Vui lòng đăng nhập để bình luận!");
 
       const formData = new FormData();
-      formData.append("userId", user?.id);
-      formData.append("postId", id);
-      formData.append("content", newComment);
-      formData.append("privacySetting", "public");
-      formData.append("parentCommentId", null);
-      formData.append("customListId", null);
+      const commentPayload = {
+        userId: user?.id,
+        postId: id,
+        content: newComment,
+        privacySetting: "public",
+        parentCommentId: null,
+        customListId: null,
+      };
 
-      selectedMediaFiles.forEach((file, index) => {
-        formData.append(`media`, file);
+      formData.append(
+          "comment",
+          new Blob([JSON.stringify(commentPayload)], { type: "application/json" })
+      );
+
+      selectedMediaFiles.forEach((file) => {
+        formData.append("media", file);
       });
 
       const response = await fetch(`${process.env.REACT_APP_API_URL}/comments`, {
@@ -258,8 +265,8 @@ function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
 
       toast.success("Đã đăng bình luận!");
       setNewComment("");
-      setSelectedMediaFiles([]); // Xóa danh sách file sau khi gửi
-      setSelectedMediaPreviews([]); // Xóa preview
+      setSelectedMediaFiles([]);
+      setSelectedMediaPreviews([]);
 
       const newCommentObj = data.data;
       setComments((prev) => [newCommentObj, ...prev]);
@@ -407,18 +414,23 @@ function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
     if (!Array.isArray(comments) || comments.length === 0)
       return <div className="text-[var(--text-color-muted)]">Chưa có bình luận nào.</div>;
 
-    return comments.map((comment) => (
-        <CommentThread
-            key={comment.commentId}
-            comment={comment}
-            currentUserId={currentUserId}
-            onReply={handleReplyToComment}
-            onUpdate={handleUpdateComment}
-            onDelete={handleDeleteComment}
-            currentUser={user}
-        />
-    ));
-  };
+    return (
+        <>
+          {comments.map((comment) => (
+              <CommentThread
+                  key={comment.commentId}
+                  comment={comment}
+                  currentUserId={currentUserId}
+                  onReply={handleReplyToComment}
+                  onUpdate={handleUpdateComment}
+                  onDelete={handleDeleteComment}
+                  currentUser={user}
+              />
+          ))}
+        </>
+    );
+  }
+  
   return (
       <>
         <Card className="mb-3 rounded-2xl shadow-sm border-0 bg-[var(--background-color)]">
@@ -737,7 +749,7 @@ function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
                               placeholder="Viết bình luận..."
                               value={newComment}
                               onChange={(e) => setNewComment(e.target.value)}
-                              className="rounded-full border-[var(--border-color)] bg-[var(--background-color)] text-[var(--text-color)]"
+                              className="rounded-full border-[var(--border-color)] bg-[var(--hover-bg-color)] text-[var(--text-color)] transition-colors duration-200"
                               disabled={isCommenting}
                               ref={commentInputRef}
                           />
