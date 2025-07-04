@@ -130,10 +130,10 @@ public class ChatController {
         redisTemplate.convertAndSend("chat-messages", savedMessage);
         System.out.println("Message published to Redis channel chat-messages for chatId: " + messageDto.getChatId());
 
-        // Publish tin nhắn đến topic /topic/chat/{chatId} để hiển thị real-time trong khung chat
+        // Publish tin nhắn đến topic /topic/chat/{chatId}
         messagingTemplate.convertAndSend("/topic/chat/" + messageDto.getChatId(), savedMessage);
 
-        // Publish cập nhật danh sách chat cho cả hai người dùng
+        // Publish cập nhật danh sách chat và unread count
         List<ChatMember> members = chatMemberRepository.findByChatId(messageDto.getChatId());
         for (ChatMember member : members) {
             ChatDto userSpecificChat = chatService.convertToDto(
@@ -145,6 +145,13 @@ public class ChatController {
                     ", Name=" + userSpecificChat.getName() +
                     ", Last Message=" + userSpecificChat.getLastMessage() +
                     ", Unread Messages Count=" + userSpecificChat.getUnreadMessagesCount());
+
+            // Gửi thông báo unread count cho người nhận (ngoại trừ người gửi)
+            if (!member.getUser().getId().equals(savedMessage.getSenderId())) {
+                int unreadCount = messageService.getUnreadMessageCount(member.getUser().getId());
+                messagingTemplate.convertAndSend("/topic/unread-count/" + member.getUser().getId(), Map.of("unreadCount", unreadCount));
+                System.out.println("Sent unread chat count to /topic/unread-count/" + member.getUser().getId() + ": " + unreadCount);
+            }
         }
     }
     @MessageMapping(URLConfig.TYPING)
@@ -231,10 +238,15 @@ public class ChatController {
                     chatRepository.findById(newChat.getId()).orElseThrow(() -> new IllegalArgumentException("Chat not found: " + newChat.getId())),
                     member.getUser().getId()
             );
-            System.out.println("Sending ChatDto to /topic/chats/" + member.getUser().getId() + ": ID=" + userSpecificChat.getId() +
+            messagingTemplate.convertAndSend("/topic/chats/" + member.getUser().getId(), userSpecificChat);
+            System.out.println("Sent ChatDto to /topic/chats/" + member.getUser().getId() + ": ID=" + userSpecificChat.getId() +
                     ", Name=" + userSpecificChat.getName() +
                     ", Unread Messages Count=" + userSpecificChat.getUnreadMessagesCount());
-            messagingTemplate.convertAndSend("/topic/chats/" + member.getUser().getId(), userSpecificChat);
+
+            // Gửi thông báo unread count
+            int unreadCount = messageService.getUnreadMessageCount(member.getUser().getId());
+            messagingTemplate.convertAndSend("/topic/unread-count/" + member.getUser().getId(), Map.of("unreadCount", unreadCount));
+            System.out.println("Sent unread chat count to /topic/unread-count/" + member.getUser().getId() + ": " + unreadCount);
         }
         System.out.println("Returning ChatDto to caller: ID=" + newChat.getId() + ", Name=" + newChat.getName());
         return newChat;
@@ -243,11 +255,17 @@ public class ChatController {
     @DeleteMapping(URLConfig.CHAT_DELETE)
     public void deleteChat(@PathVariable Integer chatId) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
         chatService.deleteChat(chatId, username);
         System.out.println("Notifying user " + username + " of chat deletion: chatId=" + chatId);
-        messagingTemplate.convertAndSend("/topic/chats/" + userRepository.findByUsername(username)
-                        .orElseThrow(() -> new IllegalArgumentException("User not found")).getId(),
+        messagingTemplate.convertAndSend("/topic/chats/" + user.getId(),
                 Map.of("action", "delete", "chatId", chatId));
+
+        // Gửi thông báo unread count
+        int unreadCount = messageService.getUnreadMessageCount(user.getId());
+        messagingTemplate.convertAndSend("/topic/unread-count/" + user.getId(), Map.of("unreadCount", unreadCount));
+        System.out.println("Sent unread chat count to /topic/unread-count/" + user.getId() + ": " + unreadCount);
     }
 
     @PostMapping(URLConfig.CALL_START)
