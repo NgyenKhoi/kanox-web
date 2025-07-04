@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext } from "react";
+import { WebSocketContext } from "../../../context/WebSocketContext";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
   FaHome,
@@ -25,6 +26,7 @@ import useSingleMedia from "../../../hooks/useSingleMedia";
 
 function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
   const { user, logout } = useContext(AuthContext);
+  const { subscribe, unsubscribe } = useContext(WebSocketContext) || {};
   const navigate = useNavigate();
   const location = useLocation();
   const [showMenu, setShowMenu] = useState(false);
@@ -79,18 +81,22 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
     }
   };
   useEffect(() => {
-    const handleUnreadCountUpdate = (e) => {
-      const count = e.detail?.unreadCount ?? 0;
-      console.log("Received updateUnreadCount event:", count);
-      setUnreadMessageCount(count);
-    };
+    if (!user?.id || !subscribe || !unsubscribe) return;
 
-    window.addEventListener("updateUnreadCount", handleUnreadCountUpdate);
+    const subId = `unread-count-${user.id}`;
+    const subscription = subscribe(`/topic/unread-count/${user.id}`, (data) => {
+      const count = data.unreadCount ?? 0;
+      console.log(`Received unread chat count for user ${user.id}:`, count);
+      setUnreadMessageCount(count);
+    }, subId);
 
     return () => {
-      window.removeEventListener("updateUnreadCount", handleUnreadCountUpdate);
+      if (subscription) {
+        unsubscribe(subId);
+        console.log(`Unsubscribed from /topic/unread-count/${user.id}`);
+      }
     };
-  }, []);
+  }, [user, subscribe, unsubscribe]);
 
   useEffect(() => {
     const fetchUnreadMessageCount = async () => {
