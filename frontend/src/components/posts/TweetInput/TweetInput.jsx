@@ -281,90 +281,93 @@ function TweetInput({ onPostSuccess }) {
     );
   };
 
-      const renderMediaPreview = () => {
-          if (mediaPreviews.length === 0) return null;
+    const renderMediaPreview = () => {
+        if (mediaPreviews.length === 0) return null;
 
-          const mediaStyle = "aspect-square w-full object-contain rounded-lg";
-          const baseContainer = "grid gap-1 mb-3 overflow-hidden rounded-lg";
+        const baseContainer = "grid gap-1 mb-3 overflow-hidden rounded-lg";
+        const mediaStyle = "object-contain rounded-lg";
 
-          const getMediaItem = (preview, index) => {
-              const isVideo = preview.type.startsWith("video/");
-              return (
-                  <div key={index} className="relative group w-full h-full overflow-hidden">
-                      {isVideo ? (
-                          <video src={preview.url} controls className={mediaStyle}/>
-                      ) : (
-                          <img src={preview.url} alt="preview" className={mediaStyle}/>
-                      )}
-                      <button
-                          className="absolute top-1 right-1 text-white bg-black/60 rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
-                          onClick={() => handleRemoveMedia(index)}
-                      >
-                          ×
-                      </button>
-                  </div>
-              );
-          };
+        const getMediaItem = (preview, index, customWrapper = "") => {
+            const isVideo = preview.type.startsWith("video/");
+            return (
+                <div key={index} className={`relative ${customWrapper}`}>
+                    {isVideo ? (
+                        <video src={preview.url} controls className={`${mediaStyle} w-full h-full`} />
+                    ) : (
+                        <img src={preview.url} alt="preview" className={`${mediaStyle} w-full h-full`} />
+                    )}
+                    <button
+                        className="absolute top-1 right-1 text-white bg-black/60 rounded-full w-6 h-6 flex items-center justify-center transition"
+                        onClick={() => handleRemoveMedia(index)}
+                    >
+                        ×
+                    </button>
+                </div>
+            );
+        };
 
-          const filesToShow = mediaPreviews.slice(0, 4);
-          const extraCount = mediaPreviews.length - 4;
+        const filesToShow = mediaPreviews.slice(0, 4);
+        const extraCount = mediaPreviews.length - 4;
 
-          if (filesToShow.length === 1) {
-              return (
-                  <div className={`${baseContainer} grid-cols-1`}>
-                      {getMediaItem(filesToShow[0], 0)}
-                  </div>
-              );
-          }
+        if (filesToShow.length === 1) {
+            return (
+                <div className="mb-3 flex justify-start">
+                    <div className="relative max-w-[240px] max-h-[240px] w-full h-full">
+                        {getMediaItem(filesToShow[0], 0, "w-full h-full")}
+                    </div>
+                </div>
+            );
+        }
 
-          if (filesToShow.length === 2) {
-              return (
-                  <div className={`${baseContainer} grid-cols-2`}>
-                      {filesToShow.map((url, i) => getMediaItem(url, i))}
-                  </div>
-              );
-          }
+        if (filesToShow.length === 2) {
+            return (
+                <div className={`${baseContainer} grid-cols-2`}>
+                    {filesToShow.map((url, i) => getMediaItem(url, i))}
+                </div>
+            );
+        }
 
-          if (filesToShow.length === 3) {
-              return (
-                  <div className={`${baseContainer} grid-rows-2 grid-cols-2`}>
-                      <div className="col-span-2 row-span-1">{getMediaItem(filesToShow[0], 0)}</div>
-                      <div>{getMediaItem(filesToShow[1], 1)}</div>
-                      <div>{getMediaItem(filesToShow[2], 2)}</div>
-                  </div>
-              );
-          }
+        if (filesToShow.length === 3) {
+            return (
+                <div className={`${baseContainer} grid-rows-2 grid-cols-2`}>
+                    <div className="col-span-2 row-span-1">{getMediaItem(filesToShow[0], 0)}</div>
+                    <div>{getMediaItem(filesToShow[1], 1)}</div>
+                    <div>{getMediaItem(filesToShow[2], 2)}</div>
+                </div>
+            );
+        }
 
-          // 4 files hoặc hơn
-          return (
-              <div className={`${baseContainer} grid-cols-2`}>
-                  {filesToShow.map((url, i) => {
-                      if (i === 3 && extraCount > 0) {
-                          return (
-                              <div key={i} className="relative group w-full h-full overflow-hidden cursor-pointer"
-                                   onClick={() => handleOpenMediaModal(3)}>
-                                  <img src={url} alt="preview" className={`${mediaStyle} opacity-70`}/>
-                                  <div
-                                      className="absolute inset-0 flex items-center justify-center text-white text-xl font-bold bg-black/50">
-                                      +{extraCount}
-                                  </div>
-                                  <button
-                                      className="absolute top-1 right-1 text-white bg-black/60 rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
-                                      onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleRemoveMedia(i);
-                                      }}
-                                  >
-                                      ×
-                                  </button>
-                              </div>
-                          );
-                      }
-                      return getMediaItem(url, i);
-                  })}
-              </div>
-          );
-      };
+        // 4 ảnh hoặc nhiều hơn
+        return (
+            <div className={`${baseContainer} grid-cols-2`}>
+                {filesToShow.map((url, i) => {
+                    if (i === 3 && extraCount > 0) {
+                        return (
+                            <div key={i}
+                                 className="relative w-full h-full cursor-pointer overflow-hidden"
+                                 onClick={() => handleOpenMediaModal(3)}
+                            >
+                                <img src={url.url} alt="preview" className={`${mediaStyle} opacity-70 w-full h-full`} />
+                                <div className="absolute inset-0 flex items-center justify-center text-white text-xl font-bold bg-black/50">
+                                    +{extraCount}
+                                </div>
+                                <button
+                                    className="absolute top-1 right-1 text-white bg-black/60 rounded-full w-6 h-6 flex items-center justify-center transition"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleRemoveMedia(i);
+                                    }}
+                                >
+                                    ×
+                                </button>
+                            </div>
+                        );
+                    }
+                    return getMediaItem(url, i);
+                })}
+            </div>
+        );
+    };
 
   return (
       <>

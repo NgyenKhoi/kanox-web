@@ -11,6 +11,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.http.MediaType;
 
 import java.util.HashMap;
 import java.util.List;
@@ -19,7 +21,7 @@ import java.util.Map;
 @RestController
 @RequestMapping(URLConfig.COMMENT_BASE)
 public class CommentController {
-    
+
     private static final Logger logger = LoggerFactory.getLogger(CommentController.class);
     private final CommentService commentService;
 
@@ -27,64 +29,77 @@ public class CommentController {
         this.commentService = commentService;
     }
 
-    @PostMapping
-    public ResponseEntity<?> createComment(@RequestBody @Valid CommentRequestDto request) {
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> createComment(
+            @RequestPart(value = "comment", required = false) @Valid CommentRequestDto request,
+            @RequestPart(value = "media", required = false) List<MultipartFile> mediaFiles
+    ) {
         try {
-            // Gọi service để tạo bình luận
+            if ((request == null || request.getContent() == null || request.getContent().isBlank())
+                    && (mediaFiles == null || mediaFiles.isEmpty())) {
+                throw new IllegalArgumentException("Dữ liệu bình luận không được cung cấp");
+            }
+
+            Integer userId = (request != null) ? request.getUserId() : null;
+            Integer postId = (request != null) ? request.getPostId() : null;
+            String content = (request != null) ? request.getContent() : null;
+            String privacySetting = (request != null) ? request.getPrivacySetting() : "default";
+            Integer parentCommentId = (request != null) ? request.getParentCommentId() : null;
+            Integer customListId = (request != null) ? request.getCustomListId() : null;
+
             CommentResponseDto responseDto = commentService.createComment(
-                    request.getUserId(),
-                    request.getPostId(),
-                    request.getContent(),
-                    request.getPrivacySetting(),
-                    request.getParentCommentId(),
-                    request.getCustomListId()
+                    userId,
+                    postId,
+                    content,
+                    privacySetting,
+                    parentCommentId,
+                    customListId,
+                    mediaFiles
             );
 
-            // Chuẩn bị phản hồi
-            Map<String, Object> response = new HashMap<>();
-            response.put("message", responseDto.getMessage());
-            response.put("data", responseDto);
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(Map.of(
+                    "message", responseDto.getMessage(),
+                    "data", responseDto
+            ));
         } catch (IllegalArgumentException e) {
-            logger.error("Lỗi khi tạo bình luận: {}", e.getMessage());
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("status", "error");
-            errorResponse.put("message", e.getMessage());
-            errorResponse.put("errors", new HashMap<>());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+            logger.error("Lỗi tạo bình luận: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", e.getMessage(),
+                    "errors", new HashMap<>()
+            ));
         } catch (Exception e) {
-            logger.error("Lỗi hệ thống: {}", e.getMessage(), e);
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("status", "error");
-            errorResponse.put("message", "Lỗi hệ thống: " + e.getMessage());
-            errorResponse.put("errors", new HashMap<>());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+            logger.error("Lỗi hệ thống khi tạo bình luận", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                    "status", "error",
+                    "message", "Lỗi hệ thống: " + e.getMessage(),
+                    "errors", new HashMap<>()
+            ));
         }
     }
 
     @GetMapping
     public ResponseEntity<?> getCommentsByPostId(@RequestParam Integer postId) {
         try {
-            // Gọi service để lấy danh sách bình luận
             List<CommentResponseDto> comments = commentService.getCommentsByPostId(postId);
-            Map<String, Object> response = new HashMap<>();
-            response.put("message", "Lấy bình luận thành công");
-            response.put("data", comments);
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(Map.of(
+                    "message", "Lấy bình luận thành công",
+                    "data", comments
+            ));
         } catch (IllegalArgumentException e) {
             logger.error("Lỗi khi lấy bình luận: {}", e.getMessage());
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("status", "error");
-            errorResponse.put("message", e.getMessage());
-            errorResponse.put("errors", new HashMap<>());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", e.getMessage(),
+                    "errors", new HashMap<>()
+            ));
         } catch (Exception e) {
-            logger.error("Lỗi hệ thống: {}", e.getMessage(), e);
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("status", "error");
-            errorResponse.put("message", "Lỗi hệ thống: " + e.getMessage());
-            errorResponse.put("errors", new HashMap<>());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+            logger.error("Lỗi hệ thống khi lấy bình luận", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                    "status", "error",
+                    "message", "Lỗi hệ thống: " + e.getMessage(),
+                    "errors", new HashMap<>()
+            ));
         }
     }
 
@@ -96,15 +111,13 @@ public class CommentController {
             String content = (String) body.get("content");
 
             CommentResponseDto updated = commentService.updateComment(commentId, userId, content);
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("message", updated.getMessage());
-            response.put("data", updated);
-            return ResponseEntity.ok(response);
-
+            return ResponseEntity.ok(Map.of(
+                    "message", updated.getMessage(),
+                    "data", updated
+            ));
         } catch (IllegalArgumentException e) {
             logger.error("Lỗi cập nhật bình luận: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+            return ResponseEntity.badRequest().body(Map.of(
                     "status", "error",
                     "message", e.getMessage()
             ));

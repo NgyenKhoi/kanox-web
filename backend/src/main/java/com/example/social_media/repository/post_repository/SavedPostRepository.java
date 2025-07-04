@@ -30,4 +30,5 @@ public interface SavedPostRepository extends JpaRepository<SavedPost, SavedPostI
     // Gọi stored procedure sp_SavePost
     @Procedure(procedureName = "sp_SavePost")
     void callSavePost(@Param("user_id") Integer userId, @Param("post_id") Integer postId);
+    boolean existsByUserIdAndPostIdAndStatusTrue(Integer userId, Integer postId);
 }

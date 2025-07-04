@@ -15,6 +15,7 @@ public class PostResponseDto {
     private int commentCount;
     private int likeCount;
     private int shareCount;
+    private boolean isSaved;
 
     public Integer getId() { return id; }
     public void setId(Integer id) { this.id = id; }
@@ -42,4 +43,7 @@ public class PostResponseDto {
 
     public int getShareCount() { return shareCount; }
     public void setShareCount(int shareCount) { this.shareCount = shareCount; }
+
+    public boolean isSaved() { return isSaved; }
+    public void setSaved(boolean saved) { isSaved = saved; }
 }

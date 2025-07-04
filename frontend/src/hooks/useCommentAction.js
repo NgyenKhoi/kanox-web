@@ -5,24 +5,38 @@ export const useCommentActions = ({
                                       setComments,
                                       fetchComments,
                                   }) => {
-    const handleReplyToComment = async (parentId, replyText) => {
+    const handleReplyToComment = async (parentId, replyText, mediaFiles = []) => {
         try {
             const token = localStorage.getItem("token");
             if (!token) throw new Error("Vui lòng đăng nhập để bình luận!");
+
+            const formData = new FormData();
+
+            const commentPayload = {
+                userId: user.id,
+                postId,
+                content: replyText,
+                privacySetting: "default", // bạn có thể dùng "PUBLIC" nếu backend cho phép
+                parentCommentId: parentId,
+                customListId: null,
+            };
+
+            formData.append(
+                "comment",
+                new Blob([JSON.stringify(commentPayload)], { type: "application/json" })
+            );
+
+            mediaFiles.forEach((file) => {
+                formData.append("media", file);
+            });
 
             const response = await fetch(`${process.env.REACT_APP_API_URL}/comments`, {
                 method: "POST",
                 headers: {
                     Authorization: `Bearer ${token}`,
-                    "Content-Type": "application/json",
+                    // ⚠️ KHÔNG set Content-Type manually — trình duyệt sẽ tự thêm boundary
                 },
-                body: JSON.stringify({
-                    userId: user.id,
-                    postId,
-                    content: replyText,
-                    privacySetting: "default",
-                    parentCommentId: parentId,
-                }),
+                body: formData,
             });
 
             const data = await response.json();
@@ -40,7 +54,6 @@ export const useCommentActions = ({
             toast.error("Không thể phản hồi bình luận: " + error.message);
         }
     };
-
     const handleUpdateComment = async (commentId, newText) => {
         try {
             const token = localStorage.getItem("token");

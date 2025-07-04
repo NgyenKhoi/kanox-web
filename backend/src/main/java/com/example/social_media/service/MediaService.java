@@ -27,10 +27,15 @@ public class MediaService {
         private final RedisTemplate<String, String> redisMediaTemplate;
         private final ObjectMapper objectMapper;
 
-    private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
-                        "image/jpeg", "image/jpg",
-                        "video/mp4",
-                        "audio/mpeg");
+    private static final Set<String> COMMON_ALLOWED_TYPES = Set.of(
+            "image/jpeg", "image/jpg", "video/mp4", "audio/mpeg"
+    );
+
+    private static final Set<String> COMMENT_MESSAGE_ALLOWED_TYPES = Set.of(
+            "image/jpeg", "image/jpg", "image/gif", // thêm GIF
+            "video/mp4", "audio/mpeg"
+    );
+
 
         private static final Duration CACHE_TTL = Duration.ofMinutes(10);
         private static final Duration AVATAR_CACHE_TTL = Duration.ofMinutes(5);
@@ -62,7 +67,7 @@ public class MediaService {
 
         public MediaDto uploadMedia(Integer userId, Integer targetId, String targetTypeCode, String mediaTypeName,
                         MultipartFile file, String caption) throws IOException {
-                validateFileType(file);
+            validateFileTypeByTarget(targetTypeCode, file);
 
                 User owner = userRepository.findById(userId)
                                 .orElseThrow(() -> new IllegalArgumentException("Người dùng không tồn tại"));
@@ -157,10 +162,7 @@ public class MediaService {
 
                 for (MultipartFile file : files) {
                         String contentType = file.getContentType();
-                        if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType)) {
-                                throw new IllegalArgumentException("File \"" + file.getOriginalFilename()
-                                                + "\" không hợp lệ. Vui lòng chọn lại file.");
-                        }
+                    validateFileTypeByTarget("POST", file);
                 }
 
                 List<Media> savedMediaList = files.stream().map(file -> {
@@ -205,7 +207,83 @@ public class MediaService {
                 return savedMediaList.stream().map(this::toDto).collect(Collectors.toList());
         }
 
-        public void deleteMediaById(Integer mediaId) {
+    public List<MediaDto> uploadMediaFiles(Integer userId,
+                                           Integer targetId,
+                                           List<MultipartFile> files,
+                                           String caption,
+                                           String targetTypeCode) {
+        User owner = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Người dùng không tồn tại"));
+
+        TargetType targetType = targetTypeRepository.findByCode(targetTypeCode)
+                .orElseThrow(() -> new IllegalArgumentException("Loại target không hợp lệ: " + targetTypeCode));
+
+        for (MultipartFile file : files) {
+            validateFileTypeByTarget(targetTypeCode, file);
+        }
+
+        List<Media> savedMediaList = files.stream().map(file -> {
+            String contentType = file.getContentType();
+            String mediaTypeName;
+
+            assert contentType != null;
+            if (contentType.startsWith("image/")) {
+                mediaTypeName = "image";
+            } else if (contentType.startsWith("video/")) {
+                mediaTypeName = "video";
+            } else if (contentType.startsWith("audio/")) {
+                mediaTypeName = "audio";
+            } else {
+                throw new IllegalArgumentException("Không thể xác định loại media.");
+            }
+
+            MediaType mediaType = mediaTypeRepository.findByName(mediaTypeName)
+                    .orElseThrow(() -> new IllegalArgumentException("Loại media không hợp lệ"));
+
+            try {
+                String mediaUrl = gcsService.uploadFile(file);
+
+                Media media = new Media();
+                media.setOwner(owner);
+                media.setTargetId(targetId);
+                media.setTargetType(targetType);
+                media.setMediaType(mediaType);
+                media.setMediaUrl(mediaUrl);
+                media.setCaption(caption);
+                media.setCreatedAt(Instant.now());
+                media.setStatus(true);
+
+                return media;
+            } catch (IOException e) {
+                throw new RuntimeException("Lỗi khi upload file: " + file.getOriginalFilename(), e);
+            }
+        }).collect(Collectors.toList());
+
+        mediaRepository.saveAll(savedMediaList);
+
+        return savedMediaList.stream().map(this::toDto).collect(Collectors.toList());
+    }
+
+    private void validateFileTypeByTarget(String targetTypeCode, MultipartFile file) {
+        String contentType = file.getContentType();
+        if (contentType == null) {
+            throw new IllegalArgumentException("Không xác định được loại file.");
+        }
+
+        Set<String> allowedTypes;
+        if ("COMMENT".equals(targetTypeCode) || "MESSAGE".equals(targetTypeCode)) {
+            allowedTypes = COMMENT_MESSAGE_ALLOWED_TYPES;
+        } else {
+            allowedTypes = COMMON_ALLOWED_TYPES;
+        }
+
+        if (!allowedTypes.contains(contentType)) {
+            throw new IllegalArgumentException("Loại file không được hỗ trợ: " + contentType);
+        }
+    }
+
+
+    public void deleteMediaById(Integer mediaId) {
                 Media media = mediaRepository.findById(mediaId)
                                 .orElseThrow(() -> new IllegalArgumentException("Media không tồn tại"));
                 media.setStatus(false);
@@ -221,13 +299,6 @@ public class MediaService {
                 dto.setTargetType(media.getTargetType().getCode());
                 dto.setStatus(media.getStatus());
                 return dto;
-        }
-
-        private void validateFileType(MultipartFile file) {
-                String contentType = file.getContentType();
-                if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType)) {
-                        throw new IllegalArgumentException("Loại file không được hỗ trợ: " + contentType);
-                }
         }
 
         public String getAvatarUrlByUserId(Integer userId) {
