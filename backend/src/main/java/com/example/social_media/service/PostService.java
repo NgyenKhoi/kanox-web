@@ -137,7 +137,7 @@ public class PostService {
             }
         }
 
-        return convertToDto(latestPost);
+        return convertToDto(latestPost, user.getId());
     }
 
     @Transactional
@@ -213,7 +213,7 @@ public class PostService {
             }
         }
 
-        return convertToDto(post);
+        return convertToDto(post, user.getId());
     }
 
     @Transactional
@@ -258,7 +258,7 @@ public class PostService {
         return posts.stream()
                 .filter(post -> !hiddenPostIds.contains(post.getId())) // ← Lọc bài bị ẩn
                 .filter(post -> hasAccess(user.getId(), post.getId(), 1))
-                .map(this::convertToDto)
+                .map(post -> convertToDto(post, user.getId()))
                 .collect(Collectors.toList());
     }
 
@@ -274,7 +274,7 @@ public class PostService {
         return posts.stream()
                 .filter(post -> !hiddenPostIds.contains(post.getId())) // ← Lọc bài bị ẩn
                 .filter(post -> hasAccess(currentUser.getId(), post.getId(), 1))
-                .map(this::convertToDto)
+                .map(post -> convertToDto(post, currentUser.getId()))
                 .collect(Collectors.toList());
     }
 
@@ -303,6 +303,11 @@ public class PostService {
             logger.debug("Đã gọi stored procedure sp_SavePost cho userId: {}, postId: {}", user.getId(), postId);
         } catch (Exception e) {
             logger.error("Lỗi khi gọi stored procedure sp_SavePost: {}", e.getMessage());
+
+            if (e.getMessage().contains("Post already saved")) {
+                throw new IllegalArgumentException("Bài viết đã được lưu trước đó");
+            }
+
             throw new RuntimeException("Không thể lưu bài viết: " + e.getMessage(), e);
         }
     }
@@ -348,7 +353,7 @@ public class PostService {
 
 
 
-    private PostResponseDto convertToDto(Post post) {
+    private PostResponseDto convertToDto(Post post, Integer currentUserId) {
         PostResponseDto dto = new PostResponseDto();
         dto.setId(post.getId());
         dto.setOwner(new UserTagDto(post.getOwner()));
@@ -364,6 +369,9 @@ public class PostService {
         dto.setCommentCount(post.getTblComments().size());
         dto.setLikeCount(0);
         dto.setShareCount(0);
+        dto.setSaved(savedPostRepository.existsByUserIdAndPostIdAndStatusTrue(
+                currentUserId, post.getId()));
+
         return dto;
     }
 
@@ -375,7 +383,7 @@ public class PostService {
                 .findActiveSavedPostsByUserIdAndSaveTimeBetween(user.getId(), from, to);
 
         return savedPosts.stream()
-                .map(sp -> convertToDto(sp.getPost()))
+                .map(sp -> convertToDto(sp.getPost(), user.getId()))
                 .collect(Collectors.toList());
     }
 

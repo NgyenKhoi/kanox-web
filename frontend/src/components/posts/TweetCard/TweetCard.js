@@ -50,6 +50,8 @@ import ReactionUserListModal from "./ReactionUserListModal";
 import PostImages from "./PostImages";
 import { useCommentActions } from "../../../hooks/useCommentAction";
 import useEmojiList from "../../../hooks/useEmojiList";
+import MediaActionBar from "../../utils/MediaActionBar";
+import useCommentAvatar from "../../../hooks/useCommentAvatar"
 
 function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
   const { user, loading, token } = useContext(AuthContext);
@@ -81,8 +83,9 @@ function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
   const [selectedEmojiName, setSelectedEmojiName] = useState("");
   const [commentUserList, setCommentUserList] = useState([]);
   const [selectedFiles, setSelectedFiles] = useState([]);
+  const [selectedMediaFiles, setSelectedMediaFiles] = useState([]);
+  const [selectedMediaPreviews, setSelectedMediaPreviews] = useState([]);
   const { emojiList } = useEmojiList();
-  const emojiTarget = useRef(null);
   const commentInputRef = useRef(null);
 
   const currentUserId = user?.id;
@@ -103,6 +106,9 @@ function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
   const avatarUrl = avatarData?.[ownerId]?.[0]?.url || null;
   const imageUrls = imageData?.[postId] || [];
   const videoUrls = videoData?.[postId] || [];
+  const { avatarUrl: currentAvatarUrl } = useCommentAvatar(user?.id);
+
+  const fileInputRef = useRef();
 
   const {
     reactionCountMap,
@@ -203,15 +209,9 @@ function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
     if (id) fetchComments();
   }, [id]);
 
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (!e.target.closest(".emoji-picker")) {
-        setShowEmojiPicker(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  const handleEmojiClick = () => {
+    setShowEmojiPicker((prev) => !prev);
+  };
 
   const {
     handleReplyToComment,
@@ -226,27 +226,31 @@ function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
 
   const handleCommentSubmit = async (e) => {
     e.preventDefault();
-    if (!newComment.trim()) return;
+    if (!newComment.trim() && selectedMediaFiles.length === 0) return;
 
     try {
       setIsCommenting(true);
       const token = localStorage.getItem("token");
       if (!token) throw new Error("Vui lòng đăng nhập để bình luận!");
 
+      const formData = new FormData();
+      formData.append("userId", user?.id);
+      formData.append("postId", id);
+      formData.append("content", newComment);
+      formData.append("privacySetting", "public");
+      formData.append("parentCommentId", null);
+      formData.append("customListId", null);
+
+      selectedMediaFiles.forEach((file, index) => {
+        formData.append(`media`, file);
+      });
+
       const response = await fetch(`${process.env.REACT_APP_API_URL}/comments`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          userId: user?.id,
-          postId: id,
-          content: newComment,
-          privacySetting: "public",
-          parentCommentId: null,
-          customListId: null,
-        }),
+        body: formData,
       });
 
       const data = await response.json();
@@ -254,6 +258,8 @@ function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
 
       toast.success("Đã đăng bình luận!");
       setNewComment("");
+      setSelectedMediaFiles([]); // Xóa danh sách file sau khi gửi
+      setSelectedMediaPreviews([]); // Xóa preview
 
       const newCommentObj = data.data;
       setComments((prev) => [newCommentObj, ...prev]);
@@ -423,8 +429,10 @@ function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
                     src={avatarUrl}
                     alt="Avatar"
                     roundedCircle
-                    className="me-3 d-none d-md-block w-[50px] h-[50px] object-cover"
-                    aria-label={`Ảnh đại diện của ${owner?.displayName || "Người dùng"}`}
+                    width={50}
+                    height={50}
+                    style={{ objectFit: "cover" }}
+                    className="me-3 d-none d-md-block flex-shrink-0"
                 />
             ) : (
                 <FaUserCircle
@@ -709,10 +717,10 @@ function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
                     {renderComments()}
                     <Form onSubmit={handleCommentSubmit} className="mt-2">
                       <div className="d-flex align-items-start">
-                        {user?.avatarUrl ? (
+                        {currentAvatarUrl ? (
                             <Image
-                                src={user.avatarUrl}
-                                alt={`Ảnh đại diện của ${user.displayName || "Người dùng"}`}
+                                src={currentAvatarUrl}
+                                alt={`Ảnh đại diện của ${user?.displayName || "Người dùng"}`}
                                 roundedCircle
                                 width={36}
                                 height={36}
@@ -737,69 +745,56 @@ function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
                               disabled={isCommenting}
                               ref={commentInputRef}
                           />
+                          {selectedMediaPreviews.length > 0 && (
+                              <div className="mt-2 d-flex flex-wrap gap-2">
+                                {selectedMediaPreviews.map((preview, index) => (
+                                    <div key={index} className="position-relative">
+                                      {preview.type.startsWith("image") ? (
+                                          <Image
+                                              src={preview.url}
+                                              alt={`Preview ${index}`}
+                                              style={{ width: 100, height: 100, objectFit: "cover" }}
+                                              className="rounded"
+                                          />
+                                      ) : (
+                                          <video
+                                              src={preview.url}
+                                              controls
+                                              style={{ width: 100, height: 100, objectFit: "cover" }}
+                                              className="rounded"
+                                          />
+                                      )}
+                                      <Button
+                                          variant="danger"
+                                          size="sm"
+                                          className="position-absolute top-0 end-0 rounded-circle"
+                                          onClick={() => {
+                                            setSelectedMediaPreviews((prev) => prev.filter((_, i) => i !== index));
+                                            setSelectedMediaFiles((prev) => prev.filter((_, i) => i !== index));
+                                          }}
+                                      >
+                                        ✕
+                                      </Button>
+                                    </div>
+                                ))}
+                              </div>
+                          )}
 
                           {/* Action bar below the input */}
                           <div className="d-flex justify-content-between align-items-center mt-2 px-1">
-                            <div className="d-flex gap-2">
-                              {/* Emoji Popover */}
-                                <Button
-                                    variant="light"
-                                    size="sm"
-                                    className="rounded-circle p-2"
-                                    type="button"
-                                    ref={emojiTarget}
-                                    onClick={(e) => {
-                                      e.preventDefault(); // prevent form submit
-                                      setShowEmojiPicker((prev) => !prev);
-                                    }}
-                                >
-                                  <FaSmile />
-                                </Button>
-
-                                <Overlay
-                                    target={emojiTarget.current}
-                                    show={showEmojiPicker}
-                                    placement="top"
-                                    rootClose
-                                    onHide={() => setShowEmojiPicker(false)}
-                                >
-                                  {(props) => (
-                                      <Popover {...props} className="z-50">
-                                        <Popover.Body style={{ maxWidth: 300, maxHeight: 200, overflowY: "auto" }}>
-                                          <div className="flex flex-wrap">
-                                            {emojiList.map((emoji, idx) => (
-                                                <span
-                                                    key={idx}
-                                                    className="text-2xl cursor-pointer m-1"
-                                                    onClick={() => {
-                                                      setNewComment((prev) => prev + emoji.emoji);
-                                                      setShowEmojiPicker(false);
-                                                      commentInputRef.current?.focus()
-                                                    }}
-                                                >
-                                              {emoji.emoji}
-                                            </span>
-                                            ))}
-                                          </div>
-                                        </Popover.Body>
-                                      </Popover>
-                                  )}
-                                </Overlay>
-
-                              {/* Image button */}
-                              <OverlayTrigger placement="top" overlay={<Tooltip>Hình ảnh</Tooltip>}>
-                                <Button variant="light" size="sm" className="rounded-circle p-2">
-                                  <FaImage />
-                                </Button>
-                              </OverlayTrigger>
-
-                              {/* Video button */}
-                              <OverlayTrigger placement="top" overlay={<Tooltip>Video</Tooltip>}>
-                                <Button variant="light" size="sm" className="rounded-circle p-2">
-                                  <FaVideo />
-                                </Button>
-                              </OverlayTrigger>
-                            </div>
+                            <MediaActionBar
+                                onEmojiClick={handleEmojiClick}
+                                onFileSelect={(files) => {
+                                  setSelectedMediaFiles((prev) => [...prev, ...files]);
+                                  setSelectedMediaPreviews((prev) => [
+                                    ...prev,
+                                    ...files.map((f) => ({
+                                      url: URL.createObjectURL(f),
+                                      type: f.type,
+                                    })),
+                                  ]);
+                                }}
+                            />
 
                             {/* Send button */}
                             <Button
@@ -811,6 +806,39 @@ function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
                             >
                               Gửi
                             </Button>
+
+                            {/* Emoji Popover */}
+                            {showEmojiPicker && (
+                                <Overlay
+                                    target={commentInputRef.current}
+                                    show={showEmojiPicker}
+                                    placement="top"
+                                    rootClose
+                                    onHide={() => setShowEmojiPicker(false)}
+                                >
+                                  {(props) => (
+                                      <Popover {...props} className="z-50">
+                                        <Popover.Body style={{ maxWidth: 300, maxHeight: 200, overflowY: "auto" }} className="scrollbar-hide">
+                                          <div className="flex flex-wrap">
+                                            {emojiList.map((emoji, idx) => (
+                                                <span
+                                                    key={idx}
+                                                    className="text-2xl cursor-pointer m-1"
+                                                    onClick={() => {
+                                                      setNewComment((prev) => prev + emoji.emoji);
+                                                      setShowEmojiPicker(false);
+                                                      commentInputRef.current?.focus();
+                                                    }}
+                                                >
+                  {emoji.emoji}
+                </span>
+                                            ))}
+                                          </div>
+                                        </Popover.Body>
+                                      </Popover>
+                                  )}
+                                </Overlay>
+                            )}
                           </div>
                         </div>
                       </div>

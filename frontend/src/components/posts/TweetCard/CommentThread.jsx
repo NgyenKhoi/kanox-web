@@ -13,6 +13,7 @@ import { FaReply, FaUserCircle, FaEllipsisH } from "react-icons/fa";
 import moment from "moment";
 import useCommentAvatar from "../../../hooks/useCommentAvatar";
 import ReactionButtonGroup from "./ReactionButtonGroup";
+import MediaActionBar from "../../utils/MediaActionBar"
 
 function CommentThread({
                            comment,
@@ -27,14 +28,18 @@ function CommentThread({
     const [isEditing, setIsEditing] = useState(false);
     const [editedText, setEditedText] = useState(comment.content);
     const [showReplies, setShowReplies] = useState(false);
+    const [selectedMediaFiles, setSelectedMediaFiles] = useState([]);
+    const [selectedMediaPreviews, setSelectedMediaPreviews] = useState([]);
 
     const { avatarUrl } = useCommentAvatar(comment.user?.id);
 
     const handleReplySubmit = (e) => {
         e.preventDefault();
         if (replyText.trim()) {
-            onReply(comment.commentId, replyText);
+            onReply(comment.commentId, replyText, selectedMediaFiles);
             setReplyText("");
+            setSelectedMediaFiles([]);
+            setSelectedMediaPreviews([]);
             setShowReplyBox(false);
         }
     };
@@ -132,7 +137,46 @@ function CommentThread({
                                 </InputGroup>
                             </Form>
                         ) : (
+                            <>
                             <p className="mb-1 mt-2 text-[var(--text-color)]">{comment.content}</p>
+                        {comment.media?.length > 0 && (
+                            <div className="mt-2 d-flex flex-wrap gap-2">
+                        {comment.media.map((media, index) => {
+                            const isImage = media.type === "image";
+                            const isVideo = media.type === "video";
+                            const isAudio = media.type === "audio";
+
+                            return (
+                            <div key={index} className="rounded overflow-hidden">
+                        {isImage && (
+                            <Image
+                                src={media.url}
+                                alt={`comment-media-${index}`}
+                                thumbnail
+                                className="max-w-[200px] max-h-[200px] object-cover"
+                            />
+                        )}
+                        {isVideo && (
+                            <video
+                                controls
+                                className="max-w-[200px] max-h-[200px] rounded"
+                            >
+                                <source src={media.url} type="video/mp4" />
+                                Trình duyệt của bạn không hỗ trợ video.
+                            </video>
+                        )}
+                        {isAudio && (
+                            <audio controls>
+                                <source src={media.url} type="audio/mpeg" />
+                                Trình duyệt không hỗ trợ audio.
+                            </audio>
+                        )}
+                    </div>
+                    );
+                    })}
+                </div>
+                )}
+                            </>
                         )}
 
                         {/* Reaction & Reply Buttons */}
@@ -170,7 +214,7 @@ function CommentThread({
                                             roundedCircle
                                             width={36}
                                             height={36}
-                                            style={{ objectFit: 'cover' }}
+                                            style={{ objectFit: "cover" }}
                                             className="me-2 flex-shrink-0"
                                         />
                                     ) : (
@@ -179,7 +223,8 @@ function CommentThread({
                                             className="me-2 text-[var(--text-color-muted)] flex-shrink-0"
                                         />
                                     )}
-                                    <InputGroup>
+
+                                    <div className="flex-grow-1 w-100">
                                         <Form.Control
                                             type="text"
                                             placeholder="Viết phản hồi..."
@@ -188,15 +233,70 @@ function CommentThread({
                                             className="rounded-full border-[var(--border-color)] bg-[var(--background-color)] text-[var(--text-color)]"
                                             size="sm"
                                         />
-                                        <Button
-                                            type="submit"
-                                            size="sm"
-                                            variant="primary"
-                                            className="rounded-full"
-                                        >
-                                            Gửi
-                                        </Button>
-                                    </InputGroup>
+
+                                        {/* Media Preview */}
+                                        {selectedMediaPreviews.length > 0 && (
+                                            <div className="mt-2 d-flex flex-wrap gap-2">
+                                                {selectedMediaPreviews.map((preview, index) => (
+                                                    <div key={index} className="position-relative">
+                                                        {preview.type.startsWith("image") ? (
+                                                            <Image
+                                                                src={preview.url}
+                                                                alt={`Preview ${index}`}
+                                                                style={{ width: 100, height: 100, objectFit: "cover" }}
+                                                                className="rounded"
+                                                            />
+                                                        ) : (
+                                                            <video
+                                                                src={preview.url}
+                                                                controls
+                                                                style={{ width: 100, height: 100, objectFit: "cover" }}
+                                                                className="rounded"
+                                                            />
+                                                        )}
+                                                        <Button
+                                                            variant="danger"
+                                                            size="sm"
+                                                            className="position-absolute top-0 end-0 rounded-circle"
+                                                            onClick={() => {
+                                                                setSelectedMediaPreviews((prev) => prev.filter((_, i) => i !== index));
+                                                                setSelectedMediaFiles((prev) => prev.filter((_, i) => i !== index));
+                                                            }}
+                                                        >
+                                                            ✕
+                                                        </Button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {/* Action bar */}
+                                        <div className="d-flex justify-content-between align-items-center mt-2 px-1">
+                                            <MediaActionBar
+                                                onEmojiClick={() => {
+                                                    // TODO: Chèn emoji vào replyText nếu bạn muốn
+                                                }}
+                                                onFileSelect={(files) => {
+                                                    setSelectedMediaFiles((prev) => [...prev, ...files]);
+                                                    setSelectedMediaPreviews((prev) => [
+                                                        ...prev,
+                                                        ...files.map((f) => ({
+                                                            url: URL.createObjectURL(f),
+                                                            type: f.type,
+                                                        })),
+                                                    ]);
+                                                }}
+                                            />
+                                            <Button
+                                                type="submit"
+                                                size="sm"
+                                                variant="primary"
+                                                className="rounded-full"
+                                            >
+                                                Gửi
+                                            </Button>
+                                        </div>
+                                    </div>
                                 </div>
                             </Form>
                         )}

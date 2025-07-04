@@ -6,8 +6,8 @@ export default function useReaction({ user, targetId, targetTypeCode }) {
     const [currentEmoji, setCurrentEmoji] = useState(null);
     const [reactionCountMap, setReactionCountMap] = useState({});
     const [topReactions, setTopReactions] = useState([]);
-    const { emojiMap } = useEmojiMap();
     const [reactionUserMap, setReactionUserMap] = useState({});
+    const { emojiMap } = useEmojiMap();
 
     const token = localStorage.getItem("token");
 
@@ -17,7 +17,6 @@ export default function useReaction({ user, targetId, targetTypeCode }) {
         const fetchAll = async () => {
             try {
                 await Promise.all([
-                    fetchUserReaction(),
                     fetchReactionCounts(),
                     fetchTopReactions()
                 ]);
@@ -28,6 +27,20 @@ export default function useReaction({ user, targetId, targetTypeCode }) {
 
         fetchAll();
     }, [user?.id, targetId, targetTypeCode, token]);
+
+    const fetchReactionCounts = async () => {
+        try {
+            const res = await fetch(
+                `${process.env.REACT_APP_API_URL}/reactions/count?targetId=${targetId}&targetTypeCode=${targetTypeCode}`,
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            if (!res.ok) throw new Error("Không thể lấy thống kê cảm xúc.");
+            const data = await res.json();
+            if (typeof data === "object") setReactionCountMap(data);
+        } catch (err) {
+            console.error("Lỗi khi lấy tổng reaction:", err.message);
+        }
+    };
 
     const fetchTopReactions = async () => {
         try {
@@ -48,39 +61,25 @@ export default function useReaction({ user, targetId, targetTypeCode }) {
         }
     };
 
-    const fetchUserReaction = async () => {
-        try {
-            const res = await fetch(`${process.env.REACT_APP_API_URL}/reactions/user`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`
-                },
-                body: JSON.stringify({ userId: user.id, targetId, targetTypeCode })
-            });
-            if (res.status === 204) {
-                setCurrentEmoji(null);
-                return;
-            }
-            if (!res.ok) throw new Error("Không thể lấy reaction người dùng.");
-            const data = await res.json();
-            setCurrentEmoji(data?.emoji || null);
-        } catch (err) {
-            console.error("Lỗi khi lấy reaction người dùng:", err.message);
-        }
-    };
+    const fetchUsersByReaction = async (emojiName) => {
+        if (reactionUserMap[emojiName]) return;
 
-    const fetchReactionCounts = async () => {
         try {
             const res = await fetch(
-                `${process.env.REACT_APP_API_URL}/reactions/count?targetId=${targetId}&targetTypeCode=${targetTypeCode}`,
+                `${process.env.REACT_APP_API_URL}/reactions/list-by-type?targetId=${targetId}&targetTypeCode=${targetTypeCode}&emojiName=${emojiName}`,
                 { headers: { Authorization: `Bearer ${token}` } }
             );
-            if (!res.ok) throw new Error("Không thể lấy thống kê cảm xúc.");
+
+            if (!res.ok) throw new Error("Không thể lấy danh sách người dùng thả reaction.");
             const data = await res.json();
-            if (typeof data === "object") setReactionCountMap(data);
+            setReactionUserMap(prev => ({ ...prev, [emojiName]: data }));
+
+            // Cập nhật emoji hiện tại nếu người dùng đã thả emoji này
+            if (data.some(u => u.id === user.id)) {
+                setCurrentEmoji(emojiMap[emojiName]);
+            }
         } catch (err) {
-            console.error("Lỗi khi lấy tổng reaction:", err.message);
+            console.error("Lỗi khi lấy user reaction:", err.message);
         }
     };
 
@@ -105,23 +104,6 @@ export default function useReaction({ user, targetId, targetTypeCode }) {
             fetchReactionCounts();
         } catch (err) {
             toast.error(err.message);
-        }
-    };
-
-    const fetchUsersByReaction = async (emojiName) => {
-        if (reactionUserMap[emojiName]) return; // Đã có thì không gọi lại
-
-        try {
-            const res = await fetch(
-                `${process.env.REACT_APP_API_URL}/reactions/list-by-type?targetId=${targetId}&targetTypeCode=${targetTypeCode}&emojiName=${emojiName}`,
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-
-            if (!res.ok) throw new Error("Không thể lấy danh sách người dùng thả reaction.");
-            const data = await res.json();
-            setReactionUserMap(prev => ({ ...prev, [emojiName]: data }));
-        } catch (err) {
-            console.error("Lỗi khi lấy user reaction:", err.message);
         }
     };
 

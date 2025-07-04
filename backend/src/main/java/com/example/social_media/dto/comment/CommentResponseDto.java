@@ -1,4 +1,5 @@
 package com.example.social_media.dto.comment;
+import com.example.social_media.dto.media.MediaDto;
 import com.example.social_media.dto.user.UserBasicDisplayDto;
 import java.time.Instant;
 import java.util.List;
@@ -12,9 +13,10 @@ public class CommentResponseDto {
     private String message;
     private Integer userId;
     private List<CommentResponseDto> replies;
+    private List<MediaDto> media;
 
     public CommentResponseDto(Integer commentId, String content, UserBasicDisplayDto user,
-                              Instant createdAt, Instant updatedAt, String message, Integer userId, List<CommentResponseDto> replies) {
+                              Instant createdAt, Instant updatedAt, String message, Integer userId, List<CommentResponseDto> replies, List<MediaDto> media) {
         this.commentId = commentId;
         this.content = content;
         this.user = user;
@@ -23,6 +25,7 @@ public class CommentResponseDto {
         this.message = message;
         this.userId = userId;
         this.replies = replies;
+        this.media = media;
     }
 
     // Getters and setters
@@ -83,5 +86,12 @@ public class CommentResponseDto {
 
     public void setMessage(String message) {
         this.message = message;
+    }
+
+    public List<MediaDto> getMedia() {
+        return media;
+    }
+    public void setMedia(List<MediaDto> media) {
+        this.media = media;
     }
 }
