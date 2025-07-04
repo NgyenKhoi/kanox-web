@@ -263,10 +263,6 @@ function MessengerPage() {
             ...existingChat,
             lastMessage: newMessage.content,
             lastSenderId: newMessage.senderId,
-            unreadMessagesCount:
-                selectedChatId === chatId
-                    ? 0
-                    : (existingChat.unreadMessagesCount || 0) + (newMessage.senderId !== user.id ? 1 : 0),
           };
           if (JSON.stringify(existingChat) === JSON.stringify(updatedChat)) {
             return prevChats;
@@ -274,16 +270,6 @@ function MessengerPage() {
           return prevChats.map((chat) =>
               chat.id === chatId ? updatedChat : chat
           );
-        });
-
-        setUnreadChats((prev) => {
-          const newUnread = new Set(prev);
-          if (selectedChatId !== chatId && newMessage.senderId !== user.id) {
-            newUnread.add(chatId);
-          } else {
-            newUnread.delete(chatId);
-          }
-          return newUnread;
         });
       } catch (err) {
         console.error("Lỗi khi xử lý message:", err);
@@ -374,7 +360,7 @@ function MessengerPage() {
     const subscriptions = [];
     subscriptions.push(subscribe(`/topic/chats/${user.id}`, handleMessageUpdate, `chats-${user.id}`));
     subscriptions.push(subscribe(`/topic/unread-count/${user.id}`, (data) => {
-      const count = typeof data === "number" ? data : data.unreadCount ?? 0;
+      const count = data.unreadCount ?? 0;
       console.log(`Received unread chat count for user ${user.id}:`, count);
       window.dispatchEvent(
           new CustomEvent("updateUnreadCount", {
@@ -623,6 +609,7 @@ function MessengerPage() {
     setSelectedChatId(chatId);
     navigate(`/messages?chatId=${chatId}`);
     try {
+      // Gọi API để lấy tin nhắn và đánh dấu là đã đọc
       const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/${chatId}/messages`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -631,11 +618,27 @@ function MessengerPage() {
       }
       const data = await response.json();
       setMessages((prev) => ({ ...prev, [chatId]: data }));
+
+      // Gọi API để lấy số chat chưa đọc mới nhất
+      const unreadResponse = await fetch(`${process.env.REACT_APP_API_URL}/chat/unread-count`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (unreadResponse.ok) {
+        const unreadData = await unreadResponse.json();
+        const count = unreadData.unreadCount ?? 0;
+        window.dispatchEvent(
+            new CustomEvent("updateUnreadCount", {
+              detail: { unreadCount: count },
+            })
+        );
+      }
+
       setUnreadChats((prev) => {
         const newUnread = new Set(prev);
         newUnread.delete(chatId);
         return newUnread;
       });
+
       if (publish) {
         publish("/app/resend", { chatId });
       }

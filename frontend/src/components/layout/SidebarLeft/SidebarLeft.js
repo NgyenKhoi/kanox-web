@@ -81,7 +81,7 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
   useEffect(() => {
     const handleUnreadCountUpdate = (e) => {
       const count = e.detail?.unreadCount ?? 0;
-      console.log("Received updateUnreadCount event:", count);
+      console.log("Received updateUnreadCount event with count:", count);
       setUnreadMessageCount(count);
     };
 

@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -65,7 +66,7 @@ public class MessageService {
         for (ChatMember member : members) {
             if (!member.getUser().getId().equals(sender.getId()) && !member.getStatus()) {
                 member.setStatus(true);
-                member.setJoinedAt(Instant.now()); // Cập nhật joinedAt để chỉ thấy tin nhắn mới
+                member.setJoinedAt(Instant.now());
                 chatMemberRepository.save(member);
                 ChatDto chatDto = chatService.convertToDto(chat, member.getUser().getId());
                 messagingTemplate.convertAndSend("/topic/chats/" + member.getUser().getId(), chatDto);
@@ -105,7 +106,6 @@ public class MessageService {
         return messageDto;
     }
 
-
     @Transactional
     public List<MessageDto> getChatMessages(Integer chatId, String username) {
         User user = userRepository.findByUsername(username)
@@ -120,18 +120,13 @@ public class MessageService {
         Instant joinedAt = chatMember.getJoinedAt();
 
         // Đánh dấu tất cả tin nhắn chưa đọc trong chat này là đã đọc
-        List<MessageStatus> unreadStatuses = messageStatusRepository.findByMessageChatIdAndUserId(chatId, user.getId());
-        for (MessageStatus status : unreadStatuses) {
-            if (status.getStatus().equals("unread")) {
-                status.setStatus("read");
-                messageStatusRepository.save(status);
-                System.out.println("Marked message " + status.getId().getMessageId() + " as read for user " + user.getId());
-            }
-        }
+        messageStatusRepository.markAllAsReadByChatIdAndUserId(chatId, user.getId());
+        System.out.println("Marked all messages as read for chatId " + chatId + " and userId " + user.getId());
 
         // Gửi thông báo cập nhật unread count qua WebSocket
-        int updatedUnreadCount = messageStatusRepository.countUnreadByUserId(user.getId());
-        messagingTemplate.convertAndSend("/topic/unread-count/" + user.getId(), updatedUnreadCount);
+        int updatedUnreadCount = messageStatusRepository.countUnreadChatsByUserId(user.getId());
+        messagingTemplate.convertAndSend("/topic/unread-count/" + user.getId(), Map.of("unreadCount", updatedUnreadCount));
+        System.out.println("Sent unread chat count to /topic/unread-count/" + user.getId() + ": " + updatedUnreadCount);
 
         // Chỉ trả về tin nhắn có createdAt sau joinedAt
         return messageRepository.findByChatId(chatId).stream()
@@ -168,5 +163,4 @@ public class MessageService {
     public void markMessagesAsRead(Integer chatId, Integer userId) {
         messageStatusRepository.markAllAsReadByChatIdAndUserId(chatId, userId);
     }
-
 }
