@@ -1,9 +1,10 @@
-import React, { useState, useContext, useEffect } from "react";
+import React, { useState, useContext, useEffect, useRef } from "react";
 import {
   Card,
   Button,
   Dropdown,
   OverlayTrigger,
+  Overlay,
   Tooltip,
   Image as BootstrapImage,
   Row,
@@ -32,6 +33,7 @@ import {
   FaUserCircle,
   FaArrowLeft,
   FaArrowRight,
+  FaRegBookmark,
 } from "react-icons/fa";
 import moment from "moment";
 import { AuthContext } from "../../../context/AuthContext";
@@ -49,7 +51,7 @@ import PostImages from "./PostImages";
 import { useCommentActions } from "../../../hooks/useCommentAction";
 import useEmojiList from "../../../hooks/useEmojiList";
 
-function TweetCard({ tweet, onPostUpdate }) {
+function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
   const { user, loading, token } = useContext(AuthContext);
   const navigate = useNavigate();
   const {
@@ -63,7 +65,7 @@ function TweetCard({ tweet, onPostUpdate }) {
     taggedUsers = [],
     privacySetting = "public",
   } = tweet || {};
-
+  const isSaved = savedPosts.some((post) => post.id === id);
   const isOwnTweet = user && user.username === owner?.username;
   const [showEditModal, setShowEditModal] = useState(false);
   const [showImageModal, setShowImageModal] = useState(false);
@@ -80,6 +82,8 @@ function TweetCard({ tweet, onPostUpdate }) {
   const [commentUserList, setCommentUserList] = useState([]);
   const [selectedFiles, setSelectedFiles] = useState([]);
   const { emojiList } = useEmojiList();
+  const emojiTarget = useRef(null);
+  const commentInputRef = useRef(null);
 
   const currentUserId = user?.id;
   const ownerId = owner?.id || null;
@@ -131,6 +135,32 @@ function TweetCard({ tweet, onPostUpdate }) {
     setSelectedImage(url);
     setCurrentImageIndex(index);
     setShowImageModal(true);
+  };
+
+  const handleUnsavePost = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("Vui lòng đăng nhập để bỏ lưu bài viết!");
+
+      const response = await fetch(
+          `${process.env.REACT_APP_API_URL}/posts/unsave/${id}`,
+          {
+            method: "DELETE",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          }
+      );
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "Bỏ lưu thất bại");
+
+      toast.success("Đã bỏ lưu bài viết");
+      if (onPostUpdate) onPostUpdate(); // Gọi để làm mới danh sách bài viết
+    } catch (err) {
+      toast.error("Lỗi khi bỏ lưu bài viết: " + err.message);
+    }
   };
 
   const fetchComments = async () => {
@@ -427,7 +457,6 @@ function TweetCard({ tweet, onPostUpdate }) {
                 </div>
                 {/* dropdown và nút X */}
                 <div className="position-absolute top-0 end-0 d-flex align-items-center gap-2">
-                  {/* Dấu ba chấm (Dropdown) */}
                   <Dropdown>
                     <Dropdown.Toggle
                         variant="link"
@@ -473,6 +502,11 @@ function TweetCard({ tweet, onPostUpdate }) {
                       <Dropdown.Item onClick={handleSavePost}>
                         <FaSave className="me-2 text-[var(--text-color)]" /> Lưu bài đăng
                       </Dropdown.Item>
+                      {isSaved && (
+                          <Dropdown.Item onClick={handleUnsavePost}>
+                            <FaRegBookmark className="me-2 text-[var(--text-color)]" /> Bỏ lưu
+                          </Dropdown.Item>
+                      )}
                       <Dropdown.Item>
                         <FaFlag className="me-2 text-[var(--text-color)]" /> Báo cáo
                       </Dropdown.Item>
@@ -492,7 +526,6 @@ function TweetCard({ tweet, onPostUpdate }) {
                   </Button>
                 </div>
               </div>
-
               {/* nội dung */}
               <p className="mb-2 text-[var(--text-color)]">{content}</p>
 
@@ -714,37 +747,12 @@ function TweetCard({ tweet, onPostUpdate }) {
                           <div className="d-flex justify-content-between align-items-center mt-2 px-1">
                             <div className="d-flex gap-2">
                               {/* Emoji Popover */}
-                              <OverlayTrigger
-                                  trigger="click"
-                                  placement="top"
-                                  show={showEmojiPicker}
-                                  onToggle={() => setShowEmojiPicker(!showEmojiPicker)}
-                                  overlay={
-                                    <Popover id="emoji-popover" className="z-50">
-                                      <Popover.Body style={{ maxWidth: 300, maxHeight: 200, overflowY: "auto" }}>
-                                        <div className="flex flex-wrap">
-                                          {emojiList.map((emoji, idx) => (
-                                              <span
-                                                  key={idx}
-                                                  className="text-2xl cursor-pointer m-1"
-                                                  onClick={() => {
-                                                    setNewComment((prev) => prev + emoji.emoji);
-                                                    setShowEmojiPicker(false);
-                                                  }}
-                                              >
-                        {emoji.emoji}
-                      </span>
-                                          ))}
-                                        </div>
-                                      </Popover.Body>
-                                    </Popover>
-                                  }
-                              >
                                 <Button
                                     variant="light"
                                     size="sm"
                                     className="rounded-circle p-2"
                                     type="button"
+                                    ref={emojiTarget}
                                     onClick={(e) => {
                                       e.preventDefault(); // prevent form submit
                                       setShowEmojiPicker((prev) => !prev);
@@ -752,7 +760,36 @@ function TweetCard({ tweet, onPostUpdate }) {
                                 >
                                   <FaSmile />
                                 </Button>
-                              </OverlayTrigger>
+
+                                <Overlay
+                                    target={emojiTarget.current}
+                                    show={showEmojiPicker}
+                                    placement="top"
+                                    rootClose
+                                    onHide={() => setShowEmojiPicker(false)}
+                                >
+                                  {(props) => (
+                                      <Popover {...props} className="z-50">
+                                        <Popover.Body style={{ maxWidth: 300, maxHeight: 200, overflowY: "auto" }}>
+                                          <div className="flex flex-wrap">
+                                            {emojiList.map((emoji, idx) => (
+                                                <span
+                                                    key={idx}
+                                                    className="text-2xl cursor-pointer m-1"
+                                                    onClick={() => {
+                                                      setNewComment((prev) => prev + emoji.emoji);
+                                                      setShowEmojiPicker(false);
+                                                      commentInputRef.current?.focus()
+                                                    }}
+                                                >
+                                              {emoji.emoji}
+                                            </span>
+                                            ))}
+                                          </div>
+                                        </Popover.Body>
+                                      </Popover>
+                                  )}
+                                </Overlay>
 
                               {/* Image button */}
                               <OverlayTrigger placement="top" overlay={<Tooltip>Hình ảnh</Tooltip>}>

@@ -252,8 +252,11 @@ public class PostService {
         var user = userRepository.findByUsernameAndStatusTrue(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found or inactive"));
 
+        List<Integer> hiddenPostIds = hiddenPostRepository.findHiddenPostIdsByUserId(user.getId());
+
         List<Post> posts = postRepository.findAllActivePosts();
         return posts.stream()
+                .filter(post -> !hiddenPostIds.contains(post.getId())) // ← Lọc bài bị ẩn
                 .filter(post -> hasAccess(user.getId(), post.getId(), 1))
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
@@ -265,13 +268,11 @@ public class PostService {
         var currentUser = userRepository.findByUsernameAndStatusTrue(currentUsername)
                 .orElseThrow(() -> new UserNotFoundException("Current user not found or inactive"));
 
+        List<Integer> hiddenPostIds = hiddenPostRepository.findHiddenPostIdsByUserId(currentUser.getId());
+
         List<Post> posts = postRepository.findActivePostsByUsername(targetUsername);
-        if (currentUsername.equals(targetUsername)) {
-            return posts.stream()
-                    .map(this::convertToDto)
-                    .collect(Collectors.toList());
-        }
         return posts.stream()
+                .filter(post -> !hiddenPostIds.contains(post.getId())) // ← Lọc bài bị ẩn
                 .filter(post -> hasAccess(currentUser.getId(), post.getId(), 1))
                 .map(this::convertToDto)
                 .collect(Collectors.toList());

@@ -30,8 +30,8 @@ import "react-toastify/dist/ReactToastify.css";
 import useMedia from "../../hooks/useMedia";
 
 function ProfilePage() {
-  const { user, setUser } = useContext(AuthContext);
-  const { username } = useParams();
+  const {user, setUser} = useContext(AuthContext);
+  const {username} = useParams();
   const navigate = useNavigate();
 
   const [userProfile, setUserProfile] = useState(null);
@@ -43,7 +43,10 @@ function ProfilePage() {
   const [showPremiumAlert, setShowPremiumAlert] = useState(true);
   const [isBlocked, setIsBlocked] = useState(false);
   const [isUserBlocked, setIsUserBlocked] = useState(false);
-  const { mediaUrl, loading: mediaLoading } = useMedia(userProfile?.id);
+  const {mediaUrl, loading: mediaLoading} = useMedia(userProfile?.id);
+  const [savedPosts, setSavedPosts] = useState([]);
+  const isOwnProfile = user?.username === username;
+  const hasAccess = userProfile?.bio !== null || isOwnProfile;
   const defaultUserProfile = {
     id: null,
     username: "testuser",
@@ -77,18 +80,7 @@ function ProfilePage() {
         return;
       }
 
-      // if (!user) {
-      //   navigate("/");
-      //   return;
-      // }
-
       const token = sessionStorage.getItem("token") || localStorage.getItem("token");
-      // if (!token) {
-      //   toast.error("Không tìm thấy token. Vui lòng đăng nhập lại.");
-      //   setLoading(false);
-      //   navigate("/");
-      //   return;
-      // }
 
       try {
         const profileResponse = await fetch(
@@ -193,19 +185,44 @@ function ProfilePage() {
     fetchProfile();
   }, [user, username, navigate]);
 
+  useEffect(() => {
+    const fetchSavedPosts = async () => {
+      const token = sessionStorage.getItem("token") || localStorage.getItem("token");
+      if (!token || user?.username !== username) return;
+
+      try {
+        const response = await fetch(
+            `${process.env.REACT_APP_API_URL}/posts/saved-posts`,
+            {
+              method: "GET",
+              headers: {
+                "Content-Type": "application/json",
+                Accept: "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+            }
+        );
+
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.message || "Lỗi khi lấy bài viết đã lưu.");
+        }
+
+        setSavedPosts(Array.isArray(data.data) ? data.data : []);
+      } catch (error) {
+        console.error("Lỗi khi lấy bài viết đã lưu:", error);
+        toast.error(error.message || "Không thể tải bài viết đã lưu!");
+        setSavedPosts([]);
+      }
+    };
+
+    if (activeTab === "savedArticles") {
+      fetchSavedPosts();
+    }
+  }, [activeTab, user, username]);
+  
   const handleBlockToggle = async () => {
-    // if (!user) {
-    //   navigate("/");
-    //   return;
-    // }
-
     const token = sessionStorage.getItem("token") || localStorage.getItem("token");
-    // if (!token) {
-    //   toast.error("Không tìm thấy token. Vui lòng đăng nhập lại.");
-    //   navigate("/");
-    //   return;
-    // }
-
     try {
       const response = await fetch(
           `${process.env.REACT_APP_API_URL}/blocks/${userProfile.id}`,
@@ -319,73 +336,89 @@ function ProfilePage() {
   };
 
   const renderTabContent = () => {
-    // Thêm kiểm tra quyền truy cập
-    const hasAccess = userProfile?.bio !== null || user?.username === username;
     if (!hasAccess) {
-      return <p className="text-dark text-center p-4">Bạn không có quyền xem nội dung này.</p>;
-    }
-
-    if (activeTab === "posts") {
-      return posts.length > 0 ? (
-          posts.map((item) => (
-              <TweetCard
-                  key={item.id}
-                  tweet={item}
-                  onPostUpdate={fetchProfileAndPosts}
-              />
-          ))
-      ) : (
-          <p className="text-dark text-center p-4">Không có bài đăng nào.</p>
+      return (
+          <p className="text-dark text-center p-4">
+            Bạn không có quyền xem nội dung này.
+          </p>
       );
     }
 
-    if (activeTab === "sentRequests") {
-      return sentRequests.length > 0 ? (
-          <ListGroup>
-            {sentRequests.map((req) => (
-                <ListGroup.Item
-                    key={`request-${req.id}`}
-                    className="d-flex align-items-center justify-content-between"
-                >
-                  <div className="d-flex align-items-center">
-                    <Image
-                        src={mediaUrl || "https://via.placeholder.com/150?text=Avatar"}
-                        className="w-[150px] h-[150px] object-cover border-4 border-white rounded-full"
-                    />
-                    <div>
-                      <strong>{req.displayName || req.username}</strong>
-                      <p className="text-muted small mb-0">@{req.username}</p>
+    const renderPostsList = (list) =>
+        list.length > 0 ? (
+            list.map((item) => (
+                <TweetCard
+                    key={item.id}
+                    tweet={item}
+                    onPostUpdate={fetchProfileAndPosts}
+                />
+            ))
+        ) : (
+            <p className="text-dark text-center p-4">Không có bài đăng nào.</p>
+        );
+
+    switch (activeTab) {
+      case "posts":
+        return renderPostsList(posts);
+
+      case "shares":
+        return (
+            <p className="text-dark text-center p-4">
+              Không có bài chia sẻ nào.
+            </p>
+        );
+
+      case "savedArticles":
+        return savedPosts.length > 0 ? (
+            savedPosts.map((item) => (
+                <TweetCard
+                    key={item.id}
+                    tweet={item}
+                    onPostUpdate={fetchProfileAndPosts}
+                />
+            ))
+        ) : (
+            <p className="text-dark text-center p-4">
+              Không có bài viết đã lưu nào.
+            </p>
+        );
+
+      case "sentRequests":
+        return sentRequests.length > 0 ? (
+            <ListGroup>
+              {sentRequests.map((req) => (
+                  <ListGroup.Item
+                      key={`request-${req.id}`}
+                      className="d-flex align-items-center justify-between"
+                  >
+                    <div className="d-flex align-items-center gap-3">
+                      <Image
+                          src={mediaUrl || "https://via.placeholder.com/150?text=Avatar"}
+                          roundedCircle
+                          className="border"
+                          style={{ width: 50, height: 50, objectFit: "cover" }}
+                      />
+                      <div>
+                        <strong>{req.displayName || req.username}</strong>
+                        <p className="text-muted small mb-0">@{req.username}</p>
+                      </div>
                     </div>
-                  </div>
-                  <FriendshipButton
-                      targetId={req.id}
-                      onAction={() => fetchProfileAndPosts()}
-                  />
-                </ListGroup.Item>
-            ))}
-          </ListGroup>
-      ) : (
-          <p className="text-dark text-center p-4">
-            Không có yêu cầu kết bạn đã gửi.
-          </p>
-      );
-    }
+                    <FriendshipButton
+                        targetId={req.id}
+                        onAction={fetchProfileAndPosts}
+                    />
+                  </ListGroup.Item>
+              ))}
+            </ListGroup>
+        ) : (
+            <p className="text-dark text-center p-4">
+              Không có yêu cầu kết bạn đã gửi.
+            </p>
+        );
 
-    if (activeTab === "shares") {
-      return (
-          <p className="text-dark text-center p-4">Không có bài chia sẻ nào.</p>
-      );
+      default:
+        return null;
     }
-
-    if (activeTab === "savedArticles") {
-      return (
-          <p className="text-dark text-center p-4">
-            Không có bài viết đã lưu nào.
-          </p>
-      );
-    }
-
-    return null; // Dự phòng cho các tab không xác định
   };
 
   if (loading) {
@@ -419,9 +452,6 @@ function ProfilePage() {
         </div>
     );
   }
-
-  const isOwnProfile = user?.username === username;
-  const hasAccess = userProfile?.bio !== null || isOwnProfile; // Thêm kiểm tra quyền
 
   return (
       <div className="flex flex-col min-h-screen bg-[var(--background-color)] text-[var(--text-color)]">

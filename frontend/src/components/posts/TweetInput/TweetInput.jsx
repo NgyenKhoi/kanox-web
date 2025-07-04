@@ -284,7 +284,7 @@ function TweetInput({ onPostSuccess }) {
       const renderMediaPreview = () => {
           if (mediaPreviews.length === 0) return null;
 
-          const mediaStyle = "w-full h-full object-cover rounded-lg";
+          const mediaStyle = "aspect-square w-full object-contain rounded-lg";
           const baseContainer = "grid gap-1 mb-3 overflow-hidden rounded-lg";
 
           const getMediaItem = (preview, index) => {
@@ -462,7 +462,7 @@ function TweetInput({ onPostSuccess }) {
                     {showEmojiPicker && (
                         <div
                             ref={emojiPickerRef}
-                            className="absolute z-50 mt-2 w-64 max-h-64 overflow-y-auto bg-[var(--background-color)] border border-[var(--border-color)] rounded shadow p-2 grid grid-cols-6 gap-2"
+                            className="absolute z-50 mt-2 w-64 max-h-64 overflow-y-auto bg-[var(--background-color)] border border-[var(--border-color)] rounded shadow p-2 grid grid-cols-6 gap-2 scrollbar-hide"
                         >
                             {emojiLoading ? (
                                 <div className="text-sm text-gray-400 px-2 py-1">Đang tải...</div>
