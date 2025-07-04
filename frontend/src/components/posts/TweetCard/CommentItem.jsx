@@ -8,7 +8,7 @@ const CommentItem = ({ comment }) => {
     const { avatarUrl } = useCommentAvatar(comment?.user?.id);
 
     return (
-        <div className="flex items-start gap-2.5 mb-4">
+        <div className="flex items-start gap-3 mb-3">
             {avatarUrl ? (
                 <img
                     src={avatarUrl}

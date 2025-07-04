@@ -59,12 +59,11 @@ function CommentThread({
                     <img
                         src={avatarUrl}
                         alt="avatar"
-                        className="w-9 h-9 rounded-full object-cover me-2 flex-shrink-0"
+                        className="w-9 h-9 rounded-full object-cover mr-3 flex-shrink-0"
                     />
                 ) : (
-                    <FaUserCircle size={40} className="me-2 text-[var(--text-color-muted)]" />
+                    <FaUserCircle size={36} className="text-[var(--text-color-muted)] mr-3 flex-shrink-0" />
                 )}
-
                 <div className="flex-grow-1">
                     <div
                         className="rounded-2xl p-3 text-base"
@@ -204,18 +203,15 @@ function CommentThread({
                             <Form onSubmit={handleReplySubmit} className="mt-2">
                                 <div className="d-flex align-items-start">
                                     {currentUser?.avatarUrl ? (
-                                        <Image
+                                        <img
                                             src={currentUser.avatarUrl}
                                             alt="avatar"
-                                            roundedCircle
-                                            width={36}
-                                            height={36}
-                                            style={{ objectFit: "cover" }}
-                                            className="me-2 flex-shrink-0"
+                                            className="w-9 h-9 rounded-full object-cover me-3 flex-shrink-0"
+                                            style={{ width: 36, height: 36 }}
                                         />
                                     ) : (
                                         <FaUserCircle
-                                            size={40}
+                                            size={36}
                                             className="me-2 text-[var(--text-color-muted)] flex-shrink-0"
                                         />
                                     )}

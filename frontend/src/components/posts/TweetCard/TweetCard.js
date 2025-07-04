@@ -428,7 +428,7 @@ function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
                 <img
                     src={avatarUrl}
                     alt="Ảnh đại diện"
-                    className="rounded-full w-9 h-9 object-cover flex-shrink-0"
+                    className="w-[50px] h-[50px] rounded-full object-cover mr-3 flex-shrink-0"
                 />
             ) : (
                 <FaUserCircle
