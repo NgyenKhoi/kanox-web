@@ -81,7 +81,11 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
     }
   };
   useEffect(() => {
-    if (!user?.id || !subscribe || !unsubscribe) return;
+    console.log("User data:", user);
+    if (!user?.id || !subscribe || !unsubscribe) {
+      console.warn("Skipping WebSocket subscription: user.id=", user?.id, "subscribe=", !!subscribe, "unsubscribe=", !!unsubscribe);
+      return;
+    }
 
     const subId = `unread-count-${user.id}`;
     const subscription = subscribe(`/topic/unread-count/${user.id}`, (data) => {
@@ -106,7 +110,7 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
           console.warn("No token found, skipping unread count fetch");
           return;
         }
-        const res = await fetch(`${process.env.REACT_APP_API_URL}/chat/unread-count`, {
+        const res = await fetch(`${process.env.REACT_APP_API_URL}/messages/unread-count`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) {

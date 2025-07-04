@@ -94,6 +94,9 @@ public class MessageService {
                 status.setStatus("unread");
                 status.setCreatedAt(Instant.now());
                 messageStatusRepository.save(status);
+                int updatedUnreadCount = messageStatusRepository.countUnreadChatsByUserId(member.getUser().getId());
+                messagingTemplate.convertAndSend("/topic/unread-count/" + member.getUser().getId(), Map.of("unreadCount", updatedUnreadCount));
+                System.out.println("Sent unread chat count to /topic/unread-count/" + member.getUser().getId() + ": " + updatedUnreadCount);
             }
         }
 
