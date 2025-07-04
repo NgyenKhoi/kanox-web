@@ -80,9 +80,9 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
   };
   useEffect(() => {
     const handleUnreadCountUpdate = (e) => {
-      if (typeof e.detail?.unreadCount === "number") {
-        setUnreadMessageCount(e.detail.unreadCount);
-      }
+      const count = e.detail?.unreadCount ?? 0;
+      console.log("Received updateUnreadCount event:", count);
+      setUnreadMessageCount(count);
     };
 
     window.addEventListener("updateUnreadCount", handleUnreadCountUpdate);
@@ -91,23 +91,38 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
       window.removeEventListener("updateUnreadCount", handleUnreadCountUpdate);
     };
   }, []);
+
   useEffect(() => {
     const fetchUnreadMessageCount = async () => {
       try {
         const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+        if (!token) {
+          console.warn("No token found, skipping unread count fetch");
+          return;
+        }
         const res = await fetch(`${process.env.REACT_APP_API_URL}/chat/unread-count`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        if (!res.ok) throw new Error("Lỗi khi lấy số tin nhắn chưa đọc");
-        const count = await res.json();
+        if (!res.ok) {
+          throw new Error(`Lỗi khi lấy số chat chưa đọc: ${res.status}`);
+        }
+        const data = await res.json();
+        const count = data.unreadCount ?? 0;
         setUnreadMessageCount(count);
+        window.dispatchEvent(
+            new CustomEvent("updateUnreadCount", {
+              detail: { unreadCount: count },
+            })
+        );
       } catch (err) {
-        console.error("Không thể tải số tin nhắn chưa đọc:", err.message);
+        console.error("Không thể tải số chat chưa đọc:", err.message);
       }
     };
 
-    fetchUnreadMessageCount();
-  }, []);
+    if (user) {
+      fetchUnreadMessageCount();
+    }
+  }, [user]);
 
 
   return (
