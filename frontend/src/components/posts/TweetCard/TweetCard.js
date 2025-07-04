@@ -425,14 +425,10 @@ function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
           <Card.Body className="d-flex p-3">
             {/* avatar và info */}
             {avatarUrl ? (
-                <Image
+                <img
                     src={avatarUrl}
-                    alt="Avatar"
-                    roundedCircle
-                    width={50}
-                    height={50}
-                    style={{ objectFit: "cover" }}
-                    className="me-3 d-none d-md-block flex-shrink-0"
+                    alt="Ảnh đại diện"
+                    className="rounded-full w-9 h-9 object-cover flex-shrink-0"
                 />
             ) : (
                 <FaUserCircle

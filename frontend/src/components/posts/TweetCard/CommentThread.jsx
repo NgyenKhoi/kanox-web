@@ -56,14 +56,10 @@ function CommentThread({
         <div className="mb-3">
             <div className="d-flex">
                 {avatarUrl ? (
-                    <Image
+                    <img
                         src={avatarUrl}
                         alt="avatar"
-                        roundedCircle
-                        width={36}
-                        height={36}
-                        style={{ objectFit: 'cover' }}
-                        className="me-2 flex-shrink-0"
+                        className="w-9 h-9 rounded-full object-cover me-2 flex-shrink-0"
                     />
                 ) : (
                     <FaUserCircle size={40} className="me-2 text-[var(--text-color-muted)]" />

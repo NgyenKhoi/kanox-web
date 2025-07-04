@@ -10,14 +10,10 @@ const CommentItem = ({ comment }) => {
     return (
         <div className="flex items-start gap-2.5 mb-4">
             {avatarUrl ? (
-                <Image
+                <img
                     src={avatarUrl}
-                    alt={`Ảnh đại diện của ${comment?.user?.displayName || "Người dùng"}`}
-                    roundedCircle
-                    width={36}
-                    height={36}
-                    style={{ objectFit: "cover" }}
-                    className="flex-shrink-0"
+                    alt="avatar"
+                    className="w-9 h-9 rounded-full object-cover me-2 flex-shrink-0"
                 />
             ) : (
                 <FaUserCircle

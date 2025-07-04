@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.http.MediaType;
 
 import java.util.HashMap;
 import java.util.List;
@@ -28,29 +29,38 @@ public class CommentController {
         this.commentService = commentService;
     }
 
-    @PostMapping(consumes = {"multipart/form-data", "application/json"})
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> createComment(
             @RequestPart(value = "comment", required = false) @Valid CommentRequestDto request,
-            @RequestPart(value = "media", required = false) List<MultipartFile> mediaFiles) {
+            @RequestPart(value = "media", required = false) List<MultipartFile> mediaFiles
+    ) {
         try {
-            if (request == null) {
+            if ((request == null || request.getContent() == null || request.getContent().isBlank())
+                    && (mediaFiles == null || mediaFiles.isEmpty())) {
                 throw new IllegalArgumentException("Dữ liệu bình luận không được cung cấp");
             }
 
+            Integer userId = (request != null) ? request.getUserId() : null;
+            Integer postId = (request != null) ? request.getPostId() : null;
+            String content = (request != null) ? request.getContent() : null;
+            String privacySetting = (request != null) ? request.getPrivacySetting() : "default";
+            Integer parentCommentId = (request != null) ? request.getParentCommentId() : null;
+            Integer customListId = (request != null) ? request.getCustomListId() : null;
+
             CommentResponseDto responseDto = commentService.createComment(
-                    request.getUserId(),
-                    request.getPostId(),
-                    request.getContent(),
-                    request.getPrivacySetting(),
-                    request.getParentCommentId(),
-                    request.getCustomListId(),
+                    userId,
+                    postId,
+                    content,
+                    privacySetting,
+                    parentCommentId,
+                    customListId,
                     mediaFiles
             );
 
-            Map<String, Object> response = new HashMap<>();
-            response.put("message", responseDto.getMessage());
-            response.put("data", responseDto);
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(Map.of(
+                    "message", responseDto.getMessage(),
+                    "data", responseDto
+            ));
         } catch (IllegalArgumentException e) {
             logger.error("Lỗi tạo bình luận: {}", e.getMessage());
             return ResponseEntity.badRequest().body(Map.of(
