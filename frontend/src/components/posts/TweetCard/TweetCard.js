@@ -882,9 +882,24 @@ function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
                                                     key={idx}
                                                     className="text-2xl cursor-pointer m-1"
                                                     onClick={() => {
-                                                      setNewComment((prev) => prev + emoji.emoji);
+                                                      const input = commentInputRef.current;
+                                                      if (!input) return;
+
+                                                      const start = input.selectionStart;
+                                                      const end = input.selectionEnd;
+                                                      const emojiChar = emoji.emoji;
+
+                                                      const updated = newComment.slice(0, start) + emojiChar + newComment.slice(end);
+                                                      setNewComment(updated);
+
+                                                      // Đặt lại vị trí con trỏ sau emoji
+                                                      setTimeout(() => {
+                                                        input.focus();
+                                                        const cursor = start + emojiChar.length;
+                                                        input.setSelectionRange(cursor, cursor);
+                                                      }, 0);
+
                                                       setShowEmojiPicker(false);
-                                                      commentInputRef.current?.focus();
                                                     }}
                                                 >
                   {emoji.emoji}

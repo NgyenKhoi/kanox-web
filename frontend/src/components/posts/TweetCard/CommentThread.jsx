@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
     Button,
     Form,
@@ -8,12 +8,14 @@ import {
     Collapse,
     OverlayTrigger,
     Tooltip,
+    Overlay, Popover,
 } from "react-bootstrap";
 import { FaReply, FaUserCircle, FaEllipsisH } from "react-icons/fa";
 import moment from "moment";
 import useCommentAvatar from "../../../hooks/useCommentAvatar";
 import ReactionButtonGroup from "./ReactionButtonGroup";
 import MediaActionBar from "../../utils/MediaActionBar"
+import useEmojiList from "../../../hooks/useEmojiList";
 
 function CommentThread({
                            comment,
@@ -30,6 +32,9 @@ function CommentThread({
     const [showReplies, setShowReplies] = useState(false);
     const [selectedMediaFiles, setSelectedMediaFiles] = useState([]);
     const [selectedMediaPreviews, setSelectedMediaPreviews] = useState([]);
+    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+    const replyInputRef = useRef(null);
+    const { emojiList } = useEmojiList();
 
     const { avatarUrl } = useCommentAvatar(comment.user?.id);
 
@@ -224,9 +229,10 @@ function CommentThread({
                                             onChange={(e) => setReplyText(e.target.value)}
                                             className="rounded-full border-[var(--border-color)] bg-[var(--background-color)] text-[var(--text-color)]"
                                             size="sm"
+                                            ref={replyInputRef}
                                         />
 
-                                        {/* Media Preview */}
+                                        {/* Media preview */}
                                         {selectedMediaPreviews.length > 0 && (
                                             <div className="mt-2 d-flex flex-wrap gap-2">
                                                 {selectedMediaPreviews.map((preview, index) => (
@@ -251,8 +257,12 @@ function CommentThread({
                                                             size="sm"
                                                             className="position-absolute top-0 end-0 rounded-circle"
                                                             onClick={() => {
-                                                                setSelectedMediaPreviews((prev) => prev.filter((_, i) => i !== index));
-                                                                setSelectedMediaFiles((prev) => prev.filter((_, i) => i !== index));
+                                                                setSelectedMediaPreviews((prev) =>
+                                                                    prev.filter((_, i) => i !== index)
+                                                                );
+                                                                setSelectedMediaFiles((prev) =>
+                                                                    prev.filter((_, i) => i !== index)
+                                                                );
                                                             }}
                                                         >
                                                             ✕
@@ -262,12 +272,10 @@ function CommentThread({
                                             </div>
                                         )}
 
-                                        {/* Action bar */}
+                                        {/* Action bar & Emoji Picker */}
                                         <div className="d-flex justify-content-between align-items-center mt-2 px-1">
                                             <MediaActionBar
-                                                onEmojiClick={() => {
-                                                    // TODO: Chèn emoji vào replyText nếu bạn muốn
-                                                }}
+                                                onEmojiClick={() => setShowEmojiPicker((prev) => !prev)}
                                                 onFileSelect={(files) => {
                                                     setSelectedMediaFiles((prev) => [...prev, ...files]);
                                                     setSelectedMediaPreviews((prev) => [
@@ -288,6 +296,62 @@ function CommentThread({
                                                 Gửi
                                             </Button>
                                         </div>
+
+                                        {/* Emoji popover */}
+                                        {showEmojiPicker && (
+                                            <Overlay
+                                                target={replyInputRef.current}
+                                                show={showEmojiPicker}
+                                                placement="top"
+                                                rootClose
+                                                onHide={() => setShowEmojiPicker(false)}
+                                            >
+                                                {(props) => (
+                                                    <Popover {...props} className="z-50">
+                                                        <Popover.Body
+                                                            style={{
+                                                                maxWidth: 300,
+                                                                maxHeight: 200,
+                                                                overflowY: "auto",
+                                                            }}
+                                                            className="scrollbar-hide"
+                                                        >
+                                                            <div className="flex flex-wrap">
+                                                                {emojiList.map((emoji, idx) => (
+                                                                    <span
+                                                                        key={idx}
+                                                                        className="text-2xl cursor-pointer m-1"
+                                                                        onClick={() => {
+                                                                            const input = replyInputRef.current;
+                                                                            if (!input) return;
+
+                                                                            const start = input.selectionStart;
+                                                                            const end = input.selectionEnd;
+
+                                                                            const newText =
+                                                                                replyText.substring(0, start) + emoji.emoji + replyText.substring(end);
+
+                                                                            setReplyText(newText);
+
+                                                                            // Đặt lại vị trí con trỏ sau emoji
+                                                                            setTimeout(() => {
+                                                                                input.focus();
+                                                                                const cursorPosition = start + emoji.emoji.length;
+                                                                                input.setSelectionRange(cursorPosition, cursorPosition);
+                                                                            }, 0);
+
+                                                                            setShowEmojiPicker(false);
+                                                                        }}
+                                                                    >
+                        {emoji.emoji}
+                      </span>
+                                                                ))}
+                                                            </div>
+                                                        </Popover.Body>
+                                                    </Popover>
+                                                )}
+                                            </Overlay>
+                                        )}
                                     </div>
                                 </div>
                             </Form>
