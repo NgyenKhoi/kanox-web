@@ -5,10 +5,13 @@ import {
     FaUsers,
     FaPlusCircle,
     FaSearch,
+    FaHome,
+    FaMoon,
+    FaSun,
 } from "react-icons/fa";
 import CreateGroupModal from "./CreateGroupModal";
 
-function CommunitySidebarLeft({ selectedView, onSelectView, joinedGroups = [], onGroupCreated }) {
+function CommunitySidebarLeft({ selectedView, onSelectView, joinedGroups = [], onGroupCreated, onToggleDarkMode, isDarkMode }) {
     const navigate = useNavigate();
     const shortList = joinedGroups.slice(0, 5);
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -18,12 +21,29 @@ function CommunitySidebarLeft({ selectedView, onSelectView, joinedGroups = [], o
         navigate(`/community/${groupId}`);
     };
 
+    // Xử lý click nút trang chủ
+    const handleHomeClick = () => {
+        navigate("/home");
+    };
+
     return (
         <>
             <aside className="hidden md:flex flex-col h-screen sticky top-0 bg-[var(--background-color)] text-[var(--text-color)] p-3 border-r border-[var(--border-color)] transition-colors">
                 <div className="flex items-center justify-between mb-4">
                     <h2 className="text-xl font-bold">Nhóm</h2>
+                    <button onClick={onToggleDarkMode} className="text-xl">
+                        {isDarkMode ? <FaSun /> : <FaMoon />}
+                    </button>
                 </div>
+
+                {/* Home Button */}
+                <button
+                    onClick={handleHomeClick}
+                    className="flex items-center px-4 py-2 rounded-full hover:bg-[var(--hover-bg-color)] transition-colors mb-4"
+                >
+                    <FaHome className="mr-3 text-lg" />
+                    <span className="text-base hidden lg:inline">Trang chủ</span>
+                </button>
 
                 {/* Search Bar */}
                 <div className="mb-4">

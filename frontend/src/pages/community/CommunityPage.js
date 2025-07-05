@@ -1,20 +1,31 @@
-import React, { useState, useEffect } from "react";
-import { Container, Row, Col, Card } from "react-bootstrap";
+import React, { useState, useEffect, useContext } from "react";
+import { Container, Row, Col, Card, Spinner } from "react-bootstrap";
 import { FaRegComment, FaRetweet, FaHeart, FaShareAlt, FaSearch } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import { AuthContext } from "../../context/AuthContext";
 import SidebarRight from "../../components/layout/SidebarRight/SidebarRight";
 import CommunitySidebarLeft from "../../components/community/CommunitySidebarLeft";
 
 function CommunityPage() {
     const navigate = useNavigate();
+    const { user, token, loading: authLoading, isSyncing } = useContext(AuthContext);
     const [viewMode, setViewMode] = useState("feed"); // "feed" | "yourGroups"
     const [posts, setPosts] = useState([]);
     const [yourGroups, setYourGroups] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const token = localStorage.getItem("token");
-    const username = localStorage.getItem("username");
+    const [isDarkMode, setIsDarkMode] = useState(
+        localStorage.getItem("theme") === "dark"
+    );
+
+    // Toggle dark mode
+    const handleToggleDarkMode = () => {
+        const newTheme = isDarkMode ? "light" : "dark";
+        setIsDarkMode(!isDarkMode);
+        localStorage.setItem("theme", newTheme);
+        document.documentElement.setAttribute("data-theme", newTheme);
+    };
 
     // Callback to update group list when a new group is created
     const handleGroupCreated = (newGroup) => {
@@ -23,7 +34,7 @@ function CommunityPage() {
 
     // Fetch posts or groups based on viewMode
     useEffect(() => {
-        if (!token || !username) {
+        if (!token || !user?.username) {
             setError("Vui lòng đăng nhập để xem nội dung.");
             setLoading(false);
             return;
@@ -46,7 +57,7 @@ function CommunityPage() {
                     setPosts(response.data || []);
                 } else if (viewMode === "yourGroups") {
                     const res = await fetch(
-                        `${process.env.REACT_APP_API_URL}/groups/your-groups?username=${username}`,
+                        `${process.env.REACT_APP_API_URL}/groups/your-groups?username=${user.username}`,
                         {
                             headers: { Authorization: `Bearer ${token}` },
                         }
@@ -71,11 +82,21 @@ function CommunityPage() {
         };
 
         fetchData();
-    }, [viewMode, token, username]);
+    }, [viewMode, token, user]);
 
     const handleCommunityClick = (id) => {
         navigate(`/community/${id}`);
     };
+
+    // Show loading spinner if auth or syncing is in progress
+    if (authLoading || isSyncing) {
+        return (
+            <div className="d-flex justify-content-center align-items-center min-vh-100">
+                <Spinner animation="border" role="status" />
+                <span className="ms-2">Đang tải dữ liệu...</span>
+            </div>
+        );
+    }
 
     return (
         <Container
@@ -90,6 +111,8 @@ function CommunityPage() {
                         onSelectView={setViewMode}
                         joinedGroups={yourGroups}
                         onGroupCreated={handleGroupCreated}
+                        onToggleDarkMode={handleToggleDarkMode}
+                        isDarkMode={isDarkMode}
                     />
                 </Col>
 
