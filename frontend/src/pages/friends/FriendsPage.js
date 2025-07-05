@@ -229,7 +229,10 @@ function FriendsPage() {
   }
 
   return (
-    <Container fluid className="min-vh-100 p-0">
+    <Container
+      fluid
+      className="min-vh-100 p-0 bg-[var(--background-color)] text-[var(--text-color)]"
+    >
       <div
         className="sticky-top bg-[var(--background-color)] py-2 border-bottom"
         style={{ zIndex: 1020 }}
