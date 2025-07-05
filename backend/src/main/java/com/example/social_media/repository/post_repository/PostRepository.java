@@ -56,4 +56,9 @@ public interface PostRepository extends JpaRepository<Post, Integer> {
     List<Post> findActivePostsByUsername(String username);
 
     int countByOwnerIdAndStatusTrue(Integer ownerId);
+
+    @Query("SELECT p FROM Post p WHERE p.status = true AND p.group IS NOT NULL AND p.group.status = true ORDER BY p.createdAt DESC")
+    List<Post> findPostsFromPublicGroups();
+
+    List<Post> findByGroupIdInAndStatusTrueOrderByCreatedAtDesc(List<Integer> groupIds);
 }

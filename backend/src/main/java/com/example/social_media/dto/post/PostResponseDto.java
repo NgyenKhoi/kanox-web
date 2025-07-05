@@ -1,7 +1,6 @@
 package com.example.social_media.dto.post;
 
 import com.example.social_media.dto.user.UserTagDto;
-
 import java.time.Instant;
 import java.util.List;
 
@@ -19,6 +18,8 @@ public class PostResponseDto {
     private Integer groupId;
     private String groupName;
     private String groupAvatarUrl;
+    private String groupPrivacyLevel;
+
     public Integer getId() { return id; }
     public void setId(Integer id) { this.id = id; }
 
@@ -57,4 +58,7 @@ public class PostResponseDto {
 
     public String getGroupAvatarUrl() { return groupAvatarUrl; }
     public void setGroupAvatarUrl(String groupAvatarUrl) { this.groupAvatarUrl = groupAvatarUrl; }
+
+    public String getGroupPrivacyLevel() { return groupPrivacyLevel; }
+    public void setGroupPrivacyLevel(String groupPrivacyLevel) { this.groupPrivacyLevel = groupPrivacyLevel; }
 }

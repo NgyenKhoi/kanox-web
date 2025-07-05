@@ -37,12 +37,14 @@ public class PostService {
     private final SavedPostRepository savedPostRepository;
     private final HiddenPostRepository hiddenPostRepository;
     private final GroupRepository groupRepository;
+    private final GroupMemberRepository groupMemberRepository;
     public PostService(PostRepository postRepository, PostTagRepository postTagRepository,
             UserRepository userRepository, ContentPrivacyRepository contentPrivacyRepository,
             CustomPrivacyListRepository customPrivacyListRepository, PrivacyService privacyService,
             MediaService mediaService, CommentRepository commentRepository,
                        SavedPostRepository savedPostRepository, HiddenPostRepository hiddenPostRepository,
-                       GroupRepository groupRepository) {
+                       GroupRepository groupRepository,
+                       GroupMemberRepository groupMemberRepository) {
         this.postRepository = postRepository;
         this.postTagRepository = postTagRepository;
         this.userRepository = userRepository;
@@ -54,6 +56,7 @@ public class PostService {
         this.savedPostRepository = savedPostRepository;
         this.hiddenPostRepository = hiddenPostRepository;
         this.groupRepository = groupRepository;
+        this.groupMemberRepository = groupMemberRepository;
     }
 
     @Transactional
@@ -381,6 +384,8 @@ public class PostService {
             String groupAvatarUrl = mediaService.getFirstMediaUrlByTarget(
                     post.getGroup().getId(), "GROUP");
             dto.setGroupAvatarUrl(groupAvatarUrl);
+
+            dto.setGroupPrivacyLevel(post.getGroup().getPrivacyLevel());
         }
 
         return dto;
@@ -399,4 +404,26 @@ public class PostService {
                 .collect(Collectors.toList());
     }
 
+    public List<PostResponseDto> getCommunityFeed(String username) {
+        User user = userRepository.findByUsernameAndStatusTrue(username)
+                .orElseThrow(() -> new UserNotFoundException("Người dùng không tồn tại"));
+
+        List<Integer> joinedGroupIds = groupMemberRepository
+                .findByUserIdAndStatusTrueAndInviteStatusAccepted(user.getId())
+                .stream()
+                .map(member -> member.getGroup().getId())
+                .toList();
+
+        List<Post> posts;
+        if (!joinedGroupIds.isEmpty()) {
+            posts = postRepository.findByGroupIdInAndStatusTrueOrderByCreatedAtDesc(joinedGroupIds);
+        } else {
+            posts = postRepository.findPostsFromPublicGroups();
+        }
+
+        return posts.stream()
+                .filter(post -> hasAccess(user.getId(), post.getId(), 1)) // kiểm tra quyền xem
+                .map(post -> convertToDto(post, user.getId()))
+                .toList();
+    }
 }

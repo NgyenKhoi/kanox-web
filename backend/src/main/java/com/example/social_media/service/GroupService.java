@@ -1,5 +1,7 @@
 package com.example.social_media.service;
 
+import com.example.social_media.dto.group.GroupDisplayDto;
+import com.example.social_media.dto.group.GroupSimpleDto;
 import com.example.social_media.dto.user.UserBasicDisplayDto;
 import com.example.social_media.entity.Group;
 import com.example.social_media.entity.GroupMember;
@@ -40,7 +42,7 @@ public class GroupService {
     }
 
     @Transactional
-    public Group createGroup(String ownerUsername, String name, String description) {
+    public Group createGroup(String ownerUsername, String name, String description, String privacyLevel) {
         User owner = userRepository.findByUsernameAndStatusTrue(ownerUsername)
                 .orElseThrow(() -> new UserNotFoundException("Chủ sở hữu không tồn tại"));
 
@@ -48,13 +50,12 @@ public class GroupService {
         group.setOwner(owner);
         group.setName(name);
         group.setDescription(description);
+        group.setPrivacyLevel(privacyLevel);
         group.setCreatedAt(Instant.now());
         group.setStatus(true);
         group = groupRepository.save(group);
 
-        GroupMemberId id = new GroupMemberId();
-        id.setGroupId(group.getId());
-        id.setUserId(owner.getId());
+        GroupMemberId id = new GroupMemberId(group.getId(), owner.getId());
 
         GroupMember member = new GroupMember();
         member.setId(id);
@@ -230,11 +231,19 @@ public class GroupService {
         groupMemberRepository.save(member);
     }
 
-    public List<Group> getPendingInvites(String username) {
+    public List<GroupSimpleDto> getPendingInviteSummaries(String username) {
         User user = userRepository.findByUsernameAndStatusTrue(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
-        return groupMemberRepository.findGroupsByUserIdAndInviteStatus(user.getId(), "PENDING");
+        List<Group> groups = groupMemberRepository.findGroupsByUserIdAndInviteStatus(user.getId(), "PENDING");
+
+        return groups.stream()
+                .map(group -> new GroupSimpleDto(
+                        group.getId(),
+                        group.getName(),
+                        mediaService.getGroupAvatarUrl(group.getId())
+                ))
+                .collect(Collectors.toList());
     }
 
     @Transactional
@@ -332,6 +341,62 @@ public class GroupService {
                             mediaService.getAvatarUrlByUserId(user.getId()),
                             user.getDisplayName(),
                             user.getUsername()
+                    );
+                })
+                .collect(Collectors.toList());
+    }
+
+    public GroupDisplayDto getGroupDetail(Integer groupId, String viewerUsername) {
+        Group group = groupRepository.findByIdAndStatusTrue(groupId)
+                .orElseThrow(() -> new NotFoundException("Group không tồn tại"));
+
+        User viewer = userRepository.findByUsernameAndStatusTrue(viewerUsername)
+                .orElseThrow(() -> new UserNotFoundException("Người dùng không tồn tại"));
+
+        int memberCount = groupMemberRepository.findById_GroupIdAndStatusTrue(groupId).size();
+
+        boolean isAdmin = groupMemberRepository.isGroupAdmin(groupId, viewer.getId()) != null
+                && groupMemberRepository.isGroupAdmin(groupId, viewer.getId());
+
+        boolean isOwner = group.getOwner().getId().equals(viewer.getId());
+
+        return new GroupDisplayDto(
+                group.getId(),
+                group.getName(),
+                mediaService.getGroupAvatarUrl(group.getId()),
+                group.getDescription(),
+                group.getCreatedAt().toString(),
+                memberCount,
+                group.getOwner().getUsername(),
+                group.getOwner().getDisplayName(),
+                mediaService.getAvatarUrlByUserId(group.getOwner().getId()),
+                isAdmin,
+                isOwner
+        );
+    }
+
+    public List<GroupDisplayDto> getGroupsOfUser(String username) {
+        User user = userRepository.findByUsernameAndStatusTrue(username)
+                .orElseThrow(() -> new UserNotFoundException("Người dùng không tồn tại"));
+
+        List<GroupMember> memberships = groupMemberRepository
+                .findByUserIdAndStatusTrueAndInviteStatusAccepted(user.getId());
+
+        return memberships.stream()
+                .map(member -> {
+                    Group group = member.getGroup();
+                    return new GroupDisplayDto(
+                            group.getId(),
+                            group.getName(),
+                            mediaService.getGroupAvatarUrl(group.getId()),
+                            group.getDescription(),
+                            group.getCreatedAt().toString(),
+                            groupMemberRepository.countByGroupIdAndStatusTrue(group.getId()),
+                            group.getOwner().getUsername(),
+                            group.getOwner().getDisplayName(),
+                            mediaService.getAvatarUrlByUserId(group.getOwner().getId()),
+                            member.getIsAdmin() != null && member.getIsAdmin(),
+                            group.getOwner().getId().equals(user.getId())
                     );
                 })
                 .collect(Collectors.toList());

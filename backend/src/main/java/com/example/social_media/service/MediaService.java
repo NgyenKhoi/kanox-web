@@ -299,4 +299,22 @@ public class MediaService {
 
         return dtoList.stream().collect(Collectors.groupingBy(MediaDto::getTargetId));
     }
+
+    public String getGroupAvatarUrl(Integer groupId) {
+        String cacheKey = "groupAvatar:" + groupId;
+        String cachedUrl = redisAvatarTemplate.opsForValue().get(cacheKey);
+        if (cachedUrl != null) return cachedUrl;
+
+        Optional<Media> mediaOpt = mediaRepository
+                .findFirstByTargetIdAndTargetType_CodeAndMediaType_NameOrderByCreatedAtDesc(
+                        groupId, "GROUP", "image"
+                );
+
+        String mediaUrl = mediaOpt.map(Media::getMediaUrl).orElse(null);
+        if (mediaUrl != null) {
+            redisAvatarTemplate.opsForValue().set(cacheKey, mediaUrl, AVATAR_CACHE_TTL);
+        }
+
+        return mediaUrl;
+    }
 }

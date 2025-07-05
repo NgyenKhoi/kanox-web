@@ -1,6 +1,6 @@
 package com.example.social_media.dto.search;
 
-import com.example.social_media.dto.user.GroupDto;
+import com.example.social_media.dto.group.GroupDto;
 import com.example.social_media.dto.user.PageDto;
 import com.example.social_media.dto.user.UserDto;
 

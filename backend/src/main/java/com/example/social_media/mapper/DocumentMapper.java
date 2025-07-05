@@ -1,6 +1,6 @@
 package com.example.social_media.mapper;
 import com.example.social_media.document.*;
-import com.example.social_media.dto.user.GroupDto;
+import com.example.social_media.dto.group.GroupDto;
 import com.example.social_media.dto.user.PageDto;
 import com.example.social_media.dto.user.UserDto;
 import org.springframework.stereotype.Component;
