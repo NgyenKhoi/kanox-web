@@ -4,9 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c6c17ae2-c6cb-4c94-a6b8-91c54839fa5e" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/src/pages/community/CommunityPage.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/pages/community/CommunityPage.js" afterDir="false" />
-    </list>
+    <list default="true" id="c6c17ae2-c6cb-4c94-a6b8-91c54839fa5e" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -136,7 +134,7 @@
       <workItem from="1751557544253" duration="4090000" />
       <workItem from="1751608939944" duration="4596000" />
       <workItem from="1751647413128" duration="4173000" />
-      <workItem from="1751731538557" duration="4218000" />
+      <workItem from="1751731538557" duration="4640000" />
     </task>
     <servers />
   </component>

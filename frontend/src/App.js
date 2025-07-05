@@ -129,7 +129,7 @@ function AppContent() {
             <Container fluid className="min-vh-100 p-0">
               <Row className="m-0">
                 {/* SidebarLeft */}
-                {user && (
+                {user && !window.location.pathname.startsWith("/communities") && (
                     <Col xs={0} lg={3} className="p-0 d-none d-lg-block">
                       <SidebarLeft
                           onToggleDarkMode={toggleDarkMode}
