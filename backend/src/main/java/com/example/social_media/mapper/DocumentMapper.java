@@ -3,11 +3,13 @@ import com.example.social_media.document.*;
 import com.example.social_media.dto.group.GroupDto;
 import com.example.social_media.dto.user.PageDto;
 import com.example.social_media.dto.user.UserDto;
+import com.example.social_media.entity.Group;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.List;
 
 @Component
 public class DocumentMapper {
@@ -23,12 +25,13 @@ public class DocumentMapper {
     }
 
 
-    public GroupDocument toGroupDocument(com.example.social_media.entity.Group group) {
+    public GroupDocument toGroupDocument(Group group, List<String> memberNames) {
         return new GroupDocument(
                 String.valueOf(group.getId()),
                 group.getOwner().getId(),
                 group.getName(),
                 group.getDescription(),
+                memberNames,
                 convertInstantToLocalDateTime(group.getCreatedAt())
         );
     }

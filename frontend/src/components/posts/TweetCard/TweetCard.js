@@ -12,10 +12,12 @@ import {
   Modal,
   Form,
   InputGroup,
-    Popover,
+  Popover,
 } from "react-bootstrap";
 import {
-  FaImage, FaVideo, FaSmile,
+  FaImage,
+  FaVideo,
+  FaSmile,
   FaBookmark,
   FaRegComment,
   FaRetweet,
@@ -51,7 +53,7 @@ import PostImages from "./PostImages";
 import { useCommentActions } from "../../../hooks/useCommentAction";
 import useEmojiList from "../../../hooks/useEmojiList";
 import MediaActionBar from "../../utils/MediaActionBar";
-import useCommentAvatar from "../../../hooks/useCommentAvatar"
+import useCommentAvatar from "../../../hooks/useCommentAvatar";
 
 function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
   const { user, loading, token } = useContext(AuthContext);
@@ -66,6 +68,9 @@ function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
     likeCount,
     taggedUsers = [],
     privacySetting = "public",
+    groupId,
+    groupName,
+    groupAvatarUrl,
   } = tweet || {};
   const isSaved = savedPosts.some((post) => post.id === id);
   const isOwnTweet = user && user.username === owner?.username;
@@ -117,11 +122,23 @@ function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
     sendReaction,
     removeReaction,
     fetchUsersByReaction,
-    reactionUserMap
+    reactionUserMap,
   } = useReaction({ user, targetId: tweet.id, targetTypeCode: "POST" });
 
   const totalCount = Object.values(reactionCountMap).reduce((sum, count) => sum + count, 0);
 
+  const handleNavigateToProfile = () => {
+    if (owner?.username && owner.username !== "unknown") {
+      navigate(`/profile/${owner.username}`);
+    }
+  };
+
+  // New function to navigate to group page
+  const handleNavigateToGroup = () => {
+    if (groupId) {
+      navigate(`/community/${groupId}`);
+    }
+  };
 
   const handleNextImage = () => {
     if (currentImageIndex < imageUrls.length - 1) {
@@ -376,12 +393,6 @@ function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
     }
   };
 
-  const handleNavigateToProfile = () => {
-    if (owner?.username && owner.username !== "unknown") {
-      navigate(`/profile/${owner.username}`);
-    }
-  };
-
   const renderStatusIcon = (status) => {
     switch (status) {
       case "public":
@@ -399,11 +410,16 @@ function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
 
   const renderStatusText = (status) => {
     switch (status) {
-      case "public": return "Công khai";
-      case "friends": return "Bạn bè";
-      case "only_me": return "Chỉ mình tôi";
-      case "custom": return "Tùy chỉnh";
-      default: return "Công khai";
+      case "public":
+        return "Công khai";
+      case "friends":
+        return "Bạn bè";
+      case "only_me":
+        return "Chỉ mình tôi";
+      case "custom":
+        return "Tùy chỉnh";
+      default:
+        return "Công khai";
     }
   };
 
@@ -424,7 +440,6 @@ function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
       previews.forEach((p) => URL.revokeObjectURL(p.url));
     };
   }, [selectedMediaFiles]);
-
 
   const renderComments = () => {
     if (isLoadingComments) return <div className="text-[var(--text-color-muted)]">Đang tải bình luận...</div>;
@@ -447,28 +462,45 @@ function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
           ))}
         </>
     );
-  }
-  
+  };
+
   return (
       <>
         <Card className="mb-3 rounded-2xl shadow-sm border-0 bg-[var(--background-color)]">
           <Card.Body className="d-flex p-3">
-            {/* avatar và info */}
-            {avatarUrl ? (
-                <img
-                    src={avatarUrl}
-                    alt="Ảnh đại diện"
-                    className="w-[50px] h-[50px] rounded-full object-cover mr-3 flex-shrink-0"
-                />
-            ) : (
-                <FaUserCircle
-                    size={50}
-                    className="me-3 d-none d-md-block text-[var(--text-color-muted)]"
-                    aria-label="Ảnh đại diện mặc định"
-                />
-            )}
+            {/* Avatar và info */}
+            <div className="d-flex align-items-start">
+              {/* Avatar user */}
+              {avatarUrl ? (
+                  <img
+                      src={avatarUrl}
+                      alt="Ảnh đại diện"
+                      className="w-[50px] h-[50px] rounded-full object-cover mr-3 flex-shrink-0"
+                      onClick={handleNavigateToProfile}
+                      style={{ cursor: "pointer" }}
+                  />
+              ) : (
+                  <FaUserCircle
+                      size={50}
+                      className="me-3 d-none d-md-block text-[var(--text-color-muted)]"
+                      aria-label="Ảnh đại diện mặc định"
+                      onClick={handleNavigateToProfile}
+                      style={{ cursor: "pointer" }}
+                  />
+              )}
+              {/* Avatar nhóm (nếu có) */}
+              {groupId && groupAvatarUrl && (
+                  <img
+                      src={groupAvatarUrl}
+                      alt="Ảnh đại diện nhóm"
+                      className="w-[50px] h-[50px] rounded-full object-cover mr-3 flex-shrink-0"
+                      onClick={handleNavigateToGroup}
+                      style={{ cursor: "pointer" }}
+                  />
+              )}
+            </div>
             <div className="flex-grow-1">
-              {/* header */}
+              {/* Header */}
               <div className="position-relative mb-1">
                 <div className="d-flex align-items-center pe-5">
                   <h6
@@ -480,6 +512,18 @@ function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
                   <span className="text-[var(--text-color-muted)] small me-1">
                   @{owner?.username || "unknown"}
                 </span>
+                  {/* Hiển thị thông tin nhóm */}
+                  {groupId && groupName && (
+                      <span className="text-[var(--text-color-muted)] small me-1">
+                    đã đăng trong{" "}
+                        <span
+                            className="fw-bold text-primary cursor-pointer"
+                            onClick={handleNavigateToGroup}
+                        >
+                      {groupName}
+                    </span>
+                  </span>
+                  )}
                   <span className="text-[var(--text-color-muted)] small me-1">
                   · {moment(createdAt * 1000).fromNow()}
                 </span>
@@ -490,7 +534,7 @@ function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
                     <span>{renderStatusIcon(privacySetting)}</span>
                   </OverlayTrigger>
                 </div>
-                {/* dropdown và nút X */}
+                {/* Dropdown và nút X */}
                 <div className="position-absolute top-0 end-0 d-flex align-items-center gap-2">
                   <Dropdown>
                     <Dropdown.Toggle
@@ -561,10 +605,10 @@ function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
                   </Button>
                 </div>
               </div>
-              {/* nội dung */}
+              {/* Nội dung */}
               <p className="mb-2 text-[var(--text-color)]">{content}</p>
 
-              {/* tag người */}
+              {/* Tag người */}
               {Array.isArray(taggedUsers) && taggedUsers.length > 0 && (
                   <div className="mb-2">
                     <small className="text-[var(--text-color-muted)]">
@@ -582,7 +626,7 @@ function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
 
               <PostImages images={imageUrls.map((img) => img.url)} onClickImage={handleImageClick} />
 
-              {/* video */}
+              {/* Video */}
               {Array.isArray(videoUrls) &&
                   videoUrls.length > 0 &&
                   videoUrls.map((url, idx) => (
@@ -599,13 +643,13 @@ function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
                       </div>
                   ))}
 
-              {/* reaction count + actions */}
+              {/* Reaction count + actions */}
               {(totalCount > 0 || commentCount > 0) && (
                   <div
                       className={[
                         "d-flex justify-content-between align-items-center px-2 py-2",
                         imageUrls.length > 0 ? "border-t border-[var(--border-color)]" : "",
-                        "border-b border-[var(--border-color)]"
+                        "border-b border-[var(--border-color)]",
                       ].join(" ")}
                   >
                     <div className="d-flex align-items-center gap-1">
@@ -737,7 +781,7 @@ function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
                 </div>
               </div>
 
-              {/* comments */}
+              {/* Comments */}
               {showCommentBox && (
                   <div className="mt-2 pt-2 border-t border-[var(--border-color)]">
                     {renderComments()}
@@ -875,7 +919,10 @@ function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
                                 >
                                   {(props) => (
                                       <Popover {...props} className="z-50">
-                                        <Popover.Body style={{ maxWidth: 300, maxHeight: 200, overflowY: "auto" }} className="scrollbar-hide">
+                                        <Popover.Body
+                                            style={{ maxWidth: 300, maxHeight: 200, overflowY: "auto" }}
+                                            className="scrollbar-hide"
+                                        >
                                           <div className="flex flex-wrap">
                                             {emojiList.map((emoji, idx) => (
                                                 <span
@@ -889,7 +936,8 @@ function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
                                                       const end = input.selectionEnd;
                                                       const emojiChar = emoji.emoji;
 
-                                                      const updated = newComment.slice(0, start) + emojiChar + newComment.slice(end);
+                                                      const updated =
+                                                          newComment.slice(0, start) + emojiChar + newComment.slice(end);
                                                       setNewComment(updated);
 
                                                       // Đặt lại vị trí con trỏ sau emoji
@@ -902,8 +950,8 @@ function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
                                                       setShowEmojiPicker(false);
                                                     }}
                                                 >
-                  {emoji.emoji}
-                </span>
+                                        {emoji.emoji}
+                                      </span>
                                             ))}
                                           </div>
                                         </Popover.Body>
@@ -992,4 +1040,5 @@ function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
       </>
   );
 }
+
 export default TweetCard;

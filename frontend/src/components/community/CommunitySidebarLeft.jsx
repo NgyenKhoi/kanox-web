@@ -10,18 +10,34 @@ import {
     FaSun,
 } from "react-icons/fa";
 import CreateGroupModal from "./CreateGroupModal";
+import useGroupSearch from "../../hooks/useGroupSearch";
 
-function CommunitySidebarLeft({ selectedView, onSelectView, joinedGroups = [], onGroupCreated, onToggleDarkMode, isDarkMode }) {
+function CommunitySidebarLeft({
+                                  selectedView,
+                                  onSelectView,
+                                  joinedGroups = [],
+                                  onGroupCreated,
+                                  onToggleDarkMode,
+                                  isDarkMode,
+                              }) {
     const navigate = useNavigate();
+    const token = localStorage.getItem("token");
     const shortList = joinedGroups.slice(0, 5);
     const [showCreateModal, setShowCreateModal] = useState(false);
 
-    // Xử lý click vào nhóm
+    // Search hook
+    const {
+        searchKeyword,
+        setSearchKeyword,
+        searchResults,
+        isSearching,
+        debouncedSearch,
+    } = useGroupSearch(token, navigate);
+
     const handleGroupClick = (groupId) => {
         navigate(`/community/${groupId}`);
     };
 
-    // Xử lý click nút trang chủ
     const handleHomeClick = () => {
         navigate("/home");
     };
@@ -51,10 +67,41 @@ function CommunitySidebarLeft({ selectedView, onSelectView, joinedGroups = [], o
                         <FaSearch className="absolute top-2.5 left-3 text-gray-500" />
                         <input
                             type="text"
+                            value={searchKeyword}
+                            onChange={(e) => {
+                                setSearchKeyword(e.target.value);
+                                debouncedSearch(e.target.value);
+                            }}
                             placeholder="Tìm kiếm nhóm"
                             className="w-full pl-10 pr-3 py-2 rounded-full bg-[var(--input-bg)] text-[var(--text-color)] placeholder-gray-500 border border-[var(--border-color)] focus:outline-none"
                         />
                     </div>
+
+                    {/* Kết quả tìm kiếm */}
+                    {searchKeyword.trim() && (
+                        <div className="mt-2 max-h-60 overflow-y-auto">
+                            {isSearching ? (
+                                <p className="text-sm text-gray-500">Đang tìm kiếm...</p>
+                            ) : searchResults.length > 0 ? (
+                                searchResults.map((group) => (
+                                    <div
+                                        key={group.id}
+                                        className="flex items-center gap-3 cursor-pointer hover:bg-[var(--hover-bg-color)] p-2 rounded-lg transition"
+                                        onClick={() => handleGroupClick(group.id)}
+                                    >
+                                        <img
+                                            src={group.avatar || "https://via.placeholder.com/40"}
+                                            alt={group.name}
+                                            className="w-8 h-8 rounded-full object-cover"
+                                        />
+                                        <span className="text-sm font-medium truncate">{group.name}</span>
+                                    </div>
+                                ))
+                            ) : (
+                                <p className="text-sm text-gray-500 mt-1">Không tìm thấy nhóm nào.</p>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 {/* Menu */}

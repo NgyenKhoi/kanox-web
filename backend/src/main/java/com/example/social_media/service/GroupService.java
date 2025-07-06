@@ -14,12 +14,20 @@ import com.example.social_media.repository.GroupMemberRepository;
 import com.example.social_media.repository.GroupRepository;
 import com.example.social_media.repository.UserRepository;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class GroupService {
@@ -42,7 +50,7 @@ public class GroupService {
     }
 
     @Transactional
-    public Group createGroup(String ownerUsername, String name, String description, String privacyLevel) {
+    public Group createGroup(String ownerUsername, String name, String description, String privacyLevel, MultipartFile avatarFile) throws IOException {
         User owner = userRepository.findByUsernameAndStatusTrue(ownerUsername)
                 .orElseThrow(() -> new UserNotFoundException("Chủ sở hữu không tồn tại"));
 
@@ -67,8 +75,49 @@ public class GroupService {
 
         groupMemberRepository.save(member);
 
+        if (avatarFile != null && !avatarFile.isEmpty()) {
+            mediaService.uploadMedia(
+                    owner.getId(),
+                    group.getId(),
+                    "GROUP",
+                    "image",
+                    avatarFile,
+                    "avatar"
+            );
+        }
+
         return group;
     }
+
+    @Transactional
+    public Group updateGroup(Integer groupId, String ownerUsername, String name, String description, String privacyLevel, MultipartFile newAvatarFile) throws IOException {
+        Group group = groupRepository.findById(groupId)
+                .orElseThrow(() -> new NotFoundException("Nhóm không tồn tại"));
+
+        if (!group.getOwner().getUsername().equals(ownerUsername)) {
+            throw new UnauthorizedException("Chỉ chủ sở hữu mới được sửa thông tin nhóm");
+        }
+
+        group.setName(name);
+        group.setDescription(description);
+        group.setPrivacyLevel(privacyLevel);
+        groupRepository.save(group);
+
+        if (newAvatarFile != null && !newAvatarFile.isEmpty()) {
+            mediaService.disableOldGroupMedia(group.getId());
+            mediaService.uploadMedia(
+                    group.getOwner().getId(),
+                    group.getId(),
+                    "GROUP",
+                    "image",
+                    newAvatarFile,
+                    "avatar"
+            );
+        }
+
+        return group;
+    }
+
 
     @Transactional
     public void deleteGroup(Integer groupId, String username) {
@@ -151,18 +200,28 @@ public class GroupService {
         groupMemberRepository.save(member);
     }
 
-    public List<UserBasicDisplayDto> getGroupMembers(Integer groupId) {
-        return groupMemberRepository.findById_GroupIdAndStatusTrue(groupId).stream()
-                .map(member -> {
-                    var user = member.getUser();
+    public Map<String, Object> getGroupMembers(Integer groupId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("username"));
+        Page<GroupMember> members = groupMemberRepository.findByGroupIdAndStatus(groupId, "ACCEPTED", pageable);
+
+        List<UserBasicDisplayDto> memberDtos = members
+                .map(m -> {
+                    User user = m.getUser();
                     return new UserBasicDisplayDto(
                             user.getId(),
-                            mediaService.getAvatarUrlByUserId(user.getId()), // Lấy avatar từ MediaService
+                            mediaService.getAvatarUrlByUserId(user.getId()),
                             user.getDisplayName(),
                             user.getUsername()
                     );
                 })
-                .collect(Collectors.toList());
+                .getContent();
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("content", memberDtos);
+        response.put("currentPage", members.getNumber());
+        response.put("totalPages", members.getTotalPages());
+        response.put("totalElements", members.getTotalElements());
+        return response;
     }
 
     @Transactional

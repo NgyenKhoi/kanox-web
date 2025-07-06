@@ -7,6 +7,8 @@ import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
 
 import java.time.LocalDateTime;
+import java.util.List;
+
 @JsonIgnoreProperties(ignoreUnknown = true)
 
 @Document(indexName = "groups")
@@ -17,16 +19,18 @@ public class GroupDocument {
     @Field(type = FieldType.Text)
     private String name;
     private String description;
+    private List<String> memberNames;
     private LocalDateTime createdAt;
 
     public GroupDocument() {
     }
-    public GroupDocument(String id, Integer ownerId, String name, String description, LocalDateTime createdAt) {
+    public GroupDocument(String id, Integer ownerId, String name, String description, List<String> memberNames,  LocalDateTime createdAt) {
         this.id = id;
         this.ownerId = ownerId;
         this.name = name;
         this.description = description;
         this.createdAt = createdAt;
+        this.memberNames = memberNames;
     }
 
     public Integer getOwnerId() {
@@ -67,5 +71,13 @@ public class GroupDocument {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public List<String> getMemberNames() {
+        return memberNames;
+    }
+
+    public void setMemberNames(List<String> memberNames) {
+        this.memberNames = memberNames;
     }
 }
