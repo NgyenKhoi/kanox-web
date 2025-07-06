@@ -1,10 +1,14 @@
 package com.example.social_media.controller;
 
 import com.example.social_media.config.URLConfig;
+import com.example.social_media.dto.group.GroupDisplayDto;
+import com.example.social_media.dto.group.GroupSimpleDto;
 import com.example.social_media.dto.user.UserBasicDisplayDto;
 import com.example.social_media.entity.Group;
 import com.example.social_media.service.GroupService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -23,8 +27,10 @@ public class GroupController {
     public ResponseEntity<Group> createGroup(
             @RequestParam String ownerUsername,
             @RequestParam String name,
-            @RequestParam(required = false) String description) {
-        Group group = groupService.createGroup(ownerUsername, name, description);
+            @RequestParam(required = false) String description,
+            @RequestParam(defaultValue = "public") String privacyLevel
+    ) {
+        Group group = groupService.createGroup(ownerUsername, name, description, privacyLevel);
         return ResponseEntity.ok(group);
     }
 
@@ -93,9 +99,9 @@ public class GroupController {
     }
 
     @GetMapping(URLConfig.PENDING_INVITE)
-    public ResponseEntity<List<Group>> getPendingInvites(
+    public ResponseEntity<List<GroupSimpleDto>> getPendingInvites(
             @RequestParam String username) {
-        return ResponseEntity.ok(groupService.getPendingInvites(username));
+        return ResponseEntity.ok(groupService.getPendingInviteSummaries(username));
     }
 
     @PostMapping(URLConfig.REQUEST_JOIN_GROUP)
@@ -132,5 +138,19 @@ public class GroupController {
             @PathVariable Integer groupId,
             @RequestParam String adminUsername) {
         return ResponseEntity.ok(groupService.getJoinRequestsForGroup(groupId, adminUsername));
+    }
+
+    @GetMapping(URLConfig.GET_GROUP_DETAIL)
+    public ResponseEntity<?> getGroupDetail(
+            @PathVariable Integer groupId,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        String viewerUsername = userDetails.getUsername();
+        return ResponseEntity.ok(groupService.getGroupDetail(groupId, viewerUsername));
+    }
+
+    @GetMapping("/your-groups")
+    public ResponseEntity<List<GroupDisplayDto>> getGroupsOfUser(@RequestParam String username) {
+        return ResponseEntity.ok(groupService.getGroupsOfUser(username));
     }
 }

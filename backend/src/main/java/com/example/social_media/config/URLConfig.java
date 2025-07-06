@@ -120,4 +120,5 @@ public class URLConfig {
     public static final String APPROVE_JOIN_REQUEST = "/{groupId}/approve-request";
     public static final String REJECT_JOIN_REQUEST = "/{groupId}/reject-request";
     public static final String GET_JOIN_REQUESTS = "/{groupId}/join-requests";
+    public static final String GET_GROUP_DETAIL = "/{groupId}/detail";
 }

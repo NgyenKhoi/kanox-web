@@ -322,4 +322,32 @@ public class PostController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
+
+    @GetMapping("/community-feed")
+    public ResponseEntity<Map<String, Object>> getCommunityFeed(@RequestHeader("Authorization") String authHeader) {
+        try {
+            String token = authHeader.substring(7);
+            String username = jwtService.extractUsername(token);
+            logger.debug("Fetching community feed for user: {}", username);
+            List<PostResponseDto> posts = postService.getCommunityFeed(username);
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Lấy bảng tin cộng đồng thành công");
+            response.put("data", posts);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            logger.error("Error fetching community feed: {}", e.getMessage());
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("status", "error");
+            errorResponse.put("message", e.getMessage());
+            errorResponse.put("errors", new HashMap<>());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+        } catch (Exception e) {
+            logger.error("Unexpected error: {}", e.getMessage(), e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("status", "error");
+            errorResponse.put("message", "Lỗi hệ thống: " + e.getMessage());
+            errorResponse.put("errors", new HashMap<>());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
 }

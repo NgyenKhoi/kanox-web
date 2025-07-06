@@ -118,3 +118,17 @@ body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+:root {
+  --comment-bg-color: #f1f3f5;
+}
+.dark {
+  --comment-bg-color: #2e2e2e;
+}
+
+:root {
+  --input-bg: #f0f2f5;
+}
+.dark {
+  --input-bg: #2e2e2e;
+}

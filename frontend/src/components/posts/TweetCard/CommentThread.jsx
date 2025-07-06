@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
     Button,
     Form,
@@ -8,12 +8,14 @@ import {
     Collapse,
     OverlayTrigger,
     Tooltip,
+    Overlay, Popover,
 } from "react-bootstrap";
 import { FaReply, FaUserCircle, FaEllipsisH } from "react-icons/fa";
 import moment from "moment";
 import useCommentAvatar from "../../../hooks/useCommentAvatar";
 import ReactionButtonGroup from "./ReactionButtonGroup";
 import MediaActionBar from "../../utils/MediaActionBar"
+import useEmojiList from "../../../hooks/useEmojiList";
 
 function CommentThread({
                            comment,
@@ -30,6 +32,9 @@ function CommentThread({
     const [showReplies, setShowReplies] = useState(false);
     const [selectedMediaFiles, setSelectedMediaFiles] = useState([]);
     const [selectedMediaPreviews, setSelectedMediaPreviews] = useState([]);
+    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+    const replyInputRef = useRef(null);
+    const { emojiList } = useEmojiList();
 
     const { avatarUrl } = useCommentAvatar(comment.user?.id);
 
@@ -53,19 +58,19 @@ function CommentThread({
     };
 
     return (
-        <div className="mb-3">
-            <div className="d-flex">
+        <div className="flex gap-3 w-full mb-2">
+            <div className="flex-shrink-0">
                 {avatarUrl ? (
                     <img
                         src={avatarUrl}
                         alt="avatar"
-                        className="w-9 h-9 rounded-full object-cover me-2 flex-shrink-0"
+                        className="w-9 h-9 rounded-full object-cover"
                     />
                 ) : (
-                    <FaUserCircle size={40} className="me-2 text-[var(--text-color-muted)]" />
+                    <FaUserCircle size={36} className="text-[var(--text-color-muted)]" />
                 )}
-
-                <div className="flex-grow-1">
+            </div>
+            <div className="flex-grow min-w-0">
                     <div
                         className="rounded-2xl p-3 text-base"
                         style={{ backgroundColor: "var(--comment-bg-color)" }}
@@ -134,47 +139,46 @@ function CommentThread({
                             </Form>
                         ) : (
                             <>
-                            <p className="mb-1 mt-2 text-[var(--text-color)]">{comment.content}</p>
-                        {comment.media?.length > 0 && (
-                            <div className="mt-2 d-flex flex-wrap gap-2">
-                        {comment.media.map((media, index) => {
-                            const isImage = media.type === "image";
-                            const isVideo = media.type === "video";
-                            const isAudio = media.type === "audio";
+                                <p className="mb-1 mt-2 text-[var(--text-color)]">{comment.content}</p>
+                                {comment.media?.length > 0 && (
+                                    <div className="mt-2 d-flex flex-wrap gap-2">
+                                        {comment.media.map((media, index) => {
+                                            const isImage = media.type === "image";
+                                            const isVideo = media.type === "video";
+                                            const isAudio = media.type === "audio";
 
-                            return (
-                            <div key={index} className="rounded overflow-hidden">
-                        {isImage && (
-                            <Image
-                                src={media.url}
-                                alt={`comment-media-${index}`}
-                                thumbnail
-                                className="max-w-[200px] max-h-[200px] object-cover"
-                            />
-                        )}
-                        {isVideo && (
-                            <video
-                                controls
-                                className="max-w-[200px] max-h-[200px] rounded"
-                            >
-                                <source src={media.url} type="video/mp4" />
-                                Trình duyệt của bạn không hỗ trợ video.
-                            </video>
-                        )}
-                        {isAudio && (
-                            <audio controls>
-                                <source src={media.url} type="audio/mpeg" />
-                                Trình duyệt không hỗ trợ audio.
-                            </audio>
-                        )}
-                    </div>
-                    );
-                    })}
-                </div>
-                )}
+                                            return (
+                                                <div key={index} className="rounded overflow-hidden">
+                                                    {isImage && (
+                                                        <Image
+                                                            src={media.url}
+                                                            alt={`comment-media-${index}`}
+                                                            thumbnail
+                                                            className="max-w-[200px] max-h-[200px] object-cover"
+                                                        />
+                                                    )}
+                                                    {isVideo && (
+                                                        <video
+                                                            controls
+                                                            className="max-w-[200px] max-h-[200px] rounded"
+                                                        >
+                                                            <source src={media.url} type="video/mp4" />
+                                                            Trình duyệt của bạn không hỗ trợ video.
+                                                        </video>
+                                                    )}
+                                                    {isAudio && (
+                                                        <audio controls>
+                                                            <source src={media.url} type="audio/mpeg" />
+                                                            Trình duyệt không hỗ trợ audio.
+                                                        </audio>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
                             </>
                         )}
-
                         {/* Reaction & Reply Buttons */}
                         <div className="d-flex align-items-center gap-2 mt-2">
                             <OverlayTrigger
@@ -204,18 +208,15 @@ function CommentThread({
                             <Form onSubmit={handleReplySubmit} className="mt-2">
                                 <div className="d-flex align-items-start">
                                     {currentUser?.avatarUrl ? (
-                                        <Image
+                                        <img
                                             src={currentUser.avatarUrl}
                                             alt="avatar"
-                                            roundedCircle
-                                            width={36}
-                                            height={36}
-                                            style={{ objectFit: "cover" }}
-                                            className="me-2 flex-shrink-0"
+                                            className="w-9 h-9 rounded-full object-cover me-3 flex-shrink-0"
+                                            style={{ width: 36, height: 36 }}
                                         />
                                     ) : (
                                         <FaUserCircle
-                                            size={40}
+                                            size={36}
                                             className="me-2 text-[var(--text-color-muted)] flex-shrink-0"
                                         />
                                     )}
@@ -228,9 +229,10 @@ function CommentThread({
                                             onChange={(e) => setReplyText(e.target.value)}
                                             className="rounded-full border-[var(--border-color)] bg-[var(--background-color)] text-[var(--text-color)]"
                                             size="sm"
+                                            ref={replyInputRef}
                                         />
 
-                                        {/* Media Preview */}
+                                        {/* Media preview */}
                                         {selectedMediaPreviews.length > 0 && (
                                             <div className="mt-2 d-flex flex-wrap gap-2">
                                                 {selectedMediaPreviews.map((preview, index) => (
@@ -255,8 +257,12 @@ function CommentThread({
                                                             size="sm"
                                                             className="position-absolute top-0 end-0 rounded-circle"
                                                             onClick={() => {
-                                                                setSelectedMediaPreviews((prev) => prev.filter((_, i) => i !== index));
-                                                                setSelectedMediaFiles((prev) => prev.filter((_, i) => i !== index));
+                                                                setSelectedMediaPreviews((prev) =>
+                                                                    prev.filter((_, i) => i !== index)
+                                                                );
+                                                                setSelectedMediaFiles((prev) =>
+                                                                    prev.filter((_, i) => i !== index)
+                                                                );
                                                             }}
                                                         >
                                                             ✕
@@ -266,12 +272,10 @@ function CommentThread({
                                             </div>
                                         )}
 
-                                        {/* Action bar */}
+                                        {/* Action bar & Emoji Picker */}
                                         <div className="d-flex justify-content-between align-items-center mt-2 px-1">
                                             <MediaActionBar
-                                                onEmojiClick={() => {
-                                                    // TODO: Chèn emoji vào replyText nếu bạn muốn
-                                                }}
+                                                onEmojiClick={() => setShowEmojiPicker((prev) => !prev)}
                                                 onFileSelect={(files) => {
                                                     setSelectedMediaFiles((prev) => [...prev, ...files]);
                                                     setSelectedMediaPreviews((prev) => [
@@ -292,6 +296,62 @@ function CommentThread({
                                                 Gửi
                                             </Button>
                                         </div>
+
+                                        {/* Emoji popover */}
+                                        {showEmojiPicker && (
+                                            <Overlay
+                                                target={replyInputRef.current}
+                                                show={showEmojiPicker}
+                                                placement="top"
+                                                rootClose
+                                                onHide={() => setShowEmojiPicker(false)}
+                                            >
+                                                {(props) => (
+                                                    <Popover {...props} className="z-50">
+                                                        <Popover.Body
+                                                            style={{
+                                                                maxWidth: 300,
+                                                                maxHeight: 200,
+                                                                overflowY: "auto",
+                                                            }}
+                                                            className="scrollbar-hide"
+                                                        >
+                                                            <div className="flex flex-wrap">
+                                                                {emojiList.map((emoji, idx) => (
+                                                                    <span
+                                                                        key={idx}
+                                                                        className="text-2xl cursor-pointer m-1"
+                                                                        onClick={() => {
+                                                                            const input = replyInputRef.current;
+                                                                            if (!input) return;
+
+                                                                            const start = input.selectionStart;
+                                                                            const end = input.selectionEnd;
+
+                                                                            const newText =
+                                                                                replyText.substring(0, start) + emoji.emoji + replyText.substring(end);
+
+                                                                            setReplyText(newText);
+
+                                                                            // Đặt lại vị trí con trỏ sau emoji
+                                                                            setTimeout(() => {
+                                                                                input.focus();
+                                                                                const cursorPosition = start + emoji.emoji.length;
+                                                                                input.setSelectionRange(cursorPosition, cursorPosition);
+                                                                            }, 0);
+
+                                                                            setShowEmojiPicker(false);
+                                                                        }}
+                                                                    >
+                        {emoji.emoji}
+                      </span>
+                                                                ))}
+                                                            </div>
+                                                        </Popover.Body>
+                                                    </Popover>
+                                                )}
+                                            </Overlay>
+                                        )}
                                     </div>
                                 </div>
                             </Form>
@@ -308,8 +368,9 @@ function CommentThread({
                         </Button>
                     )}
                     {/* Replies */}
-                    <Collapse in={showReplies}>
-                        <div className="mt-2 ms-4">
+                <Collapse in={showReplies}>
+                    <div>
+                        <>
                             {comment.replies?.map((reply) => (
                                 <CommentThread
                                     key={reply.commentId}
@@ -318,11 +379,12 @@ function CommentThread({
                                     onUpdate={onUpdate}
                                     onDelete={onDelete}
                                     currentUserId={currentUserId}
+                                    currentUser={currentUser} // nếu cần
                                 />
                             ))}
-                        </div>
-                    </Collapse>
-                </div>
+                        </>
+                    </div>
+                </Collapse>
             </div>
         </div>
     );

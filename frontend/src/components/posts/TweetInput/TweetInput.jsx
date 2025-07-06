@@ -294,7 +294,7 @@ function TweetInput({ onPostSuccess }) {
                     {isVideo ? (
                         <video src={preview.url} controls className={`${mediaStyle} w-full h-full`} />
                     ) : (
-                        <img src={preview.url} alt="preview" className={`${mediaStyle} w-full h-full`} />
+                        <img src={preview.url} alt="preview" className={`${mediaStyle}`} />
                     )}
                     <button
                         className="absolute top-1 right-1 text-white bg-black/60 rounded-full w-6 h-6 flex items-center justify-center transition"
@@ -312,8 +312,8 @@ function TweetInput({ onPostSuccess }) {
         if (filesToShow.length === 1) {
             return (
                 <div className="mb-3 flex justify-start">
-                    <div className="relative max-w-[240px] max-h-[240px] w-full h-full">
-                        {getMediaItem(filesToShow[0], 0, "w-full h-full")}
+                    <div className="relative w-full max-w-sm">
+                        {getMediaItem(filesToShow[0], 0, "w-full h-auto max-h-[300px]")}
                     </div>
                 </div>
             );
@@ -381,7 +381,9 @@ function TweetInput({ onPostSuccess }) {
                 value={tweetContent}
                 onChange={(e) => setTweetContent(e.target.value)}
             />
-            {renderMediaPreview()}
+              <div className="mb-3">
+                  {renderMediaPreview()}
+              </div>
 
             {taggedUserIds.length > 0 && (
                 <div className="flex flex-wrap mb-2">

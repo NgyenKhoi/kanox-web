@@ -1414,8 +1414,33 @@ GO
         created_at DATETIME DEFAULT GETDATE(),
         content NVARCHAR(MAX),
         privacy_setting VARCHAR(20) CHECK (privacy_setting IN ('public', 'friends', 'only_me', 'custom', 'default')) DEFAULT 'default',
+		group_id INT NULL FOREIGN KEY REFERENCES tblGroup(id),
         status BIT DEFAULT 1
     );
+
+    CREATE TABLE tblSavedPost (
+        user_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
+        post_id INT NOT NULL FOREIGN KEY REFERENCES tblPost(id),
+        save_time DATETIME DEFAULT GETDATE(),
+        status BIT DEFAULT 1,
+        PRIMARY KEY (user_id, post_id)
+        );
+
+    CREATE TABLE tblHiddenPost (
+        user_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
+        post_id INT NOT NULL FOREIGN KEY REFERENCES tblPost(id),
+        hidden_time DATETIME DEFAULT GETDATE(),
+        status BIT DEFAULT 1,
+        PRIMARY KEY (user_id, post_id)
+        );
+
+    CREATE TABLE tblPostTag (
+        id INT PRIMARY KEY IDENTITY(1, 1),
+        post_id INT NOT NULL FOREIGN KEY REFERENCES tblPost(id),
+        tagged_user_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
+        status BIT DEFAULT 1
+        );
+
     CREATE TABLE tblComment (
         id INT PRIMARY KEY IDENTITY(1, 1),
         parent_comment_id INT NULL,
@@ -1630,29 +1655,6 @@ GO
 
     ---------------------------------------------------------------------
 
-    CREATE TABLE tblSavedPost (
-        user_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
-        post_id INT NOT NULL FOREIGN KEY REFERENCES tblPost(id),
-        save_time DATETIME DEFAULT GETDATE(),
-        status BIT DEFAULT 1,
-        PRIMARY KEY (user_id, post_id)
-    );
-
-    CREATE TABLE tblHiddenPost (
-        user_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
-        post_id INT NOT NULL FOREIGN KEY REFERENCES tblPost(id),
-        hidden_time DATETIME DEFAULT GETDATE(),
-        status BIT DEFAULT 1,
-        PRIMARY KEY (user_id, post_id)
-    );
-
-    CREATE TABLE tblPostTag (
-        id INT PRIMARY KEY IDENTITY(1, 1),
-        post_id INT NOT NULL FOREIGN KEY REFERENCES tblPost(id),
-        tagged_user_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
-        status BIT DEFAULT 1
-    );
-
     --CHAT
 
     CREATE TABLE tblChat (
@@ -1664,186 +1666,189 @@ GO
     );
     --------------PROC VALIDATE AND CREATE POST--------------
 
-    CREATE OR ALTER PROCEDURE sp_CreatePost
-        @owner_id INT,
-        @content NVARCHAR(MAX),
-        @privacy_setting VARCHAR(20),
-        @media_urls NVARCHAR(MAX) = NULL, -- Chuyển thành danh sách media_urls (dạng chuỗi, phân tách bằng dấu phẩy)
-        @tagged_user_ids NVARCHAR(MAX) = NULL,
-        @custom_list_id INT = NULL,
-        @new_post_id INT OUTPUT
-    AS
-    BEGIN
-        SET NOCOUNT ON;
+	CREATE OR ALTER PROCEDURE sp_CreatePost 
+		@owner_id INT,
+		@content NVARCHAR(MAX),
+		@privacy_setting VARCHAR(20),
+		@media_urls NVARCHAR(MAX) = NULL,
+		@tagged_user_ids NVARCHAR(MAX) = NULL,
+		@custom_list_id INT = NULL,
+		@group_id INT = NULL,
+		@new_post_id INT OUTPUT
+	AS
+	BEGIN
+		SET NOCOUNT ON;
 
-        BEGIN TRY
-            -- Kiểm tra owner_id có tồn tại và active không
-            IF NOT EXISTS (SELECT 1 FROM tblUser WHERE id = @owner_id AND status = 1)
-            BEGIN
-                RAISERROR('Người dùng không hợp lệ hoặc không hoạt động.', 16, 1);
-                RETURN;
-            END
+		BEGIN TRY
+			-- Kiểm tra owner_id hợp lệ
+			IF NOT EXISTS (SELECT 1 FROM tblUser WHERE id = @owner_id AND status = 1)
+			BEGIN
+				RAISERROR('Người dùng không hợp lệ hoặc không hoạt động.', 16, 1);
+				RETURN;
+			END
 
-            -- Kiểm tra content không rỗng
-            IF @content IS NULL OR LTRIM(RTRIM(@content)) = ''
-            BEGIN
-                RAISERROR('Nội dung không được để trống.', 16, 1);
-                RETURN;
-            END
+			-- Kiểm tra nội dung
+			IF @content IS NULL OR LTRIM(RTRIM(@content)) = ''
+			BEGIN
+				RAISERROR('Nội dung không được để trống.', 16, 1);
+				RETURN;
+			END
 
-            -- Kiểm tra từ khóa bị cấm
-            IF EXISTS (
-                SELECT 1 FROM tblBannedKeyword bk
-                WHERE @content LIKE '%' + bk.keyword + '%' AND bk.status = 1
-            )
-            BEGIN
-                RAISERROR('Nội dung chứa từ khóa bị cấm.', 16, 1);
-                RETURN;
-            END
+			-- Kiểm tra từ khóa bị cấm
+			IF EXISTS (
+				SELECT 1 FROM tblBannedKeyword bk
+				WHERE @content LIKE '%' + bk.keyword + '%' AND bk.status = 1
+			)
+			BEGIN
+				RAISERROR('Nội dung chứa từ khóa bị cấm.', 16, 1);
+				RETURN;
+			END
 
-            -- Kiểm tra chính sách nội dung
-            DECLARE @policy_valid BIT;
-            EXEC sp_CheckContentPolicy @content, @policy_valid OUTPUT;
-            IF @policy_valid = 0
-            BEGIN
-                RAISERROR('Nội dung vi phạm chính sách nền tảng.', 16, 1);
-                RETURN;
-            END
+			-- Chính sách nội dung
+			DECLARE @policy_valid BIT;
+			EXEC sp_CheckContentPolicy @content, @policy_valid OUTPUT;
+			IF @policy_valid = 0
+			BEGIN
+				RAISERROR('Nội dung vi phạm chính sách nền tảng.', 16, 1);
+				RETURN;
+			END
 
-            -- Kiểm tra privacy_setting hợp lệ
-            IF @privacy_setting NOT IN ('public', 'friends', 'only_me', 'custom', 'default')
-            BEGIN
-                RAISERROR('Cài đặt quyền riêng tư không hợp lệ.', 16, 1);
-                RETURN;
-            END
+			-- Kiểm tra quyền riêng tư
+			IF @privacy_setting NOT IN ('public', 'friends', 'only_me', 'custom', 'default')
+			BEGIN
+				RAISERROR('Cài đặt quyền riêng tư không hợp lệ.', 16, 1);
+				RETURN;
+			END
 
-            -- Kiểm tra custom_list_id nếu privacy_setting là 'custom'
-            IF @privacy_setting = 'custom' AND (@custom_list_id IS NULL OR NOT EXISTS (
-                SELECT 1 FROM tblCustomPrivacyLists
-                WHERE id = @custom_list_id AND user_id = @owner_id AND status = 1))
-            BEGIN
-                RAISERROR('custom_list_id không hợp lệ hoặc thiếu cho quyền riêng tư tùy chỉnh.', 16, 1);
-                RETURN;
-            END
+			-- Xử lý custom list
+			IF @privacy_setting = 'custom' AND (@custom_list_id IS NULL OR NOT EXISTS (
+				SELECT 1 FROM tblCustomPrivacyLists
+				WHERE id = @custom_list_id AND user_id = @owner_id AND status = 1))
+			BEGIN
+				RAISERROR('custom_list_id không hợp lệ hoặc thiếu cho quyền riêng tư tùy chỉnh.', 16, 1);
+				RETURN;
+			END
 
-            -- Kiểm tra nếu owner_id bị chặn bởi người trong custom_list_id hoặc chủ danh sách
-            IF @privacy_setting = 'custom' AND @custom_list_id IS NOT NULL
-            BEGIN
-                IF EXISTS (
-                    SELECT 1 FROM tblBlock b
-                    JOIN tblCustomPrivacyListMembers cplm ON b.blocked_user_id = cplm.member_user_id
-                    WHERE cplm.list_id = @custom_list_id AND b.user_id = @owner_id AND b.status = 1
-                )
-                BEGIN
-                    RAISERROR('Người dùng bị chặn bởi một hoặc nhiều thành viên trong danh sách tùy chỉnh.', 16, 1);
-                    RETURN;
-                END
-                IF EXISTS (
-                    SELECT 1 FROM tblBlock b
-                    JOIN tblCustomPrivacyLists cpl ON cpl.user_id = b.blocked_user_id
-                    WHERE cpl.id = @custom_list_id AND b.user_id = @owner_id AND b.status = 1
-                )
-                BEGIN
-                    RAISERROR('Người dùng bị chặn bởi chủ danh sách tùy chỉnh.', 16, 1);
-                    RETURN;
-                END
-            END
+			IF @privacy_setting = 'custom' AND @custom_list_id IS NOT NULL
+			BEGIN
+				IF EXISTS (
+					SELECT 1 FROM tblBlock b
+					JOIN tblCustomPrivacyListMembers cplm ON b.blocked_user_id = cplm.member_user_id
+					WHERE cplm.list_id = @custom_list_id AND b.user_id = @owner_id AND b.status = 1)
+				BEGIN
+					RAISERROR('Người dùng bị chặn bởi thành viên danh sách.', 16, 1);
+					RETURN;
+				END
 
-            -- Thêm bài viết mới
-            INSERT INTO tblPost (owner_id, content, privacy_setting, created_at, status)
-            VALUES (@owner_id, @content, @privacy_setting, GETDATE(), 1);
+				IF EXISTS (
+					SELECT 1 FROM tblBlock b
+					JOIN tblCustomPrivacyLists cpl ON cpl.user_id = b.blocked_user_id
+					WHERE cpl.id = @custom_list_id AND b.user_id = @owner_id AND b.status = 1)
+				BEGIN
+					RAISERROR('Người dùng bị chặn bởi chủ danh sách.', 16, 1);
+					RETURN;
+				END
+			END
 
-            -- Lấy ID bài viết vừa thêm
-            SET @new_post_id = SCOPE_IDENTITY();
+			-- Kiểm tra nếu là post group thì group_id phải hợp lệ và user là thành viên
+			IF @group_id IS NOT NULL
+			BEGIN
+				IF NOT EXISTS (
+					SELECT 1 FROM tblGroup g
+					JOIN tblGroupMember gm ON gm.group_id = g.id
+					WHERE g.id = @group_id AND g.status = 1
+						  AND gm.user_id = @owner_id AND gm.status = 1)
+				BEGIN
+					RAISERROR('Không thể đăng vào nhóm: Nhóm không tồn tại hoặc bạn không phải thành viên.', 16, 1);
+					RETURN;
+				END
+			END
 
-            -- Lưu quyền riêng tư nếu cần
-            IF @privacy_setting != 'default'
-            BEGIN
-                INSERT INTO tblContentPrivacy (content_id, content_type_id, privacy_setting, custom_list_id, updated_at, status)
-                VALUES (@new_post_id, 1, @privacy_setting, @custom_list_id, GETDATE(), 1);
-            END
+			-- Tạo bài viết
+			INSERT INTO tblPost (owner_id, content, privacy_setting, group_id, created_at, status)
+			VALUES (@owner_id, @content, @privacy_setting, @group_id, GETDATE(), 1);
 
-            -- Xử lý media_urls
-            IF @media_urls IS NOT NULL AND LTRIM(RTRIM(@media_urls)) <> ''
-            BEGIN
-                DECLARE @pos INT = 1, @len INT, @url VARCHAR(512), @media_type VARCHAR(10);
-                DECLARE @media_type_id INT;
+			SET @new_post_id = SCOPE_IDENTITY();
 
-                SET @media_urls = @media_urls + ',';
+			-- Lưu privacy riêng nếu không default
+			IF @privacy_setting != 'default'
+			BEGIN
+				INSERT INTO tblContentPrivacy (content_id, content_type_id, privacy_setting, custom_list_id, updated_at, status)
+				VALUES (@new_post_id, 1, @privacy_setting, @custom_list_id, GETDATE(), 1);
+			END
 
-                WHILE CHARINDEX(',', @media_urls, @pos) > 0
-                BEGIN
-                    SET @len = CHARINDEX(',', @media_urls, @pos) - @pos;
-                    SET @url = SUBSTRING(@media_urls, @pos, @len);
-                    SET @pos = CHARINDEX(',', @media_urls, @pos) + 1;
+			-- Xử lý media
+			IF @media_urls IS NOT NULL AND LTRIM(RTRIM(@media_urls)) <> ''
+			BEGIN
+				DECLARE @pos INT = 1, @len INT, @url VARCHAR(512), @media_type VARCHAR(10), @media_type_id INT;
+				SET @media_urls = @media_urls + ',';
 
-                    IF LTRIM(RTRIM(@url)) <> ''
-                    BEGIN
-                        -- Xác định media_type dựa trên đuôi file (ví dụ đơn giản)
-                        SET @media_type =
-                            CASE
-                                WHEN @url LIKE '%.jpg' OR @url LIKE '%.png' OR @url LIKE '%.jpeg' THEN 'image'
-                                WHEN @url LIKE '%.mp4' OR @url LIKE '%.mov' THEN 'video'
-                                WHEN @url LIKE '%.mp3' OR @url LIKE '%.wav' THEN 'audio'
-                                ELSE 'image' -- Mặc định là image nếu không xác định được
-                            END;
+				WHILE CHARINDEX(',', @media_urls, @pos) > 0
+				BEGIN
+					SET @len = CHARINDEX(',', @media_urls, @pos) - @pos;
+					SET @url = SUBSTRING(@media_urls, @pos, @len);
+					SET @pos = CHARINDEX(',', @media_urls, @pos) + 1;
 
-                        -- Lấy media_type_id
-                        SELECT @media_type_id = id FROM tblMediaType WHERE name = @media_type AND status = 1;
+					IF LTRIM(RTRIM(@url)) <> ''
+					BEGIN
+						SET @media_type = CASE
+							WHEN @url LIKE '%.jpg' OR @url LIKE '%.png' OR @url LIKE '%.jpeg' THEN 'image'
+							WHEN @url LIKE '%.mp4' OR @url LIKE '%.mov' THEN 'video'
+							WHEN @url LIKE '%.mp3' OR @url LIKE '%.wav' THEN 'audio'
+							ELSE 'image'
+						END;
 
-                        IF @media_type_id IS NOT NULL
-                        BEGIN
-                            INSERT INTO tblMedia (target_id, target_type_id, media_type_id, media_url, created_at, status)
-                            VALUES (@new_post_id, 1, @media_type_id, @url, GETDATE(), 1);
-                        END
-                    END
-                END
-            END
+						SELECT @media_type_id = id FROM tblMediaType WHERE name = @media_type AND status = 1;
 
-            -- Xử lý tag người dùng
-            IF @tagged_user_ids IS NOT NULL AND LTRIM(RTRIM(@tagged_user_ids)) <> ''
-            BEGIN
-                DECLARE @tag_pos INT = 1, @tag_len INT, @id_str VARCHAR(20);
-                DECLARE @tagged_user_id INT;
-                DECLARE @has_access BIT;
+						IF @media_type_id IS NOT NULL
+						BEGIN
+							INSERT INTO tblMedia (target_id, target_type_id, media_type_id, media_url, created_at, status)
+							VALUES (@new_post_id, 1, @media_type_id, @url, GETDATE(), 1);
+						END
+					END
+				END
+			END
 
-                SET @tagged_user_ids = @tagged_user_ids + ',';
+			-- Xử lý tag user
+			IF @tagged_user_ids IS NOT NULL AND LTRIM(RTRIM(@tagged_user_ids)) <> ''
+			BEGIN
+				DECLARE @tag_pos INT = 1, @tag_len INT, @id_str VARCHAR(20), @tagged_user_id INT, @has_access BIT;
+				SET @tagged_user_ids = @tagged_user_ids + ',';
 
-                WHILE CHARINDEX(',', @tagged_user_ids, @tag_pos) > 0
-                BEGIN
-                    SET @tag_len = CHARINDEX(',', @tagged_user_ids, @tag_pos) - @tag_pos;
-                    SET @id_str = SUBSTRING(@tagged_user_ids, @tag_pos, @tag_len);
-                    SET @tag_pos = CHARINDEX(',', @tagged_user_ids, @tag_pos) + 1;
+				WHILE CHARINDEX(',', @tagged_user_ids, @tag_pos) > 0
+				BEGIN
+					SET @tag_len = CHARINDEX(',', @tagged_user_ids, @tag_pos) - @tag_pos;
+					SET @id_str = SUBSTRING(@tagged_user_ids, @tag_pos, @tag_len);
+					SET @tag_pos = CHARINDEX(',', @tagged_user_ids, @tag_pos) + 1;
 
-                    IF ISNUMERIC(@id_str) = 1
-                    BEGIN
-                        SET @tagged_user_id = CAST(@id_str AS INT);
-                        EXEC sp_CheckContentAccess @tagged_user_id, @new_post_id, 1, @has_access OUTPUT;
+					IF ISNUMERIC(@id_str) = 1
+					BEGIN
+						SET @tagged_user_id = CAST(@id_str AS INT);
+						EXEC sp_CheckContentAccess @tagged_user_id, @new_post_id, 1, @has_access OUTPUT;
 
-                        IF @has_access = 1
-                           AND EXISTS (SELECT 1 FROM tblUser WHERE id = @tagged_user_id AND status = 1)
-                           AND NOT EXISTS (
-                               SELECT 1 FROM tblBlock
-                               WHERE user_id = @owner_id AND blocked_user_id = @tagged_user_id AND status = 1
-                           )
-                        BEGIN
-                            INSERT INTO tblPostTag (post_id, tagged_user_id, status)
-                            VALUES (@new_post_id, @tagged_user_id, 1);
-                        END
-                    END
-                END
-            END
+						IF @has_access = 1
+						   AND EXISTS (SELECT 1 FROM tblUser WHERE id = @tagged_user_id AND status = 1)
+						   AND NOT EXISTS (
+							   SELECT 1 FROM tblBlock
+							   WHERE user_id = @owner_id AND blocked_user_id = @tagged_user_id AND status = 1)
+						BEGIN
+							INSERT INTO tblPostTag (post_id, tagged_user_id, status)
+							VALUES (@new_post_id, @tagged_user_id, 1);
+						END
+					END
+				END
+			END
 
-            -- Ghi log hoạt động
-            DECLARE @action_type_id INT;
-            SELECT @action_type_id = id FROM tblActionType WHERE name = 'POST_CREATE';
+			-- Ghi log
+			DECLARE @action_type_id INT;
+			SELECT @action_type_id = id FROM tblActionType WHERE name = 'POST_CREATE';
+			EXEC sp_LogActivity @owner_id, @action_type_id, NULL, NULL, 1, @new_post_id, 'POST';
 
-            EXEC sp_LogActivity @owner_id, @action_type_id, NULL, NULL, 1, @new_post_id, 'POST';
-        END TRY
-        BEGIN CATCH
-            THROW;
-        END CATCH
-    END;
+		END TRY
+		BEGIN CATCH
+			THROW;
+		END CATCH
+	END;
 
     ------------------------------------------
 
@@ -2284,7 +2289,8 @@ WHERE definition LIKE '%friendship%';
         name NVARCHAR(100),
         description NVARCHAR(255),
         created_at DATETIME DEFAULT GETDATE(),
-        status BIT DEFAULT 1
+        status BIT DEFAULT 1,
+		privacy_level VARCHAR(20) CHECK (privacy_level IN ('public', 'private', 'hidden')) DEFAULT 'public'
     );
 
     CREATE TABLE tblGroupMember (

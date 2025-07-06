@@ -1,6 +1,5 @@
 package com.example.social_media.dto.user;
 
-import com.example.social_media.entity.User;
 
 public class UserDto {
     private Integer id;

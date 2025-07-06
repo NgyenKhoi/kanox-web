@@ -44,6 +44,13 @@ public class Group {
     @OneToMany(mappedBy = "group")
     private Set<GroupMember> tblGroupMembers = new LinkedHashSet<>();
 
+    @OneToMany(mappedBy = "group")
+    private Set<Post> tblPosts = new LinkedHashSet<>();
+
+    @Size(max = 20)
+    @Column(name = "privacy_level", length = 20)
+    private String privacyLevel = "public";
+
     public Integer getId() {
         return id;
     }
@@ -100,4 +107,19 @@ public class Group {
         this.tblGroupMembers = tblGroupMembers;
     }
 
+    public Set<Post> getTblPosts() {
+        return tblPosts;
+    }
+
+    public void setTblPosts(Set<Post> tblPosts) {
+        this.tblPosts = tblPosts;
+    }
+
+    public String getPrivacyLevel() {
+        return privacyLevel;
+    }
+
+    public void setPrivacyLevel(String privacyLevel) {
+        this.privacyLevel = privacyLevel;
+    }
 }

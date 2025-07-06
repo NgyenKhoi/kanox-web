@@ -5,7 +5,7 @@ import com.example.social_media.document.GroupDocument;
 import com.example.social_media.document.PageDocument;
 import com.example.social_media.document.UserDocument;
 import com.example.social_media.dto.search.SearchResponseDto;
-import com.example.social_media.dto.user.GroupDto;
+import com.example.social_media.dto.group.GroupDto;
 import com.example.social_media.dto.user.PageDto;
 import com.example.social_media.dto.user.UserDto;
 import com.example.social_media.mapper.DocumentMapper;

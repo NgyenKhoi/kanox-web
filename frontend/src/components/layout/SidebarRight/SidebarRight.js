@@ -157,6 +157,9 @@ function SidebarRight() {
             <button className="border border-[var(--border-color)] text-sm rounded-full px-3 py-1 font-bold">
               Theo dõi
             </button>
+            <button className="border border-[var(--border-color)] text-sm rounded-full px-3 py-1 font-bold">
+              Kết Bạn
+            </button>
           </div>
         ))}
         <div className="px-4 py-2 font-bold text-sm hover:bg-[var(--hover-bg-color)] cursor-pointer">

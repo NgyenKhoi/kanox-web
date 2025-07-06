@@ -234,15 +234,22 @@ function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
       if (!token) throw new Error("Vui lòng đăng nhập để bình luận!");
 
       const formData = new FormData();
-      formData.append("userId", user?.id);
-      formData.append("postId", id);
-      formData.append("content", newComment);
-      formData.append("privacySetting", "public");
-      formData.append("parentCommentId", null);
-      formData.append("customListId", null);
+      const commentPayload = {
+        userId: user?.id,
+        postId: id,
+        content: newComment,
+        privacySetting: "public",
+        parentCommentId: null,
+        customListId: null,
+      };
 
-      selectedMediaFiles.forEach((file, index) => {
-        formData.append(`media`, file);
+      formData.append(
+          "comment",
+          new Blob([JSON.stringify(commentPayload)], { type: "application/json" })
+      );
+
+      selectedMediaFiles.forEach((file) => {
+        formData.append("media", file);
       });
 
       const response = await fetch(`${process.env.REACT_APP_API_URL}/comments`, {
@@ -258,8 +265,8 @@ function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
 
       toast.success("Đã đăng bình luận!");
       setNewComment("");
-      setSelectedMediaFiles([]); // Xóa danh sách file sau khi gửi
-      setSelectedMediaPreviews([]); // Xóa preview
+      setSelectedMediaFiles([]);
+      setSelectedMediaPreviews([]);
 
       const newCommentObj = data.data;
       setComments((prev) => [newCommentObj, ...prev]);
@@ -400,6 +407,24 @@ function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
     }
   };
 
+  useEffect(() => {
+    if (!selectedMediaFiles || selectedMediaFiles.length === 0) {
+      setSelectedMediaPreviews([]);
+      return;
+    }
+
+    const previews = selectedMediaFiles.map((file) => {
+      const url = URL.createObjectURL(file);
+      return { url, type: file.type };
+    });
+
+    setSelectedMediaPreviews(previews);
+
+    return () => {
+      previews.forEach((p) => URL.revokeObjectURL(p.url));
+    };
+  }, [selectedMediaFiles]);
+
 
   const renderComments = () => {
     if (isLoadingComments) return <div className="text-[var(--text-color-muted)]">Đang tải bình luận...</div>;
@@ -407,18 +432,23 @@ function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
     if (!Array.isArray(comments) || comments.length === 0)
       return <div className="text-[var(--text-color-muted)]">Chưa có bình luận nào.</div>;
 
-    return comments.map((comment) => (
-        <CommentThread
-            key={comment.commentId}
-            comment={comment}
-            currentUserId={currentUserId}
-            onReply={handleReplyToComment}
-            onUpdate={handleUpdateComment}
-            onDelete={handleDeleteComment}
-            currentUser={user}
-        />
-    ));
-  };
+    return (
+        <>
+          {comments.map((comment) => (
+              <CommentThread
+                  key={comment.commentId}
+                  comment={comment}
+                  currentUserId={currentUserId}
+                  onReply={handleReplyToComment}
+                  onUpdate={handleUpdateComment}
+                  onDelete={handleDeleteComment}
+                  currentUser={user}
+              />
+          ))}
+        </>
+    );
+  }
+  
   return (
       <>
         <Card className="mb-3 rounded-2xl shadow-sm border-0 bg-[var(--background-color)]">
@@ -428,7 +458,7 @@ function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
                 <img
                     src={avatarUrl}
                     alt="Ảnh đại diện"
-                    className="rounded-full w-9 h-9 object-cover flex-shrink-0"
+                    className="w-[50px] h-[50px] rounded-full object-cover mr-3 flex-shrink-0"
                 />
             ) : (
                 <FaUserCircle
@@ -737,7 +767,7 @@ function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
                               placeholder="Viết bình luận..."
                               value={newComment}
                               onChange={(e) => setNewComment(e.target.value)}
-                              className="rounded-full border-[var(--border-color)] bg-[var(--background-color)] text-[var(--text-color)]"
+                              className="rounded-full border-[var(--border-color)] bg-[var(--hover-bg-color)] text-[var(--text-color)] transition-colors duration-200"
                               disabled={isCommenting}
                               ref={commentInputRef}
                           />
@@ -792,6 +822,37 @@ function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
                                 }}
                             />
 
+                            {selectedMediaPreviews.length > 0 && (
+                                <div className="flex flex-wrap gap-3 my-2">
+                                  {selectedMediaPreviews.map((media, index) => {
+                                    if (media.type.startsWith("image/")) {
+                                      return (
+                                          <img
+                                              key={index}
+                                              src={media.url}
+                                              alt={`preview-${index}`}
+                                              className="w-24 h-24 object-cover rounded border"
+                                          />
+                                      );
+                                    } else if (media.type.startsWith("video/")) {
+                                      return (
+                                          <video
+                                              key={index}
+                                              controls
+                                              src={media.url}
+                                              className="w-24 h-24 object-cover rounded border"
+                                          />
+                                      );
+                                    } else if (media.type.startsWith("audio/")) {
+                                      return (
+                                          <audio key={index} controls src={media.url} className="w-full" />
+                                      );
+                                    } else {
+                                      return null;
+                                    }
+                                  })}
+                                </div>
+                            )}
                             {/* Send button */}
                             <Button
                                 type="submit"
@@ -821,9 +882,24 @@ function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
                                                     key={idx}
                                                     className="text-2xl cursor-pointer m-1"
                                                     onClick={() => {
-                                                      setNewComment((prev) => prev + emoji.emoji);
+                                                      const input = commentInputRef.current;
+                                                      if (!input) return;
+
+                                                      const start = input.selectionStart;
+                                                      const end = input.selectionEnd;
+                                                      const emojiChar = emoji.emoji;
+
+                                                      const updated = newComment.slice(0, start) + emojiChar + newComment.slice(end);
+                                                      setNewComment(updated);
+
+                                                      // Đặt lại vị trí con trỏ sau emoji
+                                                      setTimeout(() => {
+                                                        input.focus();
+                                                        const cursor = start + emojiChar.length;
+                                                        input.setSelectionRange(cursor, cursor);
+                                                      }, 0);
+
                                                       setShowEmojiPicker(false);
-                                                      commentInputRef.current?.focus();
                                                     }}
                                                 >
                   {emoji.emoji}

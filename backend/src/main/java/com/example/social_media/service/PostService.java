@@ -36,11 +36,15 @@ public class PostService {
     private final CommentRepository commentRepository;
     private final SavedPostRepository savedPostRepository;
     private final HiddenPostRepository hiddenPostRepository;
+    private final GroupRepository groupRepository;
+    private final GroupMemberRepository groupMemberRepository;
     public PostService(PostRepository postRepository, PostTagRepository postTagRepository,
             UserRepository userRepository, ContentPrivacyRepository contentPrivacyRepository,
             CustomPrivacyListRepository customPrivacyListRepository, PrivacyService privacyService,
             MediaService mediaService, CommentRepository commentRepository,
-                       SavedPostRepository savedPostRepository, HiddenPostRepository hiddenPostRepository) {
+                       SavedPostRepository savedPostRepository, HiddenPostRepository hiddenPostRepository,
+                       GroupRepository groupRepository,
+                       GroupMemberRepository groupMemberRepository) {
         this.postRepository = postRepository;
         this.postTagRepository = postTagRepository;
         this.userRepository = userRepository;
@@ -51,6 +55,8 @@ public class PostService {
         this.commentRepository = commentRepository;
         this.savedPostRepository = savedPostRepository;
         this.hiddenPostRepository = hiddenPostRepository;
+        this.groupRepository = groupRepository;
+        this.groupMemberRepository = groupMemberRepository;
     }
 
     @Transactional
@@ -64,17 +70,14 @@ public class PostService {
         String privacySetting = dto.getPrivacySetting() != null ? dto.getPrivacySetting()
                 : privacyService.getPrivacySettingByUserId(user.getId()).getPostViewer();
 
-        // Normalize privacySetting: map 'private' to 'only_me'
         if ("private".equals(privacySetting)) {
             privacySetting = "only_me";
         }
 
-        // Validate privacySetting
         if (!List.of("public", "friends", "only_me", "custom").contains(privacySetting)) {
             throw new IllegalArgumentException("Invalid privacy setting: " + privacySetting);
         }
 
-        // Validate and fetch CustomPrivacyList if privacySetting is 'custom'
         CustomPrivacyList customList = null;
         Integer customListId = dto.getCustomListId();
         if ("custom".equals(privacySetting)) {
@@ -89,8 +92,13 @@ public class PostService {
                 ? String.join(",", dto.getTaggedUserIds().stream().map(String::valueOf).toList())
                 : null;
 
+        Integer groupId = dto.getGroupId();
+        if (groupId != null && !groupRepository.findByIdAndStatusTrue(groupId).isPresent()) {
+            throw new IllegalArgumentException("Group not found or inactive with id: " + groupId);
+        }
+
         Integer newPostId = postRepository.createPost(
-                user.getId(), dto.getContent(), privacySetting, null, taggedUserIds, customListId);
+                user.getId(), dto.getContent(), privacySetting, null, taggedUserIds, customListId, groupId);
 
         if (newPostId == null) {
             throw new RegistrationException("Failed to create post");
@@ -99,7 +107,6 @@ public class PostService {
         Post latestPost = postRepository.findById(newPostId)
                 .orElseThrow(() -> new RegistrationException("Post creation failed - not found"));
 
-        // Tạo ContentPrivacy cho post mới
         ContentPrivacy contentPrivacy = contentPrivacyRepository.findByContentIdAndContentTypeId(newPostId, 1)
                 .orElseGet(() -> {
                     ContentPrivacy newPrivacy = new ContentPrivacy();
@@ -114,7 +121,6 @@ public class PostService {
         contentPrivacy.setCustomList(customList);
         contentPrivacyRepository.save(contentPrivacy);
 
-        // Upload media files if provided
         if (mediaFiles != null && !mediaFiles.isEmpty()) {
             try {
                 mediaService.uploadPostMediaFiles(user.getId(), newPostId, mediaFiles, dto.getContent());
@@ -369,11 +375,22 @@ public class PostService {
         dto.setCommentCount(post.getTblComments().size());
         dto.setLikeCount(0);
         dto.setShareCount(0);
-        dto.setSaved(savedPostRepository.existsByUserIdAndPostIdAndStatusTrue(
-                currentUserId, post.getId()));
+        dto.setSaved(savedPostRepository.existsByUserIdAndPostIdAndStatusTrue(currentUserId, post.getId()));
+
+        // Add group info if post belongs to a group
+        if (post.getGroup() != null) {
+            dto.setGroupId(post.getGroup().getId());
+            dto.setGroupName(post.getGroup().getName());
+            String groupAvatarUrl = mediaService.getFirstMediaUrlByTarget(
+                    post.getGroup().getId(), "GROUP");
+            dto.setGroupAvatarUrl(groupAvatarUrl);
+
+            dto.setGroupPrivacyLevel(post.getGroup().getPrivacyLevel());
+        }
 
         return dto;
     }
+
 
     public List<PostResponseDto> getSavedPostsForUser(String username, Instant from, Instant to) {
         var user = userRepository.findByUsernameAndStatusTrue(username)
@@ -387,4 +404,26 @@ public class PostService {
                 .collect(Collectors.toList());
     }
 
+    public List<PostResponseDto> getCommunityFeed(String username) {
+        User user = userRepository.findByUsernameAndStatusTrue(username)
+                .orElseThrow(() -> new UserNotFoundException("Người dùng không tồn tại"));
+
+        List<Integer> joinedGroupIds = groupMemberRepository
+                .findByUserIdAndStatusTrueAndInviteStatusAccepted(user.getId())
+                .stream()
+                .map(member -> member.getGroup().getId())
+                .toList();
+
+        List<Post> posts;
+        if (!joinedGroupIds.isEmpty()) {
+            posts = postRepository.findByGroupIdInAndStatusTrueOrderByCreatedAtDesc(joinedGroupIds);
+        } else {
+            posts = postRepository.findPostsFromPublicGroups();
+        }
+
+        return posts.stream()
+                .filter(post -> hasAccess(user.getId(), post.getId(), 1)) // kiểm tra quyền xem
+                .map(post -> convertToDto(post, user.getId()))
+                .toList();
+    }
 }

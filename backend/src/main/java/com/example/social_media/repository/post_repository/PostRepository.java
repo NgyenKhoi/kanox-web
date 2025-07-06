@@ -17,7 +17,8 @@ public interface PostRepository extends JpaRepository<Post, Integer> {
             @Param("privacy_setting") String privacySetting,
             @Param("media_urls") String mediaUrls,
             @Param("tagged_user_ids") String taggedUserIds,
-            @Param("custom_list_id") Integer customListId
+            @Param("custom_list_id") Integer customListId,
+            @Param("group_id") Integer groupId
     );
 
     @Query(value = """
@@ -55,4 +56,9 @@ public interface PostRepository extends JpaRepository<Post, Integer> {
     List<Post> findActivePostsByUsername(String username);
 
     int countByOwnerIdAndStatusTrue(Integer ownerId);
+
+    @Query("SELECT p FROM Post p WHERE p.status = true AND p.group IS NOT NULL AND p.group.status = true ORDER BY p.createdAt DESC")
+    List<Post> findPostsFromPublicGroups();
+
+    List<Post> findByGroupIdInAndStatusTrueOrderByCreatedAtDesc(List<Integer> groupIds);
 }
