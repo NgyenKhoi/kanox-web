@@ -1,6 +1,7 @@
 package com.example.social_media.controller;
 
 import com.example.social_media.config.URLConfig;
+import com.example.social_media.dto.group.GroupCreateDto;
 import com.example.social_media.dto.group.GroupDisplayDto;
 import com.example.social_media.dto.group.GroupSimpleDto;
 import com.example.social_media.dto.user.UserBasicDisplayDto;
@@ -33,26 +34,24 @@ public class GroupController {
     }
 
     @PostMapping(value = URLConfig.CREATE_GROUP, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Map<String, Object>> createGroup(
-            @RequestPart String ownerUsername,
-            @RequestPart String name,
-            @RequestPart(required = false) String description,
-            @RequestPart(required = false) String privacyLevel,
-            @RequestPart(required = false) MultipartFile avatar
+    public ResponseEntity<?> createGroup(
+            @RequestPart("data") GroupCreateDto dto,
+            @RequestPart(value = "avatar", required = false) MultipartFile avatar
     ) throws IOException {
-        if (privacyLevel == null || privacyLevel.isBlank()) {
-            privacyLevel = "public";
-        }
+        String privacyLevel = dto.getPrivacyLevel() == null || dto.getPrivacyLevel().isBlank()
+                ? "public" : dto.getPrivacyLevel();
 
-        Group group = groupService.createGroup(ownerUsername, name, description, privacyLevel, avatar);
-        GroupDisplayDto groupDto = groupService.getGroupDetail(group.getId(), ownerUsername);
+        Group group = groupService.createGroup(
+                dto.getOwnerUsername(),
+                dto.getName(),
+                dto.getDescription(),
+                privacyLevel,
+                avatar
+        );
+        GroupDisplayDto groupDto = groupService.getGroupDetail(group.getId(), dto.getOwnerUsername());
 
-        return ResponseEntity.ok(Map.of(
-                "message", "Tạo nhóm thành công",
-                "data", groupDto
-        ));
+        return ResponseEntity.ok(Map.of("message", "Tạo nhóm thành công", "data", groupDto));
     }
-
     @PutMapping(value = "/{groupId}", consumes = { "multipart/form-data" })
     public ResponseEntity<Map<String, Object>> updateGroup(
             @PathVariable Integer groupId,
