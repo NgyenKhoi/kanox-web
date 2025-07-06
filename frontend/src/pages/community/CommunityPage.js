@@ -231,7 +231,7 @@ function CommunityPage() {
         </Col>
 
         {/* Sidebar Right */}
-        <Col xs={0} lg={4} className="d-none d-lg-block">
+        <Col xs={0} lg={4} className="d-none d-lg-block border-start p-0">
           <SidebarRight />
         </Col>
       </Row>
