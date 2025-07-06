@@ -20,6 +20,7 @@ const Call = ({ onEndCall }) => {
     const localVideoRef = useRef(null);
     const remoteVideoRef = useRef(null);
     const localStreamRef = useRef(null);
+    const [localStream, setLocalStream] = useState(null);
     const [isStringeeConnected, setIsStringeeConnected] = useState(false);
 
     useEffect(() => {
@@ -364,22 +365,15 @@ const Call = ({ onEndCall }) => {
     };
 
     const toggleVideo = () => {
-        if (!stringeeCallRef.current || !localVideoRef.current?.srcObject) {
+        if (!stringeeCallRef.current || !localStreamRef.current) {
             toast.error("Không thể tắt camera: Cuộc gọi chưa sẵn sàng.");
             return;
         }
 
         const newVideoState = !isVideoOff;
-        try {
-            // Gọi hàm enableVideo của Stringee (nếu có)
-            if (typeof stringeeCallRef.current.enableVideo === "function") {
-                stringeeCallRef.current.enableVideo(!newVideoState);
-            } else {
-                console.warn("Hàm enableVideo không tồn tại trong Stringee SDK.");
-            }
 
-            // Cập nhật trạng thái track video
-            const videoTracks = localStreamRef.current.srcObject.getVideoTracks();
+        try {
+            const videoTracks = localStreamRef.current.getVideoTracks();
             if (videoTracks.length > 0) {
                 videoTracks.forEach((track) => {
                     track.enabled = !newVideoState;
@@ -395,6 +389,7 @@ const Call = ({ onEndCall }) => {
             toast.error("Lỗi khi điều chỉnh camera.");
         }
     };
+
 
 
     return (
