@@ -46,10 +46,15 @@ function CreateGroupModal({ show, onHide, onGroupCreated }) {
 
         try {
             const formData = new FormData();
-            formData.append("ownerUsername", username);
-            formData.append("name", groupForm.name);
-            formData.append("description", groupForm.description);
-            formData.append("privacyLevel", groupForm.privacyLevel);
+            const dataBlob = new Blob([JSON.stringify({
+                ownerUsername: username,
+                name: groupForm.name,
+                description: groupForm.description,
+                privacyLevel: groupForm.privacyLevel
+            })], { type: "application/json" });
+
+            formData.append("data", dataBlob);
+
             if (avatarFile) {
                 formData.append("avatar", avatarFile);
             }

@@ -33,12 +33,24 @@ public class GroupController {
         this.jwtService = jwtService;
     }
 
-    @PostMapping(value = URLConfig.CREATE_GROUP, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = URLConfig.CREATE_GROUP, consumes = { MediaType.MULTIPART_FORM_DATA_VALUE, MediaType.APPLICATION_JSON_VALUE })
     public ResponseEntity<?> createGroup(
-            @RequestPart("data") GroupCreateDto dto,
+            @RequestPart(value = "data", required = false) GroupCreateDto dtoFromPart,
+            @RequestBody(required = false) GroupCreateDto dtoFromJson,
             @RequestPart(value = "avatar", required = false) MultipartFile avatar
     ) throws IOException {
-        String privacyLevel = dto.getPrivacyLevel() == null || dto.getPrivacyLevel().isBlank()
+
+        GroupCreateDto dto = dtoFromPart != null ? dtoFromPart : dtoFromJson;
+
+        if (dto == null) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", "Thiếu thông tin nhóm",
+                    "errors", new HashMap<>()
+            ));
+        }
+
+        String privacyLevel = (dto.getPrivacyLevel() == null || dto.getPrivacyLevel().isBlank())
                 ? "public" : dto.getPrivacyLevel();
 
         Group group = groupService.createGroup(
@@ -50,8 +62,12 @@ public class GroupController {
         );
         GroupDisplayDto groupDto = groupService.getGroupDetail(group.getId(), dto.getOwnerUsername());
 
-        return ResponseEntity.ok(Map.of("message", "Tạo nhóm thành công", "data", groupDto));
+        return ResponseEntity.ok(Map.of(
+                "message", "Tạo nhóm thành công",
+                "data", groupDto
+        ));
     }
+
     @PutMapping(value = "/{groupId}", consumes = { "multipart/form-data" })
     public ResponseEntity<Map<String, Object>> updateGroup(
             @PathVariable Integer groupId,
