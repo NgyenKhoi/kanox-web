@@ -30,7 +30,7 @@ export const adminService = {
   
   // Lấy danh sách người dùng
   async getUsers(page = 0, size = 10, search = '') {
-    const url = new URL(`${API_BASE_URL}/api/admin/users`);
+    const url = new URL(`${API_BASE_URL}/admin/users`);
     url.searchParams.append('page', page);
     url.searchParams.append('size', size);
     if (search) {
@@ -47,7 +47,7 @@ export const adminService = {
 
   // Lấy thông tin chi tiết một người dùng
   async getUserById(userId) {
-    const response = await fetch(`${API_BASE_URL}/api/admin/users/${userId}`, {
+    const response = await fetch(`${API_BASE_URL}/admin/users/${userId}`, {
       method: 'GET',
       headers: getHeaders(),
     });
@@ -57,7 +57,7 @@ export const adminService = {
 
   // Cập nhật thông tin người dùng
   async updateUser(userId, userUpdate) {
-    const response = await fetch(`${API_BASE_URL}/api/admin/users/${userId}`, {
+    const response = await fetch(`${API_BASE_URL}/admin/users/${userId}`, {
       method: 'PUT',
       headers: getHeaders(),
       body: JSON.stringify(userUpdate),
@@ -68,7 +68,7 @@ export const adminService = {
 
   // Cập nhật trạng thái người dùng (khóa/mở khóa)
   async updateUserStatus(userId, status) {
-    const response = await fetch(`${API_BASE_URL}/api/admin/users/${userId}/status?status=${status}`, {
+    const response = await fetch(`${API_BASE_URL}/admin/users/${userId}/status?status=${status}`, {
       method: 'PATCH',
       headers: getHeaders(),
     });
@@ -78,7 +78,7 @@ export const adminService = {
 
   // Cấp quyền admin
   async grantAdminRole(userId) {
-    const response = await fetch(`${API_BASE_URL}/api/admin/users/${userId}/admin`, {
+    const response = await fetch(`${API_BASE_URL}/admin/users/${userId}/admin`, {
       method: 'PATCH',
       headers: getHeaders(),
     });
@@ -88,7 +88,7 @@ export const adminService = {
 
   // Hủy quyền admin
   async revokeAdminRole(userId) {
-    const response = await fetch(`${API_BASE_URL}/api/admin/users/${userId}/revoke-admin`, {
+    const response = await fetch(`${API_BASE_URL}/admin/users/${userId}/revoke-admin`, {
       method: 'PATCH',
       headers: getHeaders(),
     });
@@ -98,7 +98,7 @@ export const adminService = {
 
   // Gửi thông báo cho người dùng
   async sendNotification(userId, message, type = 'ADMIN_MESSAGE') {
-    const response = await fetch(`${API_BASE_URL}/api/admin/users/send-notification`, {
+    const response = await fetch(`${API_BASE_URL}/admin/users/send-notification`, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify({

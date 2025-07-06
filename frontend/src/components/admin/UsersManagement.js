@@ -10,8 +10,6 @@ const UsersManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUser, setSelectedUser] = useState(null);
   const [showUserModal, setShowUserModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editingUser, setEditingUser] = useState(null);
 
   // Lấy danh sách người dùng từ API
   const fetchUsers = async (page = 0, search = "") => {
@@ -42,30 +40,9 @@ const UsersManagement = () => {
     }
   };
 
-  // Chỉnh sửa người dùng
-  const handleEdit = async (id) => {
-    try {
-      const result = await adminService.getUserById(id);
-      setEditingUser(result.data);
-      setShowEditModal(true);
-    } catch (error) {
-      console.error('Error fetching user for edit:', error);
-      toast.error(error.message || "Lỗi khi tải thông tin người dùng");
-    }
-  };
-
-  // Lưu thay đổi người dùng
-  const handleSaveEdit = async (updatedUserData) => {
-    try {
-      await adminService.updateUser(editingUser.id, updatedUserData);
-      toast.success("Đã cập nhật thông tin người dùng thành công");
-      setShowEditModal(false);
-      setEditingUser(null);
-      fetchUsers(currentPage, searchTerm);
-    } catch (error) {
-      console.error('Error updating user:', error);
-      toast.error(error.message || "Lỗi khi cập nhật thông tin người dùng");
-    }
+  // Chỉnh sửa người dùng (placeholder)
+  const handleEdit = (id) => {
+    toast.info(`Chức năng chỉnh sửa người dùng ID: ${id} đang được phát triển`);
   };
 
   // Xóa người dùng (placeholder - thường không cho phép xóa hoàn toàn)
@@ -424,154 +401,7 @@ const UsersManagement = () => {
           </div>
         </div>
       )}
-      
-      {/* Modal chỉnh sửa người dùng */}
-      {showEditModal && editingUser && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-2xl font-bold text-gray-800">Chỉnh sửa người dùng</h3>
-              <button
-                onClick={() => {
-                  setShowEditModal(false);
-                  setEditingUser(null);
-                }}
-                className="text-gray-500 hover:text-gray-700 text-2xl"
-              >
-                ×
-              </button>
-            </div>
-            
-            <EditUserForm
-              user={editingUser}
-              onSave={handleSaveEdit}
-              onCancel={() => {
-                setShowEditModal(false);
-                setEditingUser(null);
-              }}
-            />
-          </div>
-        </div>
-      )}
     </div>
-  );
-};
-
-// Component form chỉnh sửa người dùng
-const EditUserForm = ({ user, onSave, onCancel }) => {
-  const [formData, setFormData] = useState({
-    displayName: user.displayName || '',
-    bio: user.bio || '',
-    phoneNumber: user.phoneNumber || '',
-    dateOfBirth: user.dateOfBirth ? user.dateOfBirth.split('T')[0] : '',
-    gender: user.gender || ''
-  });
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onSave(formData);
-  };
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Tên hiển thị
-          </label>
-          <input
-            type="text"
-            name="displayName"
-            value={formData.displayName}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="Nhập tên hiển thị"
-          />
-        </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Số điện thoại
-          </label>
-          <input
-            type="tel"
-            name="phoneNumber"
-            value={formData.phoneNumber}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="Nhập số điện thoại"
-          />
-        </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Ngày sinh
-          </label>
-          <input
-            type="date"
-            name="dateOfBirth"
-            value={formData.dateOfBirth}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-        </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Giới tính
-          </label>
-          <select
-            name="gender"
-            value={formData.gender}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="">Chọn giới tính</option>
-            <option value="MALE">Nam</option>
-            <option value="FEMALE">Nữ</option>
-            <option value="OTHER">Khác</option>
-          </select>
-        </div>
-      </div>
-      
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Tiểu sử
-        </label>
-        <textarea
-          name="bio"
-          value={formData.bio}
-          onChange={handleChange}
-          rows={3}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          placeholder="Nhập tiểu sử"
-        />
-      </div>
-      
-      <div className="flex justify-end space-x-3 pt-4">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors duration-200"
-        >
-          Hủy
-        </button>
-        <button
-          type="submit"
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
-        >
-          Lưu thay đổi
-        </button>
-      </div>
-    </form>
   );
 };
 
