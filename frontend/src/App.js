@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from "react";
-import { Container, Row, Col, Spinner, Modal, Button } from "react-bootstrap";
+import { Container, Row, Col, Spinner, Modal, Button, Image } from "react-bootstrap";
 import "./App.css";
 import PrivateRoute from "./components/common/PrivateRoute/PrivateRoute";
 
@@ -64,29 +64,6 @@ function AppContent() {
     fetchChatIds();
   }, [user, token]);
 
-  // useEffect(() => {
-  //   if (!subscribe || !unsubscribe || !publish || !chatIds.length) {
-  //     console.log("Skipping subscriptions: Missing WebSocket context or chatIds");
-  //     return;
-  //   }
-  //
-  //   const subscriptions = [];
-  //   chatIds.forEach((chatId) => {
-  //     subscriptions.push(
-  //         subscribe(`/topic/call/${chatId}`, (message) => {
-  //           console.log("Received call signal:", message);
-  //           if (message.type === "start" && message.userId !== user.id) {
-  //             setIncomingCall({
-  //               chatId: message.chatId,
-  //               sessionId: message.sessionId,
-  //               from: message.userId
-  //             });
-  //             setShowCallModal(true);
-  //           }
-  //         }, `call-${chatId}`)
-  //     );
-  //   });
-
   useEffect(() => {
     if (!subscribe || !unsubscribe || !publish || !chatIds.length) {
       console.log("Skipping subscriptions: Missing WebSocket context or chatIds");
@@ -96,33 +73,20 @@ function AppContent() {
     const subscriptions = [];
     chatIds.forEach((chatId) => {
       subscriptions.push(
-          subscribe(`/topic/call/${chatId}`, async (message) => {
+          subscribe(`/topic/call/${chatId}`, (message) => {
             console.log("Received call signal:", message);
             if (message.type === "start" && message.userId !== user.id) {
-              try {
-                const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/${chatId}`, {
-                  headers: { Authorization: `Bearer ${token}` },
-                });
-                if (response.ok) {
-                  const chatData = await response.json();
-                  const caller = chatData.members.find((member) => member.id === message.userId);
-                  setIncomingCall({
-                    chatId: message.chatId,
-                    sessionId: message.sessionId,
-                    from: message.userId,
-                    callerName: caller ? caller.username : "Unknown User",
-                  });
-                  setShowCallModal(true);
-                } else {
-                  console.error("Error fetching chat data");
-                }
-              } catch (error) {
-                console.error("Error fetching caller info:", error);
-              }
+              setIncomingCall({
+                chatId: message.chatId,
+                sessionId: message.sessionId,
+                from: message.userId
+              });
+              setShowCallModal(true);
             }
           }, `call-${chatId}`)
       );
     });
+
 
     const handleIncomingCall = (event) => {
       const { chatId, sessionId, from, to } = event.detail;
@@ -218,9 +182,21 @@ function AppContent() {
                       className="bg-[var(--background-color)] text-[var(--text-color)]"
                   >
                     <Modal.Header closeButton>
-                      <Modal.Title>Cuộc gọi đến từ {incomingCall?.callerName || "Unknown User"}</Modal.Title>
+                      <Modal.Title>Cuộc gọi đến</Modal.Title>
                     </Modal.Header>
-                    <Modal.Body>Bạn có muốn nhận cuộc gọi video?</Modal.Body>
+                    <Modal.Body className="d-flex align-items-center">
+                      <Image
+                          src="https://via.placeholder.com/50"
+                          roundedCircle
+                          width={50}
+                          height={50}
+                          className="me-3"
+                      />
+                      <div>
+                        <h5>{incomingCall?.from || "Người gọi không xác định"}</h5>
+                        <p>Đang gọi video...</p>
+                      </div>
+                    </Modal.Body>
                     <Modal.Footer>
                       <Button variant="secondary" onClick={rejectCall}>
                         Từ chối

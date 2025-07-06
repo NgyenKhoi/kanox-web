@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useContext } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Button } from "react-bootstrap";
+import { Button, Row, Col } from "react-bootstrap";
 import { FaMicrophone, FaMicrophoneSlash, FaVideo, FaVideoSlash, FaPhone } from "react-icons/fa";
 import { AuthContext } from "../../context/AuthContext";
 import { ToastContainer, toast } from "react-toastify";
@@ -48,7 +48,7 @@ const Call = ({ onEndCall }) => {
                     console.log("📄 All members:", members);
                 } else {
                     const errorText = await response.text();
-                    throw new Error(`Lỗi khi lấy danh sách thành viên: ${errorText}`);
+                    throw new Error("Lỗi khi lấy danh sách thành viên: ", `${errorText}`);
                 }
             } catch (err) {
                 if (isMounted) {
@@ -71,7 +71,7 @@ const Call = ({ onEndCall }) => {
                 if (!isMounted) return;
                 if (!response.ok) {
                     const errorText = await response.text();
-                    throw new Error(`Lỗi khi lấy access token: ${errorText}`);
+                    throw new Error("Lỗi khi lấy access token:", `${errorText}`);
                 }
                 const data = await response.json();
                 initializeStringee(data.accessToken);
@@ -88,25 +88,22 @@ const Call = ({ onEndCall }) => {
                 if (retryCount < 10) {
                     setTimeout(() => {
                         initializeStringee(accessToken, retryCount + 1);
-                    }, 200);
+                    }, 200); // mỗi 200ms kiểm tra lại
                 } else {
                     toast.error("Không thể tải Stringee SDK. Vui lòng tải lại trang.");
                 }
                 return;
             }
 
-            navigator.mediaDevices
-                .getUserMedia({ audio: true, video: true })
+            navigator.mediaDevices.getUserMedia({ audio: true, video: true })
                 .then((stream) => {
                     console.log("🎥 Đã có quyền truy cập camera và mic");
-                    if (localVideoRef.current) {
-                        localVideoRef.current.srcObject = stream;
-                    }
                 })
                 .catch((err) => {
                     console.error("❌ Không truy cập được camera/mic:", err);
                     toast.error("Không thể truy cập camera/micro. Vui lòng cấp quyền.");
                 });
+
 
             console.log("✅ Stringee SDK đã sẵn sàng:", window.Stringee);
             stringeeClientRef.current = new window.Stringee.StringeeClient();
@@ -114,11 +111,9 @@ const Call = ({ onEndCall }) => {
 
             stringeeClientRef.current.on("connect", () => {
                 toast.success("Đã kết nối với Stringee.");
-                setIsStringeeConnected(true);
-                if (recipientId) {
-                    startCall();
-                }
+                setIsStringeeConnected(true); // đánh dấu đã kết nối
             });
+
 
             stringeeClientRef.current.on("authen", (res) => {
                 if (res.r !== 0) {
@@ -132,10 +127,13 @@ const Call = ({ onEndCall }) => {
 
             stringeeClientRef.current.on("disconnect", () => {
                 toast.warn("Mất kết nối với Stringee.");
-                setIsStringeeConnected(false);
             });
 
             stringeeClientRef.current.on("incomingcall", (incomingCall) => {
+                console.log("📞 incomingCall.toNumber:", incomingCall.toNumber);
+                console.log("👤 currentUser.username:", user.username);
+
+                // 👉 Lọc ra nếu mình là người gọi thì bỏ qua
                 if (incomingCall.fromNumber === user.username) {
                     console.log("⚠️ Bỏ qua cuộc gọi vì mình là người gọi");
                     return;
@@ -156,7 +154,7 @@ const Call = ({ onEndCall }) => {
                         localVideoRef.current.play().catch((err) => {
                             console.warn("Local video play error:", err);
                             setTimeout(() => {
-                                localVideoRef.current?.play().catch((err) => console.error("Retry local video error:", err));
+                                localVideoRef.current?.play().catch(err => console.error("Retry local video error:", err));
                             }, 300);
                         });
                     }
@@ -168,7 +166,7 @@ const Call = ({ onEndCall }) => {
                         remoteVideoRef.current.play().catch((err) => {
                             console.warn("Remote video play error:", err);
                             setTimeout(() => {
-                                remoteVideoRef.current?.play().catch((err) => console.error("Retry remote video error:", err));
+                                remoteVideoRef.current?.play().catch(err => console.error("Retry remote video error:", err));
                             }, 300);
                         });
                     }
@@ -187,6 +185,7 @@ const Call = ({ onEndCall }) => {
                     }
                 });
             });
+
         };
 
         fetchChatMembers();
@@ -204,13 +203,13 @@ const Call = ({ onEndCall }) => {
             if (stringeeCallRef.current) {
                 try {
                     stringeeCallRef.current.hangup();
-                    stringeeCallRef.current = null;
+                    stringeeCallRef.current = null; // ✅ THÊM
                 } catch (error) {
                     console.error("Error hanging up Stringee call:", error);
                 }
             }
         };
-    }, [chatId, token, user, navigate, recipientId]);
+    }, [chatId, token, user, navigate]);
 
     const startCall = async () => {
         if (!isStringeeConnected) {
@@ -229,7 +228,7 @@ const Call = ({ onEndCall }) => {
             });
             if (!response.ok) {
                 const errorText = await response.text();
-                throw new Error(`Không thể khởi tạo cuộc gọi: ${errorText}`);
+                throw new Error("Không thể khởi tạo cuộc gọi: ", `${errorText}`);
             }
             const callSession = await response.json();
             setCallSessionId(callSession.sessionId);
@@ -251,7 +250,7 @@ const Call = ({ onEndCall }) => {
             stringeeCallRef.current.on("addlocalstream", (stream) => {
                 console.log("🎥 [addlocalstream] Stream:", stream);
                 console.log("🎥 [addlocalstream] Tracks:", stream.getTracks());
-                stream.getVideoTracks().forEach((track) => {
+                stream.getVideoTracks().forEach(track => {
                     console.log("📹 Local Video Track - enabled:", track.enabled, "readyState:", track.readyState);
                 });
                 if (localVideoRef.current) {
@@ -260,8 +259,8 @@ const Call = ({ onEndCall }) => {
                         localVideoRef.current
                             .play()
                             .then(() => console.log("▶️ Local video playing"))
-                            .catch((err) => console.warn("Local video play error:", err));
-                    }, 300);
+                            .catch(err => console.warn("Local video play error:", err));
+                    }, 300); // ⏱️ delay giúp stream ổn định
                 }
             });
 
@@ -272,13 +271,22 @@ const Call = ({ onEndCall }) => {
                         remoteVideoRef.current
                             .play()
                             .then(() => console.log("▶️ Remote video playing"))
-                            .catch((err) => console.warn("Remote video play error:", err));
-                    }, 300);
+                            .catch(err => console.warn("Remote video play error:", err));
+                    }, 300); // ⏱️ delay để tránh AbortError
                 }
             });
 
             stringeeCallRef.current.on("end", () => {
                 endCall();
+            });
+
+
+// Thêm debug state
+            stringeeCallRef.current.on("signalingstate", (state) => {
+                console.log("📶 Signaling state:", state);
+            });
+            stringeeCallRef.current.on("mediastate", (state) => {
+                console.log("📺 Media state:", state);
             });
 
             stringeeCallRef.current.makeCall((res) => {
@@ -304,14 +312,8 @@ const Call = ({ onEndCall }) => {
                 console.error("Error hanging up Stringee call:", error);
             }
         }
-        if (localVideoRef.current && localVideoRef.current.srcObject) {
-            localVideoRef.current.srcObject.getTracks().forEach((track) => track.stop());
-            localVideoRef.current.srcObject = null;
-        }
-        if (remoteVideoRef.current && remoteVideoRef.current.srcObject) {
-            remoteVideoRef.current.srcObject.getTracks().forEach((track) => track.stop());
-            remoteVideoRef.current.srcObject = null;
-        }
+        if (localVideoRef.current) localVideoRef.current.srcObject = null;
+        if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
         setCallStarted(false);
         if (onEndCall) onEndCall();
         if (callSessionId) {
@@ -326,93 +328,133 @@ const Call = ({ onEndCall }) => {
                 toast.error("Lỗi khi kết thúc cuộc gọi: " + err.message);
             }
         }
-        navigate("/messages");
     };
 
     const toggleMute = () => {
-        if (stringeeCallRef.current) {
-            const newMuteState = !isMuted;
+        if (!stringeeCallRef.current || !localVideoRef.current?.srcObject) {
+            toast.error("Không thể tắt micro: Cuộc gọi chưa sẵn sàng.");
+            return;
+        }
+
+        const newMuteState = !isMuted;
+        try {
+            // Gọi hàm mute của Stringee
             stringeeCallRef.current.mute(newMuteState);
-            if (localVideoRef.current && localVideoRef.current.srcObject) {
-                localVideoRef.current.srcObject.getAudioTracks().forEach((track) => {
+
+            // Cập nhật trạng thái track audio
+            const audioTracks = localVideoRef.current.srcObject.getAudioTracks();
+            if (audioTracks.length > 0) {
+                audioTracks.forEach((track) => {
                     track.enabled = !newMuteState;
                 });
+                setIsMuted(newMuteState);
+                toast.info(newMuteState ? "Micro đã tắt" : "Micro đã bật");
+            } else {
+                console.warn("Không tìm thấy audio track.");
+                toast.warn("Không tìm thấy micro để tắt/bật.");
             }
-            setIsMuted(newMuteState);
+        } catch (error) {
+            console.error("Lỗi khi tắt/bật micro:", error);
+            toast.error("Lỗi khi điều chỉnh micro.");
         }
     };
 
     const toggleVideo = () => {
-        if (stringeeCallRef.current && typeof stringeeCallRef.current.enableVideo === "function") {
-            const newVideoState = !isVideoOff;
-            stringeeCallRef.current.enableVideo(!newVideoState);
-            if (localVideoRef.current && localVideoRef.current.srcObject) {
-                localVideoRef.current.srcObject.getVideoTracks().forEach((track) => {
+        if (!stringeeCallRef.current || !localVideoRef.current?.srcObject) {
+            toast.error("Không thể tắt camera: Cuộc gọi chưa sẵn sàng.");
+            return;
+        }
+
+        const newVideoState = !isVideoOff;
+        try {
+            // Gọi hàm enableVideo của Stringee (nếu có)
+            if (typeof stringeeCallRef.current.enableVideo === "function") {
+                stringeeCallRef.current.enableVideo(!newVideoState);
+            } else {
+                console.warn("Hàm enableVideo không tồn tại trong Stringee SDK.");
+            }
+
+            // Cập nhật trạng thái track video
+            const videoTracks = localVideoRef.current.srcObject.getVideoTracks();
+            if (videoTracks.length > 0) {
+                videoTracks.forEach((track) => {
                     track.enabled = !newVideoState;
                 });
+                setIsVideoOff(newVideoState);
+                toast.info(newVideoState ? "Camera đã tắt" : "Camera đã bật");
+            } else {
+                console.warn("Không tìm thấy video track.");
+                toast.warn("Không tìm thấy camera để tắt/bật.");
             }
-            setIsVideoOff(newVideoState);
-        } else {
-            console.warn("⚠️ stringeeCallRef không có hàm enableVideo");
+        } catch (error) {
+            console.error("Lỗi khi tắt/bật camera:", error);
+            toast.error("Lỗi khi điều chỉnh camera.");
         }
     };
 
     return (
-        <div className="relative h-screen bg-[var(--background-color)]">
+        <div className="relative h-screen bg-black flex flex-col">
             {/* Video của người nhận (khung lớn) */}
             <video
                 ref={remoteVideoRef}
                 autoPlay
-                style={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "cover",
-                    backgroundColor: "var(--video-bg-color)",
-                }}
+                playsInline
+                className="w-full h-full object-cover bg-gray-900"
             />
+
             {/* Video của người gọi (khung nhỏ ở góc dưới bên phải) */}
-            <div className="absolute bottom-4 right-4 w-1/4 max-w-[200px] rounded-lg overflow-hidden shadow-lg border border-[var(--border-color)]">
+            <div className="absolute bottom-6 right-6 w-[25%] max-w-[240px] aspect-video rounded-xl overflow-hidden shadow-2xl border border-gray-700 bg-gray-900">
                 <video
                     ref={localVideoRef}
                     autoPlay
                     muted
-                    style={{
-                        width: "100%",
-                        height: "auto",
-                        backgroundColor: "var(--video-bg-color)",
-                    }}
+                    playsInline
+                    className="w-full h-full object-cover"
                 />
             </div>
+
+            {/* Thông tin cuộc gọi (tên người nhận, trạng thái) */}
+            <div className="absolute top-4 left-4 text-white text-lg font-semibold">
+                {recipientId ? `Đang gọi ${recipientId}` : "Đang kết nối..."}
+            </div>
+
             {/* Nút điều khiển */}
-            <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex space-x-4">
+            <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2 flex space-x-6 bg-gray-800 bg-opacity-70 p-4 rounded-full shadow-lg">
                 <Button
-                    variant={isMuted ? "danger" : "outline-light"}
+                    variant={isMuted ? "danger" : "light"}
                     size="lg"
-                    className="rounded-full"
+                    className="rounded-full w-12 h-12 flex items-center justify-center"
                     onClick={toggleMute}
                 >
-                    {isMuted ? <FaMicrophoneSlash /> : <FaMicrophone />}
+                    {isMuted ? <FaMicrophoneSlash size={20} /> : <FaMicrophone size={20} />}
                 </Button>
                 <Button
-                    variant={isVideoOff ? "danger" : "outline-light"}
+                    variant={isVideoOff ? "danger" : "light"}
                     size="lg"
-                    className="rounded-full"
+                    className="rounded-full w-12 h-12 flex items-center justify-center"
                     onClick={toggleVideo}
                 >
-                    {isVideoOff ? <FaVideoSlash /> : <FaVideo />}
+                    {isVideoOff ? <FaVideoSlash size={20} /> : <FaVideo size={20} />}
                 </Button>
                 <Button
                     variant="danger"
                     size="lg"
-                    className="rounded-full"
+                    className="rounded-full w-12 h-12 flex items-center justify-center"
                     onClick={endCall}
                 >
-                    <FaPhone />
+                    <FaPhone size={20} />
                 </Button>
             </div>
-            <ToastContainer />
+
+            <ToastContainer
+                position="top-center"
+                autoClose={3000}
+                hideProgressBar
+                theme="dark"
+            />
         </div>
     );
 };
 
 export default Call;
+
