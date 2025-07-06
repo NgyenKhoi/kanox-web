@@ -362,6 +362,11 @@ function MessengerPage() {
     subscriptions.push(subscribe(`/topic/unread-count/${user.id}`, (data) => {
       const count = data.unreadCount ?? 0;
       console.log(`Received unread chat count for user ${user.id}:`, count);
+      window.dispatchEvent(
+          new CustomEvent("updateUnreadCount", {
+            detail: { unreadCount: count },
+          })
+      );
     }, `unread-count-${user.id}`));
 
     const fetchChats = async () => {
@@ -384,6 +389,11 @@ function MessengerPage() {
             data.filter((chat) => chat.unreadMessagesCount > 0).map((chat) => chat.id)
         );
         setUnreadChats(unread);
+        window.dispatchEvent(
+            new CustomEvent("updateUnreadCount", {
+              detail: { unreadCount: unread.size },
+            })
+        );
       } catch (err) {
         toast.error(err.message || "Lỗi khi tải danh sách chat.");
       } finally {
@@ -394,8 +404,8 @@ function MessengerPage() {
     fetchChats();
 
     return () => {
-      subscriptions.forEach((_, index) => unsubscribe(`chats-${user.id}-${index}`));
-      unsubscribe(`unread-count-${user.id}`);
+      // Unsubscribe với subId chính xác
+      subscriptions.forEach((_, index) => unsubscribe(`subscription-${user.id}-${index}`));
       Object.keys(subscriptionsRef.current).forEach((chatId) => {
         unsubscribeFromChatMessages(Number(chatId));
       });

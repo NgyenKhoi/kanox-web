@@ -92,13 +92,27 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
       const count = data.unreadCount ?? 0;
       console.log(`Received unread chat count for user ${user.id}:`, count);
       setUnreadMessageCount(count);
+      window.dispatchEvent(
+          new CustomEvent("updateUnreadCount", {
+            detail: { unreadCount: count },
+          })
+      );
     }, subId);
+
+    // Lắng nghe sự kiện updateUnreadCount từ MessengerPage
+    const handleUpdateUnreadCount = (event) => {
+      const count = event.detail.unreadCount ?? 0;
+      console.log(`Received updateUnreadCount event for user ${user.id}:`, count);
+      setUnreadMessageCount(count);
+    };
+    window.addEventListener("updateUnreadCount", handleUpdateUnreadCount);
 
     return () => {
       if (subscription) {
         unsubscribe(subId);
         console.log(`Unsubscribed from /topic/unread-count/${user.id}`);
       }
+      window.removeEventListener("updateUnreadCount", handleUpdateUnreadCount);
     };
   }, [user, subscribe, unsubscribe]);
 
@@ -110,7 +124,7 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
           console.warn("No token found, skipping unread count fetch");
           return;
         }
-        const res = await fetch(`${process.env.REACT_APP_API_URL}/messages/unread-count`, {
+        const res = await fetch(`${process.env.REACT_APP_API_URL}/chat/messages/unread-count`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from "react";
-import { Container, Row, Col, Spinner, Modal, Button } from "react-bootstrap";
+import { Container, Row, Col, Spinner, Modal, Button, Image } from "react-bootstrap";
 import "./App.css";
 import PrivateRoute from "./components/common/PrivateRoute/PrivateRoute";
 
@@ -33,6 +33,7 @@ function AppContent() {
   const [showCallModal, setShowCallModal] = useState(false);
   const [incomingCall, setIncomingCall] = useState(null);
   const [chatIds, setChatIds] = useState([]);
+  const [userMap, setUserMap] = useState({});
   const { user, token } = useContext(AuthContext);
   const { subscribe, unsubscribe, publish } = useContext(WebSocketContext) || {};
   const { isDarkMode, toggleDarkMode } = useContext(ThemeContext);
@@ -44,24 +45,43 @@ function AppContent() {
       setIsLoading(false);
       return;
     }
-    const fetchChatIds = async () => {
+
+    const fetchChatIdsAndMembers = async () => {
       try {
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/user/${user.id}`, {
+        // Lấy danh sách chat
+        const chatResponse = await fetch(`${process.env.REACT_APP_API_URL}/chat/user/${user.id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        if (response.ok) {
-          const chats = await response.json();
-          setChatIds(chats.map((chat) => chat.id));
-        } else {
+        if (!chatResponse.ok) {
           console.error("Error fetching chat IDs");
+          return;
         }
+        const chats = await chatResponse.json();
+        setChatIds(chats.map((chat) => chat.id));
+
+        // Lấy thành viên cho từng chat
+        const userMapTemp = {};
+        for (const chat of chats) {
+          const membersResponse = await fetch(`${process.env.REACT_APP_API_URL}/chat/${chat.id}/members`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (membersResponse.ok) {
+            const members = await membersResponse.json();
+            members.forEach((member) => {
+              userMapTemp[member.userId] = member.displayName; // Lưu displayName thay vì username
+            });
+          }
+        }
+        setUserMap(userMapTemp);
+        console.log("📄 User map:", userMapTemp);
       } catch (error) {
-        console.error("Error fetching chat IDs:", error);
+        console.error("Error fetching chat IDs or members:", error);
       } finally {
         setIsLoading(false);
       }
     };
-    fetchChatIds();
+
+    fetchChatIdsAndMembers();
   }, [user, token]);
 
   useEffect(() => {
@@ -79,7 +99,8 @@ function AppContent() {
               setIncomingCall({
                 chatId: message.chatId,
                 sessionId: message.sessionId,
-                from: message.userId
+                from: userMap[message.userId] || "Người gọi không xác định",
+                fromId: message.userId,
               });
               setShowCallModal(true);
             }
@@ -87,13 +108,19 @@ function AppContent() {
       );
     });
 
+
     const handleIncomingCall = (event) => {
       const { chatId, sessionId, from, to } = event.detail;
       if (to !== user.username) {
         console.log("⛔ Mình là người gọi, không hiển thị modal.");
         return;
       }
-      setIncomingCall({ chatId, sessionId });
+      setIncomingCall({
+        chatId,
+        sessionId,
+        from: userMap[from] || "Người gọi không xác định",
+        fromId: from,
+      });
       setShowCallModal(true);
     };
     window.addEventListener("incomingCall", handleIncomingCall);
@@ -102,7 +129,7 @@ function AppContent() {
       subscriptions.forEach((_, index) => unsubscribe(`call-${chatIds[index]}`));
       window.removeEventListener("incomingCall", handleIncomingCall);
     };
-  }, [chatIds, subscribe, unsubscribe, user, navigate]);
+  }, [chatIds, subscribe, unsubscribe, user, navigate, token, userMap]);
 
   const acceptCall = () => {
     setShowCallModal(false);
@@ -183,7 +210,19 @@ function AppContent() {
                     <Modal.Header closeButton>
                       <Modal.Title>Cuộc gọi đến</Modal.Title>
                     </Modal.Header>
-                    <Modal.Body>Bạn có muốn nhận cuộc gọi video?</Modal.Body>
+                    <Modal.Body className="d-flex align-items-center">
+                      <Image
+                          src="https://via.placeholder.com/50"
+                          roundedCircle
+                          width={50}
+                          height={50}
+                          className="me-3"
+                      />
+                      <div>
+                        <h5>{incomingCall?.from || "Người gọi không xác định"}</h5>
+                        <p>Đang gọi video...</p>
+                      </div>
+                    </Modal.Body>
                     <Modal.Footer>
                       <Button variant="secondary" onClick={rejectCall}>
                         Từ chối
