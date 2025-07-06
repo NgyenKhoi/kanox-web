@@ -83,7 +83,7 @@ public class ReportService {
         Report savedReport = reportRepository.save(report);
         
         // Ghi log hoạt động
-        Map<String, Object> metadata = new HashMap<>();
+        Map<npm run buildString, Object> metadata = new HashMap<>();
         metadata.put("reportId", id);
         metadata.put("targetId", report.getTargetId());
         metadata.put("targetType", report.getTargetType().getCode());

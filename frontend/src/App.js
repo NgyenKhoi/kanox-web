@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useContext } from "react";
 import { Container, Row, Col, Spinner, Modal, Button, Image } from "react-bootstrap";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import "./App.css";
 import PrivateRoute from "./components/common/PrivateRoute/PrivateRoute";
 
@@ -256,6 +258,18 @@ function App() {
           <WebSocketProvider>
             <ThemeProvider>
               <AppContent />
+              <ToastContainer
+                position="top-right"
+                autoClose={3000}
+                hideProgressBar={false}
+                newestOnTop={false}
+                closeOnClick
+                rtl={false}
+                pauseOnFocusLoss
+                draggable
+                pauseOnHover
+                theme="light"
+              />
             </ThemeProvider>
           </WebSocketProvider>
         </AuthProvider>
