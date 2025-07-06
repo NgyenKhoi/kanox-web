@@ -151,6 +151,7 @@ const Call = ({ onEndCall }) => {
                 });
 
                 incomingCall.on("addlocalstream", (stream) => {
+                    localStreamRef.current = stream;
                     if (localVideoRef.current) {
                         localVideoRef.current.srcObject = stream;
                         localVideoRef.current.play().catch((err) => {
