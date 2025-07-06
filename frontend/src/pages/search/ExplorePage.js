@@ -125,7 +125,7 @@ function ExplorePage() {
 
   const renderSearchResults = () =>
     searchKeyword.trim() && (
-      <div className="absolute bg-bg-[var(--content-bg)] dark:bg-[var(--content-bg)] w-full mt-1 rounded-md shadow-lg z-50 max-h-96 overflow-y-auto">
+      <div className="absolute bg-[var(--content-bg)] dark:bg-[var(--content-bg)] w-full mt-1 rounded-md shadow-lg z-50 max-h-96 overflow-y-auto">
         {isSearching ? (
           <div className="px-4 py-3 text-center text-sm text-gray-500">
             Đang tải...
