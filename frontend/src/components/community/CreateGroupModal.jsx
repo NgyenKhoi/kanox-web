@@ -109,7 +109,7 @@ function CreateGroupModal({ show, onHide, onGroupCreated }) {
                 <Modal.Title>Tạo nhóm mới</Modal.Title>
             </Modal.Header>
             <Modal.Body className="bg-[var(--background-color)]">
-                <Form onSubmit={handleCreateGroup}>
+                <Form>
                     <Form.Group className="mb-3">
                         <Form.Label>Tên nhóm</Form.Label>
                         <Form.Control
@@ -163,7 +163,7 @@ function CreateGroupModal({ show, onHide, onGroupCreated }) {
                         )}
                     </Form.Group>
                     <Button
-                        type="submit"
+                        onClick={handleCreateGroup}
                         variant="primary"
                         className="w-full bg-blue-600 hover:bg-blue-700"
                     >
@@ -173,6 +173,6 @@ function CreateGroupModal({ show, onHide, onGroupCreated }) {
             </Modal.Body>
         </Modal>
     );
-}   
+}
 
 export default CreateGroupModal;
