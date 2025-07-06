@@ -117,19 +117,28 @@ function CommunityPage() {
       <Row className="w-100 justify-content-center">
         {/* Sidebar Left */}
         <Col xs={0} lg={3} className="p-0 d-none d-lg-block">
-          <CommunitySidebarLeft
-            selectedView={viewMode}
-            onSelectView={setViewMode}
-            joinedGroups={yourGroups}
-            onGroupCreated={handleGroupCreated}
-            onToggleDarkMode={handleToggleDarkMode}
-            isDarkMode={isDarkMode}
-          />
+          <div
+            style={{
+              position: "sticky",
+              top: 0,
+              height: "100vh",
+              overflowY: "auto",
+            }}
+          >
+            <CommunitySidebarLeft
+              selectedView={viewMode}
+              onSelectView={setViewMode}
+              joinedGroups={yourGroups}
+              onGroupCreated={handleGroupCreated}
+              onToggleDarkMode={handleToggleDarkMode}
+              isDarkMode={isDarkMode}
+            />
+          </div>
         </Col>
 
         {/* Center Content */}
         <Col xs={12} lg={8} className="p-0 border-start border-end">
-          <div className="d-flex align-items-center mb-3 px-3">
+          <div className="sticky top-0 z-[1020] bg-[var(--background-color)] text-[var(--text-color)] font-bold text-lg px-3 py-2 border-b shadow-sm d-flex justify-content-between align-items-center">
             <h2 className="me-auto">Cộng đồng</h2>
             <FaSearch size={20} />
           </div>
