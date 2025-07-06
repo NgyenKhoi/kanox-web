@@ -157,16 +157,19 @@ const Call = ({ onEndCall }) => {
                 });
 
                 incomingCall.on("addlocalstream", (stream) => {
-                    if (localVideoRef.current) {
-                        localVideoRef.current.srcObject = stream;
-                        localVideoRef.current.play().catch((err) => {
-                            console.warn("Local video play error:", err);
-                            setTimeout(() => {
-                                localVideoRef.current?.play().catch((err) => console.error("Retry local video error:", err));
-                            }, 300);
-                        });
-                    }
+                    const assignStream = () => {
+                        if (localVideoRef.current) {
+                            localVideoRef.current.srcObject = stream;
+                            localVideoRef.current
+                                .play()
+                                .catch(err => console.warn("Local play error:", err));
+                        } else {
+                            setTimeout(assignStream, 100); // chờ ref được gán
+                        }
+                    };
+                    assignStream();
                 });
+
 
                 incomingCall.on("addremotestream", (stream) => {
                     if (remoteVideoRef.current) {
@@ -245,8 +248,13 @@ const Call = ({ onEndCall }) => {
                 stringeeClientRef.current,
                 user.username,
                 recipientId,
-                true
+                true,
+                true, // isVideoCall
+                {
+                    videoDirection: 'sendrecv' // 👈 Quan trọng
+                }
             );
+
 
             stringeeCallRef.current.on("signalingstate", (state) => {
                 console.log("📶 Signaling state:", state);
