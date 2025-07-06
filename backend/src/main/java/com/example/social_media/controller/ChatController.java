@@ -370,9 +370,8 @@ public class ChatController {
                 .map(member -> {
                     Map<String, Object> memberMap = new HashMap<>();
                     memberMap.put("userId", member.getUser().getId());
-                    memberMap.put("displayName", member.getUser().getDisplayName());
-                    memberMap.put("stringeeUserId", member.getUser().getUsername());
                     memberMap.put("username", member.getUser().getUsername());
+                    memberMap.put("stringeeUserId", member.getUser().getUsername());
                     return memberMap;
                 })
                 .collect(Collectors.toList());
