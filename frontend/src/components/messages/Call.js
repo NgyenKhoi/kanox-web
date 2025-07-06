@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useContext } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Button, Row, Col } from "react-bootstrap";
+import { Button } from "react-bootstrap";
 import { FaMicrophone, FaMicrophoneSlash, FaVideo, FaVideoSlash, FaPhone } from "react-icons/fa";
 import { AuthContext } from "../../context/AuthContext";
 import { ToastContainer, toast } from "react-toastify";
@@ -115,7 +115,6 @@ const Call = ({ onEndCall }) => {
             stringeeClientRef.current.on("connect", () => {
                 toast.success("Đã kết nối với Stringee.");
                 setIsStringeeConnected(true);
-                // Tự động bắt đầu cuộc gọi khi kết nối Stringee thành công
                 if (recipientId) {
                     startCall();
                 }
