@@ -7,6 +7,7 @@ import com.example.social_media.dto.user.UserBasicDisplayDto;
 import com.example.social_media.entity.Group;
 import com.example.social_media.jwt.JwtService;
 import com.example.social_media.service.GroupService;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -31,7 +32,7 @@ public class GroupController {
         this.jwtService = jwtService;
     }
 
-    @PostMapping(URLConfig.CREATE_GROUP)
+    @PostMapping(value = URLConfig.CREATE_GROUP, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Map<String, Object>> createGroup(
             @RequestPart String ownerUsername,
             @RequestPart String name,
