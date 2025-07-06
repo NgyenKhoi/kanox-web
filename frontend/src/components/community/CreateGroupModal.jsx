@@ -37,6 +37,7 @@ function CreateGroupModal({ show, onHide, onGroupCreated }) {
     // Xử lý submit form tạo nhóm
     const handleCreateGroup = async (e) => {
         e.preventDefault();
+        console.log("🔥 handleCreateGroup CALLED");
         if (!token || !username) {
             toast.error("Vui lòng đăng nhập để tạo nhóm.");
             onHide();
@@ -163,6 +164,7 @@ function CreateGroupModal({ show, onHide, onGroupCreated }) {
                         )}
                     </Form.Group>
                     <Button
+                        type="button"
                         onClick={handleCreateGroup}
                         variant="primary"
                         className="w-full bg-blue-600 hover:bg-blue-700"
