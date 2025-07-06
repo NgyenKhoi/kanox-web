@@ -167,4 +167,35 @@ public class BannedKeywordService {
         return activeKeywords.stream()
                 .anyMatch(keyword -> lowerContent.contains(keyword.getKeyword().toLowerCase()));
     }
+    
+    /**
+     * Alias cho containsBannedKeyword - để tương thích với các controller khác
+     */
+    public boolean containsBannedKeywords(String content) {
+        return containsBannedKeyword(content);
+    }
+    
+    /**
+     * Tìm tất cả từ khóa bị cấm trong nội dung
+     */
+    public List<String> findBannedKeywordsInContent(String content) {
+        if (content == null || content.trim().isEmpty()) {
+            return List.of();
+        }
+        
+        List<BannedKeyword> activeKeywords = getAllActiveKeywords();
+        String lowerContent = content.toLowerCase();
+        
+        return activeKeywords.stream()
+                .filter(keyword -> lowerContent.contains(keyword.getKeyword().toLowerCase()))
+                .map(BannedKeyword::getKeyword)
+                .toList();
+    }
+    
+    /**
+     * Kiểm tra nội dung có hợp lệ không (không chứa từ khóa bị cấm)
+     */
+    public boolean isContentValid(String content) {
+        return !containsBannedKeyword(content);
+    }
 }
