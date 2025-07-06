@@ -420,30 +420,43 @@ const Call = ({ onEndCall }) => {
 
             {/* Nút điều khiển */}
             <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2 flex space-x-6 bg-gray-800 bg-opacity-70 p-4 rounded-full shadow-lg">
-                <Button
-                    variant={isMuted ? "danger" : "light"}
-                    size="lg"
-                    className="rounded-full w-12 h-12 flex items-center justify-center"
-                    onClick={toggleMute}
-                >
-                    {isMuted ? <FaMicrophoneSlash size={20} /> : <FaMicrophone size={20} />}
-                </Button>
-                <Button
-                    variant={isVideoOff ? "danger" : "light"}
-                    size="lg"
-                    className="rounded-full w-12 h-12 flex items-center justify-center"
-                    onClick={toggleVideo}
-                >
-                    {isVideoOff ? <FaVideoSlash size={20} /> : <FaVideo size={20} />}
-                </Button>
-                <Button
-                    variant="danger"
-                    size="lg"
-                    className="rounded-full w-12 h-12 flex items-center justify-center"
-                    onClick={endCall}
-                >
-                    <FaPhone size={20} />
-                </Button>
+                {!callStarted ? (
+                    <Button
+                        variant="primary"
+                        size="lg"
+                        className="rounded-full w-12 h-12 flex items-center justify-center"
+                        onClick={startCall}
+                    >
+                        <FaPhone size={20} />
+                    </Button>
+                ) : (
+                    <>
+                        <Button
+                            variant={isMuted ? "danger" : "light"}
+                            size="lg"
+                            className="rounded-full w-12 h-12 flex items-center justify-center"
+                            onClick={toggleMute}
+                        >
+                            {isMuted ? <FaMicrophoneSlash size={20} /> : <FaMicrophone size={20} />}
+                        </Button>
+                        <Button
+                            variant={isVideoOff ? "danger" : "light"}
+                            size="lg"
+                            className="rounded-full w-12 h-12 flex items-center justify-center"
+                            onClick={toggleVideo}
+                        >
+                            {isVideoOff ? <FaVideoSlash size={20} /> : <FaVideo size={20} />}
+                        </Button>
+                        <Button
+                            variant="danger"
+                            size="lg"
+                            className="rounded-full w-12 h-12 flex items-center justify-center"
+                            onClick={endCall}
+                        >
+                            <FaPhone size={20} />
+                        </Button>
+                    </>
+                )}
             </div>
 
             <ToastContainer
