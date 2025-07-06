@@ -33,7 +33,6 @@ function AppContent() {
   const [showCallModal, setShowCallModal] = useState(false);
   const [incomingCall, setIncomingCall] = useState(null);
   const [chatIds, setChatIds] = useState([]);
-  const [userMap, setUserMap] = useState({});
   const { user, token } = useContext(AuthContext);
   const { subscribe, unsubscribe, publish } = useContext(WebSocketContext) || {};
   const { isDarkMode, toggleDarkMode } = useContext(ThemeContext);
@@ -45,43 +44,24 @@ function AppContent() {
       setIsLoading(false);
       return;
     }
-
-    const fetchChatIdsAndMembers = async () => {
+    const fetchChatIds = async () => {
       try {
-        // Lấy danh sách chat
-        const chatResponse = await fetch(`${process.env.REACT_APP_API_URL}/chat/user/${user.id}`, {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/user/${user.id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        if (!chatResponse.ok) {
+        if (response.ok) {
+          const chats = await response.json();
+          setChatIds(chats.map((chat) => chat.id));
+        } else {
           console.error("Error fetching chat IDs");
-          return;
         }
-        const chats = await chatResponse.json();
-        setChatIds(chats.map((chat) => chat.id));
-
-        // Lấy thành viên cho từng chat
-        const userMapTemp = {};
-        for (const chat of chats) {
-          const membersResponse = await fetch(`${process.env.REACT_APP_API_URL}/chat/${chat.id}/members`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          if (membersResponse.ok) {
-            const members = await membersResponse.json();
-            members.forEach((member) => {
-              userMapTemp[member.userId] = member.displayName; // Lưu displayName thay vì username
-            });
-          }
-        }
-        setUserMap(userMapTemp);
-        console.log("📄 User map:", userMapTemp);
       } catch (error) {
-        console.error("Error fetching chat IDs or members:", error);
+        console.error("Error fetching chat IDs:", error);
       } finally {
         setIsLoading(false);
       }
     };
-
-    fetchChatIdsAndMembers();
+    fetchChatIds();
   }, [user, token]);
 
   useEffect(() => {
@@ -99,8 +79,7 @@ function AppContent() {
               setIncomingCall({
                 chatId: message.chatId,
                 sessionId: message.sessionId,
-                from: userMap[message.userId] || "Người gọi không xác định",
-                fromId: message.userId,
+                from: message.userId
               });
               setShowCallModal(true);
             }
@@ -115,12 +94,7 @@ function AppContent() {
         console.log("⛔ Mình là người gọi, không hiển thị modal.");
         return;
       }
-      setIncomingCall({
-        chatId,
-        sessionId,
-        from: userMap[from] || "Người gọi không xác định",
-        fromId: from,
-      });
+      setIncomingCall({ chatId, sessionId });
       setShowCallModal(true);
     };
     window.addEventListener("incomingCall", handleIncomingCall);
@@ -129,7 +103,7 @@ function AppContent() {
       subscriptions.forEach((_, index) => unsubscribe(`call-${chatIds[index]}`));
       window.removeEventListener("incomingCall", handleIncomingCall);
     };
-  }, [chatIds, subscribe, unsubscribe, user, navigate, token, userMap]);
+  }, [chatIds, subscribe, unsubscribe, user, navigate, token]);
 
   const acceptCall = () => {
     setShowCallModal(false);
