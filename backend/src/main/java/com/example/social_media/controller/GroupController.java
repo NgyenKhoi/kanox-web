@@ -33,14 +33,19 @@ public class GroupController {
 
     @PostMapping(URLConfig.CREATE_GROUP)
     public ResponseEntity<Map<String, Object>> createGroup(
-            @RequestParam String ownerUsername,
-            @RequestParam String name,
-            @RequestParam(required = false) String description,
-            @RequestParam(defaultValue = "public") String privacyLevel,
-            @RequestParam(required = false) MultipartFile avatar
+            @RequestPart String ownerUsername,
+            @RequestPart String name,
+            @RequestPart(required = false) String description,
+            @RequestPart(required = false) String privacyLevel,
+            @RequestPart(required = false) MultipartFile avatar
     ) throws IOException {
+        if (privacyLevel == null || privacyLevel.isBlank()) {
+            privacyLevel = "public";
+        }
+
         Group group = groupService.createGroup(ownerUsername, name, description, privacyLevel, avatar);
         GroupDisplayDto groupDto = groupService.getGroupDetail(group.getId(), ownerUsername);
+
         return ResponseEntity.ok(Map.of(
                 "message", "Tạo nhóm thành công",
                 "data", groupDto
