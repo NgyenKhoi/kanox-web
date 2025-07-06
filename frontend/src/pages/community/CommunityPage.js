@@ -128,7 +128,7 @@ function CommunityPage() {
         </Col>
 
         {/* Center Content */}
-        <Col xs={12} lg={8} className="py-3 border-start border-end">
+        <Col xs={12} lg={8} className="p-0 border-start border-end">
           <div className="d-flex align-items-center mb-3 px-3">
             <h2 className="me-auto">Cộng đồng</h2>
             <FaSearch size={20} />
