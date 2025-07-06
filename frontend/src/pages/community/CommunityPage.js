@@ -116,7 +116,7 @@ function CommunityPage() {
     >
       <Row className="w-100 justify-content-center">
         {/* Sidebar Left */}
-        <Col xs={3} className="border-end d-none d-md-block">
+        <Col xs={0} lg={3} className="border-end d-none d-md-block">
           <CommunitySidebarLeft
             selectedView={viewMode}
             onSelectView={setViewMode}
