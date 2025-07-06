@@ -14,12 +14,13 @@ const Call = ({ onEndCall }) => {
     const [isVideoOff, setIsVideoOff] = useState(false);
     const [callStarted, setCallStarted] = useState(false);
     const [recipientId, setRecipientId] = useState(null);
-    const [recipientName, setRecipientName] = useState(null);
     const [callSessionId, setCallSessionId] = useState(null);
     const stringeeClientRef = useRef(null);
     const stringeeCallRef = useRef(null);
     const localVideoRef = useRef(null);
     const remoteVideoRef = useRef(null);
+    const localStreamRef = useRef(null);
+    const [localStream, setLocalStream] = useState(null);
     const [isStringeeConnected, setIsStringeeConnected] = useState(false);
 
     useEffect(() => {
@@ -33,42 +34,34 @@ const Call = ({ onEndCall }) => {
 
         const fetchChatMembers = async () => {
             try {
-                console.log("📡 Gọi API:", `${process.env.REACT_APP_API_URL}/chat/${chatId}/members`);
                 const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/${chatId}/members`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 if (!isMounted) return;
                 if (response.ok) {
                     const members = await response.json();
-                    console.log("📄 Members response:", members);
-                    if (members.length === 0) {
-                        toast.error("Không tìm thấy thành viên trong cuộc trò chuyện.");
-                    }
-                    const recipient = members.find((member) => member.stringeeUserId !== user.username);
+                    const recipient = members.find((member) => member.username !== user.username);
                     if (recipient) {
-                        setRecipientId(recipient.stringeeUserId || recipient.displayName);
-                        setRecipientName(recipient.displayName); // Sử dụng displayName
-                        console.log("👤 Current user:", user.username);
-                        console.log("👤 Recipient:", { id: recipient.userId, displayName: recipient.displayName, stringeeUserId: recipient.stringeeUserId });
+                        setRecipientId(recipient.stringeeUserId || recipient.username);
                     } else {
                         toast.error("Không tìm thấy người nhận trong cuộc trò chuyện.");
                     }
+                    console.log("👤 Current user:", user.username);
+                    console.log("📄 All members:", members);
                 } else {
                     const errorText = await response.text();
-                    toast.error(`Lỗi khi lấy danh sách thành viên: ${errorText}`);
+                    throw new Error("Lỗi khi lấy danh sách thành viên: ", `${errorText}`);
                 }
             } catch (err) {
                 if (isMounted) {
                     console.error("Error fetching chat members:", err);
                     toast.error(err.message || "Lỗi khi lấy thông tin cuộc trò chuyện.");
-                    navigate("/messages");
                 }
             }
         };
 
         const fetchAccessToken = async () => {
             try {
-                console.log("📡 Gọi API:", `${process.env.REACT_APP_API_URL}/chat/generate-token`);
                 const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/generate-token`, {
                     method: "POST",
                     headers: {
@@ -80,7 +73,7 @@ const Call = ({ onEndCall }) => {
                 if (!isMounted) return;
                 if (!response.ok) {
                     const errorText = await response.text();
-                    toast.error(`Lỗi khi lấy access token: ${errorText}`);
+                    throw new Error("Lỗi khi lấy access token:", `${errorText}`);
                 }
                 const data = await response.json();
                 initializeStringee(data.accessToken);
@@ -97,15 +90,14 @@ const Call = ({ onEndCall }) => {
                 if (retryCount < 10) {
                     setTimeout(() => {
                         initializeStringee(accessToken, retryCount + 1);
-                    }, 200);
+                    }, 200); // mỗi 200ms kiểm tra lại
                 } else {
                     toast.error("Không thể tải Stringee SDK. Vui lòng tải lại trang.");
                 }
                 return;
             }
 
-            navigator.mediaDevices
-                .getUserMedia({ audio: true, video: true })
+            navigator.mediaDevices.getUserMedia({ audio: true, video: true })
                 .then((stream) => {
                     console.log("🎥 Đã có quyền truy cập camera và mic");
                 })
@@ -114,14 +106,16 @@ const Call = ({ onEndCall }) => {
                     toast.error("Không thể truy cập camera/micro. Vui lòng cấp quyền.");
                 });
 
+
             console.log("✅ Stringee SDK đã sẵn sàng:", window.Stringee);
             stringeeClientRef.current = new window.Stringee.StringeeClient();
             stringeeClientRef.current.connect(accessToken);
 
             stringeeClientRef.current.on("connect", () => {
                 toast.success("Đã kết nối với Stringee.");
-                setIsStringeeConnected(true);
+                setIsStringeeConnected(true); // đánh dấu đã kết nối
             });
+
 
             stringeeClientRef.current.on("authen", (res) => {
                 if (res.r !== 0) {
@@ -135,13 +129,13 @@ const Call = ({ onEndCall }) => {
 
             stringeeClientRef.current.on("disconnect", () => {
                 toast.warn("Mất kết nối với Stringee.");
-                setIsStringeeConnected(false);
             });
 
             stringeeClientRef.current.on("incomingcall", (incomingCall) => {
                 console.log("📞 incomingCall.toNumber:", incomingCall.toNumber);
                 console.log("👤 currentUser.username:", user.username);
 
+                // 👉 Lọc ra nếu mình là người gọi thì bỏ qua
                 if (incomingCall.fromNumber === user.username) {
                     console.log("⚠️ Bỏ qua cuộc gọi vì mình là người gọi");
                     return;
@@ -157,19 +151,17 @@ const Call = ({ onEndCall }) => {
                 });
 
                 incomingCall.on("addlocalstream", (stream) => {
-                    const assignStream = () => {
-                        if (localVideoRef.current) {
-                            localVideoRef.current.srcObject = stream;
-                            localVideoRef.current
-                                .play()
-                                .catch(err => console.warn("Local play error:", err));
-                        } else {
-                            setTimeout(assignStream, 100); // chờ ref được gán
-                        }
-                    };
-                    assignStream();
+                    localStreamRef.current = stream;
+                    if (localVideoRef.current) {
+                        localVideoRef.current.srcObject = stream;
+                        localVideoRef.current.play().catch((err) => {
+                            console.warn("Local video play error:", err);
+                            setTimeout(() => {
+                                localVideoRef.current?.play().catch(err => console.error("Retry local video error:", err));
+                            }, 300);
+                        });
+                    }
                 });
-
 
                 incomingCall.on("addremotestream", (stream) => {
                     if (remoteVideoRef.current) {
@@ -177,7 +169,7 @@ const Call = ({ onEndCall }) => {
                         remoteVideoRef.current.play().catch((err) => {
                             console.warn("Remote video play error:", err);
                             setTimeout(() => {
-                                remoteVideoRef.current?.play().catch((err) => console.error("Retry remote video error:", err));
+                                remoteVideoRef.current?.play().catch(err => console.error("Retry remote video error:", err));
                             }, 300);
                         });
                     }
@@ -196,6 +188,7 @@ const Call = ({ onEndCall }) => {
                     }
                 });
             });
+
         };
 
         fetchChatMembers();
@@ -213,7 +206,7 @@ const Call = ({ onEndCall }) => {
             if (stringeeCallRef.current) {
                 try {
                     stringeeCallRef.current.hangup();
-                    stringeeCallRef.current = null;
+                    stringeeCallRef.current = null; // ✅ THÊM
                 } catch (error) {
                     console.error("Error hanging up Stringee call:", error);
                 }
@@ -232,14 +225,13 @@ const Call = ({ onEndCall }) => {
         }
 
         try {
-            console.log("📞 Bắt đầu gọi đến:", recipientId);
             const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/call/start/${chatId}`, {
                 method: "POST",
                 headers: { Authorization: `Bearer ${token}` },
             });
             if (!response.ok) {
                 const errorText = await response.text();
-                toast.error(`Không thể khởi tạo cuộc gọi: ${errorText}`);
+                throw new Error("Không thể khởi tạo cuộc gọi: ", `${errorText}`);
             }
             const callSession = await response.json();
             setCallSessionId(callSession.sessionId);
@@ -248,13 +240,8 @@ const Call = ({ onEndCall }) => {
                 stringeeClientRef.current,
                 user.username,
                 recipientId,
-                true,
-                true, // isVideoCall
-                {
-                    videoDirection: 'sendrecv' // 👈 Quan trọng
-                }
+                true
             );
-
 
             stringeeCallRef.current.on("signalingstate", (state) => {
                 console.log("📶 Signaling state:", state);
@@ -265,20 +252,23 @@ const Call = ({ onEndCall }) => {
 
             stringeeCallRef.current.on("addlocalstream", (stream) => {
                 console.log("🎥 [addlocalstream] Stream:", stream);
-                console.log("🎥 [addlocalstream] Tracks:", stream.getTracks());
-                stream.getVideoTracks().forEach((track) => {
-                    console.log("📹 Local Video Track - enabled:", track.enabled, "readyState:", track.readyState);
-                });
-                if (localVideoRef.current) {
-                    localVideoRef.current.srcObject = stream;
-                    setTimeout(() => {
-                        localVideoRef.current
-                            .play()
-                            .then(() => console.log("▶️ Local video playing"))
-                            .catch((err) => console.warn("Local video play error:", err));
-                    }, 300);
-                }
+                localStreamRef.current = stream;
+
+                const tryAssignStream = () => {
+                    if (localVideoRef.current) {
+                        localVideoRef.current.srcObject = localStreamRef.current;
+                        localVideoRef.current.play().catch((err) => {
+                            console.warn("Local video play error:", err);
+                        });
+                    } else {
+                        // Chờ đến khi localVideoRef mount xong
+                        setTimeout(tryAssignStream, 100);
+                    }
+                };
+
+                tryAssignStream();
             });
+
 
             stringeeCallRef.current.on("addremotestream", (stream) => {
                 if (remoteVideoRef.current) {
@@ -287,13 +277,22 @@ const Call = ({ onEndCall }) => {
                         remoteVideoRef.current
                             .play()
                             .then(() => console.log("▶️ Remote video playing"))
-                            .catch((err) => console.warn("Remote video play error:", err));
-                    }, 300);
+                            .catch(err => console.warn("Remote video play error:", err));
+                    }, 300); // ⏱️ delay để tránh AbortError
                 }
             });
 
             stringeeCallRef.current.on("end", () => {
                 endCall();
+            });
+
+
+// Thêm debug state
+            stringeeCallRef.current.on("signalingstate", (state) => {
+                console.log("📶 Signaling state:", state);
+            });
+            stringeeCallRef.current.on("mediastate", (state) => {
+                console.log("📺 Media state:", state);
             });
 
             stringeeCallRef.current.makeCall((res) => {
@@ -319,30 +318,22 @@ const Call = ({ onEndCall }) => {
                 console.error("Error hanging up Stringee call:", error);
             }
         }
-        if (localVideoRef.current && localVideoRef.current.srcObject) {
-            localVideoRef.current.srcObject.getTracks().forEach((track) => track.stop());
-            localVideoRef.current.srcObject = null;
-        }
-        if (remoteVideoRef.current && remoteVideoRef.current.srcObject) {
-            remoteVideoRef.current.srcObject.getTracks().forEach((track) => track.stop());
-            remoteVideoRef.current.srcObject = null;
-        }
+        if (localVideoRef.current) localVideoRef.current.srcObject = null;
+        if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
         setCallStarted(false);
         if (onEndCall) onEndCall();
         if (callSessionId) {
             try {
-                console.log("📡 Kết thúc cuộc gọi, gọi API:", `${process.env.REACT_APP_API_URL}/chat/call/end/${callSessionId}`);
                 const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/call/end/${callSessionId}`, {
                     method: "POST",
                     headers: { Authorization: `Bearer ${token}` },
                 });
-                if (!response.ok) toast.error("Không thể kết thúc cuộc gọi");
+                if (!response.ok) throw new Error("Không thể kết thúc cuộc gọi");
             } catch (err) {
                 console.error("End call error:", err);
                 toast.error("Lỗi khi kết thúc cuộc gọi: " + err.message);
             }
         }
-        navigate("/messages");
     };
 
     const toggleMute = () => {
@@ -353,7 +344,10 @@ const Call = ({ onEndCall }) => {
 
         const newMuteState = !isMuted;
         try {
+            // Gọi hàm mute của Stringee
             stringeeCallRef.current.mute(newMuteState);
+
+            // Cập nhật trạng thái track audio
             const audioTracks = localVideoRef.current.srcObject.getAudioTracks();
             if (audioTracks.length > 0) {
                 audioTracks.forEach((track) => {
@@ -372,19 +366,15 @@ const Call = ({ onEndCall }) => {
     };
 
     const toggleVideo = () => {
-        if (!stringeeCallRef.current || !localVideoRef.current?.srcObject) {
+        if (!stringeeCallRef.current || !localStreamRef.current) {
             toast.error("Không thể tắt camera: Cuộc gọi chưa sẵn sàng.");
             return;
         }
 
         const newVideoState = !isVideoOff;
+
         try {
-            if (typeof stringeeCallRef.current.enableVideo === "function") {
-                stringeeCallRef.current.enableVideo(!newVideoState);
-            } else {
-                console.warn("Hàm enableVideo không tồn tại trong Stringee SDK.");
-            }
-            const videoTracks = localVideoRef.current.srcObject.getVideoTracks();
+            const videoTracks = localStreamRef.current.getVideoTracks();
             if (videoTracks.length > 0) {
                 videoTracks.forEach((track) => {
                     track.enabled = !newVideoState;
@@ -400,6 +390,8 @@ const Call = ({ onEndCall }) => {
             toast.error("Lỗi khi điều chỉnh camera.");
         }
     };
+
+
 
     return (
         <div className="relative h-screen bg-black flex flex-col">
@@ -426,7 +418,7 @@ const Call = ({ onEndCall }) => {
 
             {/* Thông tin cuộc gọi (tên người nhận, trạng thái) */}
             <div className="absolute top-4 left-4 text-white text-lg font-semibold">
-                {recipientName ? `Đang gọi ${recipientName}` : "Đang kết nối..."}
+                {recipientId ? `Đang gọi ${recipientId}` : "Đang kết nối..."}
             </div>
 
             {/* Nút điều khiển */}
