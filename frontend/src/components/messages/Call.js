@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useContext } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button, Row, Col } from "react-bootstrap";
-import { FaMicrophoneSlash, FaVideoSlash, FaPhone, FaMicrophone, FaVideo} from "react-icons/fa";
+import { FaMicrophone, FaMicrophoneSlash, FaVideo, FaVideoSlash, FaPhone } from "react-icons/fa";
 import { AuthContext } from "../../context/AuthContext";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -19,6 +19,7 @@ const Call = ({ onEndCall }) => {
     const stringeeCallRef = useRef(null);
     const localVideoRef = useRef(null);
     const remoteVideoRef = useRef(null);
+    const localStreamRef = useRef(null);
     const [isStringeeConnected, setIsStringeeConnected] = useState(false);
 
     useEffect(() => {
@@ -249,20 +250,23 @@ const Call = ({ onEndCall }) => {
 
             stringeeCallRef.current.on("addlocalstream", (stream) => {
                 console.log("🎥 [addlocalstream] Stream:", stream);
-                console.log("🎥 [addlocalstream] Tracks:", stream.getTracks());
-                stream.getVideoTracks().forEach(track => {
-                    console.log("📹 Local Video Track - enabled:", track.enabled, "readyState:", track.readyState);
-                });
-                if (localVideoRef.current) {
-                    localVideoRef.current.srcObject = stream;
-                    setTimeout(() => {
-                        localVideoRef.current
-                            .play()
-                            .then(() => console.log("▶️ Local video playing"))
-                            .catch(err => console.warn("Local video play error:", err));
-                    }, 300); // ⏱️ delay giúp stream ổn định
-                }
+                localStreamRef.current = stream;
+
+                const tryAssignStream = () => {
+                    if (localVideoRef.current) {
+                        localVideoRef.current.srcObject = localStreamRef.current;
+                        localVideoRef.current.play().catch((err) => {
+                            console.warn("Local video play error:", err);
+                        });
+                    } else {
+                        // Chờ đến khi localVideoRef mount xong
+                        setTimeout(tryAssignStream, 100);
+                    }
+                };
+
+                tryAssignStream();
             });
+
 
             stringeeCallRef.current.on("addremotestream", (stream) => {
                 if (remoteVideoRef.current) {
@@ -375,7 +379,7 @@ const Call = ({ onEndCall }) => {
             }
 
             // Cập nhật trạng thái track video
-            const videoTracks = localVideoRef.current.srcObject.getVideoTracks();
+            const videoTracks = localStreamRef.current.srcObject.getVideoTracks();
             if (videoTracks.length > 0) {
                 videoTracks.forEach((track) => {
                     track.enabled = !newVideoState;

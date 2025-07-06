@@ -372,6 +372,7 @@ public class ChatController {
                     memberMap.put("userId", member.getUser().getId());
                     memberMap.put("username", member.getUser().getUsername());
                     memberMap.put("stringeeUserId", member.getUser().getUsername());
+                    memberMap.put("displayName", member.getUser().getDisplayName());
                     return memberMap;
                 })
                 .collect(Collectors.toList());
