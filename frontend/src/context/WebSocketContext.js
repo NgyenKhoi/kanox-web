@@ -45,6 +45,33 @@ export const WebSocketProvider = ({ children }) => {
             isConnectedRef.current = true;
             reconnectAttemptsRef.current = 0;
 
+            // const subscribeWithRetry = () => {
+            //     if (!clientRef.current?.connected) {
+            //         console.warn("STOMP not ready, retrying subscriptions...");
+            //         setTimeout(subscribeWithRetry, 100);
+            //         return;
+            //     }
+            //
+            //     pendingSubscriptionsRef.current.forEach(({ topic, callback, subId }) => {
+            //         try {
+            //             const subscription = clientRef.current.subscribe(topic, (message) => {
+            //                 const data = JSON.parse(message.body);
+            //                 console.log(`Received notification at ${new Date().toISOString()} for topic ${topic}:`, data);
+            //                 callback(data);
+            //             }, { id: subId });
+            //             subscriptionsRef.current[subId] = subscription;
+            //             console.log(`Subscribed to ${topic} with subId ${subId}`);
+            //         } catch (error) {
+            //             console.error(`Failed to subscribe to ${topic}:`, error);
+            //             setTimeout(() => {
+            //                 pendingSubscriptionsRef.current.push({ topic, callback, subId });
+            //                 subscribeWithRetry();
+            //             }, 100);
+            //         }
+            //     });
+            //     pendingSubscriptionsRef.current = [];
+            //
+
             const subscribeWithRetry = () => {
                 if (!clientRef.current?.connected) {
                     console.warn("STOMP not ready, retrying subscriptions...");
@@ -52,7 +79,22 @@ export const WebSocketProvider = ({ children }) => {
                     return;
                 }
 
+                const uniqueSubscriptions = [];
+                const seenSubIds = new Set();
                 pendingSubscriptionsRef.current.forEach(({ topic, callback, subId }) => {
+                    if (!seenSubIds.has(subId)) {
+                        seenSubIds.add(subId);
+                        uniqueSubscriptions.push({ topic, callback, subId });
+                    } else {
+                        console.warn(`Duplicate pending subscription for ${subId} on ${topic}. Skipping.`);
+                    }
+                });
+
+                uniqueSubscriptions.forEach(({ topic, callback, subId }) => {
+                    if (subscriptionsRef.current[subId]) {
+                        console.warn(`Subscription ${subId} already exists for ${topic}. Skipping.`);
+                        return;
+                    }
                     try {
                         const subscription = clientRef.current.subscribe(topic, (message) => {
                             const data = JSON.parse(message.body);
@@ -63,14 +105,12 @@ export const WebSocketProvider = ({ children }) => {
                         console.log(`Subscribed to ${topic} with subId ${subId}`);
                     } catch (error) {
                         console.error(`Failed to subscribe to ${topic}:`, error);
-                        setTimeout(() => {
-                            pendingSubscriptionsRef.current.push({ topic, callback, subId });
-                            subscribeWithRetry();
-                        }, 100);
+                        pendingSubscriptionsRef.current.push({ topic, callback, subId });
+                        setTimeout(subscribeWithRetry, 100);
                     }
                 });
                 pendingSubscriptionsRef.current = [];
-
+                
                 pendingMessagesRef.current.forEach(({ destination, body }) => {
                     try {
                         clientRef.current.publish({ destination, body: JSON.stringify(body) });
@@ -126,7 +166,36 @@ export const WebSocketProvider = ({ children }) => {
         }
     };
 
+    // const subscribe = (topic, callback, subId) => {
+    //     if (clientRef.current && isConnectedRef.current && clientRef.current.connected) {
+    //         try {
+    //             const subscription = clientRef.current.subscribe(topic, (message) => {
+    //                 const data = JSON.parse(message.body);
+    //                 console.log(`Received notification at ${new Date().toISOString()} for topic ${topic}:`, data);
+    //                 callback(data);
+    //             }, { id: subId });
+    //             subscriptionsRef.current[subId] = subscription;
+    //             console.log(`Subscribed to ${topic} with subId ${subId}`);
+    //             return subscription;
+    //         } catch (error) {
+    //             console.error(`Failed to subscribe to ${topic}:`, error);
+    //         }
+    //     } else {
+    //         console.warn(`Cannot subscribe to ${topic}: WebSocket not connected. Adding to pending subscriptions.`);
+    //         pendingSubscriptionsRef.current.push({ topic, callback, subId });
+    //     }
+    //     return null;
+    // };
+
     const subscribe = (topic, callback, subId) => {
+        if (subscriptionsRef.current[subId]) {
+            console.warn(`Subscription ${subId} already exists for ${topic}. Skipping.`);
+            return subscriptionsRef.current[subId];
+        }
+        if (pendingSubscriptionsRef.current.some((sub) => sub.subId === subId)) {
+            console.warn(`Subscription ${subId} already pending for ${topic}. Skipping.`);
+            return null;
+        }
         if (clientRef.current && isConnectedRef.current && clientRef.current.connected) {
             try {
                 const subscription = clientRef.current.subscribe(topic, (message) => {
@@ -139,6 +208,7 @@ export const WebSocketProvider = ({ children }) => {
                 return subscription;
             } catch (error) {
                 console.error(`Failed to subscribe to ${topic}:`, error);
+                pendingSubscriptionsRef.current.push({ topic, callback, subId });
             }
         } else {
             console.warn(`Cannot subscribe to ${topic}: WebSocket not connected. Adding to pending subscriptions.`);
@@ -147,15 +217,40 @@ export const WebSocketProvider = ({ children }) => {
         return null;
     };
 
+    // const unsubscribe = (subId) => {
+    //     if (clientRef.current && isConnectedRef.current && subscriptionsRef.current[subId]) {
+    //         try {
+    //             clientRef.current.unsubscribe(subId);
+    //             delete subscriptionsRef.current[subId];
+    //             console.log(`Unsubscribed from ${subId}`);
+    //         } catch (error) {
+    //             console.error(`Failed to unsubscribe from ${subId}:`, error);
+    //         }
+    //     }
+    //     pendingSubscriptionsRef.current = pendingSubscriptionsRef.current.filter(
+    //         (sub) => sub.subId !== subId
+    //     );
+    // };
+
     const unsubscribe = (subId) => {
-        if (clientRef.current && isConnectedRef.current && subscriptionsRef.current[subId]) {
+        if (!clientRef.current || !isConnectedRef.current) {
+            console.warn(`Cannot unsubscribe from ${subId}: WebSocket not connected`);
+            pendingSubscriptionsRef.current = pendingSubscriptionsRef.current.filter(
+                (sub) => sub.subId !== subId
+            );
+            delete subscriptionsRef.current[subId];
+            return;
+        }
+        if (subscriptionsRef.current[subId]) {
             try {
                 clientRef.current.unsubscribe(subId);
                 delete subscriptionsRef.current[subId];
-                console.log(`Unsubscribed from ${subId}`);
+                console.log(`Unsubscribed from ${subId} at ${new Date().toISOString()}`);
             } catch (error) {
                 console.error(`Failed to unsubscribe from ${subId}:`, error);
             }
+        } else {
+            console.warn(`No subscription found for ${subId}`);
         }
         pendingSubscriptionsRef.current = pendingSubscriptionsRef.current.filter(
             (sub) => sub.subId !== subId
@@ -180,22 +275,33 @@ export const WebSocketProvider = ({ children }) => {
         }
     };
 
+    // useEffect(() => {
+    //     if (userId && token) {
+    //         connect();
+    //         const pingInterval = setInterval(() => {
+    //             if (clientRef.current && isConnectedRef.current && clientRef.current.connected) {
+    //                 console.log(`Sending ping at ${new Date().toISOString()}`);
+    //                 try {
+    //                     clientRef.current.publish({ destination: "/app/ping" });
+    //                 } catch (error) {
+    //                     console.error("Failed to send ping:", error);
+    //                 }
+    //             }
+    //         }, 30000);
+    //
+    //         return () => {
+    //             clearInterval(pingInterval);
+    //         };
+    //     } else {
+    //         console.warn("Cannot connect WebSocket: Missing userId or token");
+    //     }
+    // }, [userId, token]);
+
     useEffect(() => {
         if (userId && token) {
             connect();
-            const pingInterval = setInterval(() => {
-                if (clientRef.current && isConnectedRef.current && clientRef.current.connected) {
-                    console.log(`Sending ping at ${new Date().toISOString()}`);
-                    try {
-                        clientRef.current.publish({ destination: "/app/ping" });
-                    } catch (error) {
-                        console.error("Failed to send ping:", error);
-                    }
-                }
-            }, 30000);
-
             return () => {
-                clearInterval(pingInterval);
+                disconnect();
             };
         } else {
             console.warn("Cannot connect WebSocket: Missing userId or token");

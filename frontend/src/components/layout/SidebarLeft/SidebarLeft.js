@@ -92,13 +92,27 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
       const count = data.unreadCount ?? 0;
       console.log(`Received unread chat count for user ${user.id}:`, count);
       setUnreadMessageCount(count);
+      window.dispatchEvent(
+          new CustomEvent("updateUnreadCount", {
+            detail: { unreadCount: count },
+          })
+      );
     }, subId);
+
+    // Lắng nghe sự kiện updateUnreadCount từ MessengerPage
+    const handleUpdateUnreadCount = (event) => {
+      const count = event.detail.unreadCount ?? 0;
+      console.log(`Received updateUnreadCount event for user ${user.id}:`, count);
+      setUnreadMessageCount(count);
+    };
+    window.addEventListener("updateUnreadCount", handleUpdateUnreadCount);
 
     return () => {
       if (subscription) {
         unsubscribe(subId);
         console.log(`Unsubscribed from /topic/unread-count/${user.id}`);
       }
+      window.removeEventListener("updateUnreadCount", handleUpdateUnreadCount);
     };
   }, [user, subscribe, unsubscribe]);
 

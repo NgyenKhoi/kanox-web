@@ -6,11 +6,9 @@
   <component name="ChangeListManager">
     <list default="true" id="c6c17ae2-c6cb-4c94-a6b8-91c54839fa5e" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/../backend/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/controller/CommentController.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/controller/CommentController.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/posts/TweetCard/CommentItem.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/posts/TweetCard/CommentItem.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/posts/TweetCard/CommentThread.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/posts/TweetCard/CommentThread.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/posts/TweetCard/TweetCard.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/posts/TweetCard/TweetCard.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/layout/SidebarLeft/SidebarLeft.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/layout/SidebarLeft/SidebarLeft.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/pages/Messenger/MessengerPage.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/pages/Messenger/MessengerPage.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -140,6 +138,7 @@
       <workItem from="1751543056780" duration="146000" />
       <workItem from="1751557544253" duration="4090000" />
       <workItem from="1751608939944" duration="4596000" />
+      <workItem from="1751793590416" duration="1735000" />
     </task>
     <servers />
   </component>
