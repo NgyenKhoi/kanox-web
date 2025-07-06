@@ -124,7 +124,7 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
           console.warn("No token found, skipping unread count fetch");
           return;
         }
-        const res = await fetch(`${process.env.REACT_APP_API_URL}/messages/unread-count`, {
+        const res = await fetch(`${process.env.REACT_APP_API_URL}/chat/messages/unread-count`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) {

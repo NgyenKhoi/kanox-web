@@ -234,9 +234,42 @@ const sendTyping = () => {
 };
 
 // Hàm điều hướng đến trang Call
-const handleStartCall = () => {
-    navigate(`/call/${chatId}`);
-};
+    const handleStartCall = async () => {
+        try {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/call/start/${chatId}`, {
+                method: "POST",
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Không thể khởi tạo cuộc gọi: ${errorText}`);
+            }
+            const callSession = await response.json();
+            const recipientResponse = await fetch(`${process.env.REACT_APP_API_URL}/chat/${chatId}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!recipientResponse.ok) {
+                throw new Error("Lỗi khi lấy thông tin người nhận.");
+            }
+            const chatData = await recipientResponse.json();
+            const recipient = chatData.members.find((member) => member.id !== user.id);
+            if (!recipient) {
+                throw new Error("Không tìm thấy người nhận.");
+            }
+            publish("/app/call/start", {
+                chatId: Number(chatId),
+                sessionId: callSession.sessionId,
+                userId: user.id,
+                username: user.username,
+                to: recipient.username,
+                callerName: user.username,
+            });
+            navigate(`/call/${chatId}`);
+        } catch (err) {
+            console.error("Start call error:", err);
+            toast.error(err.message || "Lỗi khi bắt đầu cuộc gọi.");
+        }
+    };
 
 return (
     <div className="flex flex-col h-full bg-[var(--background-color)]">
