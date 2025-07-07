@@ -71,6 +71,27 @@ const Call = ({ onEndCall }) => {
             return;
         }
 
+        const subId = `call-fail-${chatId}`;
+        const endCallSubId = `call-end-${chatId}`;
+
+
+        const busyCallback = (data) => {
+            if (data.content === "⚠️ Máy bận") {
+                toast.warning("Người kia đang bận. Quay lại chat.");
+                navigate(`/messages?chatId=${chatId}`);
+            }
+        };
+
+        const endCallCallback = (data) => {
+            if (data.content === "❔ Cuộc gọi kết thúc" && data.senderId !== user.id) {
+                console.log("📴 Nhận tín hiệu kết thúc cuộc gọi từ bên kia");
+                endCall(); // Gọi endCall để thoát giao diện và dọn dẹp
+            }
+        };
+
+        const busySubscription = subscribe(`/topic/chat/${chatId}`, busyCallback, subId);
+        const endCallSubscription = subscribe(`/topic/chat/${chatId}`, endCallCallback, endCallSubId);
+
         const fetchChatMembers = async () => {
             try {
                 const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/${chatId}/members`, {
@@ -248,13 +269,7 @@ const Call = ({ onEndCall }) => {
 
                 incomingCall.on("end", () => {
                     console.log("❌ Cuộc gọi đến kết thúc");
-                    if (localStreamRef.current) {
-                        localStreamRef.current.getTracks().forEach(track => track.stop());
-                        localStreamRef.current = null;
-                    }
-                    if (localVideoRef.current) localVideoRef.current.srcObject = null;
-                    if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
-                    incomingCallRef.current = null;
+                    endCall(); // Gọi endCall để dọn dẹp và điều hướng
                 });
 
                 // Chỉ trả lời cuộc gọi nếu không bị từ chối trước đó
@@ -286,13 +301,16 @@ const Call = ({ onEndCall }) => {
             if (stringeeCallRef.current) {
                 try {
                     stringeeCallRef.current.hangup();
-                    stringeeCallRef.current = null; // ✅ THÊM
+                    stringeeCallRef.current = null;
                 } catch (error) {
                     console.error("Error hanging up Stringee call:", error);
                 }
             }
+            clearTimeout(reconnectTimer);
+            unsubscribe(subId);
+            unsubscribe(endCallSubId);
         };
-    }, [chatId, token, user, navigate]);
+    }, [chatId, token, user, navigate, publish, subscribe, unsubscribe]);
 
     const startCall = async () => {
         navigator.mediaDevices.getUserMedia({ audio: true, video: true })
@@ -335,7 +353,8 @@ const Call = ({ onEndCall }) => {
                 stringeeClientRef.current,
                 user.username,
                 recipientId,
-                true
+                true,
+                { chatId: Number(chatId) }
             );
 
             stringeeCallRef.current.on("signalingstate", (state) => {
@@ -383,16 +402,8 @@ const Call = ({ onEndCall }) => {
             });
 
             stringeeCallRef.current.on("end", () => {
-                if (incomingCallRef.current) {
-                    try {
-                        incomingCallRef.current.hangup();
-                        incomingCallRef.current = null;
-                    } catch (e) {
-                        console.error("Lỗi ngắt incoming call:", e);
-                    }
-                }
-
-                endCall(); // gọi hàm kết thúc
+                console.log("❌ Cuộc gọi kết thúc từ Stringee");
+                endCall();
             });
 
 
@@ -421,6 +432,7 @@ const Call = ({ onEndCall }) => {
     };
 
     const endCall = async () => {
+        // Dừng Stringee call
         if (stringeeCallRef.current) {
             try {
                 stringeeCallRef.current.hangup();
@@ -431,6 +443,18 @@ const Call = ({ onEndCall }) => {
             stringeeCallRef.current = null;
         }
 
+        // Dừng incoming call nếu có
+        if (incomingCallRef.current) {
+            try {
+                incomingCallRef.current.hangup();
+                console.log("📞 Hung up incoming call");
+            } catch (error) {
+                console.error("Error hanging up incoming call:", error);
+            }
+            incomingCallRef.current = null;
+        }
+
+        // Dừng tất cả media tracks
         if (localStreamRef.current) {
             localStreamRef.current.getTracks().forEach((track) => {
                 console.log(`🛑 Stopped track: ${track.kind}`);
@@ -439,9 +463,23 @@ const Call = ({ onEndCall }) => {
             localStreamRef.current = null;
         }
 
+        // Xóa stream khỏi video elements
         if (localVideoRef.current) localVideoRef.current.srcObject = null;
         if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
 
+        // Gửi tín hiệu kết thúc cuộc gọi qua WebSocket
+        if (publish && chatId && user) {
+            const endCallMsg = {
+                chatId: Number(chatId),
+                senderId: user.id,
+                content: "❔ Cuộc gọi kết thúc",
+                typeId: 4,
+            };
+            publish("/app/sendMessage", endCallMsg);
+            console.log("📨 Gửi tín hiệu kết thúc cuộc gọi đến chatId:", chatId);
+        }
+
+        // Cập nhật trạng thái và điều hướng
         if (!callStarted && signalingCode !== null) {
             switch (signalingCode) {
                 case 5:
@@ -462,7 +500,6 @@ const Call = ({ onEndCall }) => {
                     break;
             }
         } else if (callStarted) {
-            // THÊM VÀO ĐÂY: Gửi tin nhắn khi cuộc gọi đang hoạt động và kết thúc bình thường
             console.log("📞 Cuộc gọi kết thúc bình thường");
             sendCallStatusMessage("❔ Cuộc gọi kết thúc");
         }
@@ -473,6 +510,7 @@ const Call = ({ onEndCall }) => {
         setSignalingCode(null);
         if (onEndCall) onEndCall();
 
+        // Gọi API để kết thúc session
         if (callSessionId) {
             try {
                 const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/call/end/${callSessionId}`, {
@@ -486,6 +524,8 @@ const Call = ({ onEndCall }) => {
             }
             setCallSessionId(null);
         }
+
+        // Điều hướng về trang chat
         navigate(`/messages?chatId=${chatId}`);
     };
 
