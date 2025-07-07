@@ -270,7 +270,14 @@ const UsersManagement = () => {
         }
         console.log('Admin role toggle result:', result);
         toast.success(`Đã ${action} thành công`);
-        fetchUsers(currentPage, searchTerm);
+        
+        // Reload danh sách người dùng
+        try {
+          await fetchUsers(currentPage, searchTerm);
+        } catch (reloadError) {
+          console.warn('Error reloading users after admin role change:', reloadError);
+          toast.warning('Đã cập nhật quyền thành công nhưng có lỗi khi tải lại danh sách');
+        }
       } catch (error) {
         console.error('Error toggling admin role:', error);
         console.error('Error details:', {
