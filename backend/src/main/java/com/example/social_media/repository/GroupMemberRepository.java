@@ -3,12 +3,11 @@ package com.example.social_media.repository;
 import com.example.social_media.entity.Group;
 import com.example.social_media.entity.GroupMember;
 import com.example.social_media.entity.GroupMemberId;
+import com.example.social_media.entity.User;
 import io.lettuce.core.dynamic.annotation.Param;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
-import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.*;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,12 +24,14 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, GroupM
 
     Optional<GroupMember> findById_GroupIdAndId_UserId(Integer groupId, Integer userId);
 
-    @Query("SELECT gm.isAdmin FROM GroupMember gm WHERE gm.id.groupId = :groupId AND gm.id.userId = :userId AND gm.status = true")
+    @Query("SELECT gm.isAdmin FROM GroupMember gm " +
+            "WHERE gm.id.groupId = :groupId AND gm.id.userId = :userId AND gm.status = true")
     Boolean isGroupAdmin(@Param("groupId") Integer groupId, @Param("userId") Integer userId);
 
     List<GroupMember> findById_GroupIdAndStatusTrue(Integer groupId);
 
-    @Query("SELECT gm.group FROM GroupMember gm WHERE gm.user.id = :userId AND gm.inviteStatus = :status")
+    @Query("SELECT gm.group FROM GroupMember gm " +
+            "WHERE gm.user.id = :userId AND gm.inviteStatus = :status")
     List<Group> findGroupsByUserIdAndInviteStatus(@Param("userId") Integer userId, @Param("status") String status);
 
     List<GroupMember> findById_GroupIdAndInviteStatus(Integer groupId, String inviteStatus);
@@ -39,17 +40,22 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, GroupM
             "WHERE gm.user.id = :userId AND gm.status = true AND gm.inviteStatus = 'ACCEPTED'")
     List<GroupMember> findByUserIdAndStatusTrueAndInviteStatusAccepted(@Param("userId") Integer userId);
 
-    @Query("SELECT COUNT(gm) FROM GroupMember gm WHERE gm.id.groupId = :groupId AND gm.status = true AND gm.inviteStatus = 'ACCEPTED'")
+    @Query("SELECT COUNT(gm) FROM GroupMember gm " +
+            "WHERE gm.id.groupId = :groupId AND gm.status = true AND gm.inviteStatus = 'ACCEPTED'")
     int countByGroupIdAndStatusTrue(@Param("groupId") Integer groupId);
 
     @Query("SELECT gm.user FROM GroupMember gm " +
             "WHERE gm.id.groupId = :groupId AND gm.status = true AND gm.inviteStatus = 'ACCEPTED'")
-    List<com.example.social_media.entity.User> findAcceptedUsersByGroupId(@Param("groupId") Integer groupId);
+    List<User> findAcceptedUsersByGroupId(@Param("groupId") Integer groupId);
 
-    @Query("SELECT gm FROM GroupMember gm WHERE gm.id.groupId = :groupId AND gm.status = true AND gm.inviteStatus = 'ACCEPTED'")
+    @Query("SELECT gm FROM GroupMember gm " +
+            "WHERE gm.id.groupId = :groupId AND gm.status = true AND gm.inviteStatus = 'ACCEPTED' " +
+            "ORDER BY gm.user.username ASC")
     Page<GroupMember> findAcceptedMembersByGroupId(@Param("groupId") Integer groupId, Pageable pageable);
 
     boolean existsById_GroupIdAndId_UserIdAndStatusTrueAndInviteStatus(Integer groupId, Integer userId, String inviteStatus);
 
+    @Query("SELECT gm.group FROM GroupMember gm " +
+            "WHERE gm.user.id = :userId AND gm.inviteStatus = 'PENDING'")
+    List<Group> findPendingGroupsByUserId(@Param("userId") Integer userId);
 }
-

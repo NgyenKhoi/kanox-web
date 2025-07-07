@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
+import { AuthContext } from "../../context/AuthContext";
 import {
     FaThLarge,
     FaUsers,
@@ -24,6 +25,8 @@ function CommunitySidebarLeft({
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [groups, setGroups] = useState([]);
     const shortList = groups.slice(0, 5);
+    const { user } = useContext(AuthContext);
+
 
     // Search hook
     const {
@@ -45,7 +48,7 @@ function CommunitySidebarLeft({
     useEffect(() => {
         const fetchJoinedGroups = async () => {
             try {
-                const res = await fetch(`${process.env.REACT_APP_API_URL}/groups/your-groups`, {
+                const res = await fetch(`${process.env.REACT_APP_API_URL}/groups/your-groups?username=${user.username}`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 if (!res.ok) throw new Error("Không thể lấy danh sách nhóm.");

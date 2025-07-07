@@ -130,11 +130,15 @@ export default function GroupCommunityPage() {
                                         <p className="text-sm text-warning">Đang chờ duyệt vào nhóm</p>
                                     )}
 
-                                    {!isMember && groupInfo.inviteStatus !== "PENDING" && groupInfo.privacyLevel !== "invite_only" && (
-                                        <Button variant="primary" size="sm" onClick={handleJoinGroup}>
-                                            Yêu cầu tham gia
-                                        </Button>
-                                    )}
+                                    {!isMember &&
+                                        !groupInfo.isOwner &&
+                                        !groupInfo.isAdmin &&
+                                        groupInfo.inviteStatus !== "PENDING" &&
+                                        (groupInfo.privacyLevel === "private" || groupInfo.privacyLevel === "hidden") && (
+                                            <Button variant="primary" size="sm" onClick={handleJoinGroup}>
+                                                Yêu cầu tham gia
+                                            </Button>
+                                        )}
 
                                     {isMember && (
                                         <Button variant="outline-danger" size="sm" onClick={handleLeaveGroup}>
