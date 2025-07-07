@@ -175,8 +175,7 @@ const Call = ({ onEndCall }) => {
                 }
 
                 if (incomingCall.fromNumber === user.username) {
-                    console.log("⚠️ Bỏ qua vì mình là người gọi");
-                    incomingCall.reject();
+                    console.log("⚠️ Đã là người gọi, bỏ qua không phản hồi");
                     return;
                 }
 
@@ -195,13 +194,23 @@ const Call = ({ onEndCall }) => {
                 incomingCall.on("addlocalstream", (stream) => {
                     console.log("🎥 [addlocalstream] Stream:", stream);
                     localStreamRef.current = stream;
-                    if (localVideoRef.current) {
-                        localVideoRef.current.srcObject = stream;
-                        localVideoRef.current.play().catch((err) => {
-                            console.error("Local video play error:", err);
-                        });
-                    }
+
+                    const tryAttachLocalStream = (stream, attempts = 0) => {
+                        if (localVideoRef.current) {
+                            localVideoRef.current.srcObject = stream;
+                            localVideoRef.current.play().catch((err) => {
+                                console.error("Local video play error:", err);
+                            });
+                        } else if (attempts < 10) {
+                            setTimeout(() => tryAttachLocalStream(stream, attempts + 1), 200);
+                        } else {
+                            console.error("❌ Không thể gắn localStream vào localVideo sau nhiều lần thử");
+                        }
+                    };
+
+                    tryAttachLocalStream(stream);
                 });
+
 
                 incomingCall.on("addremotestream", (stream) => {
                     console.log("🎥 [addremotestream] Stream:", stream);
