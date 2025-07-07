@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { Container, Row, Col, Navbar, Tab, Button } from "react-bootstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import CommunitiesManagement from "../../components/admin/CommunitiesManagement";
 import DashboardOverview from "../../components/admin/DashboardOverview";
 import ReportsManagement from "../../components/admin/ReportsManagement";
@@ -54,6 +56,17 @@ const AdminDashboardApp = () => {
       <Container className="text-center mt-4">
         <p className="text-muted">Quản lý hệ thống mạng xã hội KaNox.</p>
       </Container>
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+      />
     </div>
   );
 };
