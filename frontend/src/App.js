@@ -37,11 +37,16 @@ function AppContent() {
   const [incomingCall, setIncomingCall] = useState(null);
   const [chatIds, setChatIds] = useState([]);
   const [userMap, setUserMap] = useState({});
+  const [isInCall, setIsInCall] = useState(false);
   const { user, token } = useContext(AuthContext);
   const { subscribe, unsubscribe, publish } = useContext(WebSocketContext) || {};
   const { isDarkMode, toggleDarkMode } = useContext(ThemeContext);
   const navigate = useNavigate();
   const [showCreatePost, setShowCreatePost] = useState(false);
+
+  const handleCallStatus = (status) => {
+    setIsInCall(status);
+  };
 
   useEffect(() => {
     if (!user || !token) {
@@ -51,7 +56,6 @@ function AppContent() {
 
     const fetchChatIdsAndMembers = async () => {
       try {
-        // Lấy danh sách chat
         const chatResponse = await fetch(`${process.env.REACT_APP_API_URL}/chat/user/${user.id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -62,7 +66,6 @@ function AppContent() {
         const chats = await chatResponse.json();
         setChatIds(chats.map((chat) => chat.id));
 
-        // Lấy thành viên cho từng chat
         const userMapTemp = {};
         for (const chat of chats) {
           const membersResponse = await fetch(`${process.env.REACT_APP_API_URL}/chat/${chat.id}/members`, {
@@ -71,7 +74,7 @@ function AppContent() {
           if (membersResponse.ok) {
             const members = await membersResponse.json();
             members.forEach((member) => {
-              userMapTemp[member.userId] = member.displayName; // Lưu displayName thay vì username
+              userMapTemp[member.userId] = member.displayName;
             });
           }
         }
@@ -99,6 +102,17 @@ function AppContent() {
           subscribe(`/topic/call/${chatId}`, (message) => {
             console.log("Received call signal:", message);
             if (message.type === "start" && message.userId !== user.id) {
+              if (isInCall) {
+                // Nếu đang trong cuộc gọi, gửi tín hiệu "Máy bận"
+                console.log("🚫 Đang trong cuộc gọi, gửi tín hiệu máy bận");
+                publish("/app/sendMessage", {
+                  chatId: message.chatId,
+                  senderId: user.id,
+                  content: "⚠️ Máy bận",
+                  typeId: 4,
+                });
+                return;
+              }
               setIncomingCall({
                 chatId: message.chatId,
                 sessionId: message.sessionId,
@@ -111,11 +125,21 @@ function AppContent() {
       );
     });
 
-
     const handleIncomingCall = (event) => {
       const { chatId, sessionId, from, to } = event.detail;
       if (to !== user.username) {
         console.log("⛔ Mình là người gọi, không hiển thị modal.");
+        return;
+      }
+      if (isInCall) {
+        // Nếu đang trong cuộc gọi, gửi tín hiệu "Máy bận"
+        console.log("🚫 Đang trong cuộc gọi, gửi tín hiệu máy bận");
+        publish("/app/sendMessage", {
+          chatId: chatId,
+          senderId: user.id,
+          content: "⚠️ Máy bận",
+          typeId: 4,
+        });
         return;
       }
       setIncomingCall({
@@ -132,10 +156,11 @@ function AppContent() {
       subscriptions.forEach((_, index) => unsubscribe(`call-${chatIds[index]}`));
       window.removeEventListener("incomingCall", handleIncomingCall);
     };
-  }, [chatIds, subscribe, unsubscribe, user, navigate, token, userMap]);
+  }, [chatIds, subscribe, unsubscribe, user, navigate, token, userMap, isInCall, publish]);
 
   const acceptCall = () => {
     setShowCallModal(false);
+    setIsInCall(true); // Cập nhật trạng thái khi chấp nhận cuộc gọi
     navigate(`/call/${incomingCall.chatId}`);
   };
 
@@ -201,7 +226,14 @@ function AppContent() {
                     <Route path="/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
                     <Route path="/friends" element={<PrivateRoute><FriendsPage /></PrivateRoute>} />
                     <Route path="/admin" element={<PrivateRoute><AdminPage /></PrivateRoute>} />
-                    <Route path="/call/:chatId" element={<PrivateRoute><Call /></PrivateRoute>} />
+                    <Route
+                        path="/call/:chatId"
+                        element={
+                          <PrivateRoute>
+                            <Call onEndCall={() => setIsInCall(false)} /> {/* Cập nhật trạng thái khi kết thúc cuộc gọi */}
+                          </PrivateRoute>
+                        }
+                    />
                     <Route
                         path="/community/:groupId"
                         element={
