@@ -104,13 +104,18 @@ function AppContent() {
             console.log("Received call signal:", message);
             if (message.type === "start" && message.userId !== user.id) {
               if (isInCall) {
-                // Nếu đang trong cuộc gọi, gửi tín hiệu "Máy bận"
                 console.log("🚫 Đang trong cuộc gọi, gửi tín hiệu máy bận");
                 publish("/app/sendMessage", {
                   chatId: message.chatId,
                   senderId: user.id,
                   content: "⚠️ Máy bận",
                   typeId: 4,
+                });
+                // Gửi tín hiệu từ chối cuộc gọi
+                publish("/app/call/end", {
+                  chatId: message.chatId,
+                  callSessionId: message.sessionId,
+                  userId: user.id,
                 });
                 return;
               }
@@ -133,13 +138,18 @@ function AppContent() {
         return;
       }
       if (isInCall) {
-        // Nếu đang trong cuộc gọi, gửi tín hiệu "Máy bận"
         console.log("🚫 Đang trong cuộc gọi, gửi tín hiệu máy bận");
         publish("/app/sendMessage", {
           chatId: chatId,
           senderId: user.id,
           content: "⚠️ Máy bận",
           typeId: 4,
+        });
+        // Gửi tín hiệu từ chối cuộc gọi
+        publish("/app/call/end", {
+          chatId,
+          callSessionId: sessionId,
+          userId: user.id,
         });
         return;
       }
