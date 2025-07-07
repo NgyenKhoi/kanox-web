@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import { adminService } from "../../services/adminService";
-import TestUnlockUser from "./TestUnlockUser";
 
 const UsersManagement = () => {
   const [users, setUsers] = useState([]);
@@ -305,10 +304,6 @@ const UsersManagement = () => {
       <h2 className="text-3xl font-bold mb-6 text-gray-800">
         Quản lý Người dùng
       </h2>
-      
-      {/* Component test - xóa sau khi fix xong */}
-      <TestUnlockUser />
-      <div className="mb-6"></div>
       
       {/* Thanh tìm kiếm */}
       <div className="mb-6">
