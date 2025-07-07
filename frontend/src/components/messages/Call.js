@@ -220,15 +220,21 @@ const Call = ({ onEndCall }) => {
                 stringeeCallRef.current.on("addlocalstream", (stream) => {
                     console.log("🎥 [addlocalstream] Stream:", stream);
                     localStreamRef.current = stream;
-                    if (localVideoRef.current) {
-                        localVideoRef.current.srcObject = stream;
-                        localVideoRef.current.play().catch((err) => {
-                            console.error("Local video play error:", err);
-                            toast.warn("Không thể phát video local: " + err.message);
-                        });
-                    } else {
-                        console.error("⚠️ localVideoRef không tồn tại khi addlocalstream");
-                    }
+                    const tryAttachLocalStream = (stream, attempts = 0) => {
+                        if (localVideoRef.current) {
+                            localVideoRef.current.srcObject = stream;
+                            localVideoRef.current.play().catch((err) => {
+                                console.error("Local video play error:", err);
+                                toast.warn("Không thể phát video local: " + err.message);
+                            });
+                        } else if (attempts < 10) {
+                            setTimeout(() => tryAttachLocalStream(stream, attempts + 1), 200);
+                        } else {
+                            console.error("❌ Không thể gắn localStream vào localVideo sau nhiều lần thử");
+                        }
+                    };
+                    tryAttachLocalStream(stream);
+
                 });
 
                 stringeeCallRef.current.on("addremotestream", (stream) => {
@@ -359,15 +365,21 @@ const Call = ({ onEndCall }) => {
             stringeeCallRef.current.on("addlocalstream", (stream) => {
                 console.log("🎥 [addlocalstream] Stream:", stream);
                 localStreamRef.current = stream;
-                if (localVideoRef.current) {
-                    localVideoRef.current.srcObject = stream;
-                    localVideoRef.current.play().catch((err) => {
-                        console.error("Local video play error:", err);
-                        toast.warn("Không thể phát video local: " + err.message);
-                    });
-                } else {
-                    console.error("⚠️ localVideoRef không tồn tại khi addlocalstream");
-                }
+                const tryAttachLocalStream = (stream, attempts = 0) => {
+                    if (localVideoRef.current) {
+                        localVideoRef.current.srcObject = stream;
+                        localVideoRef.current.play().catch((err) => {
+                            console.error("Local video play error:", err);
+                            toast.warn("Không thể phát video local: " + err.message);
+                        });
+                    } else if (attempts < 10) {
+                        setTimeout(() => tryAttachLocalStream(stream, attempts + 1), 200);
+                    } else {
+                        console.error("❌ Không thể gắn localStream vào localVideo sau nhiều lần thử");
+                    }
+                };
+                tryAttachLocalStream(stream);
+
             });
 
             stringeeCallRef.current.on("addremotestream", (stream) => {
@@ -520,17 +532,15 @@ const Call = ({ onEndCall }) => {
                 playsInline
                 className="w-full h-full object-cover bg-gray-900"
             />
-            {callStarted && (
-                <div className="absolute bottom-6 right-6 w-[25%] max-w-[240px] aspect-video rounded-xl overflow-hidden shadow-2xl border border-gray-700 bg-gray-900">
-                    <video
-                        ref={localVideoRef}
-                        autoPlay
-                        muted
-                        playsInline
-                        className="w-full h-full object-cover"
-                    />
-                </div>
-            )}
+            <div className={`absolute bottom-6 right-6 w-[25%] max-w-[240px] aspect-video rounded-xl overflow-hidden shadow-2xl border border-gray-700 bg-gray-900 transition-opacity duration-300 ${callStarted ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+                <video
+                    ref={localVideoRef}
+                    autoPlay
+                    muted
+                    playsInline
+                    className="w-full h-full object-cover"
+                />
+            </div>
             <div className="absolute top-4 left-4 text-white text-lg font-semibold">
                 {recipientId ? `Đang gọi ${recipientId}` : "Đang kết nối..."}
             </div>
