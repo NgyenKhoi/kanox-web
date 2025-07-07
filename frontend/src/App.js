@@ -99,6 +99,7 @@ function AppContent() {
 
     const subscriptions = [];
     chatIds.forEach((chatId) => {
+      // Subscription cho tín hiệu bắt đầu cuộc gọi
       subscriptions.push(
           subscribe(`/topic/call/${chatId}`, (message) => {
             console.log("Received call signal:", message);
@@ -111,7 +112,6 @@ function AppContent() {
                   content: "⚠️ Máy bận",
                   typeId: 4,
                 });
-                // Gửi tín hiệu từ chối cuộc gọi
                 publish("/app/call/end", {
                   chatId: message.chatId,
                   callSessionId: message.sessionId,
@@ -129,6 +129,20 @@ function AppContent() {
             }
           }, `call-${chatId}`)
       );
+
+      // Subscription cho tín hiệu kết thúc cuộc gọi
+      subscriptions.push(
+          subscribe(`/topic/call/end/${chatId}`, (message) => {
+            console.log("Received call end signal:", message);
+            if (message.userId !== user.id && isInCall) {
+              console.log("📴 Nhận tín hiệu kết thúc cuộc gọi từ server");
+              setIsInCall(false);
+              setShowCallModal(false);
+              setIncomingCall(null);
+              navigate(`/messages?chatId=${chatId}`);
+            }
+          }, `call-end-${chatId}`)
+      );
     });
 
     const handleIncomingCall = (event) => {
@@ -145,7 +159,6 @@ function AppContent() {
           content: "⚠️ Máy bận",
           typeId: 4,
         });
-        // Gửi tín hiệu từ chối cuộc gọi
         publish("/app/call/end", {
           chatId,
           callSessionId: sessionId,
@@ -164,7 +177,7 @@ function AppContent() {
     window.addEventListener("incomingCall", handleIncomingCall);
 
     return () => {
-      subscriptions.forEach((_, index) => unsubscribe(`call-${chatIds[index]}`));
+      subscriptions.forEach((_, index) => unsubscribe(subscriptions[index].id));
       window.removeEventListener("incomingCall", handleIncomingCall);
     };
   }, [chatIds, subscribe, unsubscribe, user, navigate, token, userMap, isInCall, publish]);
