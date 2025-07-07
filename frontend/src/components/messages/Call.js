@@ -187,9 +187,20 @@ const Call = ({ onEndCall }) => {
                         content: "⚠️ Máy bận",
                         typeId: 4,
                     };
-                    publish("/app/sendMessage", busyMsg);
+                    if (busyMsg.chatId !== -1) {
+                        publish("/app/sendMessage", busyMsg);
+                        console.log("📨 Gửi tin nhắn máy bận đến chatId:", busyMsg.chatId);
+                    } else {
+                        console.error("🚫 Không có chatId hợp lệ để gửi tin nhắn máy bận");
+                    }
 
-                    incomingCall.reject();
+                    incomingCall.reject((res) => {
+                        if (res.r === 0) {
+                            console.log("📴 Cuộc gọi từ", incomingCall.fromNumber, "đã bị từ chối");
+                        } else {
+                            console.error("Lỗi khi từ chối cuộc gọi:", res.message);
+                        }
+                    });
                     return;
                 }
 
@@ -237,7 +248,6 @@ const Call = ({ onEndCall }) => {
 
                 incomingCall.on("end", () => {
                     console.log("❌ Cuộc gọi đến kết thúc");
-                    // Dọn localStream nếu có
                     if (localStreamRef.current) {
                         localStreamRef.current.getTracks().forEach(track => track.stop());
                         localStreamRef.current = null;
@@ -247,11 +257,12 @@ const Call = ({ onEndCall }) => {
                     incomingCallRef.current = null;
                 });
 
-
+                // Chỉ trả lời cuộc gọi nếu không bị từ chối trước đó
                 incomingCall.answer((res) => {
                     if (res.r === 0) {
                         setCallStarted(true);
                         console.log("📞 Cuộc gọi đã được trả lời");
+                        stringeeCallRef.current = incomingCall; // Gán incomingCall vào stringeeCallRef
                     } else {
                         toast.error("Không thể trả lời cuộc gọi: " + res.message);
                     }
