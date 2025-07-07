@@ -8,6 +8,7 @@ import com.example.social_media.dto.user.UserBasicDisplayDto;
 import com.example.social_media.entity.Group;
 import com.example.social_media.jwt.JwtService;
 import com.example.social_media.service.GroupService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -33,16 +34,15 @@ public class GroupController {
         this.jwtService = jwtService;
     }
 
-    @PostMapping(value = URLConfig.CREATE_GROUP, consumes = { MediaType.MULTIPART_FORM_DATA_VALUE, MediaType.APPLICATION_JSON_VALUE })
+    @PostMapping(value = URLConfig.CREATE_GROUP, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> createGroup(
-            @RequestPart(value = "data", required = false) GroupCreateDto dtoFromPart,
-            @RequestBody(required = false) GroupCreateDto dtoFromJson,
+            @RequestPart("data") String jsonData,
             @RequestPart(value = "avatar", required = false) MultipartFile avatar
     ) throws IOException {
+        ObjectMapper objectMapper = new ObjectMapper();
+        GroupCreateDto dto = objectMapper.readValue(jsonData, GroupCreateDto.class);
 
-        GroupCreateDto dto = dtoFromPart != null ? dtoFromPart : dtoFromJson;
-
-        if (dto == null) {
+        if (dto == null || dto.getName() == null || dto.getOwnerUsername() == null) {
             return ResponseEntity.badRequest().body(Map.of(
                     "status", "error",
                     "message", "Thiếu thông tin nhóm",
@@ -60,6 +60,7 @@ public class GroupController {
                 privacyLevel,
                 avatar
         );
+
         GroupDisplayDto groupDto = groupService.getGroupDetail(group.getId(), dto.getOwnerUsername());
 
         return ResponseEntity.ok(Map.of(
