@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useContext } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { Button, Dropdown } from "react-bootstrap";
 import { AuthContext } from "../../context/AuthContext";
 import TweetCard from "../../components/posts/TweetCard/TweetCard";
@@ -11,7 +11,7 @@ export default function GroupCommunityPage() {
     const [posts, setPosts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isMember, setIsMember] = useState(false);
-
+    const navigate = useNavigate();
     useEffect(() => {
         if (!groupId || !token) return;
 
@@ -142,10 +142,9 @@ export default function GroupCommunityPage() {
                     )}
                 </Dropdown.Menu>
             </Dropdown>
-        </div>
 
             {/* Danh sách bài đăng */}
-            <div className="space-y-4">
+            <div className="space-y-4 mt-4">
                 {posts.length > 0 ? (
                     posts.map((post) => (
                         <TweetCard
