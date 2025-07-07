@@ -210,4 +210,12 @@ public class GroupController {
     public ResponseEntity<List<GroupDisplayDto>> getGroupsOfUser(@RequestParam String username) {
         return ResponseEntity.ok(groupService.getGroupsOfUser(username));
     }
+
+    @DeleteMapping("/{groupId}/leave")
+    public ResponseEntity<?> leaveGroup(@PathVariable Integer groupId,
+                                        @RequestHeader("Authorization") String token) {
+        String username = jwtService.extractUsername(token);
+        groupService.leaveGroup(groupId, username);
+        return ResponseEntity.ok().body(Map.of("message", "Rời khỏi nhóm thành công"));
+    }
 }

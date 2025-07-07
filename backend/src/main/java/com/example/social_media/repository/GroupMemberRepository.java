@@ -46,6 +46,10 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, GroupM
             "WHERE gm.id.groupId = :groupId AND gm.status = true AND gm.inviteStatus = 'ACCEPTED'")
     List<com.example.social_media.entity.User> findAcceptedUsersByGroupId(@Param("groupId") Integer groupId);
 
-    Page<GroupMember> findByGroupIdAndStatus(Integer groupId, String accepted, Pageable pageable);
+    @Query("SELECT gm FROM GroupMember gm WHERE gm.id.groupId = :groupId AND gm.status = true AND gm.inviteStatus = 'ACCEPTED'")
+    Page<GroupMember> findAcceptedMembersByGroupId(@Param("groupId") Integer groupId, Pageable pageable);
+
+    boolean existsById_GroupIdAndId_UserIdAndStatusTrueAndInviteStatus(Integer groupId, Integer userId, String inviteStatus);
+
 }
 

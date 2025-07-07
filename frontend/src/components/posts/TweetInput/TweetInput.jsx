@@ -27,7 +27,7 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import useEmojiList from "../../../hooks/useEmojiList";
 
-function TweetInput({ onPostSuccess }) {
+function TweetInput({ onPostSuccess, groupId }) {
   const { user } = useContext(AuthContext);
   const [tweetContent, setTweetContent] = useState("");
   const [status, setStatus] = useState("public");
@@ -186,6 +186,7 @@ function TweetInput({ onPostSuccess }) {
           privacySetting: status,
           taggedUserIds,
           customListId: status === "custom" ? customListId : null,
+            groupId: groupId || null,
         }),
       });
 

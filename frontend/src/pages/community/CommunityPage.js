@@ -137,11 +137,20 @@ function CommunityPage() {
             body: JSON.stringify({ username: user.username }),
           }
       );
-      if (!response.ok) throw new Error("Không thể gửi yêu cầu tham gia nhóm.");
+        const result = await response.json();
+        if (!response.ok) {
+            throw new Error(result.message || "Không thể gửi yêu cầu tham gia nhóm.");
+        }
       toast.success("Đã gửi yêu cầu tham gia nhóm!");
       fetchData(); // Làm mới danh sách nhóm
     } catch (err) {
-      toast.error("Lỗi: " + err.message);
+        if (err.message.includes("đã gửi yêu cầu")) {
+            toast.info("Bạn đã gửi yêu cầu trước đó, vui lòng chờ duyệt");
+        } else if (err.message.includes("đã là thành viên")) {
+            toast.info("Bạn đã là thành viên của nhóm này");
+        } else {
+            toast.error("Lỗi: " + err.message);
+        }
     }
   };
 
@@ -164,7 +173,6 @@ function CommunityPage() {
               <CommunitySidebarLeft
                   selectedView={viewMode}
                   onSelectView={setViewMode}
-                  joinedGroups={yourGroups}
                   onGroupCreated={handleGroupCreated}
                   onToggleDarkMode={handleToggleDarkMode}
                   isDarkMode={isDarkMode}
@@ -179,7 +187,7 @@ function CommunityPage() {
               <FaSearch size={20} />
             </div>
 
-            {loading ? (
+              {loading ? (
                 <div className="text-center p-4">Đang tải...</div>
             ) : error ? (
                 <div className="text-danger text-center p-4">{error}</div>

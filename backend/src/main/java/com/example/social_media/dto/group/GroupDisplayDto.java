@@ -12,6 +12,8 @@ public class GroupDisplayDto {
     private String ownerAvatarUrl;
     private boolean isAdmin;
     private boolean isOwner;
+    private String privacyLevel;
+    private String inviteStatus;
 
     public GroupDisplayDto() {
     }
@@ -19,7 +21,8 @@ public class GroupDisplayDto {
     public GroupDisplayDto(Integer id, String name, String avatarUrl, String description,
                            String createdAt, Integer memberCount, String ownerUsername,
                            String ownerDisplayName, String ownerAvatarUrl,
-                           boolean isAdmin, boolean isOwner) {
+                           boolean isAdmin, boolean isOwner,
+                           String privacyLevel, String inviteStatus) {
         this.id = id;
         this.name = name;
         this.avatarUrl = avatarUrl;
@@ -31,6 +34,8 @@ public class GroupDisplayDto {
         this.ownerAvatarUrl = ownerAvatarUrl;
         this.isAdmin = isAdmin;
         this.isOwner = isOwner;
+        this.privacyLevel = privacyLevel;
+        this.inviteStatus = inviteStatus;
     }
 
     public Integer getId() {
@@ -119,5 +124,21 @@ public class GroupDisplayDto {
 
     public void setOwner(boolean owner) {
         isOwner = owner;
+    }
+
+    public String getPrivacyLevel() {
+        return privacyLevel;
+    }
+
+    public void setPrivacyLevel(String privacyLevel) {
+        this.privacyLevel = privacyLevel;
+    }
+
+    public String getInviteStatus() {
+        return inviteStatus;
+    }
+
+    public void setInviteStatus(String inviteStatus) {
+        this.inviteStatus = inviteStatus;
     }
 }
