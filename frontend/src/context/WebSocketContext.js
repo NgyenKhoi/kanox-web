@@ -187,36 +187,6 @@ export const WebSocketProvider = ({ children }) => {
     //     return null;
     // };
 
-    // const subscribe = (topic, callback, subId) => {
-    //     if (subscriptionsRef.current[subId]) {
-    //         console.warn(`Subscription ${subId} already exists for ${topic}. Skipping.`);
-    //         return subscriptionsRef.current[subId];
-    //     }
-    //     if (pendingSubscriptionsRef.current.some((sub) => sub.subId === subId)) {
-    //         console.warn(`Subscription ${subId} already pending for ${topic}. Skipping.`);
-    //         return null;
-    //     }
-    //     if (clientRef.current && isConnectedRef.current && clientRef.current.connected) {
-    //         try {
-    //             const subscription = clientRef.current.subscribe(topic, (message) => {
-    //                 const data = JSON.parse(message.body);
-    //                 console.log(`Received notification at ${new Date().toISOString()} for topic ${topic}:`, data);
-    //                 callback(data);
-    //             }, { id: subId });
-    //             subscriptionsRef.current[subId] = subscription;
-    //             console.log(`Subscribed to ${topic} with subId ${subId}`);
-    //             return subscription;
-    //         } catch (error) {
-    //             console.error(`Failed to subscribe to ${topic}:`, error);
-    //             pendingSubscriptionsRef.current.push({ topic, callback, subId });
-    //         }
-    //     } else {
-    //         console.warn(`Cannot subscribe to ${topic}: WebSocket not connected. Adding to pending subscriptions.`);
-    //         pendingSubscriptionsRef.current.push({ topic, callback, subId });
-    //     }
-    //     return null;
-    // };
-
     const subscribe = (topic, callback, subId) => {
         if (subscriptionsRef.current[subId]) {
             console.warn(`Subscription ${subId} already exists for ${topic}. Skipping.`);
@@ -228,28 +198,23 @@ export const WebSocketProvider = ({ children }) => {
         }
         if (clientRef.current && isConnectedRef.current && clientRef.current.connected) {
             try {
-                const subscription = clientRef.current.subscribe(
-                    topic,
-                    (message) => {
-                        const data = JSON.parse(message.body);
-                        console.log(`Received notification at ${new Date().toISOString()} for topic ${topic}:`, data);
-                        callback(data);
-                    },
-                    { id: subId }
-                );
+                const subscription = clientRef.current.subscribe(topic, (message) => {
+                    const data = JSON.parse(message.body);
+                    console.log(`Received notification at ${new Date().toISOString()} for topic ${topic}:`, data);
+                    callback(data);
+                }, { id: subId });
                 subscriptionsRef.current[subId] = subscription;
                 console.log(`Subscribed to ${topic} with subId ${subId}`);
                 return subscription;
             } catch (error) {
                 console.error(`Failed to subscribe to ${topic}:`, error);
                 pendingSubscriptionsRef.current.push({ topic, callback, subId });
-                return null;
             }
         } else {
             console.warn(`Cannot subscribe to ${topic}: WebSocket not connected. Adding to pending subscriptions.`);
             pendingSubscriptionsRef.current.push({ topic, callback, subId });
-            return null;
         }
+        return null;
     };
 
     // const unsubscribe = (subId) => {
