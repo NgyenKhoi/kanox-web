@@ -11,7 +11,6 @@ import { WebSocketContext } from "../../context/WebSocketContext";
 const Call = ({ onEndCall }) => {
     const { user, token } = useContext(AuthContext);
     const { chatId } = useParams();
-    const { publish } = useContext(WebSocketContext);
     const navigate = useNavigate();
     const [isMuted, setIsMuted] = useState(false);
     const [isVideoOff, setIsVideoOff] = useState(false);
@@ -26,6 +25,10 @@ const Call = ({ onEndCall }) => {
     const [localStream, setLocalStream] = useState(null);
     const [isStringeeConnected, setIsStringeeConnected] = useState(false);
     const [signalingCode, setSignalingCode] = useState(null);
+    const { publish, subscribe, unsubscribe } = useContext(WebSocketContext);
+    let reconnectTimer = null;
+
+
 
 
     const sendCallStatusMessage = (statusMessage) => {
@@ -41,6 +44,23 @@ const Call = ({ onEndCall }) => {
         publish("/app/sendMessage", msg);
     };
 
+    useEffect(() => {
+        const subId = `call-fail-${chatId}`;
+
+        const callback = (data) => {
+            if (data.content === "⚠️ Máy bận") {
+                toast.warning("Người kia đang bận. Quay lại chat.");
+                navigate(`/messages?chatId=${chatId}`);
+            }
+        };
+
+        const subscription = subscribe(`/topic/chat/${chatId}`, callback, subId);
+
+        return () => {
+            clearTimeout(reconnectTimer);
+            unsubscribe(subId);
+        };
+    }, [chatId, subscribe, unsubscribe, navigate]);
 
 
     useEffect(() => {
@@ -148,12 +168,23 @@ const Call = ({ onEndCall }) => {
             });
 
             stringeeClientRef.current.on("disconnect", () => {
-                toast.warn("Mất kết nối với Stringee.");
+                toast.warn("Mất kết nối với Stringee. Đang thử kết nối lại...");
+                reconnectTimer = setTimeout(() => {
+                    stringeeClientRef.current.connect(accessToken);
+                }, 3000);
             });
+
 
             stringeeClientRef.current.on("incomingcall", (incomingCall) => {
                 console.log("📞 incomingCall.toNumber:", incomingCall.toNumber);
                 console.log("👤 currentUser.username:", user.username);
+                if (callStarted || stringeeCallRef.current) {
+                    console.warn("❌ Đang trong cuộc gọi khác, từ chối cuộc gọi mới.");
+                    incomingCall.reject();
+                    setSignalingCode(3); // code = 3 => máy bận
+                    sendCallStatusMessage("⚠️ Máy bận");
+                    return;
+                }
                 setCallStarted(false);
                 // 👉 Lọc ra nếu mình là người gọi thì bỏ qua
                 if (incomingCall.fromNumber === user.username) {
@@ -244,6 +275,10 @@ const Call = ({ onEndCall }) => {
             toast.error("Không tìm thấy người nhận để gọi.");
             return;
         }
+        if (callStarted || stringeeCallRef.current) {
+            toast.warn("Bạn đang trong một cuộc gọi khác.");
+            return;
+        }
         setCallStarted(false);
 
         try {
@@ -268,6 +303,10 @@ const Call = ({ onEndCall }) => {
             stringeeCallRef.current.on("signalingstate", (state) => {
                 setSignalingCode(state.code);
                 console.log("📶 Signaling state:", state);
+
+                if (state.code === 3) {
+                    toast.error("Người nhận đang bận cuộc gọi khác.");
+                }
             });
             stringeeCallRef.current.on("mediastate", (state) => {
                 console.log("📺 Media state:", state);
@@ -341,6 +380,11 @@ const Call = ({ onEndCall }) => {
             } catch (error) {
                 console.error("Error hanging up Stringee call:", error);
             }
+        }
+
+        if (localStreamRef.current) {
+            localStreamRef.current.getTracks().forEach((track) => track.stop());
+            localStreamRef.current = null;
         }
 
         if (localVideoRef.current) localVideoRef.current.srcObject = null;
@@ -441,8 +485,6 @@ const Call = ({ onEndCall }) => {
             toast.error("Lỗi khi điều chỉnh camera.");
         }
     };
-
-
 
     return (
         <div className="relative h-screen bg-black flex flex-col">

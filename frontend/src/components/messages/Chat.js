@@ -46,25 +46,6 @@ const Chat = ({ chatId, messages, onMessageUpdate, onSendMessage }) => {
         }
     };
 
-//     const fetchMessages = async () => {
-//         try {
-//             const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/${chatId}/messages`, {
-//             headers: { Authorization: `Bearer ${token}` },
-//         });
-//         const data = await response.json();
-//         if (response.ok) {
-//             setMessages(
-//                 data.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
-//             );
-//             lastMessageIdRef.current = data.length > 0 ? data[data.length - 1].id : null;
-//             fetchUnreadMessageCount();
-//         } else {
-//             throw new Error(data.message || "Lỗi khi tải tin nhắn.");
-//         }
-//     } catch (err) {
-//         toast.error(err.message || "Lỗi khi tải tin nhắn.");
-//     }
-// };
 
 useEffect(() => {
     if (!token || !user || !chatId) {
@@ -130,27 +111,6 @@ useEffect(() => {
     subscriptions.push(subscribe(`/topic/typing/${chatId}`, handleMessage, `typing-${chatId}`));
     //subscriptions.push(subscribe(`/topic/messages/${user.id}`, handleMessage, `messages-${user.id}`));
     subscriptions.push(subscribe(`/topic/unread-count/${user.id}`, handleMessage, `unread-count-${user.id}`));
-
-    // const sendResend = () => {
-    //     if (publish && isConnectedRef.current) {
-    //         publish("/app/resend", { chatId: Number(chatId) });
-    //         console.log("Sent /app/resend for chatId:", `${chatId}`);
-    //     } else {
-    //         console.warn("Retrying /app/resend for chatId:", `${chatId}`);
-    //         setTimeout(sendResend, 100);
-    //     }
-    // };
-
-    // const checkConnection = setInterval(() => {
-    //     if (publish && !isConnectedRef.current) {
-    //         isConnectedRef.current = true;
-    //         sendResend();
-    //     }
-    // }, 100);
-
-    // if (publish) {
-    //     publish("/app/resend", { chatId: Number(chatId) });
-    // }
 
     fetch(`${process.env.REACT_APP_API_URL}/chat/${chatId}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -262,10 +222,10 @@ return (
                         }`}>
                             {isMissedCall ? (
                                 <div className="flex items-center justify-between gap-2">
-                                    <span>{msg.content}</span>
+                                    <span className="mr-2">{msg.content}</span>
                                     <button
                                         onClick={() => navigate(`/call/${chatId}`)}
-                                        className="ml-2 text-sm text-blue-600 hover:underline"
+                                        className="text-sm text-blue-600 hover:underline"
                                     >
                                         Gọi lại
                                     </button>
