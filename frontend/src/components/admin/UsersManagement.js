@@ -134,12 +134,33 @@ const UsersManagement = () => {
   const handleBan = async (id) => {
     if (window.confirm(`Bạn có chắc muốn khóa người dùng ID: ${id}?`)) {
       try {
-        await adminService.updateUserStatus(id, false);
-        toast.success("Đã khóa tài khoản người dùng");
+        console.log('=== BANNING USER DEBUG ===');
+        console.log('User ID:', id);
+        console.log('API URL:', `${process.env.REACT_APP_API_URL || 'http://localhost:8080'}/admin/users/${id}/status?status=false`);
+        console.log('Auth token:', localStorage.getItem('token') || sessionStorage.getItem('token'));
+        
+        const result = await adminService.updateUserStatus(id, false);
+        console.log('Ban result:', result);
+        toast.success("Đã khóa tài khoản người dùng thành công");
         fetchUsers(currentPage, searchTerm);
       } catch (error) {
-        console.error('Error banning user:', error);
-        toast.error(error.message || "Lỗi khi khóa tài khoản người dùng");
+        console.error('=== BAN ERROR DEBUG ===');
+        console.error('Full error object:', error);
+        console.error('Error name:', error.name);
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+        
+        if (error.response) {
+          console.error('Response status:', error.response.status);
+          console.error('Response data:', error.response.data);
+          console.error('Response headers:', error.response.headers);
+        }
+        
+        const errorMessage = error.response?.data?.message || 
+                            error.response?.data?.error || 
+                            error.message || 
+                            "Lỗi khi khóa tài khoản người dùng";
+        toast.error(errorMessage);
       }
     }
   };
@@ -147,12 +168,33 @@ const UsersManagement = () => {
   const handleUnban = async (id) => {
     if (window.confirm(`Bạn có chắc muốn mở khóa người dùng ID: ${id}?`)) {
       try {
-        await adminService.updateUserStatus(id, true);
-        toast.success("Đã mở khóa tài khoản người dùng");
+        console.log('=== UNBANNING USER DEBUG ===');
+        console.log('User ID:', id);
+        console.log('API URL:', `${process.env.REACT_APP_API_URL || 'http://localhost:8080'}/admin/users/${id}/status?status=true`);
+        console.log('Auth token:', localStorage.getItem('token') || sessionStorage.getItem('token'));
+        
+        const result = await adminService.updateUserStatus(id, true);
+        console.log('Unban result:', result);
+        toast.success("Đã mở khóa tài khoản người dùng thành công");
         fetchUsers(currentPage, searchTerm);
       } catch (error) {
-        console.error('Error unbanning user:', error);
-        toast.error(error.message || "Lỗi khi mở khóa tài khoản người dùng");
+        console.error('=== UNBAN ERROR DEBUG ===');
+        console.error('Full error object:', error);
+        console.error('Error name:', error.name);
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+        
+        if (error.response) {
+          console.error('Response status:', error.response.status);
+          console.error('Response data:', error.response.data);
+          console.error('Response headers:', error.response.headers);
+        }
+        
+        const errorMessage = error.response?.data?.message || 
+                            error.response?.data?.error || 
+                            error.message || 
+                            "Lỗi khi mở khóa tài khoản người dùng";
+        toast.error(errorMessage);
       }
     }
   };
@@ -163,16 +205,28 @@ const UsersManagement = () => {
     
     if (window.confirm(`Bạn có chắc muốn ${action} cho người dùng ID: ${id}?`)) {
       try {
+        console.log(`${action} for user ID:`, id);
+        let result;
         if (isCurrentlyAdmin) {
-          await adminService.revokeAdminRole(id);
+          result = await adminService.revokeAdminRole(id);
         } else {
-          await adminService.grantAdminRole(id);
+          result = await adminService.grantAdminRole(id);
         }
+        console.log('Admin role toggle result:', result);
         toast.success(`Đã ${action} thành công`);
         fetchUsers(currentPage, searchTerm);
       } catch (error) {
         console.error('Error toggling admin role:', error);
-        toast.error(error.message || `Lỗi khi ${action}`);
+        console.error('Error details:', {
+          status: error.status,
+          message: error.message,
+          response: error.response
+        });
+        const errorMessage = error.response?.data?.message || 
+                            error.response?.data?.error || 
+                            error.message || 
+                            `Lỗi khi ${action}`;
+        toast.error(errorMessage);
       }
     }
   };
