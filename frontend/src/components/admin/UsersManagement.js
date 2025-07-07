@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import { adminService } from "../../services/adminService";
+import TestUnlockUser from "./TestUnlockUser";
 
 const UsersManagement = () => {
   const [users, setUsers] = useState([]);
@@ -130,36 +131,64 @@ const UsersManagement = () => {
     toast.warning("Chức năng xóa người dùng không được khuyến khích. Hãy sử dụng chức năng khóa tài khoản thay thế.");
   };
 
-  // Khóa/mở khóa người dùng
+  // Khóa tài khoản người dùng
   const handleBan = async (id) => {
     if (window.confirm(`Bạn có chắc muốn khóa người dùng ID: ${id}?`)) {
       try {
         console.log('=== BANNING USER DEBUG ===');
         console.log('User ID:', id);
         console.log('API URL:', `${process.env.REACT_APP_API_URL || 'http://localhost:8080'}/admin/users/${id}/status?status=false`);
-        console.log('Auth token:', localStorage.getItem('token') || sessionStorage.getItem('token'));
         
-        const result = await adminService.updateUserStatus(id, false);
-        console.log('Ban result:', result);
-        toast.success("Đã khóa tài khoản người dùng thành công");
-        fetchUsers(currentPage, searchTerm);
-      } catch (error) {
-        console.error('=== BAN ERROR DEBUG ===');
-        console.error('Full error object:', error);
-        console.error('Error name:', error.name);
-        console.error('Error message:', error.message);
-        console.error('Error stack:', error.stack);
-        
-        if (error.response) {
-          console.error('Response status:', error.response.status);
-          console.error('Response data:', error.response.data);
-          console.error('Response headers:', error.response.headers);
+        // Kiểm tra token trước khi gọi API
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        if (!token) {
+          toast.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+          return;
         }
         
-        const errorMessage = error.response?.data?.message || 
-                            error.response?.data?.error || 
-                            error.message || 
-                            "Lỗi khi khóa tài khoản người dùng";
+        console.log('Token exists:', !!token);
+        
+        // Gọi API khóa tài khoản
+        await adminService.updateUserStatus(id, false);
+        
+        // Thông báo thành công
+        toast.success("Đã khóa tài khoản người dùng thành công!");
+        
+        // Tải lại danh sách người dùng
+        await fetchUsers(currentPage, searchTerm);
+        
+      } catch (error) {
+        console.error('=== BAN ERROR DEBUG ===');
+        console.error('Error:', error);
+        
+        // Xử lý lỗi và hiển thị thông báo phù hợp
+        let errorMessage = "Có lỗi xảy ra khi khóa tài khoản";
+        
+        if (error.message && error.message.includes('token')) {
+          errorMessage = 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+        } else if (error.message && error.message.includes('kết nối')) {
+          errorMessage = 'Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng.';
+        } else if (error.response) {
+          switch (error.response.status) {
+            case 401:
+              errorMessage = 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+              break;
+            case 403:
+              errorMessage = 'Bạn không có quyền thực hiện hành động này.';
+              break;
+            case 404:
+              errorMessage = 'Không tìm thấy người dùng này.';
+              break;
+            case 500:
+              errorMessage = 'Lỗi server. Vui lòng thử lại sau.';
+              break;
+            default:
+              errorMessage = error.response.data?.message || error.response.data?.error || 'Có lỗi xảy ra khi khóa tài khoản';
+          }
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        
         toast.error(errorMessage);
       }
     }
@@ -171,29 +200,57 @@ const UsersManagement = () => {
         console.log('=== UNBANNING USER DEBUG ===');
         console.log('User ID:', id);
         console.log('API URL:', `${process.env.REACT_APP_API_URL || 'http://localhost:8080'}/admin/users/${id}/status?status=true`);
-        console.log('Auth token:', localStorage.getItem('token') || sessionStorage.getItem('token'));
         
-        const result = await adminService.updateUserStatus(id, true);
-        console.log('Unban result:', result);
-        toast.success("Đã mở khóa tài khoản người dùng thành công");
-        fetchUsers(currentPage, searchTerm);
-      } catch (error) {
-        console.error('=== UNBAN ERROR DEBUG ===');
-        console.error('Full error object:', error);
-        console.error('Error name:', error.name);
-        console.error('Error message:', error.message);
-        console.error('Error stack:', error.stack);
-        
-        if (error.response) {
-          console.error('Response status:', error.response.status);
-          console.error('Response data:', error.response.data);
-          console.error('Response headers:', error.response.headers);
+        // Kiểm tra token trước khi gọi API
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        if (!token) {
+          toast.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+          return;
         }
         
-        const errorMessage = error.response?.data?.message || 
-                            error.response?.data?.error || 
-                            error.message || 
-                            "Lỗi khi mở khóa tài khoản người dùng";
+        console.log('Token exists:', !!token);
+        
+        // Gọi API mở khóa tài khoản
+        await adminService.updateUserStatus(id, true);
+        
+        // Thông báo thành công
+        toast.success("Đã mở khóa tài khoản người dùng thành công!");
+        
+        // Tải lại danh sách người dùng
+        await fetchUsers(currentPage, searchTerm);
+        
+      } catch (error) {
+        console.error('=== UNBAN ERROR DEBUG ===');
+        console.error('Error:', error);
+        
+        // Xử lý lỗi và hiển thị thông báo phù hợp
+        let errorMessage = "Có lỗi xảy ra khi mở khóa tài khoản";
+        
+        if (error.message && error.message.includes('token')) {
+          errorMessage = 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+        } else if (error.message && error.message.includes('kết nối')) {
+          errorMessage = 'Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng.';
+        } else if (error.response) {
+          switch (error.response.status) {
+            case 401:
+              errorMessage = 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+              break;
+            case 403:
+              errorMessage = 'Bạn không có quyền thực hiện hành động này.';
+              break;
+            case 404:
+              errorMessage = 'Không tìm thấy người dùng này.';
+              break;
+            case 500:
+              errorMessage = 'Lỗi server. Vui lòng thử lại sau.';
+              break;
+            default:
+              errorMessage = error.response.data?.message || error.response.data?.error || 'Có lỗi xảy ra khi mở khóa tài khoản';
+          }
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        
         toast.error(errorMessage);
       }
     }
@@ -248,6 +305,10 @@ const UsersManagement = () => {
       <h2 className="text-3xl font-bold mb-6 text-gray-800">
         Quản lý Người dùng
       </h2>
+      
+      {/* Component test - xóa sau khi fix xong */}
+      <TestUnlockUser />
+      <div className="mb-6"></div>
       
       {/* Thanh tìm kiếm */}
       <div className="mb-6">
