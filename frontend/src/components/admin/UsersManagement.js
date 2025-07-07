@@ -134,18 +134,28 @@ const UsersManagement = () => {
   const handleBan = async (id) => {
     if (window.confirm(`Bạn có chắc muốn khóa người dùng ID: ${id}?`)) {
       try {
-        console.log('Banning user ID:', id);
+        console.log('=== BANNING USER DEBUG ===');
+        console.log('User ID:', id);
+        console.log('API URL:', `${process.env.REACT_APP_API_URL || 'http://localhost:8080'}/admin/users/${id}/status?status=false`);
+        console.log('Auth token:', localStorage.getItem('token') || sessionStorage.getItem('token'));
+        
         const result = await adminService.updateUserStatus(id, false);
         console.log('Ban result:', result);
         toast.success("Đã khóa tài khoản người dùng thành công");
         fetchUsers(currentPage, searchTerm);
       } catch (error) {
-        console.error('Error banning user:', error);
-        console.error('Error details:', {
-          status: error.status,
-          message: error.message,
-          response: error.response
-        });
+        console.error('=== BAN ERROR DEBUG ===');
+        console.error('Full error object:', error);
+        console.error('Error name:', error.name);
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+        
+        if (error.response) {
+          console.error('Response status:', error.response.status);
+          console.error('Response data:', error.response.data);
+          console.error('Response headers:', error.response.headers);
+        }
+        
         const errorMessage = error.response?.data?.message || 
                             error.response?.data?.error || 
                             error.message || 
@@ -158,18 +168,28 @@ const UsersManagement = () => {
   const handleUnban = async (id) => {
     if (window.confirm(`Bạn có chắc muốn mở khóa người dùng ID: ${id}?`)) {
       try {
-        console.log('Unbanning user ID:', id);
+        console.log('=== UNBANNING USER DEBUG ===');
+        console.log('User ID:', id);
+        console.log('API URL:', `${process.env.REACT_APP_API_URL || 'http://localhost:8080'}/admin/users/${id}/status?status=true`);
+        console.log('Auth token:', localStorage.getItem('token') || sessionStorage.getItem('token'));
+        
         const result = await adminService.updateUserStatus(id, true);
         console.log('Unban result:', result);
         toast.success("Đã mở khóa tài khoản người dùng thành công");
         fetchUsers(currentPage, searchTerm);
       } catch (error) {
-        console.error('Error unbanning user:', error);
-        console.error('Error details:', {
-          status: error.status,
-          message: error.message,
-          response: error.response
-        });
+        console.error('=== UNBAN ERROR DEBUG ===');
+        console.error('Full error object:', error);
+        console.error('Error name:', error.name);
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+        
+        if (error.response) {
+          console.error('Response status:', error.response.status);
+          console.error('Response data:', error.response.data);
+          console.error('Response headers:', error.response.headers);
+        }
+        
         const errorMessage = error.response?.data?.message || 
                             error.response?.data?.error || 
                             error.message || 

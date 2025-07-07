@@ -18,11 +18,34 @@ const getHeaders = () => {
 
 // Xử lý response từ API
 const handleResponse = async (response) => {
+  console.log('=== API RESPONSE DEBUG ===');
+  console.log('Response status:', response.status);
+  console.log('Response ok:', response.ok);
+  console.log('Response url:', response.url);
+  
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    let errorData;
+    try {
+      errorData = await response.json();
+      console.log('Error response data:', errorData);
+    } catch (parseError) {
+      console.log('Failed to parse error response:', parseError);
+      errorData = {};
+    }
+    
+    const error = new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    error.status = response.status;
+    error.response = {
+      status: response.status,
+      data: errorData,
+      headers: response.headers
+    };
+    throw error;
   }
-  return await response.json();
+  
+  const data = await response.json();
+  console.log('Success response data:', data);
+  return data;
 };
 
 export const adminService = {
@@ -68,12 +91,28 @@ export const adminService = {
 
   // Cập nhật trạng thái người dùng (khóa/mở khóa)
   async updateUserStatus(userId, status) {
-    const response = await fetch(`${API_BASE_URL}/admin/users/${userId}/status?status=${status}`, {
-      method: 'PATCH',
-      headers: getHeaders(),
-    });
-
-    return await handleResponse(response);
+    const url = `${API_BASE_URL}/admin/users/${userId}/status?status=${status}`;
+    const headers = getHeaders();
+    
+    console.log('=== UPDATE USER STATUS DEBUG ===');
+    console.log('URL:', url);
+    console.log('Method: PATCH');
+    console.log('Headers:', headers);
+    console.log('User ID:', userId);
+    console.log('Status:', status);
+    
+    try {
+      const response = await fetch(url, {
+        method: 'PATCH',
+        headers: headers,
+      });
+      
+      return await handleResponse(response);
+    } catch (error) {
+      console.error('=== FETCH ERROR ===');
+      console.error('Error in updateUserStatus:', error);
+      throw error;
+    }
   },
 
   // Cấp quyền admin
