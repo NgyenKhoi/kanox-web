@@ -10,6 +10,13 @@ const UsersManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUser, setSelectedUser] = useState(null);
   const [showUserModal, setShowUserModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
+  const [editForm, setEditForm] = useState({
+    displayName: '',
+    email: '',
+    bio: ''
+  });
 
   // Lấy danh sách người dùng từ API
   const fetchUsers = async (page = 0, search = "") => {
@@ -40,9 +47,33 @@ const UsersManagement = () => {
     }
   };
 
-  // Chỉnh sửa người dùng (placeholder)
-  const handleEdit = (id) => {
-    toast.info(`Chức năng chỉnh sửa người dùng ID: ${id} đang được phát triển`);
+  // Chỉnh sửa người dùng
+  const handleEdit = async (id) => {
+    try {
+      const result = await adminService.getUserById(id);
+      const user = result.data;
+      setEditingUser(user);
+      setEditForm({
+        displayName: user.displayName || '',
+        email: user.email || '',
+        bio: user.bio || ''
+      });
+      setShowEditModal(true);
+    } catch (error) {
+      toast.error("Lỗi khi tải thông tin người dùng");
+    }
+  };
+
+  const handleUpdateUser = async (e) => {
+    e.preventDefault();
+    try {
+      await adminService.updateUser(editingUser.id, editForm);
+      toast.success("Cập nhật thành công");
+      setShowEditModal(false);
+      fetchUsers(currentPage, searchTerm);
+    } catch (error) {
+      toast.error("Lỗi khi cập nhật");
+    }
   };
 
   // Xóa người dùng (placeholder - thường không cho phép xóa hoàn toàn)
@@ -307,6 +338,80 @@ const UsersManagement = () => {
           </div>
         )}
       </div>
+      )}
+      
+      {/* Modal chỉnh sửa người dùng */}
+      {showEditModal && editingUser && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-gray-800">Chỉnh sửa người dùng</h3>
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="text-gray-500 hover:text-gray-700 text-2xl"
+              >
+                ×
+              </button>
+            </div>
+            
+            <form onSubmit={handleUpdateUser}>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Tên hiển thị
+                  </label>
+                  <input
+                    type="text"
+                    value={editForm.displayName}
+                    onChange={(e) => setEditForm({...editForm, displayName: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={editForm.email}
+                    onChange={(e) => setEditForm({...editForm, email: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Tiểu sử
+                  </label>
+                  <textarea
+                    value={editForm.bio}
+                    onChange={(e) => setEditForm({...editForm, bio: e.target.value})}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+              
+              <div className="mt-6 flex justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  Cập nhật
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
       
       {/* Modal xem chi tiết người dùng */}
