@@ -1,15 +1,16 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import { useParams } from "react-router-dom";
-import { Container, Row, Col, Spinner, Card } from "react-bootstrap";
-import { FaSearch, FaRegComment, FaRetweet, FaHeart, FaShareAlt } from "react-icons/fa";
+import { Button, Dropdown } from "react-bootstrap";
+import { AuthContext } from "../../context/AuthContext";
+import TweetCard from "../../components/posts/TweetCard/TweetCard";
 
 export default function GroupCommunityPage() {
     const { groupId } = useParams();
+    const { user, token } = useContext(AuthContext);
     const [groupInfo, setGroupInfo] = useState(null);
     const [posts, setPosts] = useState([]);
     const [loading, setLoading] = useState(true);
-
-    const token = localStorage.getItem("token");
+    const [isMember, setIsMember] = useState(false);
 
     useEffect(() => {
         if (!groupId || !token) return;
@@ -17,8 +18,10 @@ export default function GroupCommunityPage() {
         const fetchGroupData = async () => {
             try {
                 await Promise.all([fetchGroupDetail(), fetchPostsByGroup()]);
+                setLoading(false);
             } catch (err) {
                 console.error("Lỗi khi tải dữ liệu nhóm:", err.message);
+                setLoading(false);
             }
         };
 
@@ -27,13 +30,13 @@ export default function GroupCommunityPage() {
 
     const fetchGroupDetail = async () => {
         try {
-            const res = await fetch(
-                `${process.env.REACT_APP_API_URL}/groups/${groupId}/detail`,
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
+            const res = await fetch(`${process.env.REACT_APP_API_URL}/groups/${groupId}/detail`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
             if (!res.ok) throw new Error("Không thể lấy thông tin nhóm.");
             const data = await res.json();
             setGroupInfo(data);
+            setIsMember(data.isMember || false);
         } catch (err) {
             console.error("Lỗi khi lấy thông tin nhóm:", err.message);
         }
@@ -52,66 +55,105 @@ export default function GroupCommunityPage() {
         }
     };
 
+    const handleJoinGroup = async () => {
+        try {
+            const res = await fetch(`${process.env.REACT_APP_API_URL}/groups/${groupId}/join`, {
+                method: "POST",
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!res.ok) throw new Error("Không thể tham gia nhóm.");
+            setIsMember(true);
+        } catch (err) {
+            console.error("Lỗi khi tham gia nhóm:", err.message);
+        }
+    };
 
-    if (loading) return <div>Đang tải...</div>;
-    if (!groupInfo) return <div>Không tìm thấy nhóm.</div>;
+    const handleLeaveGroup = async () => {
+        try {
+            const res = await fetch(`${process.env.REACT_APP_API_URL}/groups/${groupId}/leave`, {
+                method: "POST",
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!res.ok) throw new Error("Không thể rời nhóm.");
+            setIsMember(false);
+        } catch (err) {
+            console.error("Lỗi khi rời nhóm:", err.message);
+        }
+    };
+
+    if (loading) return <div className="text-center py-4">Đang tải...</div>;
+    if (!groupInfo) return <div className="text-center py-4">Không tìm thấy nhóm.</div>;
 
     return (
         <div className="p-4 max-w-3xl mx-auto">
-            {/* Header Nhóm */}
+            {/* Thông tin nhóm */}
             <div className="mb-6 flex items-center gap-4">
                 <img
                     src={groupInfo.avatarUrl || "https://via.placeholder.com/80"}
                     alt={groupInfo.name}
                     className="w-16 h-16 rounded-full object-cover"
                 />
-                <div>
+                <div className="flex-1">
                     <h1 className="text-2xl font-bold">{groupInfo.name}</h1>
                     <p className="text-sm text-gray-500">{groupInfo.description}</p>
+                    <p className="text-sm text-gray-500">
+                        Ngày tạo: {new Date(groupInfo.createdAt).toLocaleDateString()}
+                    </p>
+                    <div className="mt-2 flex gap-2">
+                        {isMember ? (
+                            <Button variant="outline-danger" size="sm" onClick={handleLeaveGroup}>
+                                Rời nhóm
+                            </Button>
+                        ) : (
+                            <Button variant="primary" size="sm" onClick={handleJoinGroup}>
+                                Tham gia
+                            </Button>
+                        )}
+                    </div>
                 </div>
             </div>
+
+            <Dropdown align="end">
+                <Dropdown.Toggle variant="light" className="border px-2">
+                    ⋯
+                </Dropdown.Toggle>
+
+                <Dropdown.Menu>
+                    <Dropdown.Item onClick={() => alert("Báo cáo nhóm")}>
+                        Báo cáo nhóm
+                    </Dropdown.Item>
+                    <Dropdown.Item onClick={() => navigate(`/my-group-posts/${groupId}`)}>
+                        Bài đăng của tôi
+                    </Dropdown.Item>
+                    <Dropdown.Item onClick={() => navigate(`/groups/${groupId}/members`)}>
+                        Xem danh sách thành viên
+                    </Dropdown.Item>
+
+                    {(groupInfo.isAdmin || groupInfo.isOwner) && (
+                        <>
+                            <Dropdown.Divider />
+                            <Dropdown.Item className="text-danger" onClick={() => alert("Xóa nhóm")}>
+                                Xóa nhóm
+                            </Dropdown.Item>
+                            <Dropdown.Item onClick={() => navigate(`/groups/${groupId}/manage-admins`)}>
+                                Trao quyền quản trị viên
+                            </Dropdown.Item>
+                        </>
+                    )}
+                </Dropdown.Menu>
+            </Dropdown>
+        </div>
 
             {/* Danh sách bài đăng */}
             <div className="space-y-4">
                 {posts.length > 0 ? (
                     posts.map((post) => (
-                        <Card key={post.id} className="mb-3">
-                            <Card.Body>
-                                {/* Avatar và tên người đăng */}
-                                <div className="d-flex align-items-start mb-2">
-                                    <img
-                                        src={post.owner.avatarUrl || "https://via.placeholder.com/40"}
-                                        alt="User Avatar"
-                                        className="rounded-circle me-2"
-                                        width={40}
-                                        height={40}
-                                    />
-                                    <div>
-                                        <span className="fw-bold">{post.owner.displayName || post.owner.username}</span>
-                                        <div className="text-muted small">
-                                            {new Date(post.createdAt).toLocaleString()}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Nội dung */}
-                                <Card.Text>{post.content}</Card.Text>
-                                {post.mediaUrls?.length > 0 && (
-                                    <img
-                                        src={post.mediaUrls[0]}
-                                        className="img-fluid rounded"
-                                        alt="Post"
-                                    />
-                                )}
-                                {/* Reactions */}
-                                <div className="d-flex justify-content-around mt-2 text-muted">
-                                    <div><FaRegComment /> {post.commentCount}</div>
-                                    <div><FaRetweet /> {post.shareCount}</div>
-                                    <div><FaHeart /> {post.likeCount}</div>
-                                    <div><FaShareAlt /> {post.shareCount}</div>
-                                </div>
-                            </Card.Body>
-                        </Card>
+                        <TweetCard
+                            key={post.id}
+                            tweet={post}
+                            onPostUpdate={fetchPostsByGroup}
+                            savedPosts={posts.filter((p) => p.isSaved)}
+                        />
                     ))
                 ) : (
                     <p>Chưa có bài đăng nào trong nhóm này.</p>

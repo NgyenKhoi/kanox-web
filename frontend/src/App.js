@@ -30,6 +30,7 @@ import FriendsPage from "./pages/friends/FriendsPage";
 import AdminPage from "./pages/admin/adminpage";
 import Call from "./components/messages/Call";
 import GroupCommunityPage from "./pages/community/GroupCommunityPage";
+import GroupMemberPage from "./pages/community/GroupMembersPage";
 
 function AppContent() {
   const [isLoading, setIsLoading] = useState(true);
@@ -226,6 +227,7 @@ function AppContent() {
                     <Route path="/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
                     <Route path="/friends" element={<PrivateRoute><FriendsPage /></PrivateRoute>} />
                     <Route path="/admin" element={<PrivateRoute><AdminPage /></PrivateRoute>} />
+                    <Route path="/groups/:groupId/members" element={<PrivateRoute><GroupMembersPage /></PrivateRoute>} />
                     <Route
                         path="/call/:chatId"
                         element={

@@ -55,7 +55,7 @@ import useEmojiList from "../../../hooks/useEmojiList";
 import MediaActionBar from "../../utils/MediaActionBar";
 import useCommentAvatar from "../../../hooks/useCommentAvatar";
 
-function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
+function TweetCard({ tweet, onPostUpdate }) {
   const { user, loading, token } = useContext(AuthContext);
   const navigate = useNavigate();
   const {
@@ -72,7 +72,7 @@ function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
     groupName,
     groupAvatarUrl,
   } = tweet || {};
-  const isSaved = savedPosts.some((post) => post.id === id);
+  const isSaved = tweet?.isSaved ?? false;
   const isOwnTweet = user && user.username === owner?.username;
   const [showEditModal, setShowEditModal] = useState(false);
   const [showImageModal, setShowImageModal] = useState(false);
@@ -470,33 +470,55 @@ function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
           <Card.Body className="d-flex p-3">
             {/* Avatar và info */}
             <div className="d-flex align-items-start">
-              {/* Avatar user */}
-              {avatarUrl ? (
-                  <img
-                      src={avatarUrl}
-                      alt="Ảnh đại diện"
-                      className="w-[50px] h-[50px] rounded-full object-cover mr-3 flex-shrink-0"
-                      onClick={handleNavigateToProfile}
-                      style={{ cursor: "pointer" }}
-                  />
+              {/* Nếu post trong group, hiển thị avatar nhóm + avatar user đè lên giống Facebook */}
+              {groupId && groupAvatarUrl ? (
+                  <div className="position-relative me-3" style={{ width: 50, height: 50 }}>
+                    {/* Avatar group (vuông) */}
+                    <img
+                        src={groupAvatarUrl}
+                        alt="Ảnh đại diện nhóm"
+                        className="w-100 h-100 object-cover rounded"
+                        onClick={handleNavigateToGroup}
+                        style={{ cursor: "pointer" }}
+                    />
+                    {/* Avatar user (tròn nhỏ) đè lên */}
+                    {avatarUrl && (
+                        <img
+                            src={avatarUrl}
+                            alt="Ảnh người đăng"
+                            className="position-absolute border border-white"
+                            style={{
+                              width: 22,
+                              height: 22,
+                              borderRadius: "50%",
+                              bottom: -2,
+                              right: -2,
+                              objectFit: "cover",
+                              cursor: "pointer",
+                            }}
+                            onClick={handleNavigateToProfile}
+                        />
+                    )}
+                  </div>
               ) : (
-                  <FaUserCircle
-                      size={50}
-                      className="me-3 d-none d-md-block text-[var(--text-color-muted)]"
-                      aria-label="Ảnh đại diện mặc định"
-                      onClick={handleNavigateToProfile}
-                      style={{ cursor: "pointer" }}
-                  />
-              )}
-              {/* Avatar nhóm (nếu có) */}
-              {groupId && groupAvatarUrl && (
-                  <img
-                      src={groupAvatarUrl}
-                      alt="Ảnh đại diện nhóm"
-                      className="w-[50px] h-[50px] rounded-full object-cover mr-3 flex-shrink-0"
-                      onClick={handleNavigateToGroup}
-                      style={{ cursor: "pointer" }}
-                  />
+                  // Nếu không phải post trong group, chỉ hiển thị avatar người dùng
+                  avatarUrl ? (
+                      <img
+                          src={avatarUrl}
+                          alt="Ảnh đại diện"
+                          className="w-[50px] h-[50px] rounded-full object-cover mr-3 flex-shrink-0"
+                          onClick={handleNavigateToProfile}
+                          style={{ cursor: "pointer" }}
+                      />
+                  ) : (
+                      <FaUserCircle
+                          size={50}
+                          className="me-3 d-none d-md-block text-[var(--text-color-muted)]"
+                          aria-label="Ảnh đại diện mặc định"
+                          onClick={handleNavigateToProfile}
+                          style={{ cursor: "pointer" }}
+                      />
+                  )
               )}
             </div>
             <div className="flex-grow-1">
@@ -578,10 +600,11 @@ function TweetCard({ tweet, onPostUpdate, savedPosts = [] }) {
                             </Dropdown>
                           </>
                       )}
-                      <Dropdown.Item onClick={handleSavePost}>
-                        <FaSave className="me-2 text-[var(--text-color)]" /> Lưu bài đăng
-                      </Dropdown.Item>
-                      {isSaved && (
+                      {!isSaved ? (
+                          <Dropdown.Item onClick={handleSavePost}>
+                            <FaSave className="me-2 text-[var(--text-color)]" /> Lưu bài đăng
+                          </Dropdown.Item>
+                      ) : (
                           <Dropdown.Item onClick={handleUnsavePost}>
                             <FaRegBookmark className="me-2 text-[var(--text-color)]" /> Bỏ lưu
                           </Dropdown.Item>
