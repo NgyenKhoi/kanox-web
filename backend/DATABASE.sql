@@ -2710,7 +2710,13 @@ WHERE definition LIKE '%friendship%';
     ('FRIEND_REQUEST_SENT', 'User sent a friend request'),
     ('FRIEND_REQUEST_ACCEPTED', 'User accepted a friend request'),
 	('FOLLOW', 'User followed a user'),
-	('UNFOLLOW', 'User unfollowed a user');
+	('UNFOLLOW', 'User unfollowed a user'),
+	('LOCK_USER', 'Admin locked user account'),
+	('UNLOCK_USER', 'Admin unlocked user account'),
+	('GRANT_ADMIN', 'Admin granted admin role to user'),
+	('REVOKE_ADMIN', 'Admin revoked admin role from user'),
+	('ACTIVATE_BANNED_KEYWORD', 'Admin activated banned keyword'),
+	('DEACTIVATE_BANNED_KEYWORD', 'Admin deactivated banned keyword');
 
     -- tblNotificationType (Loại thông báo)
     INSERT INTO tblNotificationType (name, description, status) VALUES
