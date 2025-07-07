@@ -317,4 +317,18 @@ public class MediaService {
 
         return mediaUrl;
     }
+
+    @Transactional
+    public void disableOldGroupMedia(Integer groupId) {
+        List<Media> oldAvatars = mediaRepository.findByTargetIdAndTargetTypeCodeAndCaptionAndStatusTrue(
+                groupId, "GROUP", "avatar"
+        );
+
+        for (Media media : oldAvatars) {
+            media.setStatus(false);
+        }
+
+        mediaRepository.saveAll(oldAvatars);
+    }
+
 }

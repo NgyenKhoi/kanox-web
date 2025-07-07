@@ -16,6 +16,7 @@ public class DataSyncService {
     private final UserRepository userRepo;
     private final GroupRepository groupRepo;
     private final PageRepository pageRepo;
+    private final GroupMemberRepository groupMemberRepo;
 
     private final UserDocumentRepository userDocRepo;
     private final GroupDocumentRepository groupDocRepo;
@@ -30,7 +31,8 @@ public class DataSyncService {
             UserDocumentRepository userDocRepo,
             GroupDocumentRepository groupDocRepo,
             PageDocumentRepository pageDocRepo,
-            DocumentMapper mapper
+            DocumentMapper mapper,
+            GroupMemberRepository groupMemberRepo
     ) {
         this.userRepo = userRepo;
         this.groupRepo = groupRepo;
@@ -39,6 +41,7 @@ public class DataSyncService {
         this.groupDocRepo = groupDocRepo;
         this.pageDocRepo = pageDocRepo;
         this.mapper = mapper;
+        this.groupMemberRepo = groupMemberRepo;
     }
 
     public void syncAllUsersToElasticsearch() {
@@ -53,8 +56,15 @@ public class DataSyncService {
     public void syncAllGroupsToElasticsearch() {
         List<Group> allGroups = groupRepo.findAll();
         List<GroupDocument> docs = allGroups.stream()
-                .map(mapper::toGroupDocument)
+                .map(group -> {
+                    List<String> memberNames = groupMemberRepo.findAcceptedUsersByGroupId(group.getId())
+                            .stream()
+                            .map(u -> u.getDisplayName())
+                            .collect(Collectors.toList());
+                    return mapper.toGroupDocument(group, memberNames);
+                })
                 .collect(Collectors.toList());
+
         groupDocRepo.saveAll(docs);
         System.out.println("Đã đồng bộ " + docs.size() + " groups sang Elasticsearch.");
     }

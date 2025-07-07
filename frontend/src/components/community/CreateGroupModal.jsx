@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Modal, Form, Button } from "react-bootstrap";
+import React, { useState, useEffect } from "react";
+import { Modal, Form, Button, Image } from "react-bootstrap";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 
@@ -10,17 +10,34 @@ function CreateGroupModal({ show, onHide, onGroupCreated }) {
         description: "",
         privacyLevel: "public",
     });
+    const [avatarFile, setAvatarFile] = useState(null);
+    const [avatarPreview, setAvatarPreview] = useState(null);
     const token = localStorage.getItem("token");
     const username = localStorage.getItem("username");
 
+    // Xử lý thay đổi form
     const handleGroupFormChange = (e) => {
         const { name, value } = e.target;
         setGroupForm((prev) => ({ ...prev, [name]: value }));
     };
 
+    // Xử lý chọn file avatar
+    const handleAvatarChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) {
+                toast.error("File ảnh không được vượt quá 5MB.");
+                return;
+            }
+            setAvatarFile(file);
+            setAvatarPreview(URL.createObjectURL(file));
+        }
+    };
+
     // Xử lý submit form tạo nhóm
     const handleCreateGroup = async (e) => {
         e.preventDefault();
+        console.log("🔥 handleCreateGroup CALLED");
         if (!token || !username) {
             toast.error("Vui lòng đăng nhập để tạo nhóm.");
             onHide();
@@ -28,30 +45,45 @@ function CreateGroupModal({ show, onHide, onGroupCreated }) {
         }
 
         try {
+            const formData = new FormData();
+            const dataBlob = new Blob([JSON.stringify({
+                ownerUsername: username,
+                name: groupForm.name,
+                description: groupForm.description,
+                privacyLevel: groupForm.privacyLevel
+            })], { type: "application/json" });
+
+            formData.append("data", dataBlob);
+
+            if (avatarFile) {
+                formData.append("avatar", avatarFile);
+            }
+
             const res = await fetch(`${process.env.REACT_APP_API_URL}/groups/create`, {
                 method: "POST",
                 headers: {
-                    "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
                 },
-                body: JSON.stringify({
-                    ownerUsername: username,
-                    name: groupForm.name,
-                    description: groupForm.description,
-                    privacyLevel: groupForm.privacyLevel,
-                }),
+                body: formData,
             });
 
-            if (!res.ok) throw new Error("Không thể tạo nhóm.");
-            const newGroup = await res.json();
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.message || "Không thể tạo nhóm.");
+            }
+
+            const response = await res.json();
+            const newGroup = response.data; // Lấy GroupDisplayDto từ response.data
             onGroupCreated({
                 id: newGroup.id,
                 name: newGroup.name,
-                avatar: newGroup.avatar || "https://via.placeholder.com/40",
+                avatar: newGroup.avatarUrl || "https://via.placeholder.com/40",
                 description: newGroup.description,
                 isJoined: true,
             });
             setGroupForm({ name: "", description: "", privacyLevel: "public" });
+            setAvatarFile(null);
+            setAvatarPreview(null);
             onHide();
             toast.success("Tạo nhóm thành công!");
             navigate(`/community/${newGroup.id}`);
@@ -60,6 +92,15 @@ function CreateGroupModal({ show, onHide, onGroupCreated }) {
         }
     };
 
+    // Hủy preview ảnh khi component unmount
+    useEffect(() => {
+        return () => {
+            if (avatarPreview) {
+                URL.revokeObjectURL(avatarPreview);
+            }
+        };
+    }, [avatarPreview]);
+
     return (
         <Modal
             show={show}
@@ -67,11 +108,14 @@ function CreateGroupModal({ show, onHide, onGroupCreated }) {
             centered
             className="text-[var(--text-color)]"
         >
-            <Modal.Header closeButton className="bg-[var(--background-color)] border-[var(--border-color)]">
+            <Modal.Header
+                closeButton
+                className="bg-[var(--background-color)] border-[var(--border-color)]"
+            >
                 <Modal.Title>Tạo nhóm mới</Modal.Title>
             </Modal.Header>
             <Modal.Body className="bg-[var(--background-color)]">
-                <Form onSubmit={handleCreateGroup}>
+                <Form>
                     <Form.Group className="mb-3">
                         <Form.Label>Tên nhóm</Form.Label>
                         <Form.Control
@@ -105,8 +149,28 @@ function CreateGroupModal({ show, onHide, onGroupCreated }) {
                             <option value="private">Riêng tư</option>
                         </Form.Select>
                     </Form.Group>
+                    <Form.Group className="mb-3">
+                        <Form.Label>Ảnh đại diện nhóm</Form.Label>
+                        <Form.Control
+                            type="file"
+                            accept="image/*"
+                            onChange={handleAvatarChange}
+                            className="bg-[var(--input-bg)] text-[var(--text-color)] border-[var(--border-color)]"
+                        />
+                        {avatarPreview && (
+                            <div className="mt-2">
+                                <Image
+                                    src={avatarPreview}
+                                    alt="Avatar preview"
+                                    style={{ width: "100px", height: "100px", objectFit: "cover" }}
+                                    roundedCircle
+                                />
+                            </div>
+                        )}
+                    </Form.Group>
                     <Button
-                        type="submit"
+                        type="button"
+                        onClick={handleCreateGroup}
                         variant="primary"
                         className="w-full bg-blue-600 hover:bg-blue-700"
                     >

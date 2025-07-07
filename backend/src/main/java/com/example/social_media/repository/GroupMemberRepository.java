@@ -4,6 +4,8 @@ import com.example.social_media.entity.Group;
 import com.example.social_media.entity.GroupMember;
 import com.example.social_media.entity.GroupMemberId;
 import io.lettuce.core.dynamic.annotation.Param;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -39,5 +41,11 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, GroupM
 
     @Query("SELECT COUNT(gm) FROM GroupMember gm WHERE gm.id.groupId = :groupId AND gm.status = true AND gm.inviteStatus = 'ACCEPTED'")
     int countByGroupIdAndStatusTrue(@Param("groupId") Integer groupId);
+
+    @Query("SELECT gm.user FROM GroupMember gm " +
+            "WHERE gm.id.groupId = :groupId AND gm.status = true AND gm.inviteStatus = 'ACCEPTED'")
+    List<com.example.social_media.entity.User> findAcceptedUsersByGroupId(@Param("groupId") Integer groupId);
+
+    Page<GroupMember> findByGroupIdAndStatus(Integer groupId, String accepted, Pageable pageable);
 }
 
