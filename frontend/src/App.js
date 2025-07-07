@@ -119,6 +119,10 @@ function AppContent() {
                 });
                 return;
               }
+              if (window.location.pathname.startsWith("/call")) {
+                console.log("📞 Đã ở trong trang call, từ chối cuộc gọi mới");
+                return;
+              }
               setIncomingCall({
                 chatId: message.chatId,
                 sessionId: message.sessionId,
@@ -151,6 +155,10 @@ function AppContent() {
           callSessionId: sessionId,
           userId: user.id,
         });
+        return;
+      }
+      if (window.location.pathname.startsWith("/call")) {
+        console.log("📞 Đã ở trong trang call, từ chối cuộc gọi mới");
         return;
       }
       setIncomingCall({
