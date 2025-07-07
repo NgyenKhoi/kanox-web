@@ -16,7 +16,7 @@ public class GroupDocument {
     @Id
     private String id;
     private Integer ownerId;
-    @Field(type = FieldType.Text)
+    @Field(type = FieldType.Text, fielddata = true)
     private String name;
     private String description;
     private List<String> memberNames;
