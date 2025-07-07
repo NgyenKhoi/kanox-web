@@ -53,10 +53,35 @@ const UsersManagement = () => {
       const result = await adminService.getUserById(id);
       const user = result.data;
       setEditingUser(user);
+      // Xử lý ngày sinh an toàn
+      let formattedDate = '';
+      if (user.dateOfBirth) {
+        try {
+          // Nếu là string ISO, lấy phần ngày
+          if (typeof user.dateOfBirth === 'string' && user.dateOfBirth.includes('T')) {
+            formattedDate = user.dateOfBirth.split('T')[0];
+          }
+          // Nếu là string ngày đơn giản (YYYY-MM-DD)
+          else if (typeof user.dateOfBirth === 'string' && user.dateOfBirth.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            formattedDate = user.dateOfBirth;
+          }
+          // Nếu là Date object hoặc timestamp
+          else {
+            const date = new Date(user.dateOfBirth);
+            if (!isNaN(date.getTime())) {
+              formattedDate = date.toISOString().split('T')[0];
+            }
+          }
+        } catch (error) {
+          console.warn('Error parsing date:', user.dateOfBirth, error);
+          formattedDate = '';
+        }
+      }
+      
       setEditForm({
         displayName: user.displayName || '',
         email: user.email || '',
-        dateOfBirth: user.dateOfBirth ? user.dateOfBirth.split('T')[0] : '',
+        dateOfBirth: formattedDate,
         bio: user.bio || ''
       });
       setShowEditModal(true);
@@ -67,13 +92,36 @@ const UsersManagement = () => {
 
   const handleUpdateUser = async (e) => {
     e.preventDefault();
+    
+    // Validation
+    if (!editForm.email || !editForm.email.trim()) {
+      toast.error("Email không được để trống");
+      return;
+    }
+    
     try {
-      await adminService.updateUser(editingUser.id, editForm);
+      console.log('Updating user ID:', editingUser.id);
+      console.log('Updating user with data:', editForm);
+      
+      const result = await adminService.updateUser(editingUser.id, editForm);
+      console.log('Update result:', result);
+      
       toast.success("Cập nhật thành công");
       setShowEditModal(false);
       fetchUsers(currentPage, searchTerm);
     } catch (error) {
-      toast.error("Lỗi khi cập nhật");
+      console.error('Error updating user:', error);
+      console.error('Error details:', {
+        status: error.status,
+        message: error.message,
+        response: error.response
+      });
+      
+      const errorMessage = error.response?.data?.message || 
+                          error.response?.data?.error || 
+                          error.message || 
+                          "Lỗi khi cập nhật người dùng";
+      toast.error(errorMessage);
     }
   };
 
