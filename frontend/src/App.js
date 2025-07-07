@@ -22,7 +22,6 @@ import MessengerPage from "./pages/Messenger/MessengerPage";
 import LoadingPage from "./components/common/Loading/LoadingPage";
 import VerifyEmailPage from "./pages/auth/login/VerifyEmailPage";
 import CommunityPage from "./pages/community/CommunityPage";
-import CommunityDetail from "./pages/community/CommunityDetail";
 import CustomPrivacyListPage from "./pages/privacy/CustomPrivacyListPage";
 import BlockedUsersPage from "./pages/block/BlockedUsersPage";
 import SettingsPage from "./pages/settings/SettingsPage";
@@ -239,7 +238,6 @@ function AppContent() {
                     <Route path="/notifications" element={<PrivateRoute><NotificationPage /></PrivateRoute>} />
                     <Route path="/messages" element={<PrivateRoute><MessengerPage /></PrivateRoute>} />
                     <Route path="/communities" element={<PrivateRoute><CommunityPage /></PrivateRoute>} />
-                    <Route path="/community/:communityId" element={<PrivateRoute><CommunityDetail /></PrivateRoute>} />
                     <Route path="/privacy/lists" element={<PrivateRoute><CustomPrivacyListPage /></PrivateRoute>} />
                     <Route path="/blocks" element={<PrivateRoute><BlockedUsersPage /></PrivateRoute>} />
                     <Route path="/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />

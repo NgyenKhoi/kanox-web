@@ -90,7 +90,7 @@ function CommunitySidebarLeft({
                                         onClick={() => handleGroupClick(group.id)}
                                     >
                                         <img
-                                            src={group.avatar || "https://via.placeholder.com/40"}
+                                            src={group.avatarUrl || "https://via.placeholder.com/40"}
                                             alt={group.name}
                                             className="w-8 h-8 rounded-full object-cover"
                                         />
@@ -161,7 +161,7 @@ function CommunitySidebarLeft({
                                 onClick={() => handleGroupClick(group.id)}
                             >
                                 <img
-                                    src={group.avatar || "https://via.placeholder.com/40"}
+                                    src={group.avatarUrl || "https://via.placeholder.com/40"}
                                     alt={group.name}
                                     className="w-10 h-10 rounded-full object-cover"
                                 />

@@ -36,17 +36,20 @@ public class GroupService {
     private final UserRepository userRepository;
     private final MediaService mediaService;
     private final NotificationService notificationService;
+    private final DataSyncService dataSyncService;
 
     public GroupService(GroupRepository groupRepository,
                         GroupMemberRepository groupMemberRepository,
                         UserRepository userRepository,
                         MediaService mediaService,
-                        NotificationService notificationService) {
+                        NotificationService notificationService,
+                        DataSyncService dataSyncService) {
         this.groupRepository = groupRepository;
         this.groupMemberRepository = groupMemberRepository;
         this.userRepository = userRepository;
         this.mediaService = mediaService;
         this.notificationService = notificationService;
+        this.dataSyncService = dataSyncService;
     }
 
     @Transactional
@@ -62,6 +65,7 @@ public class GroupService {
         group.setCreatedAt(Instant.now());
         group.setStatus(true);
         group = groupRepository.save(group);
+        dataSyncService.syncGroupToElasticsearch(group.getId());
 
         GroupMemberId id = new GroupMemberId(group.getId(), owner.getId());
 

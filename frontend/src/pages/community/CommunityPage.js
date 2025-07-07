@@ -35,7 +35,6 @@ function CommunityPage() {
 
   // Callback to update group list when a new group is created
   const handleGroupCreated = async (newGroup) => {
-    setYourGroups((prev) => [...prev, newGroup]);
     try {
       const res = await fetch(
           `${process.env.REACT_APP_API_URL}/groups/your-groups?username=${user.username}`,
@@ -94,7 +93,7 @@ function CommunityPage() {
             data.map((group) => ({
               id: group.id,
               name: group.name,
-              avatar: group.avatar || "https://via.placeholder.com/40",
+              avatar: group.avatarUrl || "https://via.placeholder.com/40",
               description: group.description,
               isJoined: true,
             }))

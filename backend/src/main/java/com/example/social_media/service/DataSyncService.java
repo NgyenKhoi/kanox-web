@@ -87,6 +87,19 @@ public class DataSyncService {
         });
     }
 
+    public void syncGroupToElasticsearch(Integer groupId) {
+        groupRepo.findById(groupId).ifPresent(group -> {
+            List<String> memberNames = groupMemberRepo.findAcceptedUsersByGroupId(groupId)
+                    .stream()
+                    .map(User::getDisplayName)
+                    .collect(Collectors.toList());
+
+            GroupDocument groupDoc = mapper.toGroupDocument(group, memberNames);
+            groupDocRepo.save(groupDoc);
+            System.out.println("Đã đồng bộ nhóm [" + group.getName() + "] với ID = " + groupId + " sang Elasticsearch.");
+        });
+    }
+
     public void syncAllToElasticsearch() {
         syncAllUsersToElasticsearch();
         syncAllGroupsToElasticsearch();
