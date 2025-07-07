@@ -120,6 +120,16 @@ const Call = ({ onEndCall }) => {
                 return;
             }
 
+            // Kiểm tra quyền camera/micro
+            navigator.mediaDevices.getUserMedia({ audio: true, video: true })
+                .then(() => {
+                    console.log("🎥 Đã có quyền truy cập camera và mic");
+                })
+                .catch((err) => {
+                    console.error("❌ Không truy cập được camera/mic:", err);
+                    toast.error("Không thể truy cập camera/micro. Vui lòng cấp quyền.");
+                });
+
             console.log("✅ Stringee SDK đã sẵn sàng:", window.Stringee);
             stringeeClientRef.current = new window.Stringee.StringeeClient();
             stringeeClientRef.current.connect(accessToken);
@@ -148,7 +158,7 @@ const Call = ({ onEndCall }) => {
                 }, 3000);
             });
 
-            stringeeClientRef.current.on("incomingcall", async (incomingCall) => {
+            stringeeClientRef.current.on("incomingcall", (incomingCall) => {
                 console.log("📞 incomingCall.toNumber:", incomingCall.toNumber);
                 console.log("👤 currentUser.username:", user.username);
                 console.log("📋 incomingCall.customData:", incomingCall.customData);
@@ -179,78 +189,98 @@ const Call = ({ onEndCall }) => {
                     return;
                 }
 
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
-                    localStreamRef.current = stream;
-                    console.log("🎥 Đã lấy quyền camera/mic cho incoming call");
-                } catch (err) {
-                    console.error("❌ Không lấy được camera/mic:", err);
-                    toast.error("Không thể truy cập camera/micro.");
-                    incomingCall.reject();
-                    return;
-                }
+                // Kiểm tra quyền camera/micro trước khi xử lý cuộc gọi
+                navigator.mediaDevices.getUserMedia({ audio: true, video: true })
+                    .then(() => {
+                        console.log("🎥 Đã lấy quyền camera/mic cho incoming call");
 
-                // ✅ GÁN SỰ KIỆN TRƯỚC TRƯỚC TRƯỚC khi answer() hoặc setRef
-                incomingCall.on("addlocalstream", (stream) => {
-                    console.log("🎥 [addlocalstream] Stream:", stream);
-                    localStreamRef.current = stream;
-
-                    const tryAttachLocalStream = (stream, attempts = 0) => {
-                        if (localVideoRef.current) {
-                            localVideoRef.current.srcObject = stream;
-                            localVideoRef.current.play().catch((err) => {
-                                console.error("Local video play error:", err);
-                            });
-                        } else if (attempts < 10) {
-                            setTimeout(() => tryAttachLocalStream(stream, attempts + 1), 200);
-                        } else {
-                            console.error("❌ Không thể gắn localStream vào localVideo sau nhiều lần thử");
-                        }
-                    };
-
-                    tryAttachLocalStream(stream);
-                });
-
-
-                incomingCall.on("addremotestream", (stream) => {
-                    console.log("🎥 [addremotestream] Stream:", stream);
-                    if (remoteVideoRef.current) {
-                        remoteVideoRef.current.srcObject = stream;
-                        remoteVideoRef.current.play().catch((err) => {
-                            console.error("Remote video play error:", err);
+                        // Gắn sự kiện addlocalstream
+                        incomingCall.on("addlocalstream", (stream) => {
+                            console.log("🎥 [addlocalstream] Stream:", stream);
+                            localStreamRef.current = stream;
+                            const tryAttachLocalStream = (stream, attempts = 0) => {
+                                if (localVideoRef.current) {
+                                    localVideoRef.current.srcObject = stream;
+                                    localVideoRef.current.play().catch((err) => {
+                                        console.error("Local video play error:", err);
+                                        if (attempts < 10) {
+                                            setTimeout(() => tryAttachLocalStream(stream, attempts + 1), 300);
+                                        } else {
+                                            console.error("❌ Không thể phát local video sau nhiều lần thử");
+                                            toast.error("Không thể hiển thị video local.");
+                                        }
+                                    });
+                                } else if (attempts < 10) {
+                                    setTimeout(() => tryAttachLocalStream(stream, attempts + 1), 200);
+                                } else {
+                                    console.error("❌ Không thể gắn localStream vào localVideo sau nhiều lần thử");
+                                    toast.error("Không thể hiển thị video local.");
+                                }
+                            };
+                            tryAttachLocalStream(stream);
                         });
-                    }
-                });
 
-                incomingCall.on("signalingstate", (state) => {
-                    setSignalingCode(state.code);
-                    console.log("📶 Incoming call signaling state:", state);
-                    if (state.code === 6) endCall();
-                });
+                        // Gắn sự kiện addremotestream
+                        incomingCall.on("addremotestream", (stream) => {
+                            console.log("🎥 [addremotestream] Stream:", stream);
+                            const tryAttachRemoteStream = (stream, attempts = 0) => {
+                                if (remoteVideoRef.current) {
+                                    remoteVideoRef.current.srcObject = stream;
+                                    remoteVideoRef.current.play().catch((err) => {
+                                        console.error("Remote video play error:", err);
+                                        if (attempts < 10) {
+                                            setTimeout(() => tryAttachRemoteStream(stream, attempts + 1), 300);
+                                        } else {
+                                            console.error("❌ Không thể phát remote video sau nhiều lần thử");
+                                            toast.error("Không thể hiển thị video remote.");
+                                        }
+                                    });
+                                } else if (attempts < 10) {
+                                    setTimeout(() => tryAttachRemoteStream(stream, attempts + 1), 200);
+                                } else {
+                                    console.error("❌ Không thể gắn remoteStream vào remoteVideo sau nhiều lần thử");
+                                    toast.error("Không thể hiển thị video remote.");
+                                }
+                            };
+                            tryAttachRemoteStream(stream);
+                        });
 
-                incomingCall.on("mediastate", (state) => {
-                    console.log("📺 Media state:", state);
-                });
+                        incomingCall.on("signalingstate", (state) => {
+                            setSignalingCode(state.code);
+                            console.log("📶 Incoming call signaling state:", state);
+                            if (state.code === 6) endCall();
+                        });
 
-                incomingCall.on("end", () => {
-                    console.log("📞 Incoming call ended");
-                    endCall();
-                });
+                        incomingCall.on("mediastate", (state) => {
+                            console.log("📺 Media state:", state);
+                        });
 
-                // ✅ BÂY GIỜ mới gán vào ref
-                stringeeCallRef.current = incomingCall;
+                        incomingCall.on("end", () => {
+                            console.log("📞 Incoming call ended");
+                            endCall();
+                        });
 
-                // ✅ Sau đó mới answer
-                incomingCall.answer((res) => {
-                    if (res.r === 0) {
-                        console.log("📞 Cuộc gọi đã được trả lời");
-                        setCallStarted(true);
-                    } else {
-                        console.error("❌ Không thể trả lời:", res.message);
-                        toast.error("Không thể trả lời: " + res.message);
+                        // Gán vào ref sau khi gắn sự kiện
+                        stringeeCallRef.current = incomingCall;
+
+                        // Trả lời cuộc gọi
+                        incomingCall.answer((res) => {
+                            if (res.r === 0) {
+                                console.log("📞 Cuộc gọi đã được trả lời");
+                                setCallStarted(true);
+                            } else {
+                                console.error("❌ Không thể trả lời:", res.message);
+                                toast.error("Không thể trả lời: " + res.message);
+                                endCall();
+                            }
+                        });
+                    })
+                    .catch((err) => {
+                        console.error("❌ Không truy cập được camera/mic:", err);
+                        toast.error("Không thể truy cập camera/micro. Vui lòng cấp quyền.");
+                        incomingCall.reject();
                         endCall();
-                    }
-                });
+                    });
             });
 
         };
@@ -289,16 +319,6 @@ const Call = ({ onEndCall }) => {
     }, [chatId, token, user, navigate, publish]);
 
     const startCall = async () => {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
-            console.log("🎥 Đã lấy được quyền truy cập camera/mic");
-            localStreamRef.current = stream; // Lưu stream để sử dụng
-        } catch (err) {
-            console.error("❌ Không lấy được cam/mic:", err);
-            toast.error("Không thể truy cập camera/micro. Vui lòng cấp quyền.");
-            return;
-        }
-
         if (!isStringeeConnected) {
             toast.error("Chưa kết nối Stringee.");
             return;
@@ -313,6 +333,10 @@ const Call = ({ onEndCall }) => {
         }
 
         try {
+            // Kiểm tra quyền camera/micro
+            await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+            console.log("🎥 Đã lấy quyền camera/mic");
+
             const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/call/start/${chatId}`, {
                 method: "POST",
                 headers: { Authorization: `Bearer ${token}` },
@@ -335,6 +359,55 @@ const Call = ({ onEndCall }) => {
             stringeeCallRef.current.customData = JSON.stringify({ chatId: Number(chatId) });
             console.log("📤 Gán customData cho cuộc gọi:", stringeeCallRef.current.customData);
 
+            stringeeCallRef.current.on("addlocalstream", (stream) => {
+                console.log("🎥 [addlocalstream] Stream:", stream);
+                localStreamRef.current = stream;
+                const tryAttachLocalStream = (stream, attempts = 0) => {
+                    if (localVideoRef.current) {
+                        localVideoRef.current.srcObject = stream;
+                        localVideoRef.current.play().catch((err) => {
+                            console.error("Local video play error:", err);
+                            if (attempts < 10) {
+                                setTimeout(() => tryAttachLocalStream(stream, attempts + 1), 300);
+                            } else {
+                                console.error("❌ Không thể phát local video sau nhiều lần thử");
+                                toast.error("Không thể hiển thị video local.");
+                            }
+                        });
+                    } else if (attempts < 10) {
+                        setTimeout(() => tryAttachLocalStream(stream, attempts + 1), 200);
+                    } else {
+                        console.error("❌ Không thể gắn localStream vào localVideo sau nhiều lần thử");
+                        toast.error("Không thể hiển thị video local.");
+                    }
+                };
+                tryAttachLocalStream(stream);
+            });
+
+            stringeeCallRef.current.on("addremotestream", (stream) => {
+                console.log("🎥 [addremotestream] Stream:", stream);
+                const tryAttachRemoteStream = (stream, attempts = 0) => {
+                    if (remoteVideoRef.current) {
+                        remoteVideoRef.current.srcObject = stream;
+                        remoteVideoRef.current.play().catch((err) => {
+                            console.error("Remote video play error:", err);
+                            if (attempts < 10) {
+                                setTimeout(() => tryAttachRemoteStream(stream, attempts + 1), 300);
+                            } else {
+                                console.error("❌ Không thể phát remote video sau nhiều lần thử");
+                                toast.error("Không thể hiển thị video remote.");
+                            }
+                        });
+                    } else if (attempts < 10) {
+                        setTimeout(() => tryAttachRemoteStream(stream, attempts + 1), 200);
+                    } else {
+                        console.error("❌ Không thể gắn remoteStream vào remoteVideo sau nhiều lần thử");
+                        toast.error("Không thể hiển thị video remote.");
+                    }
+                };
+                tryAttachRemoteStream(stream);
+            });
+
             stringeeCallRef.current.on("signalingstate", (state) => {
                 setSignalingCode(state.code);
                 console.log("📶 Signaling state:", state);
@@ -348,39 +421,6 @@ const Call = ({ onEndCall }) => {
                 console.log("📺 Media state:", state);
             });
 
-            stringeeCallRef.current.on("addlocalstream", (stream) => {
-                console.log("🎥 [addlocalstream] Stream:", stream);
-                localStreamRef.current = stream;
-                const tryAttachLocalStream = (stream, attempts = 0) => {
-                    if (localVideoRef.current) {
-                        localVideoRef.current.srcObject = stream;
-                        localVideoRef.current.play().catch((err) => {
-                            console.error("Local video play error:", err);
-                            toast.warn("Không thể phát video local: " + err.message);
-                        });
-                    } else if (attempts < 10) {
-                        setTimeout(() => tryAttachLocalStream(stream, attempts + 1), 200);
-                    } else {
-                        console.error("❌ Không thể gắn localStream vào localVideo sau nhiều lần thử");
-                    }
-                };
-                tryAttachLocalStream(stream);
-
-            });
-
-            stringeeCallRef.current.on("addremotestream", (stream) => {
-                console.log("🎥 [addremotestream] Stream:", stream);
-                if (remoteVideoRef.current) {
-                    remoteVideoRef.current.srcObject = stream;
-                    remoteVideoRef.current.play().catch((err) => {
-                        console.error("Remote video play error:", err);
-                        toast.warn("Không thể phát video remote: " + err.message);
-                    });
-                } else {
-                    console.error("⚠️ remoteVideoRef không tồn tại khi addremotestream");
-                }
-            });
-
             stringeeCallRef.current.on("end", () => {
                 console.log("📞 Hung up outgoing call");
                 endCall();
@@ -390,6 +430,7 @@ const Call = ({ onEndCall }) => {
                 if (res.r === 0) {
                     console.log("✅ Call started:", res);
                     setCallStarted(true);
+                    sendCallStatusMessage("📞 Cuộc gọi bắt đầu");
                 } else {
                     console.error("❌ Call failed:", res);
                     toast.error("Không thể bắt đầu cuộc gọi: " + res.message);
