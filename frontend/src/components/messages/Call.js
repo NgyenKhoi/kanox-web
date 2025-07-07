@@ -5,10 +5,13 @@ import { FaMicrophone, FaMicrophoneSlash, FaVideo, FaVideoSlash, FaPhone } from 
 import { AuthContext } from "../../context/AuthContext";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { WebSocketContext } from "../../context/WebSocketContext";
+
 
 const Call = ({ onEndCall }) => {
     const { user, token } = useContext(AuthContext);
     const { chatId } = useParams();
+    const { publish } = useContext(WebSocketContext);
     const navigate = useNavigate();
     const [isMuted, setIsMuted] = useState(false);
     const [isVideoOff, setIsVideoOff] = useState(false);
@@ -22,6 +25,23 @@ const Call = ({ onEndCall }) => {
     const localStreamRef = useRef(null);
     const [localStream, setLocalStream] = useState(null);
     const [isStringeeConnected, setIsStringeeConnected] = useState(false);
+    const [signalingCode, setSignalingCode] = useState(null);
+
+
+    const sendCallStatusMessage = (statusMessage) => {
+        if (!publish || !chatId || !user) return;
+
+        const msg = {
+            chatId: Number(chatId),
+            senderId: user.id,
+            content: statusMessage,
+            typeId: 4, // ✅ Dùng typeId = 2 để phân biệt với tin nhắn thường
+        };
+
+        publish("/app/sendMessage", msg);
+    };
+
+
 
     useEffect(() => {
         let isMounted = true;
@@ -134,7 +154,7 @@ const Call = ({ onEndCall }) => {
             stringeeClientRef.current.on("incomingcall", (incomingCall) => {
                 console.log("📞 incomingCall.toNumber:", incomingCall.toNumber);
                 console.log("👤 currentUser.username:", user.username);
-
+                setCallStarted(false);
                 // 👉 Lọc ra nếu mình là người gọi thì bỏ qua
                 if (incomingCall.fromNumber === user.username) {
                     console.log("⚠️ Bỏ qua cuộc gọi vì mình là người gọi");
@@ -144,6 +164,7 @@ const Call = ({ onEndCall }) => {
                 stringeeCallRef.current = incomingCall;
 
                 stringeeCallRef.current.on("signalingstate", (state) => {
+                    setSignalingCode(state.code);
                     console.log("📶 Signaling state:", state);
                 });
                 stringeeCallRef.current.on("mediastate", (state) => {
@@ -223,6 +244,7 @@ const Call = ({ onEndCall }) => {
             toast.error("Không tìm thấy người nhận để gọi.");
             return;
         }
+        setCallStarted(false);
 
         try {
             const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/call/start/${chatId}`, {
@@ -244,6 +266,7 @@ const Call = ({ onEndCall }) => {
             );
 
             stringeeCallRef.current.on("signalingstate", (state) => {
+                setSignalingCode(state.code);
                 console.log("📶 Signaling state:", state);
             });
             stringeeCallRef.current.on("mediastate", (state) => {
@@ -289,6 +312,7 @@ const Call = ({ onEndCall }) => {
 
 // Thêm debug state
             stringeeCallRef.current.on("signalingstate", (state) => {
+                setSignalingCode(state.code);
                 console.log("📶 Signaling state:", state);
             });
             stringeeCallRef.current.on("mediastate", (state) => {
@@ -318,10 +342,36 @@ const Call = ({ onEndCall }) => {
                 console.error("Error hanging up Stringee call:", error);
             }
         }
+
         if (localVideoRef.current) localVideoRef.current.srcObject = null;
         if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+
+        // ✅ Nếu cuộc gọi chưa được bắt, thì gửi tin nhắn cuộc gọi nhỡ
+        if (!callStarted) {
+            switch (signalingCode) {
+                case 5:
+                    console.log("📵 Cuộc gọi nhỡ");
+                    sendCallStatusMessage("📵 Cuộc gọi nhỡ");
+                    break;
+                case 6:
+                    console.log("🚫 Cuộc gọi bị từ chối");
+                    sendCallStatusMessage("🚫 Cuộc gọi bị từ chối");
+                    break;
+                case 3:
+                    console.log("⚠️ Máy bận");
+                    sendCallStatusMessage("⚠️ Máy bận");
+                    break;
+                default:
+                    console.log("ℹ️ Cuộc gọi kết thúc không rõ lý do:", signalingCode);
+                    sendCallStatusMessage("❔ Cuộc gọi kết thúc");
+                    break;
+            }
+        }
+
+
         setCallStarted(false);
         if (onEndCall) onEndCall();
+
         if (callSessionId) {
             try {
                 const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/call/end/${callSessionId}`, {
@@ -335,6 +385,7 @@ const Call = ({ onEndCall }) => {
             }
         }
     };
+
 
     const toggleMute = () => {
         if (!stringeeCallRef.current || !localVideoRef.current?.srcObject) {

@@ -250,19 +250,41 @@ return (
             </OverlayTrigger>
         </div>
         <div className="flex-grow overflow-y-auto p-3 max-h-[calc(100vh-200px)]" ref={chatContainerRef}>
-            {messages.map((msg) => (
-                <div key={msg.id} className={`mb-2 flex ${msg.senderId === user?.id ? "justify-end" : "justify-start"}`}>
-                    <div className={`p-3 rounded-3xl shadow-md transition-colors duration-200 ${msg.senderId === user?.id ? "bg-[var(--primary-color)] text-white"
-                        : "bg-[var(--message-other-bg)] text-[var(--text-color)]"}`}>
-                        {msg.content}
-                        <div className="text-end">
-                            <small className={`${msg.senderId === user?.id ? "text-[var(--light-text-color)]" : "text-[var(--text-color-muted)]"} text-xs`}>
-                                {new Date(msg.createdAt).toLocaleTimeString()}
-                            </small>
+            {messages.map((msg) => {
+                const isMissedCall = msg.typeId === 4; // hoặc msg.messageType === 'MISSED_CALL'
+                return (
+                    <div key={msg.id} className={`mb-2 flex ${msg.senderId === user?.id ? "justify-end" : "justify-start"}`}>
+                        <div className={`p-3 rounded-3xl shadow-md max-w-[70%] ${isMissedCall
+                            ? "bg-yellow-100 text-yellow-800 italic"
+                            : msg.senderId === user?.id
+                                ? "bg-[var(--primary-color)] text-white"
+                                : "bg-[var(--message-other-bg)] text-[var(--text-color)]"
+                        }`}>
+                            {isMissedCall ? (
+                                <div className="flex items-center justify-between gap-2">
+                                    <span>{msg.content}</span>
+                                    <button
+                                        onClick={() => navigate(`/call/${chatId}`)}
+                                        className="ml-2 text-sm text-blue-600 hover:underline"
+                                    >
+                                        Gọi lại
+                                    </button>
+                                </div>
+                            ) : (
+                                <>
+                                    {msg.content}
+                                    <div className="text-end mt-1">
+                                        <small className={`${msg.senderId === user?.id ? "text-[var(--light-text-color)]" : "text-[var(--text-color-muted)]"} text-xs`}>
+                                            {new Date(msg.createdAt).toLocaleTimeString()}
+                                        </small>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     </div>
-                </div>
-            ))}
+                );
+            })}
+
             {typingUsers.length > 0 && <div className="text-[var(--text-color-muted)]">{typingUsers.join(", ")} đang nhập...</div>}
         </div>
         <div className="p-3 border-t border-[var(--border-color)] bg-[var(--background-color)]">
