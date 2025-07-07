@@ -72,6 +72,7 @@ public class GroupService {
         member.setJoinAt(Instant.now());
         member.setIsAdmin(true);
         member.setStatus(true);
+        member.setInviteStatus("ACCEPTED");
 
         groupMemberRepository.save(member);
 
