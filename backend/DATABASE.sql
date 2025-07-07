@@ -2766,8 +2766,9 @@ WHERE definition LIKE '%friendship%';
     -- tblMessageType (Loại tin nhắn: văn bản, hình ảnh, video)
     INSERT INTO tblMessageType (name, description, status) VALUES
     ('Text', 'Text message', 1),
-    ('Image', 'Image message', 1),
-    ('Video', 'Video message', 1);
+	('Image', 'Image message', 1),
+	('Video', 'Video message', 1),
+	('Missed_call', 'Miss call message', 1);
     INSERT INTO tblUpgradeType (name, description) VALUES
     ('Premium', 'Premium account upgrade'),
     ('VIP', 'VIP account upgrade');
