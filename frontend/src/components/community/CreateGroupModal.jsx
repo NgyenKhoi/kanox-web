@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { Modal, Form, Button, Image } from "react-bootstrap";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
+import { AuthContext } from "../../context/AuthContext";
 
 function CreateGroupModal({ show, onHide, onGroupCreated }) {
     const navigate = useNavigate();
+    const { token, user } = useContext(AuthContext);
     const [groupForm, setGroupForm] = useState({
         name: "",
         description: "",
@@ -12,8 +14,6 @@ function CreateGroupModal({ show, onHide, onGroupCreated }) {
     });
     const [avatarFile, setAvatarFile] = useState(null);
     const [avatarPreview, setAvatarPreview] = useState(null);
-    const token = localStorage.getItem("token");
-    const username = localStorage.getItem("username");
 
     // Xử lý thay đổi form
     const handleGroupFormChange = (e) => {
@@ -38,7 +38,7 @@ function CreateGroupModal({ show, onHide, onGroupCreated }) {
     const handleCreateGroup = async (e) => {
         e.preventDefault();
         console.log("🔥 handleCreateGroup CALLED");
-        if (!token || !username) {
+        if (!token || !user) {
             toast.error("Vui lòng đăng nhập để tạo nhóm.");
             onHide();
             return;
@@ -47,7 +47,7 @@ function CreateGroupModal({ show, onHide, onGroupCreated }) {
         try {
             const formData = new FormData();
             const dataBlob = new Blob([JSON.stringify({
-                ownerUsername: username,
+                    ownerUsername: user?.username,
                 name: groupForm.name,
                 description: groupForm.description,
                 privacyLevel: groupForm.privacyLevel

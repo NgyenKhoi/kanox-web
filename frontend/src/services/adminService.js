@@ -150,6 +150,59 @@ export const adminService = {
     return await handleResponse(response);
   },
 
+  // === QUẢN LÝ BÁO CÁO ===
+  
+  // Lấy danh sách báo cáo
+  async getReports(page = 0, size = 10, status = '') {
+    const url = new URL(`${API_BASE_URL}/admin/reports`);
+    url.searchParams.append('page', page);
+    url.searchParams.append('size', size);
+    if (status) {
+      url.searchParams.append('status', status);
+    }
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: getHeaders(),
+    });
+
+    return await handleResponse(response);
+  },
+
+  // Lấy chi tiết một báo cáo
+  async getReportById(reportId) {
+    const response = await fetch(`${API_BASE_URL}/admin/reports/${reportId}`, {
+      method: 'GET',
+      headers: getHeaders(),
+    });
+
+    return await handleResponse(response);
+  },
+
+  // Cập nhật trạng thái báo cáo
+  async updateReportStatus(reportId, status, adminNote = '') {
+    const response = await fetch(`${API_BASE_URL}/admin/reports/${reportId}/status`, {
+      method: 'PATCH',
+      headers: getHeaders(),
+      body: JSON.stringify({
+        status,
+        adminNote
+      }),
+    });
+
+    return await handleResponse(response);
+  },
+
+  // Xóa báo cáo (dismiss)
+  async deleteReport(reportId) {
+    const response = await fetch(`${API_BASE_URL}/admin/reports/${reportId}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
+
+    return await handleResponse(response);
+  },
+
   // === CÁC TÍNH NĂNG ADMIN KHÁC CÓ THỂ ĐƯỢC THÊM VÀO ĐÂY ===
   
   // Lấy thống kê tổng quan
