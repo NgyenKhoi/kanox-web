@@ -50,25 +50,30 @@ function AppContent() {
   };
 
   useEffect(() => {
+    console.log("Running fetchChatIdsAndMembers useEffect", { user, token });
     if (!user || !token) {
+      console.log("No user or token, setting isLoading to false");
       setIsLoading(false);
       return;
     }
 
     const fetchChatIdsAndMembers = async () => {
       try {
+        console.log("Fetching chat IDs for user:", user.id);
         const chatResponse = await fetch(`${process.env.REACT_APP_API_URL}/chat/user/${user.id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!chatResponse.ok) {
-          console.error("Error fetching chat IDs");
+          console.error("Error fetching chat IDs:", chatResponse.statusText);
           return;
         }
         const chats = await chatResponse.json();
+        console.log("Fetched chats:", chats);
         setChatIds(chats.map((chat) => chat.id));
 
         const userMapTemp = {};
         for (const chat of chats) {
+          console.log("Fetching members for chat:", chat.id);
           const membersResponse = await fetch(`${process.env.REACT_APP_API_URL}/chat/${chat.id}/members`, {
             headers: { Authorization: `Bearer ${token}` },
           });
@@ -77,13 +82,16 @@ function AppContent() {
             members.forEach((member) => {
               userMapTemp[member.userId] = member.displayName;
             });
+          } else {
+            console.error("Error fetching members for chat:", chat.id);
           }
         }
+        console.log("User map:", userMapTemp);
         setUserMap(userMapTemp);
-        console.log("📄 User map:", userMapTemp);
       } catch (error) {
         console.error("Error fetching chat IDs or members:", error);
       } finally {
+        console.log("Setting isLoading to false");
         setIsLoading(false);
       }
     };
@@ -92,6 +100,7 @@ function AppContent() {
   }, [user, token]);
 
   useEffect(() => {
+    console.log("Running WebSocket subscriptions useEffect", { subscribe, unsubscribe, publish, chatIds });
     if (!subscribe || !unsubscribe || !publish || !chatIds.length) {
       console.log("Skipping subscriptions: Missing WebSocket context or chatIds");
       return;
@@ -99,9 +108,10 @@ function AppContent() {
 
     const subscriptions = [];
     chatIds.forEach((chatId) => {
-      // Subscription cho tín hiệu bắt đầu cuộc gọi
-      subscriptions.push(
-          subscribe(`/topic/call/${chatId}`, (message) => {
+      console.log("Subscribing to /topic/call/", chatId);
+      const callSub = subscribe(
+          `/topic/call/${chatId}`,
+          (message) => {
             console.log("Received call signal:", message);
             if (message.type === "start" && message.userId !== user.id) {
               if (isInCall) {
@@ -119,6 +129,7 @@ function AppContent() {
                 });
                 return;
               }
+              console.log("Setting incoming call for chat:", message.chatId);
               setIncomingCall({
                 chatId: message.chatId,
                 sessionId: message.sessionId,
@@ -127,12 +138,15 @@ function AppContent() {
               });
               setShowCallModal(true);
             }
-          }, `call-${chatId}`)
+          },
+          `call-${chatId}`
       );
+      if (callSub) subscriptions.push({ id: `call-${chatId}`, unsubscribe: callSub });
 
-      // Subscription cho tín hiệu kết thúc cuộc gọi
-      subscriptions.push(
-          subscribe(`/topic/call/end/${chatId}`, (message) => {
+      console.log("Subscribing to /topic/call/end/", chatId);
+      const endCallSub = subscribe(
+          `/topic/call/end/${chatId}`,
+          (message) => {
             console.log("Received call end signal:", message);
             if (message.userId !== user.id && isInCall) {
               console.log("📴 Nhận tín hiệu kết thúc cuộc gọi từ server");
@@ -141,12 +155,19 @@ function AppContent() {
               setIncomingCall(null);
               navigate(`/messages?chatId=${chatId}`);
             }
-          }, `call-end-${chatId}`)
+          },
+          `call-end-${chatId}`
       );
+      if (endCallSub) subscriptions.push({ id: `call-end-${chatId}`, unsubscribe: endCallSub });
     });
 
     const handleIncomingCall = (event) => {
-      const { chatId, sessionId, from, to } = event.detail;
+      console.log("Handling incoming call event:", event.detail);
+      const { chatId, sessionId, from, to } = event.detail || {};
+      if (!chatId || !sessionId || !from || !to) {
+        console.error("Invalid incoming call event data:", event.detail);
+        return;
+      }
       if (to !== user.username) {
         console.log("⛔ Mình là người gọi, không hiển thị modal.");
         return;
@@ -166,6 +187,7 @@ function AppContent() {
         });
         return;
       }
+      console.log("Setting incoming call for event:", { chatId, from });
       setIncomingCall({
         chatId,
         sessionId,
@@ -177,18 +199,30 @@ function AppContent() {
     window.addEventListener("incomingCall", handleIncomingCall);
 
     return () => {
-      subscriptions.forEach((_, index) => unsubscribe(subscriptions[index].id));
+      console.log("Cleaning up subscriptions");
+      subscriptions.forEach((sub) => {
+        try {
+          if (sub.unsubscribe && typeof sub.unsubscribe === "function") {
+            sub.unsubscribe();
+            console.log(`Unsubscribed from ${sub.id}`);
+          }
+        } catch (error) {
+          console.error(`Error unsubscribing from ${sub.id}:`, error);
+        }
+      });
       window.removeEventListener("incomingCall", handleIncomingCall);
     };
   }, [chatIds, subscribe, unsubscribe, user, navigate, token, userMap, isInCall, publish]);
 
   const acceptCall = () => {
+    console.log("Accepting call:", incomingCall);
     setShowCallModal(false);
-    setIsInCall(true); // Cập nhật trạng thái khi chấp nhận cuộc gọi
+    setIsInCall(true);
     navigate(`/call/${incomingCall.chatId}`);
   };
 
   const rejectCall = () => {
+    console.log("Rejecting call:", incomingCall);
     setShowCallModal(false);
     if (publish && incomingCall) {
       publish("/app/call/end", {
