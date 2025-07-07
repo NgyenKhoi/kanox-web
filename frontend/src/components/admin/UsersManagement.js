@@ -56,6 +56,7 @@ const UsersManagement = () => {
       setEditForm({
         displayName: user.displayName || '',
         email: user.email || '',
+        dateOfBirth: user.dateOfBirth ? user.dateOfBirth.split('T')[0] : '',
         bio: user.bio || ''
       });
       setShowEditModal(true);
@@ -378,6 +379,18 @@ const UsersManagement = () => {
                     onChange={(e) => setEditForm({...editForm, email: e.target.value})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     required
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Ngày sinh
+                  </label>
+                  <input
+                    type="date"
+                    value={editForm.dateOfBirth}
+                    onChange={(e) => setEditForm({...editForm, dateOfBirth: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 
