@@ -26,6 +26,8 @@ const Call = ({ onEndCall }) => {
     const [isStringeeConnected, setIsStringeeConnected] = useState(false);
     const [signalingCode, setSignalingCode] = useState(null);
     const { publish, subscribe, unsubscribe } = useContext(WebSocketContext);
+    const currentCallRef = useRef(null);
+    const incomingCallRef = useRef(null);
     let reconnectTimer = null;
 
 
@@ -180,27 +182,36 @@ const Call = ({ onEndCall }) => {
                 console.log("👤 currentUser.username:", user.username);
                 if (callStarted || stringeeCallRef.current) {
                     console.warn("❌ Đang trong cuộc gọi khác, từ chối cuộc gọi mới.");
+
+                    // Gửi máy bận cho người gọi C, dùng đúng chatId mới
+                    const busyMsg = {
+                        chatId: incomingCall.customData?.chatId || -1, // 👈 lấy chatId bên C gửi qua
+                        senderId: user.id,
+                        content: "⚠️ Máy bận",
+                        typeId: 4,
+                    };
+                    publish("/app/sendMessage", busyMsg);
+
                     incomingCall.reject();
-                    setSignalingCode(3); // code = 3 => máy bận
-                    sendCallStatusMessage("⚠️ Máy bận");
                     return;
                 }
-                setCallStarted(false);
+
+                incomingCallRef.current = incomingCall;
                 // 👉 Lọc ra nếu mình là người gọi thì bỏ qua
                 if (incomingCall.fromNumber === user.username) {
                     console.log("⚠️ Bỏ qua cuộc gọi vì mình là người gọi");
                     return;
                 }
 
-                stringeeCallRef.current = incomingCall;
-
-                stringeeCallRef.current.on("signalingstate", (state) => {
-                    setSignalingCode(state.code);
-                    console.log("📶 Signaling state:", state);
-                });
-                stringeeCallRef.current.on("mediastate", (state) => {
-                    console.log("📺 Media state:", state);
-                });
+                // stringeeCallRef.current = incomingCall;
+                //
+                // stringeeCallRef.current.on("signalingstate", (state) => {
+                //     setSignalingCode(state.code);
+                //     console.log("📶 Signaling state:", state);
+                // });
+                // stringeeCallRef.current.on("mediastate", (state) => {
+                //     console.log("📺 Media state:", state);
+                // });
 
                 incomingCall.on("addlocalstream", (stream) => {
                     localStreamRef.current = stream;
@@ -228,8 +239,17 @@ const Call = ({ onEndCall }) => {
                 });
 
                 incomingCall.on("end", () => {
-                    endCall();
+                    console.log("❌ Cuộc gọi đến kết thúc");
+                    // Dọn localStream nếu có
+                    if (localStreamRef.current) {
+                        localStreamRef.current.getTracks().forEach(track => track.stop());
+                        localStreamRef.current = null;
+                    }
+                    if (localVideoRef.current) localVideoRef.current.srcObject = null;
+                    if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+                    incomingCallRef.current = null;
                 });
+
 
                 incomingCall.answer((res) => {
                     if (res.r === 0) {
@@ -267,6 +287,16 @@ const Call = ({ onEndCall }) => {
     }, [chatId, token, user, navigate]);
 
     const startCall = async () => {
+        navigator.mediaDevices.getUserMedia({ audio: true, video: true })
+            .then(stream => {
+                console.log("🎥 C lấy được quyền truy cập camera/mic");
+            })
+            .catch(err => {
+                console.error("❌ C không lấy được cam/mic:", err);
+                toast.error("Không thể truy cập camera/micro. Vui lòng cấp quyền.");
+                return;
+            });
+
         if (!isStringeeConnected) {
             toast.error("Chưa kết nối Stringee.");
             return;
@@ -345,7 +375,16 @@ const Call = ({ onEndCall }) => {
             });
 
             stringeeCallRef.current.on("end", () => {
-                endCall();
+                if (incomingCallRef.current) {
+                    try {
+                        incomingCallRef.current.hangup();
+                        incomingCallRef.current = null;
+                    } catch (e) {
+                        console.error("Lỗi ngắt incoming call:", e);
+                    }
+                }
+
+                endCall(); // gọi hàm kết thúc
             });
 
 
@@ -402,8 +441,10 @@ const Call = ({ onEndCall }) => {
                     sendCallStatusMessage("🚫 Cuộc gọi bị từ chối");
                     break;
                 case 3:
-                    console.log("⚠️ Máy bận");
-                    sendCallStatusMessage("⚠️ Máy bận");
+                    if (signalingCode === 3 && stringeeCallRef.current) {
+                        // Máy bận, nhưng chỉ gửi nếu là cuộc gọi outgoing
+                        sendCallStatusMessage("⚠️ Máy bận");
+                    }
                     break;
                 default:
                     console.log("ℹ️ Cuộc gọi kết thúc không rõ lý do:", signalingCode);
