@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useContext } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 import { Button, Spinner } from "react-bootstrap";
 import CommunitySidebarLeft from "../../components/community/CommunitySidebarLeft";
@@ -10,6 +10,7 @@ export default function GroupMembersPage() {
     const { token, user } = useContext(AuthContext);
     const [members, setMembers] = useState([]);
     const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
 
     // SidebarLeft state
     const [viewMode, setViewMode] = useState("feed");
