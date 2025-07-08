@@ -159,96 +159,105 @@ function CommunityPage() {
           fluid
           className="d-flex flex-grow-1 bg-[var(--background-color)] text-[var(--text-color)] transition-colors duration-200"
       >
-        <Row className="w-100 justify-content-center">
-          {/* Sidebar Left */}
-          <Col xs={0} lg={3} className="p-0 d-none d-lg-block">
-            <div
-                style={{
-                  position: "sticky",
-                  top: 0,
-                  height: "100vh",
-                  overflowY: "auto",
-                }}
-            >
-              <CommunitySidebarLeft
-                  selectedView={viewMode}
-                  onSelectView={setViewMode}
-                  onGroupCreated={handleGroupCreated}
-                  onToggleDarkMode={handleToggleDarkMode}
-                  isDarkMode={isDarkMode}
-              />
-            </div>
-          </Col>
+          <Row className="w-100 justify-content-center">
+              {/* Sidebar Left */}
+              <Col xs={0} lg={3} className="p-0 d-none d-lg-block">
+                  <div
+                      style={{
+                          position: "sticky",
+                          top: 0,
+                          height: "100vh",
+                          overflowY: "auto",
+                      }}
+                  >
+                      <CommunitySidebarLeft
+                          selectedView={viewMode}
+                          onSelectView={setViewMode}
+                          onGroupCreated={handleGroupCreated}
+                          onToggleDarkMode={handleToggleDarkMode}
+                          isDarkMode={isDarkMode}
+                      />
+                  </div>
+              </Col>
 
-          {/* Center Content */}
-          <Col xs={12} lg={8} className="p-0 border-start border-end">
-            <div className="sticky top-0 z-[1020] bg-[var(--background-color)] text-[var(--text-color)] font-bold text-lg px-3 py-2 border-b shadow-sm d-flex justify-content-between align-items-center">
-              <h2 className="me-auto">Cộng đồng</h2>
-              <FaSearch size={20} />
-            </div>
+              {/* Content + SidebarRight wrapper */}
+              <Col xs={12} lg={9} className="p-0">
+                  <Row className="w-100 m-0">
+                      {/* Center Content */}
+                      <Col xs={12} lg={8} className="p-0 border-end">
+                          {/* Header */}
+                          <div className="sticky top-0 z-[1020] bg-[var(--background-color)] text-[var(--text-color)] font-bold text-lg px-3 py-2 border-b shadow-sm d-flex justify-content-between align-items-center">
+                              <h2 className="me-auto">Cộng đồng</h2>
+                              <FaSearch size={20} />
+                          </div>
 
-              {loading ? (
-                <div className="text-center p-4">Đang tải...</div>
-            ) : error ? (
-                <div className="text-danger text-center p-4">{error}</div>
-            ) : viewMode === "feed" ? (
-                posts.length === 0 ? (
-                    <div className="text-center text-muted p-4">
-                      Không có bài đăng
-                    </div>
-                ) : (
-                    posts.map((post) => (
-                        <TweetCard
-                            key={post.id}
-                            tweet={post}
-                            onPostUpdate={fetchData} // Gọi lại fetchData để làm mới danh sách bài đăng
-                            savedPosts={posts.filter((p) => p.isSaved)} // Truyền danh sách bài đã lưu
-                        />
-                    ))
-                )
-            ) : (
-                yourGroups.map((group) => (
-                    <Card key={group.id} className="mb-3">
-                      <Card.Body className="d-flex">
-                        <img
-                            src={group.avatar}
-                            alt="Avatar"
-                            className="rounded me-3"
-                            style={{
-                              width: "50px",
-                              height: "50px",
-                              objectFit: "cover",
-                            }}
-                        />
-                        <div className="flex-grow-1">
-                          <h5
-                              className="mb-1"
-                              style={{ cursor: "pointer" }}
-                              onClick={() => handleCommunityClick(group.id)}
-                          >
-                            {group.name}
-                          </h5>
-                          <p className="mb-2 text-muted small">{group.description}</p>
-                          {!group.isJoined && (
-                              <button
-                                  className="btn btn-primary btn-sm"
-                                  onClick={() => handleJoinGroup(group.id)}
-                              >
-                                Tham gia
-                              </button>
+                          {/* Nội dung feed hoặc nhóm */}
+                          {loading ? (
+                              <div className="text-center p-4">Đang tải...</div>
+                          ) : error ? (
+                              <div className="text-danger text-center p-4">{error}</div>
+                          ) : viewMode === "feed" ? (
+                              posts.length === 0 ? (
+                                  <div className="text-center text-muted p-4">
+                                      Không có bài đăng
+                                  </div>
+                              ) : (
+                                  posts.map((post) => (
+                                      <TweetCard
+                                          key={post.id}
+                                          tweet={post}
+                                          onPostUpdate={fetchData}
+                                          savedPosts={posts.filter((p) => p.isSaved)}
+                                      />
+                                  ))
+                              )
+                          ) : (
+                              yourGroups.map((group) => (
+                                  <Card key={group.id} className="mb-3">
+                                      <Card.Body className="d-flex">
+                                          <img
+                                              src={group.avatar}
+                                              alt="Avatar"
+                                              className="rounded me-3"
+                                              style={{
+                                                  width: "50px",
+                                                  height: "50px",
+                                                  objectFit: "cover",
+                                              }}
+                                          />
+                                          <div className="flex-grow-1">
+                                              <h5
+                                                  className="mb-1"
+                                                  style={{ cursor: "pointer" }}
+                                                  onClick={() => handleCommunityClick(group.id)}
+                                              >
+                                                  {group.name}
+                                              </h5>
+                                              <p className="mb-2 text-muted small">
+                                                  {group.description}
+                                              </p>
+                                              {!group.isJoined && (
+                                                  <button
+                                                      className="btn btn-primary btn-sm"
+                                                      onClick={() => handleJoinGroup(group.id)}
+                                                  >
+                                                      Tham gia
+                                                  </button>
+                                              )}
+                                          </div>
+                                      </Card.Body>
+                                  </Card>
+                              ))
                           )}
-                        </div>
-                      </Card.Body>
-                    </Card>
-                ))
-            )}
-          </Col>
+                      </Col>
 
-          {/* Sidebar Right */}
-          <Col xs={0} lg={4} className="d-none d-lg-block border-start p-0">
-            <SidebarRight />
-          </Col>
-        </Row>
+                      {/* Sidebar Right */}
+                      <Col xs={0} lg={4} className="d-none d-lg-block p-0">
+                          <SidebarRight />
+                      </Col>
+                  </Row>
+              </Col>
+          </Row>
       </Container>
   );
 }

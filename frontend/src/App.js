@@ -9,7 +9,7 @@ import SidebarLeft from "./components/layout/SidebarLeft/SidebarLeft";
 import { ThemeContext, ThemeProvider } from "./context/ThemeContext";
 import { AuthContext, AuthProvider } from "./context/AuthContext";
 import { WebSocketContext, WebSocketProvider } from "./context/WebSocketContext";
-import { BrowserRouter as Router, Routes, Route, useNavigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from "react-router-dom";
 
 // Import các page
 import SignupPage from "./pages/auth/signup/signupPage";
@@ -43,6 +43,7 @@ function AppContent() {
   const { isDarkMode, toggleDarkMode } = useContext(ThemeContext);
   const navigate = useNavigate();
   const [showCreatePost, setShowCreatePost] = useState(false);
+  const location = useLocation();
 
   const handleCallStatus = (status) => {
     setIsInCall(status);
@@ -202,15 +203,18 @@ function AppContent() {
             <Container fluid className="min-vh-100 p-0">
               <Row className="m-0">
                 {/* SidebarLeft */}
-                {user && !window.location.pathname.startsWith("/community") && !window.location.pathname.startsWith("/communities" && !window.location.pathname.startsWith("/groups")) && (
-                    <Col xs={0} lg={3} className="p-0 d-none d-lg-block">
-                      <SidebarLeft
-                          onToggleDarkMode={toggleDarkMode}
-                          isDarkMode={isDarkMode}
-                          onShowCreatePost={() => setShowCreatePost(true)}
-                      />
-                    </Col>
-                )}
+                {user &&
+                    !location.pathname.startsWith("/community") &&
+                    !location.pathname.startsWith("/communities") &&
+                    !location.pathname.startsWith("/groups") && (
+                        <Col xs={0} lg={3} className="p-0 d-none d-lg-block">
+                          <SidebarLeft
+                              onToggleDarkMode={toggleDarkMode}
+                              isDarkMode={isDarkMode}
+                              onShowCreatePost={() => setShowCreatePost(true)}
+                          />
+                        </Col>
+                    )}
                 {/* Routes */}
                 <Col xs={12} lg={user ? 9 : 12} className="p-0">
                   <Routes>
@@ -237,13 +241,33 @@ function AppContent() {
                     <Route path="/explore" element={<PrivateRoute><ExplorePage /></PrivateRoute>} />
                     <Route path="/notifications" element={<PrivateRoute><NotificationPage /></PrivateRoute>} />
                     <Route path="/messages" element={<PrivateRoute><MessengerPage /></PrivateRoute>} />
-                    <Route path="/communities" element={<PrivateRoute><CommunityPage /></PrivateRoute>} />
+                    <Route
+                        path="/communities"
+                        element={
+                          <PrivateRoute>
+                            <CommunityPage
+                                onToggleDarkMode={toggleDarkMode}
+                                isDarkMode={isDarkMode}
+                            />
+                          </PrivateRoute>
+                        }
+                    />
                     <Route path="/privacy/lists" element={<PrivateRoute><CustomPrivacyListPage /></PrivateRoute>} />
                     <Route path="/blocks" element={<PrivateRoute><BlockedUsersPage /></PrivateRoute>} />
                     <Route path="/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
                     <Route path="/friends" element={<PrivateRoute><FriendsPage /></PrivateRoute>} />
                     <Route path="/admin" element={<PrivateRoute><AdminPage /></PrivateRoute>} />
-                    <Route path="/groups/:groupId/members" element={<PrivateRoute><GroupMembersPage /></PrivateRoute>} />
+                    <Route
+                        path="/groups/:groupId/members"
+                        element={
+                          <PrivateRoute>
+                            <GroupMembersPage
+                                onToggleDarkMode={toggleDarkMode}
+                                isDarkMode={isDarkMode}
+                            />
+                          </PrivateRoute>
+                        }
+                    />
                     <Route
                         path="/call/:chatId"
                         element={
@@ -256,7 +280,10 @@ function AppContent() {
                         path="/community/:groupId"
                         element={
                           <PrivateRoute>
-                            <GroupCommunityPage />
+                            <GroupCommunityPage
+                                onToggleDarkMode={toggleDarkMode}
+                                isDarkMode={isDarkMode}
+                            />
                           </PrivateRoute>
                         }
                     />

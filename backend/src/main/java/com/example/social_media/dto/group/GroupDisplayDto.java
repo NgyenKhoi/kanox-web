@@ -12,6 +12,7 @@ public class GroupDisplayDto {
     private String ownerAvatarUrl;
     private boolean isAdmin;
     private boolean isOwner;
+    private boolean isMember;
     private String privacyLevel;
     private String inviteStatus;
 
@@ -22,6 +23,7 @@ public class GroupDisplayDto {
                            String createdAt, Integer memberCount, String ownerUsername,
                            String ownerDisplayName, String ownerAvatarUrl,
                            boolean isAdmin, boolean isOwner,
+                           boolean isMember,
                            String privacyLevel, String inviteStatus) {
         this.id = id;
         this.name = name;
@@ -34,6 +36,7 @@ public class GroupDisplayDto {
         this.ownerAvatarUrl = ownerAvatarUrl;
         this.isAdmin = isAdmin;
         this.isOwner = isOwner;
+        this.isMember = isMember;
         this.privacyLevel = privacyLevel;
         this.inviteStatus = inviteStatus;
     }
@@ -140,5 +143,13 @@ public class GroupDisplayDto {
 
     public void setInviteStatus(String inviteStatus) {
         this.inviteStatus = inviteStatus;
+    }
+
+    public boolean isMember() {
+        return isMember;
+    }
+
+    public void setMember(boolean member) {
+        isMember = member;
     }
 }
