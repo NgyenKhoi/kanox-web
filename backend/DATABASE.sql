@@ -2361,68 +2361,400 @@ WHERE definition LIKE '%friendship%';
 
     --REPORT
 
-    CREATE TABLE tblReport (
-        id INT PRIMARY KEY IDENTITY(1, 1),
-        reporter_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
-        target_id INT NOT NULL,
-        target_type_id INT NOT NULL FOREIGN KEY REFERENCES tblTargetType(id),
-        reason NVARCHAR(255),
-        report_time DATETIME DEFAULT GETDATE(),
-        status BIT DEFAULT 1
-    );
+	CREATE TABLE tblReport (
+		id INT PRIMARY KEY IDENTITY(1,1),
+		reporter_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
+		target_id INT NOT NULL,
+		target_type_id INT NOT NULL FOREIGN KEY REFERENCES tblTargetType(id),
+		reason_id INT NOT NULL FOREIGN KEY REFERENCES tblReportReason(id),
+		processing_status_id INT NOT NULL DEFAULT 1 FOREIGN KEY REFERENCES tblReportStatus(id),
+		report_time DATETIME DEFAULT GETDATE(),
+		status BIT DEFAULT 1
+	);
+
+	CREATE TABLE tblReportReason (
+		id INT PRIMARY KEY IDENTITY(1, 1),
+		name NVARCHAR(100) NOT NULL,
+		description NVARCHAR(255),
+		status BIT DEFAULT 1,
+		CONSTRAINT UQ_ReportReason_Name UNIQUE (name)
+	);
+
+	CREATE TABLE tblReportStatus (
+		id INT PRIMARY KEY IDENTITY(1,1),
+		name NVARCHAR(100) NOT NULL,
+		description NVARCHAR(255),
+		status BIT DEFAULT 1,
+		CONSTRAINT UQ_ReportStatus_Name UNIQUE (name)
+	);
+
+	CREATE TABLE tblReportLimit (
+		user_id INT PRIMARY KEY FOREIGN KEY REFERENCES tblUser(id),
+		report_count INT DEFAULT 0,
+		last_report_reset DATETIME DEFAULT GETDATE(),
+		status BIT DEFAULT 1
+	);
+
+	CREATE TABLE tblReportHistory (
+		id INT PRIMARY KEY IDENTITY(1, 1),
+		reporter_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
+		report_id INT NOT NULL FOREIGN KEY REFERENCES tblReport(id),
+		processing_status_id INT NOT NULL FOREIGN KEY REFERENCES tblReportStatus(id),
+		action_time DATETIME DEFAULT GETDATE(),
+		status BIT DEFAULT 1
+	);
 
     ----------------PROC FOR ADD REPORT----------------
 
-    CREATE PROCEDURE sp_AddReport
-        @reporter_id INT,
-        @target_id INT,
-        @target_type_id INT,
-        @reason NVARCHAR(255),
-        @status BIT = 1
-    AS
-    BEGIN
-        SET NOCOUNT ON;
+	CREATE OR ALTER PROCEDURE sp_AddReport
+		@reporter_id INT,
+		@target_id INT,
+		@target_type_id INT,
+		@reason_id INT,
+		@processing_status_id INT = 1,
+		@status BIT = 1
+	AS
+	BEGIN
+		SET NOCOUNT ON;
 
-        -- Kiểm tra reporter_id có tồn tại và active không
-        IF NOT EXISTS (SELECT 1 FROM tblUser WHERE id = @reporter_id AND status = 1)
+		BEGIN TRY
+			BEGIN TRANSACTION;
+
+			-- Kiểm tra giới hạn báo cáo
+        DECLARE @max_reports_per_day INT = 10;
+        DECLARE @report_count INT;
+        DECLARE @last_reset DATETIME;
+
+        SELECT @report_count = report_count, @last_reset = last_report_reset
+        FROM tblReportLimit
+        WHERE user_id = @reporter_id;
+
+        -- Nếu chưa có bản ghi, tạo mới
+        IF @@ROWCOUNT = 0
         BEGIN
-            RAISERROR('Invalid or inactive reporter_id.', 16, 1);
+            INSERT INTO tblReportLimit (user_id, report_count, last_report_reset, status)
+            VALUES (@reporter_id, 0, GETDATE(), 1);
+            SET @report_count = 0;
+            SET @last_reset = GETDATE();
+        END
+
+        -- Đặt lại số đếm nếu đã qua một ngày
+        IF DATEDIFF(DAY, @last_reset, GETDATE()) >= 1
+        BEGIN
+            UPDATE tblReportLimit
+            SET report_count = 0,
+                last_report_reset = GETDATE()
+            WHERE user_id = @reporter_id;
+            SET @report_count = 0;
+        END
+
+        -- Kiểm tra vượt quá giới hạn
+        IF @report_count >= @max_reports_per_day
+        BEGIN
+            RAISERROR('Vượt quá giới hạn báo cáo hàng ngày.', 16, 1);
+            ROLLBACK TRANSACTION;
             RETURN;
         END
 
-        DECLARE @is_valid BIT;
-        DECLARE @owner_id INT;
+        -- Tăng số đếm báo cáo
+        UPDATE tblReportLimit
+        SET report_count = report_count + 1
+        WHERE user_id = @reporter_id;
 
-        EXEC sp_ValidateTargetExists @target_id, @target_type_id, @is_valid OUTPUT;
-
-        IF @is_valid = 0
-        BEGIN
-            RAISERROR('Invalid target_id or target_type_id.', 16, 1);
-            RETURN;
-        END
-
-        -- Lấy owner_id dựa trên target_type_id
-        SELECT @owner_id =
-            CASE @target_type_id
-                WHEN 1 THEN (SELECT owner_id FROM tblPost WHERE id = @target_id)
-                WHEN 2 THEN (SELECT user_id FROM tblComment WHERE id = @target_id)
-                WHEN 3 THEN (SELECT user_id FROM tblStory WHERE id = @target_id)
-                WHEN 4 THEN (SELECT id FROM tblUser WHERE id = @target_id)
-            END;
-
-        -- Kiểm tra xem reporter_id có bị chặn bởi owner_id không
+        -- Kiểm tra báo cáo lặp lại
         IF EXISTS (
-            SELECT 1 FROM tblBlock
-            WHERE user_id = @owner_id AND blocked_user_id = @reporter_id AND status = 1
+            SELECT 1 FROM tblReport
+            WHERE reporter_id = @reporter_id
+            AND target_id = @target_id
+            AND target_type_id = @target_type_id
+            AND status = 1
         )
         BEGIN
-            RAISERROR('User is blocked from reporting this content.', 16, 1);
+            RAISERROR('Bạn đã báo cáo nội dung này trước đó.', 16, 1);
+            ROLLBACK TRANSACTION;
             RETURN;
         END
 
-        INSERT INTO tblReport (reporter_id, target_id, target_type_id, reason, report_time, status)
-        VALUES (@reporter_id, @target_id, @target_type_id, @reason, GETDATE(), @status);
-    END;
+			-- Check if reporter exists and is active
+			IF NOT EXISTS (SELECT 1 FROM tblUser WHERE id = @reporter_id AND status = 1)
+			BEGIN
+				RAISERROR('Invalid or inactive reporter_id.', 16, 1);
+				RETURN;
+			END
+
+			-- Check if reason exists and is active
+			IF NOT EXISTS (SELECT 1 FROM tblReportReason WHERE id = @reason_id AND status = 1)
+			BEGIN
+				RAISERROR('Invalid or inactive report reason.', 16, 1);
+				RETURN;
+			END
+
+			-- Check if processing status exists and is active
+			IF NOT EXISTS (SELECT 1 FROM tblReportStatus WHERE id = @processing_status_id AND status = 1)
+			BEGIN
+				RAISERROR('Invalid or inactive processing status.', 16, 1);
+				RETURN;
+			END
+
+			-- Check target existence
+			DECLARE @is_valid BIT;
+			EXEC sp_ValidateTargetExists @target_id, @target_type_id, @is_valid OUTPUT;
+			IF @is_valid = 0
+			BEGIN
+				RAISERROR('Invalid target_id or target_type_id.', 16, 1);
+				RETURN;
+			END
+
+			-- Check content access
+			DECLARE @has_access BIT;
+			EXEC sp_CheckContentAccess @reporter_id, @target_id, @target_type_id, @has_access OUTPUT;
+			IF @has_access = 0
+			BEGIN
+				RAISERROR('User does not have permission to report this content.', 16, 1);
+				RETURN;
+			END
+
+			-- Get owner_id based on target_type_id
+			DECLARE @owner_id INT;
+			SELECT @owner_id =
+				CASE @target_type_id
+					WHEN 1 THEN (SELECT owner_id FROM tblPost WHERE id = @target_id)
+					WHEN 2 THEN (SELECT user_id FROM tblComment WHERE id = @target_id)
+					WHEN 3 THEN (SELECT user_id FROM tblStory WHERE id = @target_id)
+					WHEN 4 THEN (SELECT id FROM tblUser WHERE id = @target_id)
+				END;
+
+			-- Check if reporter is blocked by owner
+			IF EXISTS (
+				SELECT 1 FROM tblBlock
+				WHERE user_id = @owner_id AND blocked_user_id = @reporter_id AND status = 1
+			)
+			BEGIN
+				RAISERROR('User is blocked from reporting this content.', 16, 1);
+				RETURN;
+			END
+
+			-- Insert report
+			INSERT INTO tblReport (reporter_id, target_id, target_type_id, reason_id, processing_status_id, report_time, status)
+			VALUES (@reporter_id, @target_id, @target_type_id, @reason_id, @processing_status_id, GETDATE(), @status);
+
+			DECLARE @report_id INT = SCOPE_IDENTITY();
+
+			-- Log activity
+			DECLARE @action_type_id INT;
+			SELECT @action_type_id = id FROM tblActionType WHERE name = 'REPORT_SUBMITTED';
+			IF @action_type_id IS NULL
+			BEGIN
+				INSERT INTO tblActionType (name, description) VALUES ('REPORT_SUBMITTED', 'User submitted a report');
+				SET @action_type_id = SCOPE_IDENTITY();
+			END
+			EXEC sp_LogActivity @reporter_id, @action_type_id, NULL, NULL, 1, @report_id, 'REPORT';
+
+			-- Notify admins
+			DECLARE @admin_id INT;
+			DECLARE @notification_type_id INT;
+			DECLARE @message NVARCHAR(255);
+			DECLARE @reason_name NVARCHAR(100);
+
+			-- Get report reason name
+			SELECT @reason_name = name FROM tblReportReason WHERE id = @reason_id;
+
+			-- Find admin
+			SELECT TOP 1 @admin_id = id FROM tblUser WHERE is_admin = 1 AND status = 1;
+			SELECT @notification_type_id = id FROM tblNotificationType WHERE name = 'REPORT_SUBMITTED' AND status = 1;
+
+			IF @notification_type_id IS NULL
+			BEGIN
+				INSERT INTO tblNotificationType (name, description, status)
+				VALUES ('REPORT_SUBMITTED', 'New report submitted for review', 1);
+				SET @notification_type_id = SCOPE_IDENTITY();
+			END
+
+			SET @message = 'User ' + CAST(@reporter_id AS NVARCHAR(10)) + ' reported content (ID: ' + CAST(@report_id AS NVARCHAR(10)) + ', Type: ' + CAST(@target_type_id AS NVARCHAR(10)) + ') for: ' + @reason_name;
+
+			EXEC sp_AddNotification
+				@user_id = @admin_id,
+				@type_id = @notification_type_id,
+				@message = @message,
+				@target_id = @report_id,
+				@target_type_id = 11;
+
+			COMMIT TRANSACTION;
+		END TRY
+		BEGIN CATCH
+			IF @@TRANCOUNT > 0
+				ROLLBACK TRANSACTION;
+			DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+			INSERT INTO tblErrorLog (error_message, error_time)
+			VALUES (@ErrorMessage, GETDATE());
+			RAISERROR (@ErrorMessage, 16, 1);
+		END CATCH;
+	END;
+
+	CREATE OR ALTER PROCEDURE sp_UpdateReportStatus
+		@report_id INT,
+		@admin_id INT,
+		@processing_status_id INT
+	AS
+	BEGIN
+		SET NOCOUNT ON;
+
+		BEGIN TRY
+			BEGIN TRANSACTION;
+
+			-- Check if admin exists and is active
+			IF NOT EXISTS (SELECT 1 FROM tblUser WHERE id = @admin_id AND is_admin = 1 AND status = 1)
+			BEGIN
+				RAISERROR('Invalid or inactive admin_id.', 16, 1);
+				RETURN;
+			END
+
+			-- Check if report exists and is active
+			IF NOT EXISTS (SELECT 1 FROM tblReport WHERE id = @report_id AND status = 1)
+			BEGIN
+				RAISERROR('Invalid or inactive report.', 16, 1);
+				RETURN;
+			END
+
+			-- Check if processing status exists and is active
+			IF NOT EXISTS (SELECT 1 FROM tblReportStatus WHERE id = @processing_status_id AND status = 1)
+			BEGIN
+				RAISERROR('Invalid or inactive processing status.', 16, 1);
+				RETURN;
+			END
+
+			-- Update report status
+			UPDATE tblReport
+			SET processing_status_id = @processing_status_id
+			WHERE id = @report_id;
+
+			-- Ghi lịch sử báo cáo
+			INSERT INTO tblReportHistory (reporter_id, report_id, processing_status_id, action_time, status)
+			SELECT reporter_id, @report_id, @processing_status_id, GETDATE(), 1
+			FROM tblReport WHERE id = @report_id;
+
+			-- Check for report abuse (5 reports per day)
+			DECLARE @reporter_id INT, @target_type_id INT;
+			SELECT @reporter_id = reporter_id, @target_type_id = target_type_id
+			FROM tblReport WHERE id = @report_id;
+
+			IF @processing_status_id = (SELECT id FROM tblReportStatus WHERE name = 'Rejected')
+			BEGIN
+				DECLARE @rejected_count INT;
+				SELECT @rejected_count = COUNT(*)
+				FROM tblReport
+				WHERE reporter_id = @reporter_id
+				AND processing_status_id = (SELECT id FROM tblReportStatus WHERE name = 'Rejected')
+				AND report_time >= CAST(GETDATE() AS DATE)
+				AND status = 1;
+
+				-- Ngưỡng lạm dụng: 5 báo cáo bị từ chối trong 1 ngày
+				IF @rejected_count >= 5
+				BEGIN
+					-- Ghi log lạm dụng
+					DECLARE @action_type_id_abuse INT;
+					SELECT @action_type_id_abuse = id FROM tblActionType WHERE name = 'REPORT_ABUSE_WARNING';
+					IF @action_type_id_abuse IS NULL
+					BEGIN
+						INSERT INTO tblActionType (name, description)
+						VALUES ('REPORT_ABUSE_WARNING', 'User received warning for report abuse');
+						SET @action_type_id_abuse = SCOPE_IDENTITY();
+					END
+					EXEC sp_LogActivity @reporter_id, @action_type_id_abuse, NULL, NULL, 1, @report_id, 'REPORT';
+
+					-- Gửi thông báo cảnh báo
+					DECLARE @notification_type_id INT;
+					SELECT @notification_type_id = id FROM tblNotificationType WHERE name = 'REPORT_ABUSE_WARNING';
+					IF @notification_type_id IS NULL
+					BEGIN
+						INSERT INTO tblNotificationType (name, description, status)
+						VALUES ('REPORT_ABUSE_WARNING', 'Warning for report abuse', 1);
+						SET @notification_type_id = SCOPE_IDENTITY();
+					END
+
+					DECLARE @message NVARCHAR(255) = 'Bạn đã gửi quá nhiều báo cáo không hợp lệ hôm nay. Vui lòng kiểm tra lại hành vi báo cáo của bạn.';
+					EXEC sp_AddNotification
+						@user_id = @reporter_id,
+						@type_id = @notification_type_id,
+						@message = @message,
+						@target_id = @report_id,
+						@target_type_id = @target_type_id;
+				END
+			END
+
+			-- Notify reporter
+			DECLARE @notification_type_id_status INT;
+			SELECT @notification_type_id_status = id FROM tblNotificationType WHERE name = 'REPORT_STATUS_UPDATED' AND status = 1;
+			IF @notification_type_id_status IS NULL
+			BEGIN
+				INSERT INTO tblNotificationType (name, description, status)
+				VALUES ('REPORT_STATUS_UPDATED', 'Report status updated', 1);
+				SET @notification_type_id_status = SCOPE_IDENTITY();
+			END
+
+			DECLARE @message_status NVARCHAR(255);
+			SET @message_status = 'Your report (ID: ' + CAST(@report_id AS NVARCHAR(10)) + ') has been updated to: ' + 
+								  (SELECT name FROM tblReportStatus WHERE id = @processing_status_id);
+
+			EXEC sp_AddNotification
+				@user_id = @reporter_id,
+				@type_id = @notification_type_id_status,
+				@message = @message_status,
+				@target_id = @report_id,
+				@target_type_id = @target_type_id;
+
+			-- Log activity
+			DECLARE @action_type_id_status INT;
+			SELECT @action_type_id_status = id FROM tblActionType WHERE name = 'REPORT_STATUS_UPDATED';
+			IF @action_type_id_status IS NULL
+			BEGIN
+				INSERT INTO tblActionType (name, description)
+				VALUES ('REPORT_STATUS_UPDATED', 'Admin updated report status');
+				SET @action_type_id_status = SCOPE_IDENTITY();
+			END
+			EXEC sp_LogActivity @admin_id, @action_type_id_status, NULL, NULL, 1, @report_id, 'REPORT';
+
+			COMMIT TRANSACTION;
+		END TRY
+		BEGIN CATCH
+			IF @@TRANCOUNT > 0
+				ROLLBACK TRANSACTION;
+			DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+			INSERT INTO tblErrorLog (error_message, error_time)
+			VALUES (@ErrorMessage, GETDATE());
+			RAISERROR (@ErrorMessage, 16, 1);
+		END CATCH;
+	END;
+
+	-- Create or update sp_GetReports
+	CREATE OR ALTER PROCEDURE sp_GetReports
+		@status BIT = 1
+	AS
+	BEGIN
+		SET NOCOUNT ON;
+
+		SELECT 
+			r.id,
+			r.reporter_id,
+			u1.username AS reporter_username,
+			r.target_id,
+			r.target_type_id,
+			tt.name AS target_type_name,
+			r.reason_id,
+			rr.name AS reason_name,
+			r.processing_status_id,
+			rs.name AS processing_status_name,
+			r.report_time,
+			r.status
+		FROM tblReport r
+		JOIN tblUser u1 ON r.reporter_id = u1.id
+		JOIN tblTargetType tt ON r.target_type_id = tt.id
+		JOIN tblReportReason rr ON r.reason_id = rr.id
+		JOIN tblReportStatus rs ON r.processing_status_id = rs.id
+		WHERE r.status = @status
+		ORDER BY r.report_time DESC;
+	END;
+
     ---------------------------------------
 
     --REACTION
@@ -2856,3 +3188,24 @@ WHERE definition LIKE '%friendship%';
     INSERT INTO tblAnalytics (field_name, field_value, update_time, status) VALUES
     ('ActiveUsers', '1000', GETDATE(), 1),
     ('PostCount', '500', GETDATE(), 1);
+
+	INSERT INTO tblReportReason (name, description, status) VALUES
+-- Lý do báo cáo cho bài viết
+(N'Nội dung không phù hợp', N'Nội dung bài viết vi phạm tiêu chuẩn cộng đồng', 1),
+(N'Spam', N'Bài viết chứa nội dung quảng cáo hoặc lặp lại không mong muốn', 1),
+(N'Ngôn ngữ thù địch', N'Bài viết chứa nội dung kích động thù hận hoặc phân biệt đối xử', 1),
+(N'Nội dung khỏa thân', N'Bài viết chứa hình ảnh hoặc video khiêu dâm', 1),
+(N'Bạo lực', N'Bài viết kích động hoặc mô tả bạo lực', 1),
+(N'Tin giả', N'Bài viết chứa thông tin sai lệch hoặc gây hiểu lầm', 1),
+-- Lý do báo cáo cho người dùng (hồ sơ)
+(N'Quấy rối', N'Người dùng có hành vi quấy rối hoặc bắt nạt người khác', 1),
+(N'Tài khoản giả mạo', N'Hồ sơ người dùng có dấu hiệu giả mạo danh tính', 1),
+(N'Hành vi không phù hợp', N'Người dùng thực hiện các hành động vi phạm quy định', 1),
+(N'Đăng nội dung vi phạm lặp lại', N'Người dùng liên tục đăng nội dung vi phạm tiêu chuẩn cộng đồng', 1);
+
+INSERT INTO tblReportStatus (name, description, status) VALUES
+('Pending', N'Đang chờ xử lý', 1),
+('Under Review', N'Đang xem xét', 1),
+('Approved', N'Báo cáo được chấp nhận', 1),
+('Rejected', N'Báo cáo bị từ chối', 1);
+
