@@ -447,13 +447,15 @@ public class GroupService {
 
         int memberCount = groupMemberRepository.findById_GroupIdAndStatusTrue(groupId).size();
 
-        boolean isAdmin = groupMemberRepository.isGroupAdmin(groupId, viewer.getId()) != null
-                && groupMemberRepository.isGroupAdmin(groupId, viewer.getId());
-
+        boolean isAdmin = Boolean.TRUE.equals(groupMemberRepository.isGroupAdmin(groupId, viewer.getId()));
         boolean isOwner = group.getOwner().getId().equals(viewer.getId());
-        String inviteStatus = groupMemberRepository.findById(new GroupMemberId(groupId, viewer.getId()))
-                .map(GroupMember::getInviteStatus)
-                .orElse(null);
+
+        Optional<GroupMember> memberOpt = groupMemberRepository.findById(new GroupMemberId(groupId, viewer.getId()));
+        String inviteStatus = memberOpt.map(GroupMember::getInviteStatus).orElse(null);
+
+        boolean isMember = memberOpt.map(m ->
+                "ACCEPTED".equals(m.getInviteStatus()) && Boolean.TRUE.equals(m.getStatus())
+        ).orElse(false);
 
         return new GroupDisplayDto(
                 group.getId(),
@@ -467,6 +469,7 @@ public class GroupService {
                 mediaService.getAvatarUrlByUserId(group.getOwner().getId()),
                 isAdmin,
                 isOwner,
+                isMember, // ✅ moved up
                 group.getPrivacyLevel(),
                 inviteStatus
         );
@@ -494,6 +497,7 @@ public class GroupService {
                             mediaService.getAvatarUrlByUserId(group.getOwner().getId()),
                             member.getIsAdmin() != null && member.getIsAdmin(),
                             group.getOwner().getId().equals(user.getId()),
+                            true, // ✅ isMember = true
                             group.getPrivacyLevel(),
                             member.getInviteStatus()
                     );
@@ -504,7 +508,8 @@ public class GroupService {
 
 
 
-   // ✅ Hàm chuyển đổi Entity → DTO đơn giản
+
+    // ✅ Hàm chuyển đổi Entity → DTO đơn giản
     private GroupSimpleDto mapToSimpleDto(Group group) {
         return new GroupSimpleDto(
                 group.getId(),

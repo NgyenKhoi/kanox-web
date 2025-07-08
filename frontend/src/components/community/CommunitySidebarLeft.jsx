@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 import {
     FaThLarge,
@@ -26,6 +26,24 @@ function CommunitySidebarLeft({
     const [groups, setGroups] = useState([]);
     const shortList = groups.slice(0, 5);
     const { user } = useContext(AuthContext);
+    const location = useLocation();
+
+
+    const goToFeed = () => {
+        if (location.pathname !== "/communities") {
+            navigate("/communities");
+        } else {
+            onSelectView?.("feed");
+        }
+    };
+
+    const goToYourGroups = () => {
+        if (location.pathname !== "/communities") {
+            navigate("/communities");
+        } else {
+            onSelectView?.("yourGroups");
+        }
+    };
 
 
     // Search hook
@@ -127,7 +145,7 @@ function CommunitySidebarLeft({
                 {/* Menu */}
                 <nav className="flex flex-col space-y-2 mb-4">
                     <button
-                        onClick={() => onSelectView("feed")}
+                        onClick={handleFeedClick}
                         className={`flex items-center px-4 py-2 rounded-full hover:bg-[var(--hover-bg-color)] transition-colors ${
                             selectedView === "feed"
                                 ? "bg-[var(--hover-bg-color)] font-bold text-[var(--primary-color)]"
@@ -139,7 +157,7 @@ function CommunitySidebarLeft({
                     </button>
 
                     <button
-                        onClick={() => onSelectView("yourGroups")}
+                        onClick={handleYourGroupsClick}
                         className={`flex items-center px-4 py-2 rounded-full hover:bg-[var(--hover-bg-color)] transition-colors ${
                             selectedView === "yourGroups"
                                 ? "bg-[var(--hover-bg-color)] font-bold text-[var(--primary-color)]"
@@ -166,11 +184,11 @@ function CommunitySidebarLeft({
                         <span>Nhóm bạn đã tham gia</span>
                         <span
                             role="button"
-                            onClick={() => onSelectView("yourGroups")}
+                            onClick={handleYourGroupsClick}
                             className="text-blue-500 hover:underline cursor-pointer"
                         >
-              Xem tất cả
-            </span>
+    Xem tất cả
+</span>
                     </div>
 
                     {shortList.length > 0 ? (
