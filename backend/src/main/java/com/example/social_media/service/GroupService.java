@@ -2,6 +2,7 @@ package com.example.social_media.service;
 
 import com.example.social_media.dto.group.GroupDisplayDto;
 import com.example.social_media.dto.group.GroupSimpleDto;
+import com.example.social_media.dto.group.GroupSummaryDto;
 import com.example.social_media.dto.user.UserBasicDisplayDto;
 import com.example.social_media.entity.Group;
 import com.example.social_media.entity.GroupMember;
@@ -14,6 +15,7 @@ import com.example.social_media.repository.GroupMemberRepository;
 import com.example.social_media.repository.GroupRepository;
 import com.example.social_media.repository.UserRepository;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -23,9 +25,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.time.Instant;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 import java.util.stream.Collectors;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -465,4 +467,60 @@ public class GroupService {
                 })
                 .collect(Collectors.toList());
     }
+
+
+
+   // ✅ Hàm chuyển đổi Entity → DTO đơn giản
+    private GroupSimpleDto mapToSimpleDto(Group group) {
+        return new GroupSimpleDto(
+                group.getId(),
+                group.getName(),
+                null
+        );
+    }
+
+    // ✅ Hàm trả danh sách GroupSimpleDto
+    public List<GroupSimpleDto> getAllSimpleGroups() {
+        return groupRepository.findAll()
+                .stream()
+                .map(this::mapToSimpleDto)
+                .toList();
+    }
+
+    public Optional<Group> getGroupById(Integer id) {
+        return groupRepository.findById(id);
+    }
+
+    public void deleteGroup(Integer id) {
+        groupRepository.deleteById(id);
+    }
+
+    private GroupSummaryDto mapToSummaryDto(Group group) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd").withLocale(Locale.getDefault());
+
+        int memberCount = (int) group.getTblGroupMembers().stream()
+                .filter(GroupMember::getStatus)
+                .count();
+
+        String createdDate = group.getCreatedAt() != null
+                ? formatter.format(group.getCreatedAt().atZone(ZoneId.systemDefault()).toLocalDate())
+                : null;
+
+        return new GroupSummaryDto(
+                group.getId(),
+                group.getName(),
+                memberCount,
+                Boolean.TRUE.equals(group.getStatus()) ? "active" : "inactive",
+                group.getPrivacyLevel(),
+                createdDate
+        );
+    }
+
+    public List<GroupSummaryDto> getAllGroupSummaries() {
+        return groupRepository.findAll()
+                .stream()
+                .map(this::mapToSummaryDto)
+                .toList();
+    }
+
 }

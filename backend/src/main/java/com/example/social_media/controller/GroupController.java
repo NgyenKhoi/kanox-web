@@ -210,4 +210,28 @@ public class GroupController {
     public ResponseEntity<List<GroupDisplayDto>> getGroupsOfUser(@RequestParam String username) {
         return ResponseEntity.ok(groupService.getGroupsOfUser(username));
     }
+
+
+
+    // 1. Lấy danh sách cộng đồng
+    @GetMapping("")
+    public ResponseEntity<?> getAllGroups() {
+        return ResponseEntity.ok(groupService.getAllGroupSummaries());
+    }
+
+
+    // 2. Xem chi tiết cộng đồng
+    @GetMapping("/{id}")
+    public ResponseEntity<Group> getGroupById(@PathVariable Integer id) {
+        return groupService.getGroupById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    // 3. Xóa cộng đồng
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteGroup(@PathVariable Integer id) {
+        groupService.deleteGroup(id);
+        return ResponseEntity.noContent().build();
+    }
 }
