@@ -9,7 +9,7 @@ const CommunitiesManagement = () => {
   // Gọi API khi component được mount
   useEffect(() => {
     axios
-        .get(`${process.env.REACT_APP_API_URL}/api/groups`)
+        .get(`${process.env.REACT_APP_API_URL}/groups`)
         .then((response) => {
           setCommunities(response.data);
         })
