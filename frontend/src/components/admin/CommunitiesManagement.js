@@ -9,10 +9,24 @@ const CommunitiesManagement = () => {
   // Gọi API lấy danh sách cộng đồng
   useEffect(() => {
     const fetchCommunities = async () => {
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        setError("Không tìm thấy token. Vui lòng đăng nhập lại.");
+        setLoading(false);
+        return;
+      }
+
       try {
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/groups`);
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/groups`, {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
         if (!response.ok) {
-          throw new Error("Không thể tải danh sách nhóm");
+          throw new Error(`Không thể tải danh sách nhóm (Mã lỗi: ${response.status})`);
         }
 
         const data = await response.json();
