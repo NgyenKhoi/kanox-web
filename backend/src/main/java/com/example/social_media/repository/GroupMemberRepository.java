@@ -58,4 +58,7 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, GroupM
     @Query("SELECT gm.group FROM GroupMember gm " +
             "WHERE gm.user.id = :userId AND gm.inviteStatus = 'PENDING'")
     List<Group> findPendingGroupsByUserId(@Param("userId") Integer userId);
+
+    @Query("SELECT gm FROM GroupMember gm WHERE gm.id.groupId = :groupId AND gm.id.userId IN :userIds AND gm.status = true AND gm.inviteStatus = 'ACCEPTED'")
+    List<GroupMember> findAcceptedMembersByGroupIdAndUserIds(@Param("groupId") Integer groupId, @Param("userIds") List<Integer> userIds);
 }

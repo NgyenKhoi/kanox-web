@@ -72,7 +72,7 @@ export default function GroupMembersPage() {
 
     return (
         <div className="container-fluid p-0 min-vh-100 bg-[var(--background-color)] text-[var(--text-color)]">
-            <div className="row m-0 w-100">
+            <div className="row m-0">
                 {/* Sidebar Left */}
                 <div className="col-lg-3 d-none d-lg-block p-0">
                     <div
@@ -95,8 +95,8 @@ export default function GroupMembersPage() {
 
                 {/* Center + Sidebar Right */}
                 <div className="col-lg-9 p-0">
-                    <div className="row m-0 w-100">
-                        {/* Center Content */}
+                    <div className="row m-0">
+                        {/* Center content */}
                         <div className="col-lg-8 p-4 border-end">
                             <h2 className="text-xl font-bold mb-4">Danh sách thành viên</h2>
                             {members.length === 0 ? (
@@ -127,7 +127,6 @@ export default function GroupMembersPage() {
                                                 </div>
                                             </div>
 
-                                            {/* Nút xóa nếu không phải chính mình */}
                                             {member.username !== user.username && (
                                                 <Button
                                                     variant="outline-danger"

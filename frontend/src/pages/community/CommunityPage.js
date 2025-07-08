@@ -156,8 +156,8 @@ function CommunityPage() {
 
   return (
       <Container fluid className="p-0 min-vh-100 bg-[var(--background-color)] text-[var(--text-color)] transition-colors duration-200">
-          <Row className="m-0 w-100">
-              {/* Sidebar Left */}
+          <Row className="m-0 w-100 h-100">
+              {/* Outer Row for Sidebar Left and Main Content */}
               <Col lg={3} className="p-0 d-none d-lg-block">
                   <div
                       style={{
@@ -177,78 +177,82 @@ function CommunityPage() {
                   </div>
               </Col>
 
-              {/* Content + SidebarRight wrapper */}
               <Col lg={9} className="p-0">
-                  <Row className="m-0 w-100">
-                      {/* Center Content */}
+                  <Row className="m-0 h-100">
+                      {/* Nested Row for Center Content and Sidebar Right */}
                       <Col lg={8} className="p-0 border-end">
-                          {/* Header */}
-                          <div className="sticky top-0 z-[1020] bg-[var(--background-color)] text-[var(--text-color)] font-bold text-lg px-3 py-2 border-b shadow-sm d-flex justify-content-between align-items-center">
-                              <h2 className="me-auto">Cộng đồng</h2>
-                              <FaSearch size={20} />
-                          </div>
-
-                          {/* Nội dung feed hoặc nhóm */}
-                          {loading ? (
-                              <div className="text-center p-4">Đang tải...</div>
-                          ) : error ? (
-                              <div className="text-danger text-center p-4">{error}</div>
-                          ) : viewMode === "feed" ? (
-                              posts.length === 0 ? (
-                                  <div className="text-center text-muted p-4">
-                                      Không có bài đăng
+                          <Row className="m-0 h-100">
+                              {/* Header Row */}
+                              <Col xs={12} className="p-0">
+                                  <div className="sticky top-0 z-[1020] bg-[var(--background-color)] text-[var(--text-color)] font-bold text-lg px-3 py-2 border-b shadow-sm d-flex justify-content-between align-items-center">
+                                      <h2 className="me-auto">Cộng đồng</h2>
+                                      <FaSearch size={20} />
                                   </div>
-                              ) : (
-                                  posts.map((post) => (
-                                      <TweetCard
-                                          key={post.id}
-                                          tweet={post}
-                                          onPostUpdate={fetchData}
-                                          savedPosts={posts.filter((p) => p.isSaved)}
-                                      />
-                                  ))
-                              )
-                          ) : (
-                              yourGroups.map((group) => (
-                                  <Card key={group.id} className="mb-3">
-                                      <Card.Body className="d-flex">
-                                          <img
-                                              src={group.avatar}
-                                              alt="Avatar"
-                                              className="rounded me-3"
-                                              style={{
-                                                  width: "50px",
-                                                  height: "50px",
-                                                  objectFit: "cover",
-                                              }}
-                                          />
-                                          <div className="flex-grow-1">
-                                              <h5
-                                                  className="mb-1"
-                                                  style={{ cursor: "pointer" }}
-                                                  onClick={() => handleCommunityClick(group.id)}
-                                              >
-                                                  {group.name}
-                                              </h5>
-                                              <p className="mb-2 text-muted small">
-                                                  {group.description}
-                                              </p>
-                                              {!group.isJoined && (
-                                                  <button
-                                                      className="btn btn-primary btn-sm"
-                                                      onClick={() => handleJoinGroup(group.id)}
-                                                  >
-                                                      Tham gia
-                                                  </button>
-                                              )}
+                              </Col>
+
+                              {/* Content Row */}
+                              <Col xs={12} className="p-0">
+                                  {loading ? (
+                                      <div className="text-center p-4">Đang tải...</div>
+                                  ) : error ? (
+                                      <div className="text-danger text-center p-4">{error}</div>
+                                  ) : viewMode === "feed" ? (
+                                      posts.length === 0 ? (
+                                          <div className="text-center text-muted p-4">
+                                              Không có bài đăng
                                           </div>
-                                      </Card.Body>
-                                  </Card>
-                              ))
-                          )}
+                                      ) : (
+                                          posts.map((post) => (
+                                              <TweetCard
+                                                  key={post.id}
+                                                  tweet={post}
+                                                  onPostUpdate={fetchData}
+                                                  savedPosts={posts.filter((p) => p.isSaved)}
+                                              />
+                                          ))
+                                      )
+                                  ) : (
+                                      yourGroups.map((group) => (
+                                          <Card key={group.id} className="mb-3">
+                                              <Card.Body className="d-flex">
+                                                  <img
+                                                      src={group.avatar}
+                                                      alt="Avatar"
+                                                      className="rounded me-3"
+                                                      style={{
+                                                          width: "50px",
+                                                          height: "50px",
+                                                          objectFit: "cover",
+                                                      }}
+                                                  />
+                                                  <div className="flex-grow-1">
+                                                      <h5
+                                                          className="mb-1"
+                                                          style={{ cursor: "pointer" }}
+                                                          onClick={() => handleCommunityClick(group.id)}
+                                                      >
+                                                          {group.name}
+                                                      </h5>
+                                                      <p className="mb-2 text-muted small">
+                                                          {group.description}
+                                                      </p>
+                                                      {!group.isJoined && (
+                                                          <button
+                                                              className="btn btn-primary btn-sm"
+                                                              onClick={() => handleJoinGroup(group.id)}
+                                                          >
+                                                              Tham gia
+                                                          </button>
+                                                      )}
+                                                  </div>
+                                              </Card.Body>
+                                          </Card>
+                                      ))
+                                  )}
+                              </Col>
+                          </Row>
                       </Col>
 
-                      {/* Sidebar Right */}
                       <Col lg={4} className="p-0 d-none d-lg-block">
                           <SidebarRight />
                       </Col>
