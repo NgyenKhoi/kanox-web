@@ -145,7 +145,7 @@ function CommunitySidebarLeft({
                 {/* Menu */}
                 <nav className="flex flex-col space-y-2 mb-4">
                     <button
-                        onClick={handleFeedClick}
+                        onClick={goToFeed}
                         className={`flex items-center px-4 py-2 rounded-full hover:bg-[var(--hover-bg-color)] transition-colors ${
                             selectedView === "feed"
                                 ? "bg-[var(--hover-bg-color)] font-bold text-[var(--primary-color)]"
@@ -157,7 +157,7 @@ function CommunitySidebarLeft({
                     </button>
 
                     <button
-                        onClick={handleYourGroupsClick}
+                        onClick={goToYourGroups}
                         className={`flex items-center px-4 py-2 rounded-full hover:bg-[var(--hover-bg-color)] transition-colors ${
                             selectedView === "yourGroups"
                                 ? "bg-[var(--hover-bg-color)] font-bold text-[var(--primary-color)]"
@@ -184,7 +184,7 @@ function CommunitySidebarLeft({
                         <span>Nhóm bạn đã tham gia</span>
                         <span
                             role="button"
-                            onClick={handleYourGroupsClick}
+                            onClick={goToYourGroups}
                             className="text-blue-500 hover:underline cursor-pointer"
                         >
     Xem tất cả

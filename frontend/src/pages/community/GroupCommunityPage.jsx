@@ -8,7 +8,6 @@ import SidebarRight from "../../components/layout/SidebarRight/SidebarRight"
 import TweetInput from "../../components/posts/TweetInput/TweetInput";
 import { toast } from "react-toastify";
 
-
 export default function GroupCommunityPage() {
     const { groupId } = useParams();
     const { user, token } = useContext(AuthContext);
@@ -18,6 +17,23 @@ export default function GroupCommunityPage() {
     const [isMember, setIsMember] = useState(false);
     const navigate = useNavigate();
     const [showInviteModal, setShowInviteModal] = useState(false);
+
+    // SidebarLeft support
+    const [viewMode, setViewMode] = useState("feed");
+    const [isDarkMode, setIsDarkMode] = useState(localStorage.getItem("theme") === "dark");
+
+    const handleToggleDarkMode = () => {
+        const newTheme = isDarkMode ? "light" : "dark";
+        setIsDarkMode(!isDarkMode);
+        localStorage.setItem("theme", newTheme);
+        document.documentElement.setAttribute("data-theme", newTheme);
+    };
+
+    const handleGroupCreated = () => {
+        fetchGroupDetail(); // refresh group info
+        toast.success("Tạo nhóm thành công");
+    };
+
     useEffect(() => {
         if (!groupId || !token) return;
 
@@ -113,7 +129,13 @@ export default function GroupCommunityPage() {
                             overflowY: "auto",
                         }}
                     >
-                        <CommunitySidebarLeft />
+                        <CommunitySidebarLeft
+                            selectedView={viewMode}
+                            onSelectView={setViewMode}
+                            onToggleDarkMode={handleToggleDarkMode}
+                            isDarkMode={isDarkMode}
+                            onGroupCreated={handleGroupCreated}
+                        />
                     </div>
                 </div>
 

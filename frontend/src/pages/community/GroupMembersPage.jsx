@@ -11,6 +11,21 @@ export default function GroupMembersPage() {
     const [members, setMembers] = useState([]);
     const [loading, setLoading] = useState(true);
 
+    // SidebarLeft state
+    const [viewMode, setViewMode] = useState("feed");
+    const [isDarkMode, setIsDarkMode] = useState(localStorage.getItem("theme") === "dark");
+
+    const handleToggleDarkMode = () => {
+        const newTheme = isDarkMode ? "light" : "dark";
+        setIsDarkMode(!isDarkMode);
+        localStorage.setItem("theme", newTheme);
+        document.documentElement.setAttribute("data-theme", newTheme);
+    };
+
+    const handleGroupCreated = () => {
+        fetchMembers(); // refresh members list if needed
+    };
+
     useEffect(() => {
         if (!token || !groupId) return;
         fetchMembers();
@@ -77,10 +92,10 @@ export default function GroupMembersPage() {
                     </div>
                 </div>
 
-                {/* Wrapper: Center + Sidebar Right */}
+                {/* Center + Sidebar Right */}
                 <div className="col-lg-9 p-0">
                     <div className="row m-0">
-                        {/* Center Content */}
+                        {/* Center */}
                         <div className="col-lg-8 p-4 border-end">
                             <h2 className="text-xl font-bold mb-4">Danh sách thành viên</h2>
                             {members.length === 0 ? (
