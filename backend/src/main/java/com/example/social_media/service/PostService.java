@@ -456,4 +456,8 @@ public class PostService {
                 .map(post -> convertToDto(post, user.getId()))
                 .collect(Collectors.toList());
     }
+
+    public long countAllPosts() {
+        return postRepository.count();
+    }
 }

@@ -574,4 +574,8 @@ public class GroupService {
         groupMemberRepository.save(member);
     }
 
+    public long countAllGroups() {
+        return groupRepository.count();
+    }
+
 }

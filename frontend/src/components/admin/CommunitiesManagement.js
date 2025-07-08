@@ -1,40 +1,31 @@
 import React, { useEffect, useState } from "react";
 import { Container, Row, Col, Card, Button, Table, Badge, Spinner, Alert } from "react-bootstrap";
-import axios from "axios";
 
 const CommunitiesManagement = () => {
   const [communities, setCommunities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Gọi API khi component được mount
+  // Gọi API lấy danh sách cộng đồng
   useEffect(() => {
-    const fetchGroups = async () => {
+    const fetchCommunities = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const response = await axios.get(`${process.env.REACT_APP_API_URL}/groups`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/groups`);
+        if (!response.ok) {
+          throw new Error("Không thể tải danh sách nhóm");
+        }
 
-        console.log("RESPONSE:", response.data);
-
-        // Giả sử API trả về { message, data: [...] }
-        const data = Array.isArray(response.data)
-            ? response.data
-            : response.data.data || [];
-
+        const data = await response.json();
         setCommunities(data);
       } catch (err) {
-        console.error("Lỗi khi lấy danh sách group:", err);
-        setError("Không thể tải danh sách cộng đồng.");
+        console.error("Lỗi khi gọi API:", err);
+        setError(err.message);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchGroups();
+    fetchCommunities();
   }, []);
   const handleView = (id) => console.log(`Xem cộng đồng ID: ${id}`);
   const handleManageMembers = (id) =>
