@@ -1,52 +1,49 @@
-import React from "react";
-import { Container, Row, Col, Card, Button, Table, Badge } from "react-bootstrap";
+import React, { useEffect, useState } from "react";
+import { Container, Row, Col, Card, Button, Table, Badge, Spinner, Alert } from "react-bootstrap";
 
 const CommunitiesManagement = () => {
-  const communities = [
-    {
-      id: "c1",
-      name: "Yêu Thích ReactJS",
-      members: 1200,
-      status: "active",
-      type: "public",
-      created: "2023-02-01",
-    },
-    {
-      id: "c2",
-      name: "Game Thủ Việt",
-      members: 5000,
-      status: "active",
-      type: "public",
-      created: "2022-08-10",
-    },
-    {
-      id: "c3",
-      name: "Marketing Pro",
-      members: 300,
-      status: "private",
-      created: "2023-11-15",
-    },
-    {
-      id: "c4",
-      name: "Fans K-Pop Việt",
-      members: 1500,
-      status: "active",
-      type: "public",
-      created: "2024-01-05",
-    },
-    {
-      id: "c5",
-      name: "Developer Freelancer",
-      members: 180,
-      status: "active",
-      type: "private",
-      created: "2023-04-20",
-    }
-  ];
+  const [communities, setCommunities] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
+  // Gọi API lấy danh sách cộng đồng
+  useEffect(() => {
+    const fetchCommunities = async () => {
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        setError("Không tìm thấy token. Vui lòng đăng nhập lại.");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/groups`, {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`Không thể tải danh sách nhóm (Mã lỗi: ${response.status})`);
+        }
+
+        const data = await response.json();
+        setCommunities(data);
+      } catch (err) {
+        console.error("Lỗi khi gọi API:", err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCommunities();
+  }, []);
   const handleView = (id) => console.log(`Xem cộng đồng ID: ${id}`);
   const handleManageMembers = (id) =>
-    console.log(`Quản lý thành viên cộng đồng ID: ${id}`);
+      console.log(`Quản lý thành viên cộng đồng ID: ${id}`);
   const handleDelete = (id) => {
     console.log(`Xóa cộng đồng ID: ${id}`);
     // Logic xóa cộng đồng sẽ được thêm vào đây

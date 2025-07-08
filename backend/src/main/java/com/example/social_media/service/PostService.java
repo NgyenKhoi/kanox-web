@@ -426,4 +426,38 @@ public class PostService {
                 .map(post -> convertToDto(post, user.getId()))
                 .toList();
     }
+
+    public List<PostResponseDto> getPostsByGroup(Integer groupId, String username) {
+        logger.info("Lấy bài viết trong nhóm {} cho người dùng {}", groupId, username);
+
+        User user = userRepository.findByUsernameAndStatusTrue(username)
+                .orElseThrow(() -> new UserNotFoundException("Người dùng không tồn tại hoặc không hoạt động"));
+
+        Group group = groupRepository.findByIdAndStatusTrue(groupId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy nhóm hoặc nhóm đã bị vô hiệu"));
+
+        // Nếu nhóm là private thì chỉ cho phép thành viên truy cập
+        if ("private".equals(group.getPrivacyLevel())) {
+            boolean isMember = groupMemberRepository.existsById_GroupIdAndId_UserIdAndStatusTrueAndInviteStatus(
+                    groupId, user.getId(), "ACCEPTED");
+
+            if (!isMember) {
+                throw new UnauthorizedException("Bạn không phải là thành viên của nhóm này");
+            }
+        }
+
+        List<Integer> hiddenPostIds = hiddenPostRepository.findHiddenPostIdsByUserId(user.getId());
+
+        List<Post> posts = postRepository.findByGroupIdAndStatusTrueOrderByCreatedAtDesc(groupId);
+
+        return posts.stream()
+                .filter(post -> !hiddenPostIds.contains(post.getId()))
+                .filter(post -> hasAccess(user.getId(), post.getId(), 1)) // đảm bảo kiểm tra quyền riêng tư
+                .map(post -> convertToDto(post, user.getId()))
+                .collect(Collectors.toList());
+    }
+
+    public long countAllPosts() {
+        return postRepository.count();
+    }
 }

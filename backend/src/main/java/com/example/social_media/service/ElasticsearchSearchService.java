@@ -54,7 +54,7 @@ public class ElasticsearchSearchService {
 
     private Query buildPrefixOrFuzzyQuery(String field, String keyword) {
         return Query.of(q -> q.bool(b -> b
-                .should(s -> s.prefix(p -> p.field(field).value(keyword.toLowerCase())))
+                .should(s -> s.matchPhrasePrefix(m -> m.field(field).query(keyword)))
                 .should(s -> s.match(m -> m.field(field).query(keyword).fuzziness("AUTO")))
                 .minimumShouldMatch("1")
         ));

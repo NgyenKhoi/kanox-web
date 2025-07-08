@@ -37,12 +37,20 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     // Thêm phương thức để lấy User object
     public User getUserByUsername(String username) {
-        return userRepository.findByUsername(username)
+        User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("Người dùng không tồn tại với username: " + username));
+        if (!user.getStatus()) {
+            throw new UserNotFoundException("Tài khoản đã bị khóa");
+        }
+        return user;
     }
 
     public User getUserById(Integer userId) {
-        return userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException("Người dùng không tồn tại với username: " + userId));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("Người dùng không tồn tại với ID: " + userId));
+        if (!user.getStatus()) {
+            throw new UserNotFoundException("Tài khoản đã bị khóa");
+        }
+        return user;
     }
 }

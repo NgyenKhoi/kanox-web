@@ -99,4 +99,8 @@ public class UserService {
         
         return userRepository.save(user);
     }
+
+    public long countAllUsers() {
+        return userRepository.count();
+    }
 }

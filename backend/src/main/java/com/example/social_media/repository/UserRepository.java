@@ -28,4 +28,6 @@ public interface UserRepository extends JpaRepository<User, Integer> {
 
     @Procedure(procedureName = "dbo.sp_UpdateProfilePrivacy")
     void updateProfilePrivacy(Integer userId, String privacySetting, Integer customListId);
+
+    long count();
 }

@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
+import { AuthContext } from "../../context/AuthContext";
 import {
     FaThLarge,
     FaUsers,
@@ -15,15 +16,17 @@ import useGroupSearch from "../../hooks/useGroupSearch";
 function CommunitySidebarLeft({
                                   selectedView,
                                   onSelectView,
-                                  joinedGroups = [],
                                   onGroupCreated,
                                   onToggleDarkMode,
                                   isDarkMode,
                               }) {
     const navigate = useNavigate();
     const token = localStorage.getItem("token");
-    const shortList = joinedGroups.slice(0, 5);
     const [showCreateModal, setShowCreateModal] = useState(false);
+    const [groups, setGroups] = useState([]);
+    const shortList = groups.slice(0, 5);
+    const { user } = useContext(AuthContext);
+
 
     // Search hook
     const {
@@ -41,6 +44,23 @@ function CommunitySidebarLeft({
     const handleHomeClick = () => {
         navigate("/home");
     };
+
+    useEffect(() => {
+        const fetchJoinedGroups = async () => {
+            try {
+                const res = await fetch(`${process.env.REACT_APP_API_URL}/groups/your-groups?username=${user.username}`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                if (!res.ok) throw new Error("Không thể lấy danh sách nhóm.");
+                const data = await res.json();
+                setGroups(data);
+            } catch (err) {
+                console.error("Lỗi khi lấy danh sách nhóm:", err.message);
+            }
+        };
+
+        if (token) fetchJoinedGroups();
+    }, [token]);
 
     return (
         <>
@@ -90,7 +110,7 @@ function CommunitySidebarLeft({
                                         onClick={() => handleGroupClick(group.id)}
                                     >
                                         <img
-                                            src={group.avatar || "https://via.placeholder.com/40"}
+                                            src={group.avatarUrl || "https://via.placeholder.com/40"}
                                             alt={group.name}
                                             className="w-8 h-8 rounded-full object-cover"
                                         />
@@ -161,7 +181,7 @@ function CommunitySidebarLeft({
                                 onClick={() => handleGroupClick(group.id)}
                             >
                                 <img
-                                    src={group.avatar || "https://via.placeholder.com/40"}
+                                    src={group.avatarUrl || "https://via.placeholder.com/40"}
                                     alt={group.name}
                                     className="w-10 h-10 rounded-full object-cover"
                                 />
