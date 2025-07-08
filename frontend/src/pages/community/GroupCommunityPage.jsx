@@ -58,7 +58,7 @@ export default function GroupCommunityPage() {
             if (!res.ok) throw new Error("Không thể lấy thông tin nhóm.");
             const data = await res.json();
             setGroupInfo(data);
-            setIsMember(data.isMember || false);
+            setIsMember(data.member  || false);
         } catch (err) {
             console.error("Lỗi khi lấy thông tin nhóm:", err.message);
         }
@@ -117,8 +117,8 @@ export default function GroupCommunityPage() {
     if (!groupInfo) return <div className="text-center py-4">Không tìm thấy nhóm.</div>;
 
     return (
-        <div className="container-fluid">
-            <div className="row">
+        <div className="container-fluid p-0 min-vh-100 bg-[var(--background-color)] text-[var(--text-color)]">
+            <div className="row m-0 w-100">
                 {/* Sidebar Left */}
                 <div className="col-lg-3 d-none d-lg-block p-0">
                     <div
@@ -139,9 +139,10 @@ export default function GroupCommunityPage() {
                     </div>
                 </div>
 
+
                 {/* Wrapper: Content + SidebarRight */}
                 <div className="col-lg-9 p-0">
-                    <div className="row m-0">
+                    <div className="row m-0 w-100">
                         {/* Center Content */}
                         <div className="col-lg-8 p-4 border-end">
                             {/* Group Info */}

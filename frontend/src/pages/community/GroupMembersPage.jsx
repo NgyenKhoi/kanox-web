@@ -70,8 +70,8 @@ export default function GroupMembersPage() {
     if (loading) return <div className="text-center py-5"><Spinner animation="border" /></div>;
 
     return (
-        <div className="container-fluid">
-            <div className="row">
+        <div className="container-fluid p-0 min-vh-100 bg-[var(--background-color)] text-[var(--text-color)]">
+            <div className="row m-0 w-100">
                 {/* Sidebar Left */}
                 <div className="col-lg-3 d-none d-lg-block p-0">
                     <div
@@ -94,8 +94,8 @@ export default function GroupMembersPage() {
 
                 {/* Center + Sidebar Right */}
                 <div className="col-lg-9 p-0">
-                    <div className="row m-0">
-                        {/* Center */}
+                    <div className="row m-0 w-100">
+                        {/* Center Content */}
                         <div className="col-lg-8 p-4 border-end">
                             <h2 className="text-xl font-bold mb-4">Danh sách thành viên</h2>
                             {members.length === 0 ? (
@@ -114,17 +114,28 @@ export default function GroupMembersPage() {
                                                     className="w-10 h-10 rounded-full object-cover"
                                                 />
                                                 <div>
-                                                    <p className="m-0 font-medium">{member.displayName}</p>
+                                                    <p
+                                                        className="m-0 font-medium cursor-pointer hover:underline d-flex align-items-center gap-1"
+                                                        onClick={() => navigate(`/profile/${member.username}`)}
+                                                    >
+                                                        {member.displayName}
+                                                        {member.isOwner && <span title="Chủ nhóm">👑</span>}
+                                                        {!member.isOwner && member.isAdmin && <span title="Quản trị viên">🛡️</span>}
+                                                    </p>
                                                     <p className="m-0 text-sm text-gray-500">@{member.username}</p>
                                                 </div>
                                             </div>
-                                            <Button
-                                                variant="outline-danger"
-                                                size="sm"
-                                                onClick={() => handleDelete(member.id)}
-                                            >
-                                                Xóa
-                                            </Button>
+
+                                            {/* Nút xóa nếu không phải chính mình */}
+                                            {member.username !== user.username && (
+                                                <Button
+                                                    variant="outline-danger"
+                                                    size="sm"
+                                                    onClick={() => handleDelete(member.id)}
+                                                >
+                                                    Xóa
+                                                </Button>
+                                            )}
                                         </li>
                                     ))}
                                 </ul>

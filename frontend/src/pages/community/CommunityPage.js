@@ -155,13 +155,10 @@ function CommunityPage() {
   };
 
   return (
-      <Container
-          fluid
-          className="d-flex flex-grow-1 bg-[var(--background-color)] text-[var(--text-color)] transition-colors duration-200"
-      >
-          <Row className="w-100 justify-content-center">
+      <Container fluid className="p-0 min-vh-100 bg-[var(--background-color)] text-[var(--text-color)] transition-colors duration-200">
+          <Row className="m-0 w-100">
               {/* Sidebar Left */}
-              <Col xs={0} lg={3} className="p-0 d-none d-lg-block">
+              <Col lg={3} className="p-0 d-none d-lg-block">
                   <div
                       style={{
                           position: "sticky",
@@ -181,10 +178,10 @@ function CommunityPage() {
               </Col>
 
               {/* Content + SidebarRight wrapper */}
-              <Col xs={12} lg={9} className="p-0">
-                  <Row className="w-100 m-0">
+              <Col lg={9} className="p-0">
+                  <Row className="m-0 w-100">
                       {/* Center Content */}
-                      <Col xs={12} lg={8} className="p-0 border-end">
+                      <Col lg={8} className="p-0 border-end">
                           {/* Header */}
                           <div className="sticky top-0 z-[1020] bg-[var(--background-color)] text-[var(--text-color)] font-bold text-lg px-3 py-2 border-b shadow-sm d-flex justify-content-between align-items-center">
                               <h2 className="me-auto">Cộng đồng</h2>
@@ -252,7 +249,7 @@ function CommunityPage() {
                       </Col>
 
                       {/* Sidebar Right */}
-                      <Col xs={0} lg={4} className="d-none d-lg-block p-0">
+                      <Col lg={4} className="p-0 d-none d-lg-block">
                           <SidebarRight />
                       </Col>
                   </Row>
