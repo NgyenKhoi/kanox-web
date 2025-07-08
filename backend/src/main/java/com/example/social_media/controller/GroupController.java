@@ -69,7 +69,7 @@ public class GroupController {
         ));
     }
 
-    @PutMapping(value = "/{groupId}", consumes = { "multipart/form-data" })
+    @PutMapping(value = "/{groupId}", consumes = {"multipart/form-data"})
     public ResponseEntity<Map<String, Object>> updateGroup(
             @PathVariable Integer groupId,
             @RequestParam String name,
@@ -212,7 +212,6 @@ public class GroupController {
     }
 
 
-
     // 1. Lấy danh sách cộng đồng
     @GetMapping("")
     public ResponseEntity<?> getAllGroups() {
@@ -234,4 +233,13 @@ public class GroupController {
         groupService.deleteGroup(id);
         return ResponseEntity.noContent().build();
     }
-}
+        @DeleteMapping("/{groupId}/leave")
+        public ResponseEntity<?> leaveGroup (@PathVariable Integer groupId,
+                @RequestHeader("Authorization") String token){
+            String username = jwtService.extractUsername(token);
+            groupService.leaveGroup(groupId, username);
+            return ResponseEntity.ok().body(Map.of("message", "Rời khỏi nhóm thành công"));
+
+        }
+
+    }

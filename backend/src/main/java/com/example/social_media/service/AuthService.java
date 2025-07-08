@@ -42,7 +42,7 @@ public class AuthService {
     }
 
     public Optional<User> getUserByUsername(String username) {
-        return userRepository.findByUsername(username);
+        return userRepository.findByUsernameAndStatusTrue(username);
     }
 
     public Optional<User> loginByEmail(String email, String rawPassword) {
@@ -105,8 +105,12 @@ public class AuthService {
     }
 
     public Optional<User> getUser(Integer userId) {
-        return Optional.ofNullable(userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException("Người dùng không tồn tại")));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("Người dùng không tồn tại"));
+        if (!user.getStatus()) {
+            throw new UserNotFoundException("Tài khoản đã bị khóa");
+        }
+        return Optional.of(user);
     }
 
     public User register(RegisterRequestDto dto) {
@@ -205,22 +209,13 @@ public class AuthService {
             return existingUser;
         }
 
-        // Kiểm tra user với status = false (tùy chọn: kích hoạt lại)
+        // Kiểm tra user với status = false (không cho phép đăng nhập)
         Optional<User> inactiveUserOpt = userRepository.findByEmail(email);
         if (inactiveUserOpt.isPresent()) {
             User inactiveUser = inactiveUserOpt.get();
             if (!inactiveUser.getStatus()) {
-                logger.info("Inactive user found with email: {}, attempting to reactivate", email);
-                inactiveUser.setStatus(true);
-                inactiveUser.setGoogleId(googleId);
-                try {
-                    userRepository.save(inactiveUser);
-                    logger.info("Reactivated user with email: {}", email);
-                    return inactiveUser;
-                } catch (Exception e) {
-                    logger.error("Error reactivating user with email: {}", email, e);
-                    throw new IllegalStateException("Không thể kích hoạt lại tài khoản: " + e.getMessage());
-                }
+                logger.warn("Blocked user attempted to login with email: {}", email);
+                throw new IllegalStateException("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.");
             }
         }
 

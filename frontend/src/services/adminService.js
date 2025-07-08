@@ -24,16 +24,31 @@ const handleResponse = async (response) => {
   console.log('Response url:', response.url);
   
   if (!response.ok) {
-    let errorData;
+    let errorData = {};
+    let errorText = '';
+    
     try {
-      errorData = await response.json();
+      // Thử parse JSON trước
+      const text = await response.text();
+      errorText = text;
+      
+      if (text) {
+        try {
+          errorData = JSON.parse(text);
+        } catch (jsonError) {
+          // Nếu không parse được JSON, sử dụng text
+          errorData = { message: text };
+        }
+      }
+      
       console.log('Error response data:', errorData);
+      console.log('Error response text:', errorText);
     } catch (parseError) {
       console.log('Failed to parse error response:', parseError);
-      errorData = {};
+      errorData = { message: `HTTP ${response.status} Error` };
     }
     
-    const error = new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    const error = new Error(errorData.message || errorText || `HTTP error! status: ${response.status}`);
     error.status = response.status;
     error.response = {
       status: response.status,
@@ -43,9 +58,14 @@ const handleResponse = async (response) => {
     throw error;
   }
   
-  const data = await response.json();
-  console.log('Success response data:', data);
-  return data;
+  try {
+    const data = await response.json();
+    console.log('Success response data:', data);
+    return data;
+  } catch (parseError) {
+    console.log('Success but failed to parse JSON:', parseError);
+    return { success: true, message: 'Operation completed successfully' };
+  }
 };
 
 export const adminService = {

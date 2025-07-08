@@ -209,7 +209,7 @@ public class GroupService {
 
     public Map<String, Object> getGroupMembers(Integer groupId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("username"));
-        Page<GroupMember> members = groupMemberRepository.findByGroupIdAndStatus(groupId, "ACCEPTED", pageable);
+        Page<GroupMember> members = groupMemberRepository.findAcceptedMembersByGroupId(groupId, pageable);
 
         List<UserBasicDisplayDto> memberDtos = members
                 .map(m -> {
@@ -269,16 +269,42 @@ public class GroupService {
         User user = userRepository.findByUsernameAndStatusTrue(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
-        GroupMember member = groupMemberRepository.findById(new GroupMemberId(groupId, user.getId()))
+        GroupMemberId id = new GroupMemberId(groupId, user.getId());
+        GroupMember member = groupMemberRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Invite not found"));
 
-        if (!"PENDING".equals(member.getInviteStatus())) {
-            throw new IllegalStateException("Invite already handled");
+        String currentStatus = member.getInviteStatus();
+
+        if ("ACCEPTED".equals(currentStatus)) {
+            throw new IllegalStateException("Bạn đã là thành viên của nhóm này.");
         }
 
-        member.setInviteStatus("ACCEPTED");
+        if ("REJECTED".equals(currentStatus)) {
+            throw new IllegalStateException("Lời mời đã bị từ chối.");
+        }
+
+        if ("REQUESTED".equals(currentStatus)) {
+            throw new IllegalStateException("Bạn đã gửi yêu cầu tham gia, vui lòng chờ duyệt.");
+        }
+
+        if (!"PENDING".equals(currentStatus)) {
+            throw new IllegalStateException("Trạng thái lời mời không hợp lệ.");
+        }
+
+        // ✅ Chuyển từ PENDING → REQUESTED
+        member.setInviteStatus("REQUESTED");
         member.setJoinAt(Instant.now());
         groupMemberRepository.save(member);
+
+        // ✅ Gửi thông báo tới admin/owner
+        Group group = member.getGroup();
+        notificationService.sendNotification(
+                group.getOwner().getId(),
+                "GROUP_JOIN_REQUEST",
+                user.getDisplayName() + " đã chấp nhận lời mời và đang chờ phê duyệt",
+                group.getId(),
+                "GROUP"
+        );
     }
 
     @Transactional
@@ -425,6 +451,9 @@ public class GroupService {
                 && groupMemberRepository.isGroupAdmin(groupId, viewer.getId());
 
         boolean isOwner = group.getOwner().getId().equals(viewer.getId());
+        String inviteStatus = groupMemberRepository.findById(new GroupMemberId(groupId, viewer.getId()))
+                .map(GroupMember::getInviteStatus)
+                .orElse(null);
 
         return new GroupDisplayDto(
                 group.getId(),
@@ -437,7 +466,9 @@ public class GroupService {
                 group.getOwner().getDisplayName(),
                 mediaService.getAvatarUrlByUserId(group.getOwner().getId()),
                 isAdmin,
-                isOwner
+                isOwner,
+                group.getPrivacyLevel(),
+                inviteStatus
         );
     }
 
@@ -462,11 +493,14 @@ public class GroupService {
                             group.getOwner().getDisplayName(),
                             mediaService.getAvatarUrlByUserId(group.getOwner().getId()),
                             member.getIsAdmin() != null && member.getIsAdmin(),
-                            group.getOwner().getId().equals(user.getId())
+                            group.getOwner().getId().equals(user.getId()),
+                            group.getPrivacyLevel(),
+                            member.getInviteStatus()
                     );
                 })
                 .collect(Collectors.toList());
     }
+
 
 
 
@@ -521,6 +555,23 @@ public class GroupService {
                 .stream()
                 .map(this::mapToSummaryDto)
                 .toList();
+    }
+
+
+    @Transactional
+    public void leaveGroup(Integer groupId, String username) {
+        User user = userRepository.findByUsernameAndStatusTrue(username)
+                .orElseThrow(() -> new UserNotFoundException("Người dùng không tồn tại"));
+
+        GroupMember member = groupMemberRepository.findById(new GroupMemberId(groupId, user.getId()))
+                .orElseThrow(() -> new IllegalArgumentException("Bạn không phải là thành viên nhóm"));
+        Group group = member.getGroup();
+        if (group.getOwner().getId().equals(user.getId())) {
+            throw new IllegalArgumentException("Chủ nhóm không thể rời khỏi nhóm");
+        }
+
+        member.setStatus(false);
+        groupMemberRepository.save(member);
     }
 
 }

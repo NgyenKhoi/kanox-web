@@ -61,4 +61,5 @@ public interface PostRepository extends JpaRepository<Post, Integer> {
     List<Post> findPostsFromPublicGroups();
 
     List<Post> findByGroupIdInAndStatusTrueOrderByCreatedAtDesc(List<Integer> groupIds);
+    List<Post> findByGroupIdAndStatusTrueOrderByCreatedAtDesc(Integer groupId);
 }
