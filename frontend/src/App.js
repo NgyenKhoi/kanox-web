@@ -210,7 +210,6 @@ function AppContent() {
                               onShowCreatePost={() => setShowCreatePost(true)}
                           />
                         </Col>
-                    )}
                 {/* Routes */}
                 <Col xs={12} lg={user ? 9 : 12} className="p-0">
                   <Routes>
