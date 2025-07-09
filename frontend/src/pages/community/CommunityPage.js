@@ -8,7 +8,7 @@
     import CommunitySidebarLeft from "../../components/community/CommunitySidebarLeft";
     import TweetCard from "../../components/posts/TweetCard/TweetCard";
 
-    function CommunityPage({ onToggleDarkMode, isDarkMode }) {
+    function CommunityPage({ selectedView, onSelectView, onToggleDarkMode, isDarkMode, refreshTrigger }) {
         const navigate = useNavigate();
         const {
             user,
@@ -16,44 +16,12 @@
             loading: authLoading,
             isSyncing,
         } = useContext(AuthContext);
-        const [viewMode, setViewMode] = useState("feed"); // "feed" | "yourGroups"
         const [posts, setPosts] = useState([]);
         const [yourGroups, setYourGroups] = useState([]);
         const [loading, setLoading] = useState(true);
         const [error, setError] = useState(null);
+        
 
-        // Toggle dark mode
-        const handleToggleDarkMode = () => {
-            const newTheme = isDarkMode ? "light" : "dark";
-            localStorage.setItem("theme", newTheme);
-            document.documentElement.setAttribute("data-theme", newTheme);
-            onToggleDarkMode(); // Gọi hàm từ props để đồng bộ với ThemeContext
-        };
-
-        // Callback to update group list when a new group is created
-        const handleGroupCreated = async (newGroup) => {
-            try {
-                const res = await fetch(
-                    `${process.env.REACT_APP_API_URL}/groups/your-groups?username=${user.username}`,
-                    {
-                        headers: { Authorization: `Bearer ${token}` },
-                    }
-                );
-                if (!res.ok) throw new Error("Không thể làm mới danh sách nhóm.");
-                const data = await res.json();
-                setYourGroups(
-                    data.map((group) => ({
-                        id: group.id,
-                        name: group.name,
-                        avatar: group.avatarUrl || "https://via.placeholder.com/40",
-                        description: group.description,
-                        isJoined: true,
-                    }))
-                );
-            } catch (err) {
-                toast.error("Lỗi khi làm mới danh sách nhóm: " + err.message);
-            }
-        };
 
         // Fetch posts or groups based on viewMode
         const fetchData = async () => {
@@ -67,7 +35,7 @@
             setError(null);
 
             try {
-                if (viewMode === "feed") {
+                if (selectedView === "feed") {
                     const res = await fetch(
                         `${process.env.REACT_APP_API_URL}/posts/community-feed`,
                         {
@@ -77,7 +45,7 @@
                     if (!res.ok) throw new Error("Không thể lấy bài đăng.");
                     const response = await res.json();
                     setPosts(response.data || []);
-                } else if (viewMode === "yourGroups") {
+                } else if (selectedView === "yourGroups") {
                     const res = await fetch(
                         `${process.env.REACT_APP_API_URL}/groups/your-groups?username=${user.username}`,
                         {
@@ -105,7 +73,7 @@
 
         useEffect(() => {
             fetchData();
-        }, [viewMode, token, user]);
+        }, [selectedView, token, user, refreshTrigger]);
 
         const handleCommunityClick = (id) => {
             navigate(`/community/${id}`);
@@ -169,7 +137,7 @@
                                     <div className="text-center p-4">Đang tải...</div>
                                 ) : error ? (
                                     <div className="text-danger text-center p-4">{error}</div>
-                                ) : viewMode === "feed" ? (
+                                ) : selectedView === "feed" ? (
                                     posts.length === 0 ? (
                                         <div className="text-center text-muted p-4">
                                             Không có bài đăng

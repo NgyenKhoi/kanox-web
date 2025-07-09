@@ -12,6 +12,9 @@ import { WebSocketContext, WebSocketProvider } from "./context/WebSocketContext"
 import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import CommunityLayout from "./components/layout/Layout/CommunityLayout"
 import MainLayout from "./components/layout/Layout/MainLayout";
+import CommunityWrapper from "./pages/community/CommunityWrapper";
+import GroupCommunityWrapper from "./pages/community/GroupCommunityWrapper";
+import GroupMembersWrapper from "./pages/community/GroupMembersWrapper";
 // Import các page
 import SignupPage from "./pages/auth/signup/signupPage";
 import HomePage from "./pages/home/HomePage";
@@ -22,7 +25,6 @@ import NotificationPage from "./pages/Notifications/NotificationPage";
 import MessengerPage from "./pages/Messenger/MessengerPage";
 import LoadingPage from "./components/common/Loading/LoadingPage";
 import VerifyEmailPage from "./pages/auth/login/VerifyEmailPage";
-import CommunityPage from "./pages/community/CommunityPage";
 import CustomPrivacyListPage from "./pages/privacy/CustomPrivacyListPage";
 import BlockedUsersPage from "./pages/block/BlockedUsersPage";
 import SettingsPage from "./pages/settings/SettingsPage";
@@ -301,20 +303,7 @@ function AppContent() {
                     path="/communities"
                     element={
                       <PrivateRoute>
-                        <CommunityLayout
-                            selectedView="feed"
-                            onSelectView={() => {
-                            }}
-                            onToggleDarkMode={toggleDarkMode}
-                            isDarkMode={isDarkMode}
-                            onGroupCreated={() => {
-                            }}
-                        >
-                          <CommunityPage
-                              onToggleDarkMode={toggleDarkMode}
-                              isDarkMode={isDarkMode}
-                          />
-                        </CommunityLayout>
+                        <CommunityWrapper />
                       </PrivateRoute>
                     }
                 />
@@ -392,20 +381,7 @@ function AppContent() {
                     path="/groups/:groupId/members"
                     element={
                       <PrivateRoute>
-                        <CommunityLayout
-                            selectedView="yourGroups"
-                            onSelectView={() => {
-                            }}
-                            onToggleDarkMode={toggleDarkMode}
-                            isDarkMode={isDarkMode}
-                            onGroupCreated={() => {
-                            }}
-                        >
-                          <GroupMembersPage
-                              onToggleDarkMode={toggleDarkMode}
-                              isDarkMode={isDarkMode}
-                          />
-                        </CommunityLayout>
+                        <GroupMembersWrapper />
                       </PrivateRoute>
                     }
                 />
@@ -421,20 +397,7 @@ function AppContent() {
                     path="/community/:groupId"
                     element={
                       <PrivateRoute>
-                        <CommunityLayout
-                            selectedView="feed"
-                            onSelectView={() => {
-                            }}
-                            onToggleDarkMode={toggleDarkMode}
-                            isDarkMode={isDarkMode}
-                            onGroupCreated={() => {
-                            }}
-                        >
-                          <GroupCommunityPage
-                              onToggleDarkMode={toggleDarkMode}
-                              isDarkMode={isDarkMode}
-                          />
-                        </CommunityLayout>
+                        <GroupCommunityWrapper />
                       </PrivateRoute>
                     }
                 />
