@@ -1,5 +1,9 @@
 package com.example.social_media.dto.group;
 
+import com.example.social_media.dto.user.UserBasicDisplayDto;
+
+import java.util.List;
+
 public class GroupDisplayDto {
     private Integer id;
     private String name;
@@ -15,6 +19,7 @@ public class GroupDisplayDto {
     private boolean isMember;
     private String privacyLevel;
     private String inviteStatus;
+    private List<UserBasicDisplayDto> mutualFriendsInGroup;
 
     public GroupDisplayDto() {
     }
@@ -24,7 +29,8 @@ public class GroupDisplayDto {
                            String ownerDisplayName, String ownerAvatarUrl,
                            boolean isAdmin, boolean isOwner,
                            boolean isMember,
-                           String privacyLevel, String inviteStatus) {
+                           String privacyLevel, String inviteStatus,
+                           List<UserBasicDisplayDto> mutualFriendsInGroup) {
         this.id = id;
         this.name = name;
         this.avatarUrl = avatarUrl;
@@ -39,6 +45,7 @@ public class GroupDisplayDto {
         this.isMember = isMember;
         this.privacyLevel = privacyLevel;
         this.inviteStatus = inviteStatus;
+        this.mutualFriendsInGroup = mutualFriendsInGroup;
     }
 
     public Integer getId() {
@@ -151,5 +158,13 @@ public class GroupDisplayDto {
 
     public void setMember(boolean member) {
         isMember = member;
+    }
+
+    public List<UserBasicDisplayDto> getMutualFriendsInGroup() {
+        return mutualFriendsInGroup;
+    }
+
+    public void setMutualFriendsInGroup(List<UserBasicDisplayDto> mutualFriendsInGroup) {
+        this.mutualFriendsInGroup = mutualFriendsInGroup;
     }
 }

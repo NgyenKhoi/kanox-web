@@ -4,13 +4,11 @@ import com.example.social_media.dto.group.GroupDisplayDto;
 import com.example.social_media.dto.group.GroupSimpleDto;
 import com.example.social_media.dto.group.GroupSummaryDto;
 import com.example.social_media.dto.user.UserBasicDisplayDto;
-import com.example.social_media.entity.Group;
-import com.example.social_media.entity.GroupMember;
-import com.example.social_media.entity.GroupMemberId;
-import com.example.social_media.entity.User;
+import com.example.social_media.entity.*;
 import com.example.social_media.exception.NotFoundException;
 import com.example.social_media.exception.UnauthorizedException;
 import com.example.social_media.exception.UserNotFoundException;
+import com.example.social_media.repository.FriendshipRepository;
 import com.example.social_media.repository.GroupMemberRepository;
 import com.example.social_media.repository.GroupRepository;
 import com.example.social_media.repository.UserRepository;
@@ -39,19 +37,22 @@ public class GroupService {
     private final MediaService mediaService;
     private final NotificationService notificationService;
     private final DataSyncService dataSyncService;
+    private final FriendshipRepository friendshipRepository;
 
     public GroupService(GroupRepository groupRepository,
                         GroupMemberRepository groupMemberRepository,
                         UserRepository userRepository,
                         MediaService mediaService,
                         NotificationService notificationService,
-                        DataSyncService dataSyncService) {
+                        DataSyncService dataSyncService,
+                        FriendshipRepository friendshipRepository) {
         this.groupRepository = groupRepository;
         this.groupMemberRepository = groupMemberRepository;
         this.userRepository = userRepository;
         this.mediaService = mediaService;
         this.notificationService = notificationService;
         this.dataSyncService = dataSyncService;
+        this.friendshipRepository = friendshipRepository;
     }
 
     @Transactional
@@ -208,7 +209,7 @@ public class GroupService {
     }
 
     public Map<String, Object> getGroupMembers(Integer groupId, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("username"));
+        Pageable pageable = PageRequest.of(page, size);
         Page<GroupMember> members = groupMemberRepository.findAcceptedMembersByGroupId(groupId, pageable);
 
         List<UserBasicDisplayDto> memberDtos = members
@@ -216,9 +217,9 @@ public class GroupService {
                     User user = m.getUser();
                     return new UserBasicDisplayDto(
                             user.getId(),
-                            mediaService.getAvatarUrlByUserId(user.getId()),
                             user.getDisplayName(),
-                            user.getUsername()
+                            user.getUsername(),
+                            mediaService.getAvatarUrlByUserId(user.getId())
                     );
                 })
                 .getContent();
@@ -359,7 +360,13 @@ public class GroupService {
         request.setJoinAt(Instant.now());
         request.setIsAdmin(false);
         request.setStatus(true);
-        request.setInviteStatus("REQUESTED");
+        if ("public".equalsIgnoreCase(group.getPrivacyLevel())) {
+            request.setInviteStatus("ACCEPTED");
+        } else if ("private".equalsIgnoreCase(group.getPrivacyLevel())) {
+            request.setInviteStatus("REQUESTED");
+        } else {
+            throw new UnauthorizedException("Bạn không thể tự tham gia nhóm này");
+        }
 
         groupMemberRepository.save(request);
     }
@@ -457,6 +464,8 @@ public class GroupService {
                 "ACCEPTED".equals(m.getInviteStatus()) && Boolean.TRUE.equals(m.getStatus())
         ).orElse(false);
 
+        List<UserBasicDisplayDto> mutualFriends = getMutualFriendsInGroup(groupId, viewer.getId());
+
         return new GroupDisplayDto(
                 group.getId(),
                 group.getName(),
@@ -469,9 +478,10 @@ public class GroupService {
                 mediaService.getAvatarUrlByUserId(group.getOwner().getId()),
                 isAdmin,
                 isOwner,
-                isMember, // ✅ moved up
+                isMember,
                 group.getPrivacyLevel(),
-                inviteStatus
+                inviteStatus,
+                mutualFriends
         );
     }
 
@@ -499,7 +509,8 @@ public class GroupService {
                             group.getOwner().getId().equals(user.getId()),
                             true, // ✅ isMember = true
                             group.getPrivacyLevel(),
-                            member.getInviteStatus()
+                            member.getInviteStatus(),
+                            List.of()
                     );
                 })
                 .collect(Collectors.toList());
@@ -581,6 +592,33 @@ public class GroupService {
 
     public long countAllGroups() {
         return groupRepository.count();
+    }
+
+    private List<UserBasicDisplayDto> getMutualFriendsInGroup(Integer groupId, Integer userId) {
+        // Lấy tất cả quan hệ bạn bè đã accept
+        List<Friendship> friendships = friendshipRepository.findAll().stream()
+                .filter(f -> f.getStatus() && "accepted".equals(f.getFriendshipStatus()) &&
+                        (f.getUser().getId().equals(userId) || f.getFriend().getId().equals(userId)))
+                .collect(Collectors.toList());
+
+        Set<Integer> friendIds = friendships.stream()
+                .map(f -> f.getUser().getId().equals(userId) ? f.getFriend().getId() : f.getUser().getId())
+                .collect(Collectors.toSet());
+
+        if (friendIds.isEmpty()) return List.of();
+
+        List<GroupMember> members = groupMemberRepository.findAcceptedMembersByGroupIdAndUserIds(groupId, new ArrayList<>(friendIds));
+
+        return members.stream()
+                .map(m -> {
+                    User u = m.getUser();
+                    return new UserBasicDisplayDto(
+                            u.getId(),
+                            mediaService.getAvatarUrlByUserId(u.getId()),
+                            u.getDisplayName(),
+                            u.getUsername()
+                    );
+                }).collect(Collectors.toList());
     }
 
 }

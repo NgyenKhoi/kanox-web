@@ -12,6 +12,7 @@ import {
 } from "react-icons/fa";
 import CreateGroupModal from "./CreateGroupModal";
 import useGroupSearch from "../../hooks/useGroupSearch";
+import GroupSearchItem from "./GroupSearchItem"
 
 function CommunitySidebarLeft({
                                   selectedView,
@@ -122,18 +123,11 @@ function CommunitySidebarLeft({
                                 <p className="text-sm text-gray-500">Đang tìm kiếm...</p>
                             ) : searchResults.length > 0 ? (
                                 searchResults.map((group) => (
-                                    <div
+                                    <GroupSearchItem
                                         key={group.id}
-                                        className="flex items-center gap-3 cursor-pointer hover:bg-[var(--hover-bg-color)] p-2 rounded-lg transition"
+                                        group={group}
                                         onClick={() => handleGroupClick(group.id)}
-                                    >
-                                        <img
-                                            src={group.avatarUrl || "https://via.placeholder.com/40"}
-                                            alt={group.name}
-                                            className="w-8 h-8 rounded-full object-cover"
-                                        />
-                                        <span className="text-sm font-medium truncate">{group.name}</span>
-                                    </div>
+                                    />
                                 ))
                             ) : (
                                 <p className="text-sm text-gray-500 mt-1">Không tìm thấy nhóm nào.</p>

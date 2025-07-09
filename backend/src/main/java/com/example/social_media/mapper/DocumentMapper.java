@@ -31,8 +31,7 @@ public class DocumentMapper {
                 group.getOwner().getId(),
                 group.getName(),
                 group.getDescription(),
-                memberNames,
-                convertInstantToLocalDateTime(group.getCreatedAt())
+                memberNames
         );
     }
 

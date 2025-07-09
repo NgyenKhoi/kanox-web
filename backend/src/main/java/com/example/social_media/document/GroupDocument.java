@@ -20,16 +20,14 @@ public class GroupDocument {
     private String name;
     private String description;
     private List<String> memberNames;
-    private LocalDateTime createdAt;
 
     public GroupDocument() {
     }
-    public GroupDocument(String id, Integer ownerId, String name, String description, List<String> memberNames,  LocalDateTime createdAt) {
+    public GroupDocument(String id, Integer ownerId, String name, String description, List<String> memberNames) {
         this.id = id;
         this.ownerId = ownerId;
         this.name = name;
         this.description = description;
-        this.createdAt = createdAt;
         this.memberNames = memberNames;
     }
 
@@ -65,13 +63,6 @@ public class GroupDocument {
         this.description = description;
     }
 
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
 
     public List<String> getMemberNames() {
         return memberNames;
