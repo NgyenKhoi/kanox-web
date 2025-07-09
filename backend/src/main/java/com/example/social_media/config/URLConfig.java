@@ -121,4 +121,19 @@ public class URLConfig {
     public static final String REJECT_JOIN_REQUEST = "/{groupId}/reject-request";
     public static final String GET_JOIN_REQUESTS = "/{groupId}/join-requests";
     public static final String GET_GROUP_DETAIL = "/{groupId}/detail";
+
+    //Admin urls
+    public static final String ADMIN_BASE = "/api/admin";
+    public static final String GET_ALL_USER = "/users";
+    public static final String MANAGE_USER_INFO = "/users/{userId}";
+    public static final String UPDATE_USER_STATUS = "/users/{userId}/status";
+    public static final String SEND_NOTIFICATION_FOR_USER = "/users/send-notification";
+    //Admin report urls
+    public static final String GET_REPORTS = "/list";
+    public static final String UPDATE_REPORT_STATUS = "/{reportId}/status";
+
+    // Report URLs
+    public static final String REPORT_BASE = "/api/reports";
+    public static final String CREATE_REPORT = "/create";
+
 }

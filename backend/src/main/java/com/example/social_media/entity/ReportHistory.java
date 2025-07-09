@@ -2,17 +2,13 @@ package com.example.social_media.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
-import lombok.Getter;
-import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
-import org.hibernate.annotations.Nationalized;
 
 import java.time.Instant;
 
 @Entity
-@Table(name = "tblReport", schema = "dbo")
-public class Report {
+@Table(name = "tblReportHistory", schema = "dbo")
+public class ReportHistory {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
@@ -24,28 +20,18 @@ public class Report {
     private User reporter;
 
     @NotNull
-    @Column(name = "target_id", nullable = false)
-    private Integer targetId;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "report_id", nullable = false)
+    private Report report;
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "target_type_id", nullable = false)
-    private TargetType targetType;
-
-    @NotNull
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "reason_id", nullable = false)
-    private ReportReason reason;
-
-    @NotNull
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @ColumnDefault("1")
     @JoinColumn(name = "processing_status_id", nullable = false)
     private ReportStatus processingStatus;
 
     @ColumnDefault("getdate()")
-    @Column(name = "report_time")
-    private Instant reportTime;
+    @Column(name = "action_time")
+    private Instant actionTime;
 
     @ColumnDefault("1")
     @Column(name = "status")
@@ -67,28 +53,12 @@ public class Report {
         this.reporter = reporter;
     }
 
-    public Integer getTargetId() {
-        return targetId;
+    public Report getReport() {
+        return report;
     }
 
-    public void setTargetId(Integer targetId) {
-        this.targetId = targetId;
-    }
-
-    public TargetType getTargetType() {
-        return targetType;
-    }
-
-    public void setTargetType(TargetType targetType) {
-        this.targetType = targetType;
-    }
-
-    public ReportReason getReason() {
-        return reason;
-    }
-
-    public void setReason(ReportReason reason) {
-        this.reason = reason;
+    public void setReport(Report report) {
+        this.report = report;
     }
 
     public ReportStatus getProcessingStatus() {
@@ -99,12 +69,12 @@ public class Report {
         this.processingStatus = processingStatus;
     }
 
-    public Instant getReportTime() {
-        return reportTime;
+    public Instant getActionTime() {
+        return actionTime;
     }
 
-    public void setReportTime(Instant reportTime) {
-        this.reportTime = reportTime;
+    public void setActionTime(Instant actionTime) {
+        this.actionTime = actionTime;
     }
 
     public Boolean getStatus() {

@@ -1,11 +1,15 @@
 package com.example.social_media.controller;
 
+import com.example.social_media.config.URLConfig;
 import com.example.social_media.dto.notification.NotificationDto;
+import com.example.social_media.dto.report.UpdateReportStatusRequestDto;
 import com.example.social_media.entity.Notification;
+import com.example.social_media.entity.Report;
 import com.example.social_media.entity.User;
 import com.example.social_media.exception.UserNotFoundException;
 import com.example.social_media.service.CustomUserDetailsService;
 import com.example.social_media.service.NotificationService;
+import com.example.social_media.service.ReportService;
 import com.example.social_media.service.UserService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -19,28 +23,31 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/admin")
+@RequestMapping(URLConfig.ADMIN_BASE)
 @PreAuthorize("hasAuthority('ROLE_ADMIN')")
 public class AdminController {
 
     private final UserService userService;
     private final NotificationService notificationService;
     private final CustomUserDetailsService customUserDetailsService;
+    private final ReportService reportService;
 
     public AdminController(
             UserService userService,
             NotificationService notificationService,
-            CustomUserDetailsService customUserDetailsService
+            CustomUserDetailsService customUserDetailsService,
+            ReportService reportService
     ) {
         this.userService = userService;
         this.notificationService = notificationService;
         this.customUserDetailsService = customUserDetailsService;
+        this.reportService = reportService;
     }
 
     // === QUẢN LÝ NGƯỜI DÙNG ===
     
     // Lấy danh sách người dùng
-    @GetMapping("/users")
+    @GetMapping(URLConfig.GET_ALL_USER)
     public ResponseEntity<?> getAllUsers(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -57,7 +64,7 @@ public class AdminController {
     }
 
     // Lấy thông tin một người dùng
-    @GetMapping("/users/{userId}")
+    @GetMapping(URLConfig.MANAGE_USER_INFO)
     public ResponseEntity<?> getUserInfo(@PathVariable Integer userId) {
         try {
             User user = userService.getUserById(userId);
@@ -72,7 +79,7 @@ public class AdminController {
     }
 
     // Cập nhật thông tin người dùng
-    @PutMapping("/users/{userId}")
+    @PutMapping(URLConfig.MANAGE_USER_INFO)
     public ResponseEntity<?> updateUser(@PathVariable Integer userId, @RequestBody User userUpdate) {
         try {
             User updatedUser = userService.updateUser(userId, userUpdate);
@@ -87,7 +94,7 @@ public class AdminController {
     }
 
     // Cập nhật trạng thái người dùng (khóa/mở khóa)
-    @PatchMapping("/users/{userId}/status")
+    @PatchMapping(URLConfig.UPDATE_USER_STATUS)
     public ResponseEntity<?> updateUserStatus(
             @PathVariable Integer userId, 
             @RequestParam Boolean status
@@ -113,7 +120,7 @@ public class AdminController {
     }
 
     // Gửi thông báo cho người dùng
-    @PostMapping("/users/send-notification")
+    @PostMapping(URLConfig.SEND_NOTIFICATION_FOR_USER)
     public ResponseEntity<?> sendNotification(@RequestBody Map<String, Object> notificationRequest) {
         try {
             String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -140,68 +147,45 @@ public class AdminController {
                     .body(Map.of("message", "Error sending notification", "error", e.getMessage()));
         }
     }
-    
-    // Phân quyền admin cho user khác
-    @PatchMapping("/users/{userId}/admin")
-    public ResponseEntity<?> grantAdminRole(@PathVariable Integer userId) {
+
+    // Lấy danh sách báo cáo
+    @GetMapping(URLConfig.GET_REPORTS)
+    public ResponseEntity<?> getReports(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "true") Boolean status
+    ) {
+        try {
+            Pageable pageable = PageRequest.of(page, size);
+            Page<Report> reports = reportService.getReportsPaged(status, pageable);
+            return ResponseEntity.ok(Map.of("message", "Reports retrieved successfully", "data", reports));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Error retrieving reports", "error", e.getMessage()));
+        }
+    }
+
+    // Cập nhật trạng thái báo cáo
+    @PutMapping(URLConfig.UPDATE_REPORT_STATUS)
+    public ResponseEntity<?> updateReportStatus(
+            @PathVariable Integer reportId,
+            @RequestBody UpdateReportStatusRequestDto request
+    ) {
         try {
             String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
             User admin = customUserDetailsService.getUserByUsername(currentUsername);
-            
-            User updatedUser = userService.updateAdminRole(userId, true);
-            
-            // Log hoạt động và gửi thông báo
-            notificationService.sendNotification(
-                    userId,
-                    "ADMIN_ROLE", 
-                    "You have been granted administrator privileges", 
-                    admin.getId(), 
-                    "USER"
-            );
-            
-            return ResponseEntity.ok(Map.of(
-                    "message", "Admin role granted successfully", 
-                    "data", updatedUser
-            ));
+            request.setAdminId(admin.getId());
+            reportService.updateReportStatus(reportId, request);
+            return ResponseEntity.ok(Map.of("message", "Report status updated successfully"));
         } catch (UserNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("message", "User not found", "error", e.getMessage()));
+                    .body(Map.of("message", "Admin not found", "error", e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("message", "Unauthorized action", "error", e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("message", "Error granting admin role", "error", e.getMessage()));
+                    .body(Map.of("message", "Error updating report status", "error", e.getMessage()));
         }
     }
-    
-    // Hủy quyền admin của user
-    @PatchMapping("/users/{userId}/revoke-admin")
-    public ResponseEntity<?> revokeAdminRole(@PathVariable Integer userId) {
-        try {
-            String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-            User admin = customUserDetailsService.getUserByUsername(currentUsername);
-            
-            User updatedUser = userService.updateAdminRole(userId, false);
-            
-            // Log hoạt động và gửi thông báo
-            notificationService.sendNotification(
-                    userId,
-                    "ADMIN_ROLE", 
-                    "Your administrator privileges have been revoked", 
-                    admin.getId(), 
-                    "USER"
-            );
-            
-            return ResponseEntity.ok(Map.of(
-                    "message", "Admin role revoked successfully", 
-                    "data", updatedUser
-            ));
-        } catch (UserNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("message", "User not found", "error", e.getMessage()));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("message", "Error revoking admin role", "error", e.getMessage()));
-        }
-    }
-    
-    // === CÁC TÍNH NĂNG ADMIN KHÁC CÓ THỂ ĐƯỢC THÊM VÀO ĐÂY ===
 }
