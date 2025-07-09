@@ -414,9 +414,9 @@ function AppContent() {
                     path="/groups/:groupId/members"
                     element={
                       <PrivateRoute>
-                        <GroupMembersWrapper />
-                        <GroupMembersPage />
-                      </GroupMembersWrapper>
+                        <GroupMembersWrapper>
+                          <GroupMembersPage />
+                        </GroupMembersWrapper>
                       </PrivateRoute>
                     }
                 />
