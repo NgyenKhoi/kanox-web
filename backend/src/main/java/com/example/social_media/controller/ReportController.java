@@ -33,6 +33,10 @@ public class ReportController {
     @PostMapping(URLConfig.CREATE_REPORT)
     public ResponseEntity<?> createReport(@RequestBody CreateReportRequestDto request) {
         try {
+            System.out.println("Creating report with request: reporterId=" + request.getReporterId()
+                    + ", targetId=" + request.getTargetId()
+                    + ", targetTypeId=" + request.getTargetTypeId()
+                    + ", reasonId=" + request.getReasonId());
             String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
             User currentUser = customUserDetailsService.getUserByUsername(currentUsername);
             request.setReporterId(currentUser.getId());

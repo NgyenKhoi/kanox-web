@@ -74,7 +74,9 @@ public class ReportService {
                     request.getReporterId(),
                     request.getTargetId(),
                     request.getTargetTypeId(),
-                    request.getReasonId()
+                    request.getReasonId(),
+                    1, // processing_status_id = 1 (Pending)
+                    true // status = true
             );
 
             Report report = reportRepository.findById(reportId)

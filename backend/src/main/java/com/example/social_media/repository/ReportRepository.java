@@ -18,7 +18,9 @@ public interface ReportRepository extends JpaRepository<Report, Integer> {
             @Param("reporter_id") Integer reporterId,
             @Param("target_id") Integer targetId,
             @Param("target_type_id") Integer targetTypeId,
-            @Param("reason_id") Integer reasonId
+            @Param("reason_id") Integer reasonId,
+            @Param("processing_status_id") Integer processingStatusId,
+            @Param("status") Boolean status
     );
 
     @Procedure(procedureName = "sp_GetReports")
