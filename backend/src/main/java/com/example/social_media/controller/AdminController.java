@@ -163,12 +163,21 @@ public class AdminController {
     public ResponseEntity<?> getReports(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "true") Boolean status
+            @RequestParam(defaultValue = "") String processingStatusId
     ) {
         try {
             Pageable pageable = PageRequest.of(page, size);
-            Page<Report> reports = reportService.getReportsPaged(status, pageable);
+            Page<Report> reports;
+            if (processingStatusId.isEmpty()) {
+                reports = reportRepository.findByStatus(true, pageable); // Chỉ lấy báo cáo chưa xóa
+            } else {
+                Integer statusId = Integer.parseInt(processingStatusId);
+                reports = reportRepository.findByProcessingStatusId(statusId, pageable);
+            }
             return ResponseEntity.ok(Map.of("message", "Reports retrieved successfully", "data", reports));
+        } catch (NumberFormatException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("message", "Invalid processingStatusId", "error", e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("message", "Error retrieving reports", "error", e.getMessage()));

@@ -26,10 +26,10 @@ public class ReportService {
     private final ReportReasonRepository reportReasonRepository;
     private final ReportStatusRepository reportStatusRepository;
     private final ReportHistoryRepository reportHistoryRepository;
-    private final ReportLimitRepository reportLimitRepository; // Thêm repository
+    private final ReportLimitRepository reportLimitRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final NotificationService notificationService;
-    private static final int MAX_REPORTS_PER_DAY = 5; // Giới hạn báo cáo mỗi ngày
+    private static final int MAX_REPORTS_PER_DAY = 5;
 
     public ReportService(
             ReportRepository reportRepository,
@@ -56,7 +56,6 @@ public class ReportService {
         User reporter = userRepository.findById(request.getReporterId())
                 .orElseThrow(() -> new UserNotFoundException("User not found with id: " + request.getReporterId()));
 
-        // Kiểm tra giới hạn báo cáo
         ReportLimit limit = reportLimitRepository.findById(request.getReporterId())
                 .orElse(new ReportLimit());
         if (limit.getLastReportReset() == null || limit.getLastReportReset().isBefore(Instant.now().minus(1, ChronoUnit.DAYS))) {
@@ -71,28 +70,24 @@ public class ReportService {
                 .orElseThrow(() -> new IllegalArgumentException("Report reason not found with id: " + request.getReasonId()));
 
         try {
-            // Gọi stored procedure để tạo báo cáo và lấy reportId
             Integer reportId = reportRepository.addReport(
                     request.getReporterId(),
                     request.getTargetId(),
                     request.getTargetTypeId(),
                     request.getReasonId(),
-                    1, // processing_status_id mặc định là 1 (Pending)
-                    true, // status mặc định là true
-                    null // report_id là OUTPUT parameter
+                    1,
+                    true,
+                    null
             );
 
-            // Lấy đối tượng Report vừa tạo
             Report report = reportRepository.findById(reportId)
                     .orElseThrow(() -> new IllegalArgumentException("Report not found with id: " + reportId));
 
-            // Cập nhật giới hạn báo cáo
             limit.setReportCount(limit.getReportCount() + 1);
             limit.setUser(reporter);
             limit.setStatus(true);
             reportLimitRepository.save(limit);
 
-            // Gửi thông báo WebSocket cho admin
             messagingTemplate.convertAndSend("/topic/admin/reports", Map.of(
                     "id", reportId,
                     "targetId", request.getTargetId(),
@@ -102,7 +97,6 @@ public class ReportService {
                     "createdAt", System.currentTimeMillis() / 1000
             ));
 
-            // Lưu lịch sử báo cáo
             ReportStatus status = reportStatusRepository.findById(1)
                     .orElseThrow(() -> new IllegalArgumentException("Report status not found with id: 1"));
             ReportHistory history = new ReportHistory();
@@ -131,6 +125,11 @@ public class ReportService {
         return reportRepository.findByStatus(status, pageable);
     }
 
+    @Transactional(readOnly = true)
+    public Page<Report> getReportsByProcessingStatusId(Integer processingStatusId, Pageable pageable) {
+        return reportRepository.findByProcessingStatusId(processingStatusId, pageable);
+    }
+
     @Transactional
     public void updateReportStatus(Integer reportId, UpdateReportStatusRequestDto request) {
         User admin = userRepository.findById(request.getAdminId())
@@ -151,7 +150,6 @@ public class ReportService {
                     request.getProcessingStatusId()
             );
 
-            // Lưu lịch sử báo cáo
             ReportHistory history = new ReportHistory();
             history.setReporter(admin);
             history.setReport(report);
@@ -160,16 +158,29 @@ public class ReportService {
             history.setStatus(true);
             reportHistoryRepository.save(history);
 
-            // Gửi thông báo đến user đã báo cáo
-            String message = status.getId() == 2
-                    ? "Báo cáo của bạn đã được duyệt."
-                    : "Báo cáo của bạn đã bị từ chối.";
+            String message;
+            switch (request.getProcessingStatusId()) {
+                case 1:
+                    message = "Báo cáo của bạn đang chờ xử lý.";
+                    break;
+                case 2:
+                    message = "Báo cáo của bạn đang được xem xét.";
+                    break;
+                case 3:
+                    message = "Báo cáo của bạn đã được duyệt.";
+                    break;
+                case 4:
+                    message = "Báo cáo của bạn đã bị từ chối.";
+                    break;
+                default:
+                    message = "Trạng thái báo cáo đã được cập nhật.";
+            }
             notificationService.sendReportNotification(
-                    report.getReporter().getId(), // userId
-                    "REPORT_STATUS_UPDATED", // notificationTypeName
-                    message, // message
-                    report.getTargetId(), // targetId
-                    report.getTargetType().getId() // targetTypeId
+                    report.getReporter().getId(),
+                    "REPORT_STATUS_UPDATED",
+                    message,
+                    report.getTargetId(),
+                    report.getTargetType().getId()
             );
         } catch (Exception e) {
             throw new RuntimeException("Failed to update report status: " + e.getMessage());
@@ -180,15 +191,15 @@ public class ReportService {
         return reportRepository.findById(reportId)
                 .orElseThrow(() -> new IllegalArgumentException("Report not found with id: " + reportId));
     }
+
     @Transactional
     public void deleteReport(Integer reportId) {
         Report report = reportRepository.findById(reportId)
                 .orElseThrow(() -> new IllegalArgumentException("Report not found with id: " + reportId));
-        ReportStatus status = reportStatusRepository.findById(3)
-                .orElseThrow(() -> new IllegalArgumentException("Report status not found with id: 3"));
+        ReportStatus status = reportStatusRepository.findById(4) // Sửa từ 3 thành 4 (Rejected)
+                .orElseThrow(() -> new IllegalArgumentException("Report status not found with id: 4"));
 
         try {
-            // Lưu lịch sử trước khi xóa
             ReportHistory history = new ReportHistory();
             String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
             User admin = userRepository.findByUsername(currentUsername)
@@ -200,6 +211,8 @@ public class ReportService {
             history.setStatus(true);
             reportHistoryRepository.save(history);
 
+            report.setStatus(false); // Cập nhật xóa mềm
+            reportRepository.save(report); // Lưu trạng thái trước khi xóa
             reportRepository.delete(report);
         } catch (Exception e) {
             throw new RuntimeException("Failed to delete report: " + e.getMessage());

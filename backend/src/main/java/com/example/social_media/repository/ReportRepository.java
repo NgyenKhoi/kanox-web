@@ -36,4 +36,5 @@ public interface ReportRepository extends JpaRepository<Report, Integer> {
 
     Page<Report> findByStatus(Boolean status, Pageable pageable);
     Optional<Report> findTopByOrderByIdDesc();
+    Page<Report> findByProcessingStatusId(Integer processingStatusId, Pageable pageable);
 }

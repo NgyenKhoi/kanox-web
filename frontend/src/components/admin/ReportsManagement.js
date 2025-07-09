@@ -25,11 +25,11 @@ const ReportsManagement = () => {
     }
     try {
       setLoading(true);
-      const url = new URL(`${process.env.REACT_APP_API_URL}/admin/reports`);
+      const url = new URL(`${process.env.REACT_APP_API_URL}/admin/list`);
       url.searchParams.append("page", currentPage);
       url.searchParams.append("size", 10);
       if (statusFilter) {
-        url.searchParams.append("status", statusFilter === "true" || statusFilter === "false" ? statusFilter : "");
+        url.searchParams.append("processingStatusId", statusFilter); // Gửi processingStatusId thay vì status
       }
       const response = await fetch(url, {
         method: "GET",
@@ -40,8 +40,8 @@ const ReportsManagement = () => {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || "Không thể tải danh sách báo cáo");
-      setReports(data.content || []);
-      setTotalPages(data.totalPages || 0);
+      setReports(data.data?.content || []);
+      setTotalPages(data.data?.totalPages || 0);
     } catch (error) {
       console.error("Lỗi khi tải báo cáo:", error);
       toast.error("Không thể tải danh sách báo cáo: " + error.message);
@@ -56,7 +56,7 @@ const ReportsManagement = () => {
       return;
     }
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/admin/reports/${reportId}/history`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/admin/${reportId}/history`, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -76,7 +76,7 @@ const ReportsManagement = () => {
       return;
     }
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/admin/reports/${reportId}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/admin/${reportId}`, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -84,7 +84,7 @@ const ReportsManagement = () => {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || "Lỗi khi lấy chi tiết báo cáo");
-      setSelectedReport(data);
+      setSelectedReport(data.data);
       await loadReportHistory(reportId);
       setShowDetailModal(true);
     } catch (error) {
@@ -98,7 +98,7 @@ const ReportsManagement = () => {
       return;
     }
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/admin/reports/${id}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/admin/${id}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -121,16 +121,21 @@ const ReportsManagement = () => {
       toast.error("Vui lòng đăng nhập để cập nhật trạng thái báo cáo!");
       return;
     }
+    if (!reportId || isNaN(parseInt(reportId))) {
+      toast.error("ID báo cáo không hợp lệ!");
+      console.error("Invalid reportId:", reportId);
+      return;
+    }
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/admin/reports/${reportId}/status`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/admin/${parseInt(reportId)}/status`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          adminId: localStorage.getItem("userId"),
-          processingStatusId: statusId,
+          adminId: parseInt(localStorage.getItem("userId")),
+          processingStatusId: parseInt(statusId),
         }),
       });
       if (!response.ok) {
@@ -141,13 +146,13 @@ const ReportsManagement = () => {
       setShowDetailModal(false);
       loadReports();
     } catch (error) {
+      console.error("Lỗi khi cập nhật trạng thái:", error, { reportId, statusId });
       toast.error("Lỗi khi cập nhật trạng thái: " + error.message);
     }
   };
 
   useEffect(() => {
     loadReports();
-    // Xử lý báo cáo mới từ state của useLocation
     if (location.state?.newReport) {
       toast.info(`Báo cáo mới từ ${location.state.newReport.reporterUsername}: ${location.state.newReport.reason}`);
     }
@@ -182,8 +187,9 @@ const ReportsManagement = () => {
           >
             <option value="">Tất cả</option>
             <option value="1">Đang chờ xử lý</option>
-            <option value="2">Đã duyệt</option>
-            <option value="3">Đã từ chối</option>
+            <option value="2">Đang xem xét</option>
+            <option value="3">Đã duyệt</option>
+            <option value="4">Đã từ chối</option>
           </select>
         </div>
 
@@ -222,11 +228,19 @@ const ReportsManagement = () => {
                             report.processingStatusId === 1
                                 ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-700 dark:text-yellow-200"
                                 : report.processingStatusId === 2
-                                    ? "bg-green-100 text-green-800 dark:bg-green-700 dark:text-green-200"
-                                    : "bg-red-100 text-red-800 dark:bg-red-700 dark:text-red-200"
+                                    ? "bg-blue-100 text-blue-800 dark:bg-blue-700 dark:text-blue-200"
+                                    : report.processingStatusId === 3
+                                        ? "bg-green-100 text-green-800 dark:bg-green-700 dark:text-green-200"
+                                        : "bg-red-100 text-red-800 dark:bg-red-700 dark:text-red-200"
                         }`}
                     >
-                      {report.processingStatusId === 1 ? "Đang chờ" : report.processingStatusId === 2 ? "Đã duyệt" : "Đã từ chối"}
+                      {report.processingStatusId === 1
+                          ? "Đang chờ"
+                          : report.processingStatusId === 2
+                              ? "Đang xem xét"
+                              : report.processingStatusId === 3
+                                  ? "Đã duyệt"
+                                  : "Đã từ chối"}
                     </span>
                       </td>
                       <td className="p-3 flex gap-2">
@@ -250,7 +264,6 @@ const ReportsManagement = () => {
             </div>
         )}
 
-        {/* Modal chi tiết báo cáo */}
         <div
             className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center transition-opacity duration-300 ${
                 showDetailModal ? "opacity-100" : "opacity-0 pointer-events-none"
@@ -308,13 +321,19 @@ const ReportsManagement = () => {
                 Đóng
               </button>
               <button
-                  onClick={() => handleUpdateStatus(selectedReport.id, 2)}
+                  onClick={() => handleUpdateStatus(selectedReport?.id, 2)}
+                  className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                Đang xem xét
+              </button>
+              <button
+                  onClick={() => handleUpdateStatus(selectedReport?.id, 3)}
                   className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500"
               >
                 Duyệt
               </button>
               <button
-                  onClick={() => handleUpdateStatus(selectedReport.id, 3)}
+                  onClick={() => handleUpdateStatus(selectedReport?.id, 4)}
                   className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500"
               >
                 Từ chối

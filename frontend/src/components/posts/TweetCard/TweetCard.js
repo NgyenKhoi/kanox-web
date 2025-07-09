@@ -245,7 +245,7 @@ function TweetCard({ tweet, onPostUpdate }) {
 
     try {
       setIsSubmittingReport(true);
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/reports`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/reports/create`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1133,7 +1133,7 @@ function TweetCard({ tweet, onPostUpdate }) {
         {/* Modal báo cáo */}
         {showReportModal && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-[var(--content-bg)] rounded-lg shadow-lg w-full max-w-md p-6 text-[var(--text-color)]">
+              <div className="bg-[var(--background-color)] rounded-lg shadow-lg w-full max-w-md p-6 text-[var(--text-color)]">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-bold">Báo cáo bài đăng</h3>
                   <button
