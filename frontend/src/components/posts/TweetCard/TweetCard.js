@@ -488,11 +488,11 @@ function TweetCard({ tweet, onPostUpdate }) {
                             alt="Ảnh người đăng"
                             className="position-absolute border border-white"
                             style={{
-                              width: 22,
-                              height: 22,
+                              width: 26,
+                              height: 26,
                               borderRadius: "50%",
-                              bottom: -2,
-                              right: -2,
+                              bottom: 0,
+                              right: 0,
                               objectFit: "cover",
                               cursor: "pointer",
                             }}

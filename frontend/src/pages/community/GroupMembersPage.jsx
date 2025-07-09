@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useContext } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
-import { Button, Spinner } from "react-bootstrap";
+import { Button, Spinner, Row, Col } from "react-bootstrap";
 import CommunitySidebarLeft from "../../components/community/CommunitySidebarLeft";
 import SidebarRight from "../../components/layout/SidebarRight/SidebarRight";
 
@@ -12,7 +12,6 @@ export default function GroupMembersPage() {
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
-    // SidebarLeft state
     const [viewMode, setViewMode] = useState("feed");
     const [isDarkMode, setIsDarkMode] = useState(localStorage.getItem("theme") === "dark");
 
@@ -24,7 +23,7 @@ export default function GroupMembersPage() {
     };
 
     const handleGroupCreated = () => {
-        fetchMembers(); // refresh members list if needed
+        fetchMembers();
     };
 
     useEffect(() => {
@@ -68,36 +67,21 @@ export default function GroupMembersPage() {
         }
     };
 
-    if (loading) return <div className="text-center py-5"><Spinner animation="border" /></div>;
+    if (loading)
+        return (
+            <div className="text-center py-5">
+                <Spinner animation="border" />
+            </div>
+        );
 
     return (
-        <div className="container-fluid p-0 min-vh-100 bg-[var(--background-color)] text-[var(--text-color)]">
-            <div className="row m-0">
-                {/* Sidebar Left */}
-                <div className="col-lg-3 d-none d-lg-block p-0">
-                    <div
-                        style={{
-                            position: "sticky",
-                            top: 0,
-                            height: "100vh",
-                            overflowY: "auto",
-                        }}
-                    >
-                        <CommunitySidebarLeft
-                            selectedView={viewMode}
-                            onSelectView={setViewMode}
-                            onGroupCreated={handleGroupCreated}
-                            onToggleDarkMode={handleToggleDarkMode}
-                            isDarkMode={isDarkMode}
-                        />
-                    </div>
-                </div>
-
-                {/* Center + Sidebar Right */}
-                <div className="col-lg-9 p-0">
-                    <div className="row m-0">
-                        {/* Center content */}
-                        <div className="col-lg-8 p-4 border-end">
+        <div className="min-vh-100 bg-white text-gray-800 dark:bg-gray-900 dark:text-white transition-colors duration-200">
+            <Row className="m-0">
+                {/* Main content */}
+                <Col xs={12} lg={9} className="p-0">
+                    <Row className="m-0">
+                        {/* Center */}
+                        <Col xs={12} lg={8} className="p-4 border-end">
                             <h2 className="text-xl font-bold mb-4">Danh sách thành viên</h2>
                             {members.length === 0 ? (
                                 <p>Không có thành viên nào.</p>
@@ -121,9 +105,13 @@ export default function GroupMembersPage() {
                                                     >
                                                         {member.displayName}
                                                         {member.isOwner && <span title="Chủ nhóm">👑</span>}
-                                                        {!member.isOwner && member.isAdmin && <span title="Quản trị viên">🛡️</span>}
+                                                        {!member.isOwner && member.isAdmin && (
+                                                            <span title="Quản trị viên">🛡️</span>
+                                                        )}
                                                     </p>
-                                                    <p className="m-0 text-sm text-gray-500">@{member.username}</p>
+                                                    <p className="m-0 text-sm text-gray-500 dark:text-gray-400">
+                                                        @{member.username}
+                                                    </p>
                                                 </div>
                                             </div>
 
@@ -140,14 +128,28 @@ export default function GroupMembersPage() {
                                     ))}
                                 </ul>
                             )}
-                        </div>
+                        </Col>
 
-                        {/* Sidebar Right */}
-                        <div className="col-lg-4 d-none d-lg-block p-0">
+                        {/* SidebarRight */}
+                        <Col xs={0} lg={4} className="d-none d-lg-block p-0 border-start">
                             <SidebarRight />
-                        </div>
-                    </div>
-                </div>
+                        </Col>
+                    </Row>
+                </Col>
+            </Row>
+
+            {/* SidebarLeft cố định ngoài cùng */}
+            <div
+                className="d-none d-lg-block"
+                style={{ position: "fixed", top: 0, bottom: 0, left: 0, width: "25%", zIndex: 1000 }}
+            >
+                <CommunitySidebarLeft
+                    selectedView={viewMode}
+                    onSelectView={setViewMode}
+                    onGroupCreated={handleGroupCreated}
+                    onToggleDarkMode={handleToggleDarkMode}
+                    isDarkMode={isDarkMode}
+                />
             </div>
         </div>
     );

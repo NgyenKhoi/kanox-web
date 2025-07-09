@@ -217,9 +217,9 @@ public class GroupService {
                     User user = m.getUser();
                     return new UserBasicDisplayDto(
                             user.getId(),
-                            mediaService.getAvatarUrlByUserId(user.getId()),
                             user.getDisplayName(),
-                            user.getUsername()
+                            user.getUsername(),
+                            mediaService.getAvatarUrlByUserId(user.getId())
                     );
                 })
                 .getContent();
@@ -360,7 +360,13 @@ public class GroupService {
         request.setJoinAt(Instant.now());
         request.setIsAdmin(false);
         request.setStatus(true);
-        request.setInviteStatus("REQUESTED");
+        if ("public".equalsIgnoreCase(group.getPrivacyLevel())) {
+            request.setInviteStatus("ACCEPTED");
+        } else if ("private".equalsIgnoreCase(group.getPrivacyLevel())) {
+            request.setInviteStatus("REQUESTED");
+        } else {
+            throw new UnauthorizedException("Bạn không thể tự tham gia nhóm này");
+        }
 
         groupMemberRepository.save(request);
     }

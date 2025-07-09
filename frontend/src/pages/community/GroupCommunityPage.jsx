@@ -1,21 +1,22 @@
 import React, { useEffect, useState, useContext } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Button, Dropdown } from "react-bootstrap";
+import { Button, Dropdown, Row, Col } from "react-bootstrap";
 import { AuthContext } from "../../context/AuthContext";
 import TweetCard from "../../components/posts/TweetCard/TweetCard";
 import CommunitySidebarLeft from "../../components/community/CommunitySidebarLeft";
-import SidebarRight from "../../components/layout/SidebarRight/SidebarRight"
+import SidebarRight from "../../components/layout/SidebarRight/SidebarRight";
 import TweetInput from "../../components/posts/TweetInput/TweetInput";
 import { toast } from "react-toastify";
 
 export default function GroupCommunityPage() {
     const { groupId } = useParams();
     const { user, token } = useContext(AuthContext);
+    const navigate = useNavigate();
+
     const [groupInfo, setGroupInfo] = useState(null);
     const [posts, setPosts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isMember, setIsMember] = useState(false);
-    const navigate = useNavigate();
     const [showInviteModal, setShowInviteModal] = useState(false);
 
     // SidebarLeft support
@@ -30,13 +31,12 @@ export default function GroupCommunityPage() {
     };
 
     const handleGroupCreated = () => {
-        fetchGroupDetail(); // refresh group info
+        fetchGroupDetail();
         toast.success("Tạo nhóm thành công");
     };
 
     useEffect(() => {
         if (!groupId || !token) return;
-
         const fetchGroupData = async () => {
             try {
                 await Promise.all([fetchGroupDetail(), fetchPostsByGroup()]);
@@ -46,7 +46,6 @@ export default function GroupCommunityPage() {
                 setLoading(false);
             }
         };
-
         fetchGroupData();
     }, [groupId, token]);
 
@@ -58,7 +57,7 @@ export default function GroupCommunityPage() {
             if (!res.ok) throw new Error("Không thể lấy thông tin nhóm.");
             const data = await res.json();
             setGroupInfo(data);
-            setIsMember(data.member  || false);
+            setIsMember(data.member || false);
         } catch (err) {
             console.error("Lỗi khi lấy thông tin nhóm:", err.message);
         }
@@ -90,7 +89,6 @@ export default function GroupCommunityPage() {
             setIsMember(true);
             toast.success("Tham gia nhóm thành công!");
         } catch (err) {
-            console.error("Lỗi khi tham gia nhóm:", err.message);
             toast.error(err.message);
         }
     };
@@ -108,67 +106,41 @@ export default function GroupCommunityPage() {
             setIsMember(false);
             toast.success("Rời nhóm thành công!");
         } catch (err) {
-            console.error("Lỗi khi rời nhóm:", err.message);
             toast.error(err.message);
         }
     };
 
     if (loading) return <div className="text-center py-4">Đang tải...</div>;
     if (!groupInfo) return <div className="text-center py-4">Không tìm thấy nhóm.</div>;
+    const canViewContent = isMember || groupInfo.privacyLevel === "public";
 
     return (
-        <div className="container-fluid p-0 min-vh-100 bg-[var(--background-color)] text-[var(--text-color)]">
-            <div className="row m-0">
-                {/* Sidebar Left */}
-                <div className="col-lg-3 d-none d-lg-block p-0">
-                    <div
-                        style={{
-                            position: "sticky",
-                            top: 0,
-                            height: "100vh",
-                            overflowY: "auto",
-                        }}
-                    >
-                        <CommunitySidebarLeft
-                            selectedView={viewMode}
-                            onSelectView={setViewMode}
-                            onToggleDarkMode={handleToggleDarkMode}
-                            isDarkMode={isDarkMode}
-                            onGroupCreated={handleGroupCreated}
-                        />
-                    </div>
-                </div>
+        <div className="min-vh-100 bg-white text-gray-800 dark:bg-gray-900 dark:text-white transition-colors duration-200">
+            <Row className="m-0">
+                {/* Nội dung chính và SidebarRight */}
+                <Col xs={12} lg={9} className="p-0">
+                    <Row className="m-0">
+                        {/* Trung tâm */}
+                        <Col xs={12} lg={8} className="p-0 border-end">
+                            <img
+                                src={groupInfo.avatarUrl || "https://via.placeholder.com/1200x300"}
+                                alt="Banner"
+                                className="w-full h-[250px] object-cover"
+                            />
 
-                {/* Main Content and Sidebar Right */}
-                <div className="col-lg-9 p-0">
-                    <div className="row m-0">
-                        {/* Center Column */}
-                        <div className="col-lg-8 p-0 border-end">
-                            {/* Banner */}
-                            <div className="w-full">
-                                <img
-                                    src={groupInfo.avatarUrl || "https://via.placeholder.com/1200x300"}
-                                    alt="Group banner"
-                                    className="w-full h-[250px] object-cover"
-                                />
-                            </div>
-
-                            {/* Group Info */}
                             <div className="px-4 py-3 border-bottom">
                                 <h1 className="text-2xl font-bold">{groupInfo.name}</h1>
-                                <p className="text-sm text-gray-500">{groupInfo.description}</p>
-                                <p className="text-sm text-gray-500">
+                                <p className="text-sm text-gray-500 dark:text-gray-400">{groupInfo.description}</p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">
                                     Ngày tạo: {new Date(groupInfo.createdAt).toLocaleDateString()}
                                 </p>
-                                <p className="text-sm text-gray-500">
+                                <p className="text-sm text-gray-500 dark:text-gray-400">
                                     {groupInfo.memberCount || 0} thành viên
                                 </p>
                                 {groupInfo.friendInGroup && (
                                     <p
                                         className="text-sm text-blue-600 hover:underline cursor-pointer"
-                                        onClick={() =>
-                                            navigate(`/profile/${groupInfo.friendInGroup.username}`)
-                                        }
+                                        onClick={() => navigate(`/profile/${groupInfo.friendInGroup.username}`)}
                                     >
                                         {groupInfo.friendInGroup.displayName ||
                                             groupInfo.friendInGroup.username}{" "}
@@ -176,20 +148,29 @@ export default function GroupCommunityPage() {
                                     </p>
                                 )}
 
-                                {/* Action Buttons */}
                                 <div className="mt-2 flex gap-2 flex-wrap">
                                     {groupInfo.inviteStatus === "PENDING" && (
-                                        <p className="text-sm text-warning">Đang chờ duyệt vào nhóm</p>
+                                        <p className="text-sm text-yellow-500">Đang chờ duyệt vào nhóm</p>
                                     )}
                                     {!isMember &&
                                         !groupInfo.isOwner &&
                                         !groupInfo.isAdmin &&
-                                        groupInfo.inviteStatus !== "PENDING" &&
-                                        (groupInfo.privacyLevel === "private" ||
-                                            groupInfo.privacyLevel === "hidden") && (
-                                            <Button variant="primary" size="sm" onClick={handleJoinGroup}>
-                                                Yêu cầu tham gia
-                                            </Button>
+                                        groupInfo.inviteStatus !== "PENDING" && (
+                                            <>
+                                                {groupInfo.privacyLevel === "public" && (
+                                                    <Button variant="primary" size="sm" onClick={handleJoinGroup}>
+                                                        Tham gia nhóm
+                                                    </Button>
+                                                )}
+                                                {groupInfo.privacyLevel === "private" && (
+                                                    <Button variant="primary" size="sm" onClick={handleJoinGroup}>
+                                                        Yêu cầu tham gia
+                                                    </Button>
+                                                )}
+                                                {groupInfo.privacyLevel === "hidden" && (
+                                                    <p className="text-sm text-muted">Bạn cần được mời để tham gia nhóm này.</p>
+                                                )}
+                                            </>
                                         )}
                                     {isMember && (
                                         <Button variant="outline-danger" size="sm" onClick={handleLeaveGroup}>
@@ -197,50 +178,34 @@ export default function GroupCommunityPage() {
                                         </Button>
                                     )}
                                     {(groupInfo.isAdmin || groupInfo.isOwner) && (
-                                        <Button
-                                            variant="primary"
-                                            size="sm"
-                                            onClick={() => setShowInviteModal(true)}
-                                        >
+                                        <Button variant="primary" size="sm" onClick={() => setShowInviteModal(true)}>
                                             Mời thành viên
                                         </Button>
                                     )}
                                 </div>
                             </div>
 
-                            {/* Dropdown + Post Input + Posts */}
                             <div className="px-4 pt-3 pb-4">
                                 <Dropdown align="end">
                                     <Dropdown.Toggle variant="light" className="border px-2">
                                         ⋯
                                     </Dropdown.Toggle>
                                     <Dropdown.Menu>
-                                        <Dropdown.Item onClick={() => alert("Báo cáo nhóm")}>
-                                            Báo cáo nhóm
-                                        </Dropdown.Item>
-                                        <Dropdown.Item
-                                            onClick={() => navigate(`/my-group-posts/${groupId}`)}
-                                        >
+                                        <Dropdown.Item onClick={() => alert("Báo cáo nhóm")}>Báo cáo nhóm</Dropdown.Item>
+                                        <Dropdown.Item onClick={() => navigate(`/my-group-posts/${groupId}`)}>
                                             Bài đăng của tôi
                                         </Dropdown.Item>
-                                        <Dropdown.Item
-                                            onClick={() => navigate(`/groups/${groupId}/members`)}
-                                        >
+                                        <Dropdown.Item onClick={() => navigate(`/groups/${groupId}/members`)}>
                                             Xem danh sách thành viên
                                         </Dropdown.Item>
                                         {(groupInfo.isAdmin || groupInfo.isOwner) && (
                                             <>
                                                 <Dropdown.Divider />
-                                                <Dropdown.Item
-                                                    className="text-danger"
-                                                    onClick={() => alert("Xóa nhóm")}
-                                                >
+                                                <Dropdown.Item className="text-danger" onClick={() => alert("Xóa nhóm")}>
                                                     Xóa nhóm
                                                 </Dropdown.Item>
                                                 <Dropdown.Item
-                                                    onClick={() =>
-                                                        navigate(`/groups/${groupId}/manage-admins`)
-                                                    }
+                                                    onClick={() => navigate(`/groups/${groupId}/manage-admins`)}
                                                 >
                                                     Trao quyền quản trị viên
                                                 </Dropdown.Item>
@@ -249,38 +214,44 @@ export default function GroupCommunityPage() {
                                     </Dropdown.Menu>
                                 </Dropdown>
 
-                                {/* Post input */}
-                                {isMember && (
-                                    <div className="mt-4">
-                                        <TweetInput onPostSuccess={fetchPostsByGroup} groupId={groupId} />
-                                    </div>
-                                )}
+                                {canViewContent ? (
+                                    <>
+                                        {isMember && (
+                                            <div className="mt-4">
+                                                <TweetInput onPostSuccess={fetchPostsByGroup} groupId={groupId} />
+                                            </div>
+                                        )}
 
-                                {/* Post list */}
-                                <div className="space-y-4 mt-4">
-                                    {posts.length > 0 ? (
-                                        posts.map((post) => (
-                                            <TweetCard
-                                                key={post.id}
-                                                tweet={post}
-                                                onPostUpdate={fetchPostsByGroup}
-                                                savedPosts={posts.filter((p) => p.isSaved)}
-                                            />
-                                        ))
-                                    ) : (
-                                        <p>Chưa có bài đăng nào trong nhóm này.</p>
-                                    )}
-                                </div>
+                                        <div className="space-y-4 mt-4">
+                                            {posts.length > 0 ? (
+                                                posts.map((post) => (
+                                                    <TweetCard
+                                                        key={post.id}
+                                                        tweet={post}
+                                                        onPostUpdate={fetchPostsByGroup}
+                                                        savedPosts={posts.filter((p) => p.isSaved)}
+                                                    />
+                                                ))
+                                            ) : (
+                                                <p className="text-muted">Chưa có bài đăng nào trong nhóm này.</p>
+                                            )}
+                                        </div>
+                                    </>
+                                ) : (
+                                    <p className="text-muted mt-4">
+                                        Đây là nhóm <strong>{groupInfo.privacyLevel}</strong>. Bạn cần tham gia để xem nội dung.
+                                    </p>
+                                )}
                             </div>
-                        </div>
+                        </Col>
 
                         {/* Sidebar Right */}
-                        <div className="col-lg-4 d-none d-lg-block p-0">
+                        <Col xs={0} lg={4} className="d-none d-lg-block p-0 border-start">
                             <SidebarRight />
-                        </div>
-                    </div>
-                </div>
-            </div>
+                        </Col>
+                    </Row>
+                </Col>
+            </Row>
         </div>
     );
 }
