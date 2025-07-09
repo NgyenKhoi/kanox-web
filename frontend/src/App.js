@@ -155,8 +155,15 @@ function AppContent() {
     subscriptions.push(
         subscribe(`/topic/notifications/${user.id}`, (notification) => {
           console.log("Received notification:", notification);
-          toast.info(notification.message);
-          // Cập nhật danh sách thông báo nếu cần
+          toast.info(notification.message, {
+            onClick: () => {
+              if (notification.targetType === "GROUP") {
+                navigate(`/community/${notification.targetId}`);
+              } else if (notification.username && notification.username !== "unknown") {
+                navigate(`/profile/${notification.username}`);
+              }
+            },
+          });
           setNotifications((prev) => [notification, ...prev]);
         }, `notifications-${user.id}`)
     );

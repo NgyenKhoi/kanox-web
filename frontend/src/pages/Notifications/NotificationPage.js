@@ -9,11 +9,11 @@ import { useNavigate } from "react-router-dom";
 import NotificationItem from "./NotificationItem";
 
 function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
-  const { user } = useContext(AuthContext);
-  const navigate = useNavigate();
-  const [notifications, setNotifications] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const { subscribe, unsubscribe } = useContext(WebSocketContext);
+    const { user } = useContext(AuthContext);
+    const navigate = useNavigate();
+    const [notifications, setNotifications] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const { subscribe, unsubscribe } = useContext(WebSocketContext);
 
     const fetchNotifications = async () => {
         setLoading(true);
@@ -47,7 +47,7 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
                     id: notif.id,
                     type: notif.type,
                     userId: notif.userId || null,
-                    displayName: notif.displayName || "Người dùng",
+                    displayName: notif.targetType === "GROUP" ? notif.groupName || "Nhóm" : notif.displayName || "Người dùng",
                     username: notif.username || "unknown",
                     message: notif.message,
                     tags: notif.tags || [],
@@ -78,111 +78,119 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
         // Đăng ký WebSocket để nhận thông báo real-time
         if (!user || !subscribe || !unsubscribe) return;
 
-        const subscription = subscribe(`/topic/notifications/${user.id}`, (notification) => {
-            console.log("Received notification:", notification);
-            toast.info(notification.message);
-            setNotifications((prev) => [
-                {
-                    id: notification.id,
-                    type: notification.type,
-                    userId: user.id,
-                    displayName: notification.displayName || "Người dùng",
-                    username: notification.username || "unknown",
-                    message: notification.message,
-                    tags: notification.tags || [],
-                    timestamp: notification.createdAt,
-                    isRead: notification.status === "read",
-                    image: notification.image || null,
-                    targetId: notification.targetId || user.id,
-                },
-                ...prev,
-            ]);
-        }, `notifications-${user.id}`);
+        const subscription = subscribe(
+            `/topic/notifications/${user.id}`,
+            (notification) => {
+                console.log("Received notification:", notification);
+                toast.info(notification.message);
+
+                setNotifications((prev) => [
+                    {
+                        id: notification.id,
+                        type: notification.type,
+                        userId: user.id,
+                        displayName: notification.targetType === "GROUP"
+                            ? notification.groupName || "Nhóm"
+                            : notification.displayName || "Người dùng",
+                        username: notification.username || "unknown",
+                        message: notification.message,
+                        tags: notification.tags || [],
+                        timestamp: notification.createdAt,
+                        isRead: notification.status === "read",
+                        image: notification.image || null,
+                        targetId: notification.targetId || user.id,
+                        targetType: notification.targetType || "PROFILE", // <- Quan trọng
+                    },
+                    ...prev,
+                ]);
+            },
+            `notifications-${user.id}`
+        );
 
         return () => {
             if (subscription) unsubscribe(`notifications-${user.id}`);
         };
     }, [user, subscribe, unsubscribe]);
 
-  const handleMarkRead = async (id, username = null) => {
-    const token =
-        sessionStorage.getItem("token") || localStorage.getItem("token");
-    if (!token) {
-      toast.error("Không tìm thấy token!");
-      return;
-    }
+    const handleMarkRead = async (id, username = null) => {
+        const token =
+            sessionStorage.getItem("token") || localStorage.getItem("token");
+        if (!token) {
+            toast.error("Không tìm thấy token!");
+            return;
+        }
 
-    try {
-      const response = await fetch(
-          `${process.env.REACT_APP_API_URL}/notifications/${id}/mark-read`,
-          {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-              Accept: "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-          }
-      );
+        try {
+            const response = await fetch(
+                `${process.env.REACT_APP_API_URL}/notifications/${id}/mark-read`,
+                {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Accept: "application/json",
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || "Không thể đánh dấu đã đọc!");
-      }
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || "Không thể đánh dấu đã đọc!");
+            }
 
-      setNotifications((prev) =>
-          prev.map((notif) =>
-              notif.id === id ? { ...notif, isRead: true } : notif
-          )
-      );
+            setNotifications((prev) =>
+                prev.map((notif) =>
+                    notif.id === id ? { ...notif, isRead: true } : notif
+                )
+            );
 
-      if (username && username !== "unknown") {
-        navigate(`/profile/${username}`);
-      }
-    } catch (error) {
-      console.error("Lỗi khi đánh dấu đã đọc:", error);
-      toast.error(error.message || "Không thể đánh dấu đã đọc!");
-    }
-  };
+            if (username && username !== "unknown") {
+                navigate(`/profile/${username}`);
+            }
+        } catch (error) {
+            console.error("Lỗi khi đánh dấu đã đọc:", error);
+            toast.error(error.message || "Không thể đánh dấu đã đọc!");
+        }
+    };
 
-  const handleMarkUnread = async (id) => {
-    const token =
-        sessionStorage.getItem("token") || localStorage.getItem("token");
-    if (!token) {
-      toast.error("Không tìm thấy token!");
-      return;
-    }
+    const handleMarkUnread = async (id) => {
+        const token =
+            sessionStorage.getItem("token") || localStorage.getItem("token");
+        if (!token) {
+            toast.error("Không tìm thấy token!");
+            return;
+        }
 
-    try {
-      const response = await fetch(
-          `${process.env.REACT_APP_API_URL}/notifications/${id}/mark-unread`,
-          {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-              Accept: "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-          }
-      );
+        try {
+            const response = await fetch(
+                `${process.env.REACT_APP_API_URL}/notifications/${id}/mark-unread`,
+                {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Accept: "application/json",
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || "Không thể đánh dấu chưa đọc!");
-      }
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || "Không thể đánh dấu chưa đọc!");
+            }
 
-      setNotifications((prev) =>
-          prev.map((notif) =>
-              notif.id === id ? { ...notif, isRead: false } : notif
-          )
-      );
+            setNotifications((prev) =>
+                prev.map((notif) =>
+                    notif.id === id ? { ...notif, isRead: false } : notif
+                )
+            );
 
-      toast.success("Đã đánh dấu chưa đọc!");
-    } catch (error) {
-      console.error("Lỗi khi đánh dấu chưa đọc:", error);
-      toast.error(error.message || "Không thể đánh dấu chưa đọc!");
-    }
-  };
+            toast.success("Đã đánh dấu chưa đọc!");
+        } catch (error) {
+            console.error("Lỗi khi đánh dấu chưa đọc:", error);
+            toast.error(error.message || "Không thể đánh dấu chưa đọc!");
+        }
+    };
 
     const renderNotificationContent = () => {
         if (loading) {

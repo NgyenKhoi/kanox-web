@@ -1,11 +1,13 @@
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext, useMemo } from "react";
 import { AuthContext } from "../context/AuthContext";
 import { toast } from "react-toastify";
 
+const mediaCache = new Map();
+
 const useSingleMedia = (
-  targetId,
-  targetTypeCode = "PROFILE",
-  mediaTypeName = "image"
+    targetId,
+    targetTypeCode = "PROFILE",
+    mediaTypeName = "image"
 ) => {
   const [mediaUrl, setMediaUrl] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -16,6 +18,12 @@ const useSingleMedia = (
   useEffect(() => {
     if (!targetId || !token) {
       setMediaUrl(null);
+      return;
+    }
+
+    const cacheKey = `${targetId}-${targetTypeCode}-${mediaTypeName}`;
+    if (mediaCache.has(cacheKey)) {
+      setMediaUrl(mediaCache.get(cacheKey));
       return;
     }
 
@@ -56,6 +64,7 @@ const useSingleMedia = (
         if (isMounted) {
           const firstUrl = data?.[0]?.url || null;
           setMediaUrl(firstUrl);
+          mediaCache.set(cacheKey, firstUrl);
         }
       } catch (err) {
         if (err.name !== "AbortError" && isMounted) {

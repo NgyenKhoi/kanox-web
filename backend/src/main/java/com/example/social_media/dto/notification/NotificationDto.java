@@ -12,12 +12,13 @@ public class NotificationDto {
     private String username;
     private Instant createdAt;
     private String status;
+    private String image;
 
     public NotificationDto() {
     }
 
     public NotificationDto(Integer id, String message, String type, Integer targetId, String targetType,
-            String displayName, String username, Instant createdAt, String status) {
+            String displayName, String username, Instant createdAt, String status, String image) {
         this.id = id;
         this.message = message;
         this.type = type;
@@ -27,6 +28,7 @@ public class NotificationDto {
         this.username = username;
         this.createdAt = createdAt;
         this.status = status;
+        this.image = image;
     }
 
     public Integer getId() {
@@ -99,5 +101,13 @@ public class NotificationDto {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public String getImage() {
+        return image;
+    }
+
+    public void setImage(String image) {
+        this.image = image;
     }
 }
