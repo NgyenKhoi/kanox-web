@@ -415,6 +415,8 @@ function AppContent() {
                     element={
                       <PrivateRoute>
                         <GroupMembersWrapper />
+                        <GroupMembersPage />
+                      </GroupMembersWrapper>
                       </PrivateRoute>
                     }
                 />

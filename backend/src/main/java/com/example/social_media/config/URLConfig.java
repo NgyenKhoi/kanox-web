@@ -108,7 +108,7 @@ public class URLConfig {
     // Group URLs
     public static final String GROUP_BASE = "/api/groups";
     public static final String CREATE_GROUP ="/create";
-    public static final String ADD_MEMBER = "/{groupId}/add";
+    public static final String ADD_MEMBER = "/{groupId}/join";
     public static final String REMOVE_MEMBER = "/{groupId}/remove";
     public static final String ASSIGN_ADMIN ="/{groupId}/assign-admin";
     public static final String GET_MEMBER ="/{groupId}/members";

@@ -82,14 +82,33 @@ export default function GroupCommunityPage() {
 
     const handleJoinGroup = async () => {
         try {
-            const res = await fetch(`${process.env.REACT_APP_API_URL}/groups/${groupId}/join?username=${user.username}`, {
-                method: "POST",
-                headers: { Authorization: `Bearer ${token}` },
-            });
+            let res;
+
+            if (groupInfo.privacyLevel === "public") {
+                res = await fetch(`${process.env.REACT_APP_API_URL}/groups/${groupId}/join`, {
+                    method: "POST",
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ userId: user.id }), // hoặc username nếu backend dùng username
+                });
+            } else if (groupInfo.privacyLevel === "private") {
+                res = await fetch(`${process.env.REACT_APP_API_URL}/groups/${groupId}/request-join`, {
+                    method: "POST",
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ userId: user.id }),
+                });
+            }
+
             if (!res.ok) {
                 const errorData = await res.json();
                 throw new Error(errorData.message || "Không thể tham gia nhóm.");
             }
+
             if (groupInfo.privacyLevel === "public") {
                 setIsMember(true);
                 toast.success("Tham gia nhóm thành công!");
@@ -101,7 +120,6 @@ export default function GroupCommunityPage() {
             toast.error(err.message);
         }
     };
-
     const handleLeaveGroup = async () => {
         try {
             const res = await fetch(`${process.env.REACT_APP_API_URL}/groups/${groupId}/leave`, {
