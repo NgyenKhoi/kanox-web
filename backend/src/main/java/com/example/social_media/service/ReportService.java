@@ -74,10 +74,7 @@ public class ReportService {
                     request.getReporterId(),
                     request.getTargetId(),
                     request.getTargetTypeId(),
-                    request.getReasonId(),
-                    1,
-                    true,
-                    null
+                    request.getReasonId()
             );
 
             Report report = reportRepository.findById(reportId)
@@ -196,7 +193,7 @@ public class ReportService {
     public void deleteReport(Integer reportId) {
         Report report = reportRepository.findById(reportId)
                 .orElseThrow(() -> new IllegalArgumentException("Report not found with id: " + reportId));
-        ReportStatus status = reportStatusRepository.findById(4) // Sửa từ 3 thành 4 (Rejected)
+        ReportStatus status = reportStatusRepository.findById(4)
                 .orElseThrow(() -> new IllegalArgumentException("Report status not found with id: 4"));
 
         try {
@@ -211,8 +208,8 @@ public class ReportService {
             history.setStatus(true);
             reportHistoryRepository.save(history);
 
-            report.setStatus(false); // Cập nhật xóa mềm
-            reportRepository.save(report); // Lưu trạng thái trước khi xóa
+            report.setStatus(false);
+            reportRepository.save(report);
             reportRepository.delete(report);
         } catch (Exception e) {
             throw new RuntimeException("Failed to delete report: " + e.getMessage());

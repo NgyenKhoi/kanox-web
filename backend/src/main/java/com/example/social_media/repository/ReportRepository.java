@@ -13,15 +13,12 @@ import java.util.Optional;
 
 public interface ReportRepository extends JpaRepository<Report, Integer> {
 
-    @Procedure(procedureName = "sp_AddReport")
+    @Procedure(procedureName = "sp_AddReport", outputParameterName = "report_id")
     Integer addReport(
             @Param("reporter_id") Integer reporterId,
             @Param("target_id") Integer targetId,
             @Param("target_type_id") Integer targetTypeId,
-            @Param("reason_id") Integer reasonId,
-            @Param("processing_status_id") Integer processingStatusId,
-            @Param("status") Boolean status,
-            @Param("report_id") Integer reportId
+            @Param("reason_id") Integer reasonId
     );
 
     @Procedure(procedureName = "sp_GetReports")
