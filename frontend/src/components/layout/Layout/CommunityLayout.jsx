@@ -1,7 +1,7 @@
 import React from "react";
 import { Row, Col } from "react-bootstrap";
 import { useLocation } from "react-router-dom";
-import CommunitySidebarLeft from "../../components/community/CommunitySidebarLeft";
+import CommunitySidebarLeft from "../../community/CommunitySidebarLeft";
 
 export default function CommunityLayout({
                                             children,
