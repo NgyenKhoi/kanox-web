@@ -9,17 +9,19 @@ import org.springframework.data.jpa.repository.query.Procedure;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface ReportRepository extends JpaRepository<Report, Integer> {
 
     @Procedure(procedureName = "sp_AddReport")
-    void addReport(
+    Integer addReport(
             @Param("reporter_id") Integer reporterId,
             @Param("target_id") Integer targetId,
             @Param("target_type_id") Integer targetTypeId,
             @Param("reason_id") Integer reasonId,
             @Param("processing_status_id") Integer processingStatusId,
-            @Param("status") Boolean status
+            @Param("status") Boolean status,
+            @Param("report_id") Integer reportId
     );
 
     @Procedure(procedureName = "sp_GetReports")
@@ -33,4 +35,5 @@ public interface ReportRepository extends JpaRepository<Report, Integer> {
     );
 
     Page<Report> findByStatus(Boolean status, Pageable pageable);
+    Optional<Report> findTopByOrderByIdDesc();
 }

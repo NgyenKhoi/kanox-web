@@ -5,8 +5,11 @@ import com.example.social_media.dto.notification.NotificationDto;
 import com.example.social_media.dto.report.UpdateReportStatusRequestDto;
 import com.example.social_media.entity.Notification;
 import com.example.social_media.entity.Report;
+import com.example.social_media.entity.ReportHistory;
 import com.example.social_media.entity.User;
 import com.example.social_media.exception.UserNotFoundException;
+import com.example.social_media.repository.ReportHistoryRepository;
+import com.example.social_media.repository.ReportRepository;
 import com.example.social_media.service.CustomUserDetailsService;
 import com.example.social_media.service.NotificationService;
 import com.example.social_media.service.ReportService;
@@ -20,6 +23,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -31,17 +35,23 @@ public class AdminController {
     private final NotificationService notificationService;
     private final CustomUserDetailsService customUserDetailsService;
     private final ReportService reportService;
+    private final ReportRepository reportRepository;
+    private final ReportHistoryRepository reportHistoryRepository;
 
     public AdminController(
             UserService userService,
             NotificationService notificationService,
             CustomUserDetailsService customUserDetailsService,
-            ReportService reportService
+            ReportService reportService,
+            ReportRepository reportRepository,
+            ReportHistoryRepository reportHistoryRepository
     ) {
         this.userService = userService;
         this.notificationService = notificationService;
         this.customUserDetailsService = customUserDetailsService;
         this.reportService = reportService;
+        this.reportRepository = reportRepository;
+        this.reportHistoryRepository = reportHistoryRepository;
     }
 
     // === QUẢN LÝ NGƯỜI DÙNG ===
@@ -186,6 +196,44 @@ public class AdminController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("message", "Error updating report status", "error", e.getMessage()));
+        }
+    }
+
+    @GetMapping(URLConfig.MANAGE_REPORT_BY_ID)
+    public ResponseEntity<?> getReportById(@PathVariable Integer reportId) {
+        try {
+            Report report = reportService.getReportById(reportId);
+            return ResponseEntity.ok(Map.of("message", "Report retrieved successfully", "data", report));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("message", "Report not found", "error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Error retrieving report", "error", e.getMessage()));
+        }
+    }
+    // AdminController.java
+    @DeleteMapping(URLConfig.MANAGE_REPORT_BY_ID)
+    public ResponseEntity<?> deleteReport(@PathVariable Integer reportId) {
+        try {
+            reportService.deleteReport(reportId);
+            return ResponseEntity.ok(Map.of("message", "Report deleted successfully"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("message", "Report not found", "error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Error deleting report", "error", e.getMessage()));
+        }
+    }
+
+    @GetMapping(URLConfig.GET_REPORT_HISTORY)
+    public ResponseEntity<List<ReportHistory>> getReportHistory(@PathVariable Integer reportId) {
+        try {
+            List<ReportHistory> history = reportHistoryRepository.findByReportId(reportId);
+            return ResponseEntity.ok(history);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(null);
         }
     }
 }

@@ -4,7 +4,22 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c6c17ae2-c6cb-4c94-a6b8-91c54839fa5e" name="Changes" comment="" />
+    <list default="true" id="c6c17ae2-c6cb-4c94-a6b8-91c54839fa5e" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/config/URLConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/config/URLConfig.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/controller/AdminController.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/controller/AdminController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/controller/ReportController.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/controller/ReportController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/repository/ReportRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/repository/ReportRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/service/ReportService.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/service/ReportService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../backend/target/maven-status/maven-compiler-plugin/compile/default-compile/inputFiles.lst" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/target/maven-status/maven-compiler-plugin/compile/default-compile/inputFiles.lst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../backend/target/maven-status/maven-compiler-plugin/testCompile/default-testCompile/inputFiles.lst" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/target/maven-status/maven-compiler-plugin/testCompile/default-testCompile/inputFiles.lst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/App.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/App.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/admin/ReportsManagement.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/admin/ReportsManagement.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/posts/TweetCard/TweetCard.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/posts/TweetCard/TweetCard.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/pages/Notifications/NotificationPage.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/pages/Notifications/NotificationPage.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/pages/admin/adminpage.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/pages/admin/adminpage.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/pages/profile/ProfilePage.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/pages/profile/ProfilePage.jsx" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -140,6 +155,7 @@
       <workItem from="1751910147862" duration="3411000" />
       <workItem from="1751963645612" duration="827000" />
       <workItem from="1751982917742" duration="8840000" />
+      <workItem from="1752036987533" duration="13465000" />
     </task>
     <servers />
   </component>

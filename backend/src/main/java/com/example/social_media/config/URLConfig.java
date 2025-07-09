@@ -122,6 +122,7 @@ public class URLConfig {
     public static final String GET_JOIN_REQUESTS = "/{groupId}/join-requests";
     public static final String GET_GROUP_DETAIL = "/{groupId}/detail";
 
+
     //Admin urls
     public static final String ADMIN_BASE = "/api/admin";
     public static final String GET_ALL_USER = "/users";
@@ -131,9 +132,11 @@ public class URLConfig {
     //Admin report urls
     public static final String GET_REPORTS = "/list";
     public static final String UPDATE_REPORT_STATUS = "/{reportId}/status";
-
+    public static final String MANAGE_REPORT_BY_ID = "/{reportId}";
+    public static final String GET_REPORT_HISTORY = "/{reportId}/history";
     // Report URLs
     public static final String REPORT_BASE = "/api/reports";
     public static final String CREATE_REPORT = "/create";
+    public static final String REPORT_REASON = "report-reasons";
 
 }

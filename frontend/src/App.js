@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useContext } from "react";
 import { Container, Row, Col, Spinner, Modal, Button, Image } from "react-bootstrap";
-import { ToastContainer } from "react-toastify";
+import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "./App.css";
+import moment from "moment";
 import PrivateRoute from "./components/common/PrivateRoute/PrivateRoute";
 
 import SidebarLeft from "./components/layout/SidebarLeft/SidebarLeft";
@@ -45,6 +46,9 @@ function AppContent() {
   const navigate = useNavigate();
   const [showCreatePost, setShowCreatePost] = useState(false);
   const location = useLocation();
+  const [showReportNotification, setShowReportNotification] = useState(false);
+  const [newReport, setNewReport] = useState(null);
+  const [notifications, setNotifications] = useState([]);
 
   const handleCallStatus = (status) => {
     setIsInCall(status);
@@ -92,9 +96,10 @@ function AppContent() {
     fetchChatIdsAndMembers();
   }, [user, token]);
 
+
   useEffect(() => {
-    if (!subscribe || !unsubscribe || !publish || !chatIds.length) {
-      console.log("Skipping subscriptions: Missing WebSocket context or chatIds");
+    if (!subscribe || !unsubscribe || !publish || !user || !token) {
+      console.log("Skipping subscriptions: Missing WebSocket context or user data");
       return;
     }
 
@@ -135,6 +140,24 @@ function AppContent() {
           }, `call-${chatId}`)
       );
     });
+
+    if (user.isAdmin) {
+      subscriptions.push(
+          subscribe("/topic/admin/reports", (message) => {
+            console.log("Received new report notification:", message);
+            setNewReport(message);
+            setShowReportNotification(true);
+          }, "admin-reports")
+      );
+    }
+    subscriptions.push(
+        subscribe(`/topic/notifications/${user.id}`, (notification) => {
+          console.log("Received notification:", notification);
+          toast.info(notification.message);
+          // Cập nhật danh sách thông báo nếu cần
+          setNotifications((prev) => [notification, ...prev]);
+        }, `notifications-${user.id}`)
+    );
 
     const handleIncomingCall = (event) => {
       const {chatId, sessionId, from, to} = event.detail;
@@ -195,6 +218,9 @@ function AppContent() {
     }
     setIncomingCall(null);
   };
+
+
+
 
   return (
       <>
@@ -468,6 +494,47 @@ function AppContent() {
                   </Button>
                   <Button variant="primary" onClick={acceptCall}>
                     Chấp nhận
+                  </Button>
+                </Modal.Footer>
+              </Modal>
+
+              <Modal
+                  show={showReportNotification}
+                  onHide={() => setShowReportNotification(false)}
+                  centered
+                  className="bg-[var(--background-color)] text-[var(--text-color)]"
+              >
+                <Modal.Header closeButton>
+                  <Modal.Title>Báo cáo mới</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                  {newReport ? (
+                      <div>
+                        <p><strong>Báo cáo từ:</strong> {newReport.reporterUsername || "Người dùng ẩn danh"}</p>
+                        <p><strong>Loại:</strong> {newReport.reportType || "Không xác định"}</p>
+                        <p><strong>ID mục tiêu:</strong> {newReport.targetId}</p>
+                        <p><strong>Lý do:</strong> {newReport.reason || "Không có lý do"}</p>
+                        <p><strong>Thời gian:</strong> {moment(newReport.createdAt * 1000).fromNow()}</p>
+                      </div>
+                  ) : (
+                      <p>Không có thông tin báo cáo.</p>
+                  )}
+                </Modal.Body>
+                <Modal.Footer>
+                  <Button
+                      variant="secondary"
+                      onClick={() => setShowReportNotification(false)}
+                  >
+                    Đóng
+                  </Button>
+                  <Button
+                      variant="primary"
+                      onClick={() => {
+                        setShowReportNotification(false);
+                        navigate("/admin", { state: { newReport } }); // Truyền newReport qua state
+                      }}
+                  >
+                    Xem chi tiết
                   </Button>
                 </Modal.Footer>
               </Modal>

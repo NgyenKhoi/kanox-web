@@ -2412,7 +2412,8 @@ WHERE definition LIKE '%friendship%';
 		@target_type_id INT,
 		@reason_id INT,
 		@processing_status_id INT = 1,
-		@status BIT = 1
+		@status BIT = 1,
+		@report_id INT OUTPUT
 	AS
 	BEGIN
 		SET NOCOUNT ON;
@@ -2421,7 +2422,7 @@ WHERE definition LIKE '%friendship%';
 			BEGIN TRANSACTION;
 
 			-- Kiểm tra giới hạn báo cáo
-        DECLARE @max_reports_per_day INT = 10;
+        DECLARE @max_reports_per_day INT = 5;
         DECLARE @report_count INT;
         DECLARE @last_reset DATETIME;
 
@@ -2538,7 +2539,7 @@ WHERE definition LIKE '%friendship%';
 			INSERT INTO tblReport (reporter_id, target_id, target_type_id, reason_id, processing_status_id, report_time, status)
 			VALUES (@reporter_id, @target_id, @target_type_id, @reason_id, @processing_status_id, GETDATE(), @status);
 
-			DECLARE @report_id INT = SCOPE_IDENTITY();
+			SET @report_id = SCOPE_IDENTITY();
 
 			-- Log activity
 			DECLARE @action_type_id INT;
@@ -2985,7 +2986,7 @@ WHERE definition LIKE '%friendship%';
         )
             SET @has_access = 0;
     END;
-
+	select * from tblUser
     CREATE TABLE tblErrorLog (
         id INT PRIMARY KEY IDENTITY(1, 1),
         error_message NVARCHAR(4000),
@@ -3058,7 +3059,8 @@ WHERE definition LIKE '%friendship%';
     ('REACTION', 'Someone reacted to your content', 1),
 	('FRIEND_ACCEPTED', 'accepted friend request', 1),
 	('FOLLOW', 'Someone followed you', 1),
-	('GROUP_INVITE', 'You have been invited to join a group', 1);
+	('GROUP_INVITE', 'You have been invited to join a group', 1),
+	('REPORT_STATUS_UPDATED', 'New report update', 1);
 
     -- tblReactionType (Loại phản hồi: Like, Love, Haha, v.v.)
 	INSERT INTO tblReactionType (name, description, emoji, status) VALUES

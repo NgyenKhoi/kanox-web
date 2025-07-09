@@ -13,6 +13,7 @@ import {
   Form,
   InputGroup,
   Popover,
+  Spinner,
 } from "react-bootstrap";
 import {
   FaImage,
@@ -39,6 +40,7 @@ import {
 } from "react-icons/fa";
 import moment from "moment";
 import { AuthContext } from "../../../context/AuthContext";
+import { WebSocketContext } from "../../../context/WebSocketContext";
 import EditPostModal from "../TweetInput/EditPostModal";
 import useMedia from "../../../hooks/useMedia";
 import { toast } from "react-toastify";
@@ -57,6 +59,7 @@ import useCommentAvatar from "../../../hooks/useCommentAvatar";
 
 function TweetCard({ tweet, onPostUpdate }) {
   const { user, loading, token } = useContext(AuthContext);
+  const { publish } = useContext(WebSocketContext);
   const navigate = useNavigate();
   const {
     id,
@@ -92,6 +95,10 @@ function TweetCard({ tweet, onPostUpdate }) {
   const [selectedMediaPreviews, setSelectedMediaPreviews] = useState([]);
   const { emojiList } = useEmojiList();
   const commentInputRef = useRef(null);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportReasonId, setReportReasonId] = useState("");
+  const [reasons, setReasons] = useState([]);
+  const [isSubmittingReport, setIsSubmittingReport] = useState(false);
 
   const currentUserId = user?.id;
   const ownerId = owner?.id || null;
@@ -204,6 +211,68 @@ function TweetCard({ tweet, onPostUpdate }) {
       setIsLoadingComments(false);
     }
   };
+
+  useEffect(() => {
+    const fetchReportReasons = async () => {
+      try {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/reports/report-reasons`, {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const data = await response.json();
+        if (response.ok) {
+          setReasons(data);
+        } else {
+          throw new Error(data.message || "Lỗi khi lấy danh sách lý do báo cáo");
+        }
+      } catch (error) {
+        toast.error("Lỗi khi lấy danh sách lý do báo cáo: " + error.message);
+      }
+    };
+
+    if (showReportModal) {
+      fetchReportReasons();
+    }
+  }, [showReportModal, token]);
+
+  const handleReportSubmit = async () => {
+    if (!reportReasonId) {
+      toast.error("Vui lòng chọn lý do báo cáo!");
+      return;
+    }
+
+    try {
+      setIsSubmittingReport(true);
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/reports`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          reporterId: user.id,
+          targetId: tweet.id,
+          targetTypeId: 1, // 1 = POST
+          reasonId: parseInt(reportReasonId),
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "Không thể gửi báo cáo!");
+
+      toast.success("Đã gửi báo cáo thành công!");
+      setShowReportModal(false);
+      setReportReasonId("");
+    } catch (err) {
+      toast.error("Lỗi khi gửi báo cáo: " + err.message);
+    } finally {
+      setIsSubmittingReport(false);
+    }
+  };
+
+
 
   useEffect(() => {
     if (comments.length > 0) {
@@ -609,7 +678,7 @@ function TweetCard({ tweet, onPostUpdate }) {
                             <FaRegBookmark className="me-2 text-[var(--text-color)]" /> Bỏ lưu
                           </Dropdown.Item>
                       )}
-                      <Dropdown.Item>
+                      <Dropdown.Item onClick={() => setShowReportModal(true)}>
                         <FaFlag className="me-2 text-[var(--text-color)]" /> Báo cáo
                       </Dropdown.Item>
                     </Dropdown.Menu>
@@ -1060,6 +1129,79 @@ function TweetCard({ tweet, onPostUpdate }) {
             )}
           </Modal.Body>
         </Modal>
+
+        {/* Modal báo cáo */}
+        {showReportModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-[var(--content-bg)] rounded-lg shadow-lg w-full max-w-md p-6 text-[var(--text-color)]">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-bold">Báo cáo bài đăng</h3>
+                  <button
+                      className="text-[var(--text-color)] hover:text-[var(--primary-color)]"
+                      onClick={() => setShowReportModal(false)}
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                <div className="mb-4">
+                  <label htmlFor="reportReason" className="block text-sm font-medium mb-2">
+                    Lý do báo cáo
+                  </label>
+                  <select
+                      id="reportReason"
+                      value={reportReasonId}
+                      onChange={(e) => setReportReasonId(e.target.value)}
+                      className="w-full p-2 rounded-md bg-[var(--background-color)] border border-gray-300 dark:border-gray-600 text-[var(--text-color)] focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)]"
+                  >
+                    <option value="">Chọn lý do</option>
+                    {reasons.map((reason) => (
+                        <option key={reason.id} value={reason.id}>
+                          {reason.name}
+                        </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <button
+                      className="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-[var(--text-color)] rounded-md hover:bg-gray-400 dark:hover:bg-gray-500"
+                      onClick={() => setShowReportModal(false)}
+                  >
+                    Hủy
+                  </button>
+                  <button
+                      className="px-4 py-2 bg-[var(--primary-color)] text-white rounded-md hover:bg-blue-600 disabled:opacity-50 flex items-center"
+                      onClick={handleReportSubmit}
+                      disabled={isSubmittingReport}
+                  >
+                    {isSubmittingReport ? (
+                        <svg
+                            className="animate-spin h-5 w-5 mr-2 text-white"
+                            viewBox="0 0 24 24"
+                        >
+                          <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                          />
+                          <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          />
+                        </svg>
+                    ) : (
+                        "Gửi báo cáo"
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+        )}
       </>
   );
 }

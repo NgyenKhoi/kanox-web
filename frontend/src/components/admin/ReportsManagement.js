@@ -1,364 +1,328 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { toast } from "react-toastify";
-import { adminService } from "../../services/adminService";
+import { WebSocketContext } from "../../context/WebSocketContext";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const ReportsManagement = () => {
+  const { subscribe, unsubscribe } = useContext(WebSocketContext);
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState("");
   const [selectedReport, setSelectedReport] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const [adminNote, setAdminNote] = useState('');
+  const [reportHistory, setReportHistory] = useState([]);
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  // Load danh sách báo cáo từ API
+  const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+
   const loadReports = async () => {
+    if (!token) {
+      toast.error("Vui lòng đăng nhập để tải báo cáo!");
+      return;
+    }
     try {
       setLoading(true);
-      const response = await adminService.getReports(currentPage, 10, statusFilter);
-      setReports(response.data.content || response.data || []);
-      setTotalPages(response.data.totalPages || 0);
+      const url = new URL(`${process.env.REACT_APP_API_URL}/admin/reports`);
+      url.searchParams.append("page", currentPage);
+      url.searchParams.append("size", 10);
+      if (statusFilter) {
+        url.searchParams.append("status", statusFilter === "true" || statusFilter === "false" ? statusFilter : "");
+      }
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "Không thể tải danh sách báo cáo");
+      setReports(data.content || []);
+      setTotalPages(data.totalPages || 0);
     } catch (error) {
-      console.error('Lỗi khi tải báo cáo:', error);
-      toast.error('Không thể tải danh sách báo cáo');
+      console.error("Lỗi khi tải báo cáo:", error);
+      toast.error("Không thể tải danh sách báo cáo: " + error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  // Load dữ liệu khi component mount hoặc khi thay đổi page/filter
-  useEffect(() => {
-    loadReports();
-  }, [currentPage, statusFilter]);
-
-  const handleViewDetail = async (reportId) => {
+  const loadReportHistory = async (reportId) => {
+    if (!token) {
+      toast.error("Vui lòng đăng nhập để tải lịch sử báo cáo!");
+      return;
+    }
     try {
-      const response = await adminService.getReportById(reportId);
-      setSelectedReport(response.data);
-      setShowDetailModal(true);
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/admin/reports/${reportId}/history`, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "Lỗi khi lấy lịch sử báo cáo");
+      setReportHistory(data);
     } catch (error) {
-      console.error('Lỗi khi tải chi tiết báo cáo:', error);
-      toast.error('Không thể tải chi tiết báo cáo');
+      toast.error("Lỗi khi lấy lịch sử báo cáo: " + error.message);
     }
   };
 
-  const handleResolveReport = async (id) => {
-    if (window.confirm(`Đánh dấu báo cáo ID: ${id} là đã giải quyết?`)) {
-      try {
-        await adminService.updateReportStatus(id, 'RESOLVED', adminNote);
-        toast.success('Đã giải quyết báo cáo thành công');
-        loadReports(); // Reload danh sách
-      } catch (error) {
-        console.error('Lỗi khi giải quyết báo cáo:', error);
-        toast.error('Không thể giải quyết báo cáo');
-      }
+  const handleViewDetail = async (reportId) => {
+    if (!token) {
+      toast.error("Vui lòng đăng nhập để xem chi tiết báo cáo!");
+      return;
+    }
+    try {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/admin/reports/${reportId}`, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "Lỗi khi lấy chi tiết báo cáo");
+      setSelectedReport(data);
+      await loadReportHistory(reportId);
+      setShowDetailModal(true);
+    } catch (error) {
+      toast.error("Lỗi khi lấy chi tiết báo cáo: " + error.message);
     }
   };
 
   const handleDismissReport = async (id) => {
-    if (window.confirm(`Bạn có chắc muốn bỏ qua báo cáo ID: ${id}?`)) {
-      try {
-        await adminService.deleteReport(id);
-        toast.success('Đã bỏ qua báo cáo thành công');
-        loadReports(); // Reload danh sách
-      } catch (error) {
-        console.error('Lỗi khi bỏ qua báo cáo:', error);
-        toast.error('Không thể bỏ qua báo cáo');
+    if (!token) {
+      toast.error("Vui lòng đăng nhập để xóa báo cáo!");
+      return;
+    }
+    try {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/admin/reports/${id}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || "Lỗi khi xóa báo cáo");
       }
+      toast.success("Đã xóa báo cáo!");
+      loadReports();
+    } catch (error) {
+      toast.error("Lỗi khi xóa báo cáo: " + error.message);
     }
   };
 
-  const getStatusText = (status) => {
-    switch (status) {
-      case 'PENDING': return 'Đang chờ';
-      case 'RESOLVED': return 'Đã giải quyết';
-      case 'DISMISSED': return 'Đã bỏ qua';
-      default: return status;
+  const handleUpdateStatus = async (reportId, statusId) => {
+    if (!token) {
+      toast.error("Vui lòng đăng nhập để cập nhật trạng thái báo cáo!");
+      return;
+    }
+    try {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/admin/reports/${reportId}/status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          adminId: localStorage.getItem("userId"),
+          processingStatusId: statusId,
+        }),
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || "Lỗi khi cập nhật trạng thái");
+      }
+      toast.success("Đã cập nhật trạng thái báo cáo!");
+      setShowDetailModal(false);
+      loadReports();
+    } catch (error) {
+      toast.error("Lỗi khi cập nhật trạng thái: " + error.message);
     }
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'PENDING': return 'bg-orange-100 text-orange-800';
-      case 'RESOLVED': return 'bg-green-100 text-green-800';
-      case 'DISMISSED': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
+  useEffect(() => {
+    loadReports();
+    // Xử lý báo cáo mới từ state của useLocation
+    if (location.state?.newReport) {
+      toast.info(`Báo cáo mới từ ${location.state.newReport.reporterUsername}: ${location.state.newReport.reason}`);
     }
-  };
+  }, [currentPage, statusFilter, location.state]);
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('vi-VN');
-  };
+  useEffect(() => {
+    if (!subscribe || !unsubscribe) return;
 
-  if (loading) {
-    return (
-      <div className="p-6 bg-white rounded-lg shadow-md">
-        <div className="flex justify-center items-center h-64">
-          <div className="text-lg text-gray-600">Đang tải...</div>
-        </div>
-      </div>
-    );
-  }
+    const subscription = subscribe("/topic/admin/reports", (message) => {
+      console.log("Received new report:", message);
+      toast.info("Có báo cáo mới!");
+      loadReports();
+    }, "admin-reports");
+
+    return () => {
+      if (subscription) unsubscribe("admin-reports");
+    };
+  }, [subscribe, unsubscribe]);
 
   return (
-    <div className="p-6 bg-white rounded-lg shadow-md">
-      <h2 className="text-3xl font-bold mb-6 text-gray-800">Quản lý Báo cáo</h2>
-      
-      {/* Filter và Controls */}
-      <div className="mb-6 flex flex-wrap gap-4 items-center">
-        <div className="flex items-center gap-2">
-          <label className="text-sm font-medium text-gray-700">Lọc theo trạng thái:</label>
+      <div className="bg-background text-text p-6 min-h-screen">
+        <h2 className="text-2xl font-bold mb-4 dark:text-white">Quản lý Báo cáo</h2>
+        <div className="mb-4">
+          <label className="block text-sm font-medium mb-2 dark:text-gray-300">Lọc theo trạng thái</label>
           <select
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
-              setCurrentPage(0);
-            }}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setCurrentPage(0);
+              }}
+              className="w-full p-2 border border-border rounded-md bg-background text-text focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white dark:border-gray-600"
           >
             <option value="">Tất cả</option>
-            <option value="PENDING">Đang chờ</option>
-            <option value="RESOLVED">Đã giải quyết</option>
-            <option value="DISMISSED">Đã bỏ qua</option>
+            <option value="1">Đang chờ xử lý</option>
+            <option value="2">Đã duyệt</option>
+            <option value="3">Đã từ chối</option>
           </select>
         </div>
-        <button
-          onClick={loadReports}
-          className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
-        >
-          🔄 Làm mới
-        </button>
-      </div>
 
-      <div className="overflow-x-auto">
-        <table className="min-w-full bg-white border border-gray-200 rounded-lg">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="py-3 px-4 border-b text-left text-gray-600 font-semibold text-sm">
-                ID
-              </th>
-              <th className="py-3 px-4 border-b text-left text-gray-600 font-semibold text-sm">
-                Loại
-              </th>
-              <th className="py-3 px-4 border-b text-left text-gray-600 font-semibold text-sm">
-                ID Mục tiêu
-              </th>
-              <th className="py-3 px-4 border-b text-left text-gray-600 font-semibold text-sm">
-                Người báo cáo
-              </th>
-              <th className="py-3 px-4 border-b text-left text-gray-600 font-semibold text-sm">
-                Lý do
-              </th>
-              <th className="py-3 px-4 border-b text-left text-gray-600 font-semibold text-sm">
-                Trạng thái
-              </th>
-              <th className="py-3 px-4 border-b text-left text-gray-600 font-semibold text-sm">
-                Ngày báo cáo
-              </th>
-              <th className="py-3 px-4 border-b text-left text-gray-600 font-semibold text-sm">
-                Hành động
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {reports.length === 0 ? (
-              <tr>
-                <td colSpan="8" className="py-8 text-center text-gray-500">
-                  Không có báo cáo nào
-                </td>
-              </tr>
-            ) : (
-              reports.map((report) => (
-                <tr
-                  key={report.id}
-                  className="border-b border-gray-200 last:border-b-0 hover:bg-gray-50"
-                >
-                  <td className="py-3 px-4 text-gray-800">{report.id}</td>
-                  <td className="py-3 px-4 text-gray-800">{report.reportType || report.type}</td>
-                  <td className="py-3 px-4 text-gray-800">{report.targetId}</td>
-                  <td className="py-3 px-4 text-gray-800">{report.reporterUsername || report.reporter}</td>
-                  <td className="py-3 px-4 text-gray-800">{report.reason}</td>
-                  <td className="py-3 px-4">
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(report.status)}`}
-                    >
-                      {getStatusText(report.status)}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4 text-gray-800">{formatDate(report.createdAt || report.date)}</td>
-                  <td className="py-3 px-4">
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => handleViewDetail(report.id)}
-                        className="p-2 rounded-full hover:bg-blue-100 text-blue-600 transition-colors duration-200"
-                        title="Xem chi tiết"
-                      >
-                        👁️
-                      </button>
-                      {report.status === "PENDING" && (
-                        <>
-                          <button
-                            onClick={() => handleResolveReport(report.id)}
-                            className="p-2 rounded-full hover:bg-green-100 text-green-600 transition-colors duration-200"
-                            title="Giải quyết báo cáo"
-                          >
-                            ✅
-                          </button>
-                          <button
-                            onClick={() => handleDismissReport(report.id)}
-                            className="p-2 rounded-full hover:bg-red-100 text-red-600 transition-colors duration-200"
-                            title="Bỏ qua báo cáo"
-                          >
-                            🗑️
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </td>
+        {loading ? (
+            <div className="flex justify-center">
+              <svg className="animate-spin h-8 w-8 text-blue-500" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8h8a8 8 0 01-8 8 8 8 0 01-8-8z" />
+              </svg>
+            </div>
+        ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse bg-background border border-border rounded-md">
+                <thead>
+                <tr className="bg-gray-100 dark:bg-gray-800">
+                  <th className="p-3 text-left text-text dark:text-white">ID</th>
+                  <th className="p-3 text-left text-text dark:text-white">Người báo cáo</th>
+                  <th className="p-3 text-left text-text dark:text-white">Loại</th>
+                  <th className="p-3 text-left text-text dark:text-white">ID mục tiêu</th>
+                  <th className="p-3 text-left text-text dark:text-white">Lý do</th>
+                  <th className="p-3 text-left text-text dark:text-white">Trạng thái</th>
+                  <th className="p-3 text-left text-text dark:text-white">Hành động</th>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+                </thead>
+                <tbody>
+                {reports.map((report) => (
+                    <tr key={report.id} className="border-t border-border hover:bg-hover-bg dark:hover:bg-gray-700">
+                      <td className="p-3 text-text dark:text-white">{report.id}</td>
+                      <td className="p-3 text-text dark:text-white">{report.reporterUsername}</td>
+                      <td className="p-3 text-text dark:text-white">{report.targetTypeId === 1 ? "Bài đăng" : "Người dùng"}</td>
+                      <td className="p-3 text-text dark:text-white">{report.targetId}</td>
+                      <td className="p-3 text-text dark:text-white">{report.reason?.name || "Không xác định"}</td>
+                      <td className="p-3">
+                    <span
+                        className={`px-2 py-1 rounded-full text-sm ${
+                            report.processingStatusId === 1
+                                ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-700 dark:text-yellow-200"
+                                : report.processingStatusId === 2
+                                    ? "bg-green-100 text-green-800 dark:bg-green-700 dark:text-green-200"
+                                    : "bg-red-100 text-red-800 dark:bg-red-700 dark:text-red-200"
+                        }`}
+                    >
+                      {report.processingStatusId === 1 ? "Đang chờ" : report.processingStatusId === 2 ? "Đã duyệt" : "Đã từ chối"}
+                    </span>
+                      </td>
+                      <td className="p-3 flex gap-2">
+                        <button
+                            onClick={() => handleViewDetail(report.id)}
+                            className="px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          Chi tiết
+                        </button>
+                        <button
+                            onClick={() => handleDismissReport(report.id)}
+                            className="px-3 py-1 bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500"
+                        >
+                          Xóa
+                        </button>
+                      </td>
+                    </tr>
+                ))}
+                </tbody>
+              </table>
+            </div>
+        )}
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="mt-6 flex justify-center items-center gap-2">
-          <button
-            onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
-            disabled={currentPage === 0}
-            className="px-3 py-2 border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-          >
-            ← Trước
-          </button>
-          
-          <span className="px-4 py-2 text-sm text-gray-700">
-            Trang {currentPage + 1} / {totalPages}
-          </span>
-          
-          <button
-            onClick={() => setCurrentPage(Math.min(totalPages - 1, currentPage + 1))}
-            disabled={currentPage >= totalPages - 1}
-            className="px-3 py-2 border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-          >
-            Tiếp →
-          </button>
-        </div>
-      )}
-
-      {/* Modal xem chi tiết báo cáo */}
-      {showDetailModal && selectedReport && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        {/* Modal chi tiết báo cáo */}
+        <div
+            className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center transition-opacity duration-300 ${
+                showDetailModal ? "opacity-100" : "opacity-0 pointer-events-none"
+            }`}
+        >
+          <div className="bg-background rounded-lg shadow-lg w-full max-w-2xl p-6 dark:bg-gray-800">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold text-gray-800">Chi tiết báo cáo #{selectedReport.id}</h3>
+              <h3 className="text-xl font-bold text-text dark:text-white">Chi tiết Báo cáo</h3>
               <button
-                onClick={() => setShowDetailModal(false)}
-                className="text-gray-500 hover:text-gray-700 text-2xl"
+                  onClick={() => setShowDetailModal(false)}
+                  className="text-text-muted hover:text-text dark:text-gray-400 dark:hover:text-white"
               >
-                ×
+                ✕
               </button>
             </div>
-            
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Loại báo cáo:</label>
-                  <p className="text-gray-900">{selectedReport.reportType || selectedReport.type}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Trạng thái:</label>
-                  <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(selectedReport.status)}`}>
-                    {getStatusText(selectedReport.status)}
-                  </span>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">ID mục tiêu:</label>
-                  <p className="text-gray-900">{selectedReport.targetId}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Người báo cáo:</label>
-                  <p className="text-gray-900">{selectedReport.reporterUsername || selectedReport.reporter}</p>
-                </div>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Lý do báo cáo:</label>
-                <p className="text-gray-900 bg-gray-50 p-3 rounded-md">{selectedReport.reason}</p>
-              </div>
-              
-              {selectedReport.description && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Mô tả chi tiết:</label>
-                  <p className="text-gray-900 bg-gray-50 p-3 rounded-md">{selectedReport.description}</p>
-                </div>
-              )}
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Ngày tạo:</label>
-                <p className="text-gray-900">{formatDate(selectedReport.createdAt || selectedReport.date)}</p>
-              </div>
-              
-              {selectedReport.adminNote && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Ghi chú admin:</label>
-                  <p className="text-gray-900 bg-blue-50 p-3 rounded-md">{selectedReport.adminNote}</p>
-                </div>
-              )}
-              
-              {selectedReport.status === 'PENDING' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Ghi chú admin:</label>
-                  <textarea
-                    value={adminNote}
-                    onChange={(e) => setAdminNote(e.target.value)}
-                    placeholder="Nhập ghi chú cho báo cáo này..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    rows={3}
-                  />
-                </div>
-              )}
-            </div>
-            
-            <div className="flex justify-end gap-3 mt-6">
+            {selectedReport ? (
+                <>
+                  <p className="text-text dark:text-white"><strong>ID Báo cáo:</strong> {selectedReport.id}</p>
+                  <p className="text-text dark:text-white"><strong>Người báo cáo:</strong> {selectedReport.reporterUsername}</p>
+                  <p className="text-text dark:text-white"><strong>Loại:</strong> {selectedReport.targetTypeId === 1 ? "Bài đăng" : "Người dùng"}</p>
+                  <p className="text-text dark:text-white"><strong>ID mục tiêu:</strong> {selectedReport.targetId}</p>
+                  <p className="text-text dark:text-white"><strong>Lý do:</strong> {selectedReport.reason?.name || "Không xác định"}</p>
+                  <p className="text-text dark:text-white"><strong>Thời gian:</strong> {new Date(selectedReport.reportTime).toLocaleString("vi-VN")}</p>
+                  <p className="text-text dark:text-white"><strong>Trạng thái:</strong> {selectedReport.processingStatus?.name || "Không xác định"}</p>
+                  <h5 className="text-lg font-semibold mt-4 text-text dark:text-white">Lịch sử xử lý</h5>
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse bg-background border border-border rounded-md">
+                      <thead>
+                      <tr className="bg-gray-100 dark:bg-gray-800">
+                        <th className="p-3 text-left text-text dark:text-white">Thời gian</th>
+                        <th className="p-3 text-left text-text dark:text-white">Admin</th>
+                        <th className="p-3 text-left text-text dark:text-white">Trạng thái</th>
+                      </tr>
+                      </thead>
+                      <tbody>
+                      {reportHistory.map((history) => (
+                          <tr key={history.id} className="border-t border-border">
+                            <td className="p-3 text-text dark:text-white">{new Date(history.actionTime).toLocaleString("vi-VN")}</td>
+                            <td className="p-3 text-text dark:text-white">{history.reporter?.username || "Không xác định"}</td>
+                            <td className="p-3 text-text dark:text-white">{history.processingStatus?.name || "Không xác định"}</td>
+                          </tr>
+                      ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+            ) : (
+                <p className="text-text dark:text-white">Không có thông tin báo cáo.</p>
+            )}
+            <div className="flex justify-end gap-2 mt-4">
               <button
-                onClick={() => setShowDetailModal(false)}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+                  onClick={() => setShowDetailModal(false)}
+                  className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500"
               >
                 Đóng
               </button>
-              {selectedReport.status === 'PENDING' && (
-                <>
-                  <button
-                    onClick={() => {
-                      handleResolveReport(selectedReport.id);
-                      setShowDetailModal(false);
-                    }}
-                    className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600"
-                  >
-                    ✅ Giải quyết
-                  </button>
-                  <button
-                    onClick={() => {
-                      handleDismissReport(selectedReport.id);
-                      setShowDetailModal(false);
-                    }}
-                    className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
-                  >
-                    🗑️ Bỏ qua
-                  </button>
-                </>
-              )}
+              <button
+                  onClick={() => handleUpdateStatus(selectedReport.id, 2)}
+                  className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500"
+              >
+                Duyệt
+              </button>
+              <button
+                  onClick={() => handleUpdateStatus(selectedReport.id, 3)}
+                  className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500"
+              >
+                Từ chối
+              </button>
             </div>
           </div>
         </div>
-      )}
-    </div>
+      </div>
   );
 };
 
