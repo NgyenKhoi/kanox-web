@@ -135,25 +135,7 @@ export const adminService = {
     }
   },
 
-  // Cấp quyền admin
-  async grantAdminRole(userId) {
-    const response = await fetch(`${API_BASE_URL}/admin/users/${userId}/admin`, {
-      method: 'PATCH',
-      headers: getHeaders(),
-    });
 
-    return await handleResponse(response);
-  },
-
-  // Hủy quyền admin
-  async revokeAdminRole(userId) {
-    const response = await fetch(`${API_BASE_URL}/admin/users/${userId}/revoke-admin`, {
-      method: 'PATCH',
-      headers: getHeaders(),
-    });
-
-    return await handleResponse(response);
-  },
 
   // Gửi thông báo cho người dùng
   async sendNotification(userId, message, type = 'ADMIN_MESSAGE') {

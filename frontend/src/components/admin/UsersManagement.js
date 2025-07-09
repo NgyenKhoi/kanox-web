@@ -255,44 +255,7 @@ const UsersManagement = () => {
     }
   };
 
-  // Phân quyền admin
-  const handleToggleAdmin = async (id, isCurrentlyAdmin) => {
-    const action = isCurrentlyAdmin ? "hủy quyền admin" : "cấp quyền admin";
-    
-    if (window.confirm(`Bạn có chắc muốn ${action} cho người dùng ID: ${id}?`)) {
-      try {
-        console.log(`${action} for user ID:`, id);
-        let result;
-        if (isCurrentlyAdmin) {
-          result = await adminService.revokeAdminRole(id);
-        } else {
-          result = await adminService.grantAdminRole(id);
-        }
-        console.log('Admin role toggle result:', result);
-        toast.success(`Đã ${action} thành công`);
-        
-        // Reload danh sách người dùng
-        try {
-          await fetchUsers(currentPage, searchTerm);
-        } catch (reloadError) {
-          console.warn('Error reloading users after admin role change:', reloadError);
-          toast.warning('Đã cập nhật quyền thành công nhưng có lỗi khi tải lại danh sách');
-        }
-      } catch (error) {
-        console.error('Error toggling admin role:', error);
-        console.error('Error details:', {
-          status: error.status,
-          message: error.message,
-          response: error.response
-        });
-        const errorMessage = error.response?.data?.message || 
-                            error.response?.data?.error || 
-                            error.message || 
-                            `Lỗi khi ${action}`;
-        toast.error(errorMessage);
-      }
-    }
-  };
+
 
   // Tìm kiếm người dùng
   const handleSearch = (e) => {
@@ -448,17 +411,7 @@ const UsersManagement = () => {
                         ✅ {/* Biểu tượng Mở khóa */}
                       </button>
                     )}
-                    <button
-                      onClick={() => handleToggleAdmin(user.id, user.isAdmin)}
-                      className="p-2 rounded-full hover:bg-purple-100 text-purple-600 transition-colors duration-200"
-                      title={
-                        user.isAdmin
-                          ? "Hủy quyền Admin"
-                          : "Cấp quyền Admin"
-                      }
-                    >
-                      🛡️ {/* Biểu tượng Vai trò */}
-                    </button>
+
                     <button
                       onClick={() => handleDelete(user.id)}
                       className="p-2 rounded-full hover:bg-gray-100 text-gray-600 transition-colors duration-200"
