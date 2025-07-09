@@ -56,16 +56,6 @@ public class ReportService {
         User reporter = userRepository.findById(request.getReporterId())
                 .orElseThrow(() -> new UserNotFoundException("User not found with id: " + request.getReporterId()));
 
-        ReportLimit limit = reportLimitRepository.findById(request.getReporterId())
-                .orElse(new ReportLimit());
-        if (limit.getLastReportReset() == null || limit.getLastReportReset().isBefore(Instant.now().minus(1, ChronoUnit.DAYS))) {
-            limit.setReportCount(0);
-            limit.setLastReportReset(Instant.now());
-        }
-        if (limit.getReportCount() >= MAX_REPORTS_PER_DAY) {
-            throw new IllegalStateException("Đã vượt quá giới hạn báo cáo trong ngày!");
-        }
-
         ReportReason reason = reportReasonRepository.findById(request.getReasonId())
                 .orElseThrow(() -> new IllegalArgumentException("Report reason not found with id: " + request.getReasonId()));
 
@@ -81,11 +71,6 @@ public class ReportService {
 
             Report report = reportRepository.findById(reportId)
                     .orElseThrow(() -> new IllegalArgumentException("Report not found with id: " + reportId));
-
-            limit.setReportCount(limit.getReportCount() + 1);
-            limit.setUser(reporter);
-            limit.setStatus(true);
-            reportLimitRepository.save(limit);
 
             messagingTemplate.convertAndSend("/topic/admin/reports", Map.of(
                     "id", reportId,
