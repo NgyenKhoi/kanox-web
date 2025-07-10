@@ -148,6 +148,19 @@ public class GroupService {
         groupMemberRepository.deactivateByGroupId(groupId);
     }
 
+    @Transactional
+    public void deleteGroupAsAdmin(Integer groupId) {
+        Group group = groupRepository.findById(groupId)
+                .orElseThrow(() -> new NotFoundException("Group không tồn tại"));
+
+        // Đánh dấu là đã xóa thay vì xóa hẳn
+        group.setStatus(false);
+        groupRepository.save(group);
+
+        // Deactivate all group members
+        groupMemberRepository.deactivateByGroupId(groupId);
+    }
+
 
     @Transactional
     public void removeMember(Integer groupId, Integer targetUserId, String requesterUsername) {
