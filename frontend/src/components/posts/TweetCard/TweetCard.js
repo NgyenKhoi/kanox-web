@@ -114,8 +114,8 @@ function TweetCard({ tweet, onPostUpdate }) {
   const { emojiList: messageEmojiList } = useEmojiList();
 
   const avatarUrl = avatarData?.[ownerId]?.[0]?.url || null;
-  const imageUrls = imageData?.[postId] || [];
-  const videoUrls = videoData?.[postId] || [];
+  const imageUrls = imageData || [];
+  const videoUrls = videoData || [];
   const { avatarUrl: currentAvatarUrl } = useCommentAvatar(user?.id);
 
 
