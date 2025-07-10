@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.Instant;
+import java.util.Map;
 
 @Service
 public class NotificationService {
@@ -209,5 +210,20 @@ public class NotificationService {
         notificationDto.setImage(notificationImage);
 
         messagingTemplate.convertAndSend("/topic/notifications/" + userId, notificationDto);
+    }
+
+    @Transactional
+    public void markAllAsRead(Integer userId) {
+        NotificationStatus readStatus = notificationStatusRepository.findByName("read")
+                .orElseThrow(() -> new IllegalArgumentException("Invalid notification status: read"));
+
+        notificationRepository.updateAllStatusByUserId(userId, readStatus.getId());
+
+        // Gửi WebSocket cho client reset lại badge (ví dụ gửi id = -1 hoặc message control tùy frontend)
+        messagingTemplate.convertAndSend("/topic/notifications/" + userId, Map.of(
+                "type", "bulk-read",
+                "message", "All notifications marked as read",
+                "unreadCount", 0
+        ));
     }
 }

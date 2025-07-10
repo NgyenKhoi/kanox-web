@@ -80,7 +80,11 @@ function NotificationItem({ notification, handleMarkRead, handleMarkUnread }) {
 
                 <p className="text-muted text-xs mt-2">
                     {notification.timestamp
-                        ? moment(notification.timestamp).fromNow()
+                        ? moment(
+                            typeof notification.timestamp === "number"
+                                ? notification.timestamp * 1000
+                                : notification.timestamp
+                        ).fromNow()
                         : "Thời gian không xác định"}
                 </p>
             </div>

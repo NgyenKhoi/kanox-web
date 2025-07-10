@@ -148,6 +148,28 @@ function SidebarLeft({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
     }
   }, [user]);
 
+  useEffect(() => {
+    if (!user?.id || !subscribe || !unsubscribe) return;
+
+    const subId = `notif-badge-${user.id}`;
+    const subscription = subscribe(`/topic/notifications/${user.id}`, (notification) => {
+      setUnreadNotificationCount(prev => prev + 1); // Tăng badge khi có noti mới
+    }, subId);
+
+    return () => {
+      if (subscription) unsubscribe(subId);
+    };
+  }, [user, subscribe, unsubscribe]);
+
+  useEffect(() => {
+    const handle = (e) => {
+      const count = e.detail.unreadCount ?? 0;
+      setUnreadNotificationCount(count); // Nhận event từ NotificationPage
+    };
+    window.addEventListener("updateUnreadNotificationCount", handle);
+    return () => window.removeEventListener("updateUnreadNotificationCount", handle);
+  }, []);
+
 
   return (
     <aside className="hidden md:flex flex-col h-screen sticky top-0 bg-[var(--background-color)] text-[var(--text-color)] p-3 border-r border-[var(--border-color)] transition-colors">
