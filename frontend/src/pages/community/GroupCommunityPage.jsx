@@ -91,22 +91,18 @@ export default function GroupCommunityPage() {
             let res;
 
             if (groupInfo.privacyLevel === "public") {
-                res = await fetch(`${process.env.REACT_APP_API_URL}/groups/${groupId}/join`, {
+                res = await fetch(`${process.env.REACT_APP_API_URL}/groups/${groupId}/join?username=${user.username}`, {
                     method: "POST",
                     headers: {
                         Authorization: `Bearer ${token}`,
-                        "Content-Type": "application/json",
                     },
-                    body: JSON.stringify({ userId: user.id }), // hoặc username nếu backend dùng username
                 });
             } else if (groupInfo.privacyLevel === "private") {
                 res = await fetch(`${process.env.REACT_APP_API_URL}/groups/${groupId}/request-join`, {
                     method: "POST",
                     headers: {
                         Authorization: `Bearer ${token}`,
-                        "Content-Type": "application/json",
                     },
-                    body: JSON.stringify({ userId: user.id }),
                 });
             }
 
