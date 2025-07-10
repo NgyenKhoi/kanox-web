@@ -41,6 +41,9 @@ public interface ReportRepository extends JpaRepository<Report, Integer> {
     Page<Report> findByProcessingStatusId(Integer processingStatusId, Pageable pageable);
 
     @EntityGraph(attributePaths = {"reporter", "targetType", "reason", "processingStatus"})
+    Page<Report> findByTargetTypeId(Integer targetTypeId, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"reporter", "targetType", "reason", "processingStatus"})
     Optional<Report> findById(Integer id);
 
     Optional<Report> findTopByOrderByIdDesc();

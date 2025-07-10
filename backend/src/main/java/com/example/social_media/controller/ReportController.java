@@ -52,9 +52,18 @@ public class ReportController {
         } catch (UserNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("message", "User not found", "error", e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", e.getMessage(),
+                    "errors", Map.of()
+            ));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("message", "Failed to create report", "error", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", "Lỗi khi gửi báo cáo: " + e.getMessage(),
+                    "errors", Map.of()
+            ));
         }
     }
 

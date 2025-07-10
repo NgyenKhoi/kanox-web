@@ -1,11 +1,14 @@
-import React, {useState, useEffect, useContext} from "react";
-import {toast} from "react-toastify";
-import {WebSocketContext} from "../../context/WebSocketContext";
-import {useLocation, useNavigate} from "react-router-dom";
+import React, { useState, useEffect, useContext } from "react";
+import { toast } from "react-toastify";
+import { WebSocketContext } from "../../context/WebSocketContext";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const ReportsManagement = () => {
-    const {subscribe, unsubscribe} = useContext(WebSocketContext);
+    const { subscribe, unsubscribe } = useContext(WebSocketContext);
     const [reports, setReports] = useState([]);
+    const [unreadReports, setUnreadReports] = useState([]);
+    const [userReports, setUserReports] = useState([]);
+    const [postReports, setPostReports] = useState([]);
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
@@ -13,22 +16,34 @@ const ReportsManagement = () => {
     const [selectedReport, setSelectedReport] = useState(null);
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [reportHistory, setReportHistory] = useState([]);
+    const [activeTab, setActiveTab] = useState("all");
     const location = useLocation();
     const navigate = useNavigate();
 
     const token = localStorage.getItem("token") || sessionStorage.getItem("token");
 
-    const loadReports = async () => {
+    const loadReports = async (tab = activeTab) => {
         if (!token) {
             toast.error("Vui lòng đăng nhập để tải báo cáo!");
             return;
         }
         try {
             setLoading(true);
-            const url = new URL(`${process.env.REACT_APP_API_URL}/admin/list`);
+            let url;
+            if (tab === "unread") {
+                url = new URL(`${process.env.REACT_APP_API_URL}/admin/unread`);
+            } else if (tab === "users") {
+                url = new URL(`${process.env.REACT_APP_API_URL}/admin/list`);
+                url.searchParams.append("targetTypeId", "2");
+            } else if (tab === "posts") {
+                url = new URL(`${process.env.REACT_APP_API_URL}/admin/list`);
+                url.searchParams.append("targetTypeId", "1");
+            } else {
+                url = new URL(`${process.env.REACT_APP_API_URL}/admin/list`);
+            }
             url.searchParams.append("page", currentPage);
             url.searchParams.append("size", 10);
-            if (statusFilter) {
+            if (statusFilter && tab === "all") {
                 url.searchParams.append("processingStatusId", statusFilter);
             }
             const response = await fetch(url, {
@@ -40,7 +55,15 @@ const ReportsManagement = () => {
             });
             const data = await response.json();
             if (!response.ok) throw new Error(data.message || "Không thể tải danh sách báo cáo");
-            setReports(data.data?.content || []);
+            if (tab === "unread") {
+                setUnreadReports(data.data?.content || []);
+            } else if (tab === "users") {
+                setUserReports(data.data?.content || []);
+            } else if (tab === "posts") {
+                setPostReports(data.data?.content || []);
+            } else {
+                setReports(data.data?.content || []);
+            }
             setTotalPages(data.data?.totalPages || 0);
         } catch (error) {
             console.error("Lỗi khi tải báo cáo:", error);
@@ -128,7 +151,7 @@ const ReportsManagement = () => {
         }
         try {
             const response = await fetch(`${process.env.REACT_APP_API_URL}/admin/${parseInt(reportId)}/status`, {
-                method: "PUT", // Thay PATCH thành PUT để khớp với backend
+                method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
@@ -145,8 +168,11 @@ const ReportsManagement = () => {
             toast.success("Đã cập nhật trạng thái báo cáo!");
             setShowDetailModal(false);
             loadReports();
+            if (statusId !== 1) {
+                setUnreadReports((prev) => prev.filter((report) => report.id !== reportId));
+            }
         } catch (error) {
-            console.error("Lỗi khi cập nhật trạng thái:", error, {reportId, statusId});
+            console.error("Lỗi khi cập nhật trạng thái:", error, { reportId, statusId });
             toast.error("Lỗi khi cập nhật trạng thái: " + error.message);
         }
     };
@@ -163,108 +189,213 @@ const ReportsManagement = () => {
 
         const subscription = subscribe("/topic/admin/reports", (message) => {
             console.log("Received new report:", message);
-            toast.info("Có báo cáo mới!");
-            loadReports();
+            toast.info(`Báo cáo mới từ ${message.reporterUsername}: ${message.reason}`, {
+                onClick: () => {
+                    navigate("/admin", { state: { newReport: message } });
+                },
+            });
+            setUnreadReports((prev) => [message, ...prev]);
+            if (activeTab === "all" || (activeTab === "posts" && message.targetTypeId === 1) || (activeTab === "users" && message.targetTypeId === 2)) {
+                setReports((prev) => [message, ...prev]);
+            }
+            if (activeTab === "posts" && message.targetTypeId === 1) {
+                setPostReports((prev) => [message, ...prev]);
+            }
+            if (activeTab === "users" && message.targetTypeId === 2) {
+                setUserReports((prev) => [message, ...prev]);
+            }
         }, "admin-reports");
 
         return () => {
             if (subscription) unsubscribe("admin-reports");
         };
-    }, [subscribe, unsubscribe]);
+    }, [subscribe, unsubscribe, navigate, activeTab]);
+
+    const handlePageChange = (page) => {
+        setCurrentPage(page);
+    };
 
     return (
         <div className="bg-background text-text p-6 min-h-screen">
             <h2 className="text-2xl font-bold mb-4 dark:text-white">Quản lý Báo cáo</h2>
             <div className="mb-4">
-                <label className="block text-sm font-medium mb-2 dark:text-gray-300">Lọc theo trạng thái</label>
-                <select
-                    value={statusFilter}
-                    onChange={(e) => {
-                        setStatusFilter(e.target.value);
-                        setCurrentPage(0);
-                    }}
-                    className="w-full p-2 border border-border rounded-md bg-background text-text focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white dark:border-gray-600"
-                >
-                    <option value="">Tất cả</option>
-                    <option value="1">Đang chờ xử lý</option>
-                    <option value="2">Đang xem xét</option>
-                    <option value="3">Đã duyệt</option>
-                    <option value="4">Đã từ chối</option>
-                </select>
+                <div className="flex gap-4 mb-4">
+                    <button
+                        className={`px-4 py-2 rounded-md ${
+                            activeTab === "all" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-white"
+                        }`}
+                        onClick={() => {
+                            setActiveTab("all");
+                            setCurrentPage(0);
+                            loadReports("all");
+                        }}
+                    >
+                        Tất cả báo cáo
+                    </button>
+                    <button
+                        className={`px-4 py-2 rounded-md ${
+                            activeTab === "unread" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-white"
+                        }`}
+                        onClick={() => {
+                            setActiveTab("unread");
+                            setCurrentPage(0);
+                            loadReports("unread");
+                        }}
+                    >
+                        Báo cáo mới ({unreadReports.length})
+                    </button>
+                    <button
+                        className={`px-4 py-2 rounded-md ${
+                            activeTab === "users" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-white"
+                        }`}
+                        onClick={() => {
+                            setActiveTab("users");
+                            setCurrentPage(0);
+                            loadReports("users");
+                        }}
+                    >
+                        Báo cáo người dùng
+                    </button>
+                    <button
+                        className={`px-4 py-2 rounded-md ${
+                            activeTab === "posts" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-white"
+                        }`}
+                        onClick={() => {
+                            setActiveTab("posts");
+                            setCurrentPage(0);
+                            loadReports("posts");
+                        }}
+                    >
+                        Báo cáo bài đăng
+                    </button>
+                </div>
+                {activeTab === "all" && (
+                    <div>
+                        <label className="block text-sm font-medium mb-2 dark:text-gray-300">Lọc theo trạng thái</label>
+                        <select
+                            value={statusFilter}
+                            onChange={(e) => {
+                                setStatusFilter(e.target.value);
+                                setCurrentPage(0);
+                                loadReports();
+                            }}
+                            className="w-full p-2 border border-border rounded-md bg-background text-text focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                        >
+                            <option value="">Tất cả</option>
+                            <option value="1">Đang chờ xử lý</option>
+                            <option value="2">Đang xem xét</option>
+                            <option value="3">Đã duyệt</option>
+                            <option value="4">Đã từ chối</option>
+                        </select>
+                    </div>
+                )}
             </div>
 
             {loading ? (
                 <div className="flex justify-center">
                     <svg className="animate-spin h-8 w-8 text-blue-500" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"
-                                fill="none"/>
-                        <path className="opacity-75" fill="currentColor"
-                              d="M4 12a8 8 0 018-8v8h8a8 8 0 01-8 8 8 8 0 01-8-8z"/>
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8h8a8 8 0 01-8 8 8 8 0 01-8-8z" />
                     </svg>
                 </div>
             ) : (
-                <div className="overflow-x-auto">
-                    <table className="w-full border-collapse bg-background border border-gray-light rounded-md">
-                        <thead>
-                        <tr className="bg-gray-100 dark:bg-gray-800">
-                            <th className="p-3 text-left text-text dark:text-white">ID</th>
-                            <th className="p-3 text-left text-text dark:text-white">Người báo cáo</th>
-                            <th className="p-3 text-left text-text dark:text-white">Loại</th>
-                            <th className="p-3 text-left text-text dark:text-white">ID mục tiêu</th>
-                            <th className="p-3 text-left text-text dark:text-white">Lý do</th>
-                            <th className="p-3 text-left text-text dark:text-white">Trạng thái</th>
-                            <th className="p-3 text-left text-text dark:text-white">Hành động</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {reports.map((report) => (
-                            <tr key={report.id}
-                                className="border-t border-gray-light hover:bg-gray-100 dark:hover:bg-gray-700">
-                                <td className="p-3 text-text dark:text-white">{report.id}</td>
-                                <td className="p-3 text-text dark:text-white">{report.reporterUsername}</td>
-                                <td className="p-3 text-text dark:text-white">{report.targetTypeId === 1 ? "Bài đăng" : "Người dùng"}</td>
-                                <td className="p-3 text-text dark:text-white">{report.targetId}</td>
-                                <td className="p-3 text-text dark:text-white">{report.reason?.name || "Không xác định"}</td>
-                                <td className="p-3">
-                    <span
-                        className={`px-2 py-1 rounded-full text-sm ${
-                            report.processingStatusId === 1
-                                ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-700 dark:text-yellow-200"
-                                : report.processingStatusId === 2
-                                    ? "bg-blue-100 text-blue-800 dark:bg-blue-700 dark:text-blue-200"
-                                    : report.processingStatusId === 3
-                                        ? "bg-green-100 text-green-800 dark:bg-green-700 dark:text-green-200"
-                                        : "bg-red-100 text-red-800 dark:bg-red-700 dark:text-red-200"
-                        }`}
-                    >
-                      {report.processingStatusId === 1
-                          ? "Đang chờ"
-                          : report.processingStatusId === 2
-                              ? "Đang xem xét"
-                              : report.processingStatusId === 3
-                                  ? "Đã duyệt"
-                                  : "Đã từ chối"}
-                    </span>
-                                </td>
-                                <td className="p-3 flex gap-2">
-                                    <button
-                                        onClick={() => handleViewDetail(report.id)}
-                                        className="px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    >
-                                        Chi tiết
-                                    </button>
-                                    <button
-                                        onClick={() => handleDismissReport(report.id)}
-                                        className="px-3 py-1 bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500"
-                                    >
-                                        Xóa
-                                    </button>
-                                </td>
+                <>
+                    <div className="overflow-x-auto">
+                        <table className="w-full border-collapse bg-background border border-gray-light rounded-md">
+                            <thead>
+                            <tr className="bg-gray-100 dark:bg-gray-800">
+                                <th className="p-3 text-left text-text dark:text-white">ID</th>
+                                <th className="p-3 text-left text-text dark:text-white">Người báo cáo</th>
+                                <th className="p-3 text-left text-text dark:text-white">Loại</th>
+                                <th className="p-3 text-left text-text dark:text-white">ID mục tiêu</th>
+                                <th className="p-3 text-left text-text dark:text-white">Lý do</th>
+                                <th className="p-3 text-left text-text dark:text-white">Trạng thái</th>
+                                <th className="p-3 text-left text-text dark:text-white">Hành động</th>
                             </tr>
-                        ))}
-                        </tbody>
-                    </table>
-                </div>
+                            </thead>
+                            <tbody>
+                            {(activeTab === "unread" ? unreadReports : activeTab === "users" ? userReports : activeTab === "posts" ? postReports : reports).map((report) => (
+                                <tr
+                                    key={report.id}
+                                    className="border-t border-gray-light hover:bg-gray-100 dark:hover:bg-gray-700"
+                                >
+                                    <td className="p-3 text-text dark:text-white">{report.id}</td>
+                                    <td className="p-3 text-text dark:text-white">{report.reporterUsername}</td>
+                                    <td className="p-3 text-text dark:text-white">
+                                        {report.targetTypeId === 1 ? "Bài đăng" : "Người dùng"}
+                                    </td>
+                                    <td className="p-3 text-text dark:text-white">{report.targetId}</td>
+                                    <td className="p-3 text-text dark:text-white">{report.reason?.name || "Không xác định"}</td>
+                                    <td className="p-3">
+                      <span
+                          className={`px-2 py-1 rounded-full text-sm ${
+                              report.processingStatusId === 1
+                                  ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-700 dark:text-yellow-200"
+                                  : report.processingStatusId === 2
+                                      ? "bg-blue-100 text-blue-800 dark:bg-blue-700 dark:text-blue-200"
+                                      : report.processingStatusId === 3
+                                          ? "bg-green-100 text-green-800 dark:bg-green-700 dark:text-green-200"
+                                          : "bg-red-100 text-red-800 dark:bg-red-700 dark:text-red-200"
+                          }`}
+                      >
+                        {report.processingStatusId === 1
+                            ? "Đang chờ"
+                            : report.processingStatusId === 2
+                                ? "Đang xem xét"
+                                : report.processingStatusId === 3
+                                    ? "Đã duyệt"
+                                    : "Đã từ chối"}
+                      </span>
+                                    </td>
+                                    <td className="p-3 flex gap-2">
+                                        <button
+                                            onClick={() => handleViewDetail(report.id)}
+                                            className="px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        >
+                                            Chi tiết
+                                        </button>
+                                        <button
+                                            onClick={() => handleDismissReport(report.id)}
+                                            className="px-3 py-1 bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500"
+                                        >
+                                            Xóa
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                            </tbody>
+                        </table>
+                    </div>
+                    {totalPages > 1 && (
+                        <div className="flex justify-center mt-4">
+                            <button
+                                disabled={currentPage === 0}
+                                onClick={() => handlePageChange(currentPage - 1)}
+                                className="px-4 py-2 mx-1 bg-gray-200 text-gray-700 rounded-md disabled:opacity-50"
+                            >
+                                Trước
+                            </button>
+                            {[...Array(totalPages).keys()].map((page) => (
+                                <button
+                                    key={page}
+                                    onClick={() => handlePageChange(page)}
+                                    className={`px-4 py-2 mx-1 ${
+                                        currentPage === page ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-700"
+                                    } rounded-md`}
+                                >
+                                    {page + 1}
+                                </button>
+                            ))}
+                            <button
+                                disabled={currentPage === totalPages - 1}
+                                onClick={() => handlePageChange(currentPage + 1)}
+                                className="px-4 py-2 mx-1 bg-gray-200 text-gray-700 rounded-md disabled:opacity-50"
+                            >
+                                Sau
+                            </button>
+                        </div>
+                    )}
+                </>
             )}
 
             <div
@@ -284,25 +415,30 @@ const ReportsManagement = () => {
                     </div>
                     {selectedReport ? (
                         <>
-                            <p className="text-text dark:text-white"><strong>ID Báo cáo:</strong> {selectedReport.id}
+                            <p className="text-text dark:text-white">
+                                <strong>ID Báo cáo:</strong> {selectedReport.id}
                             </p>
-                            <p className="text-text dark:text-white"><strong>Người báo
-                                cáo:</strong> {selectedReport.reporterUsername}</p>
+                            <p className="text-text dark:text-white">
+                                <strong>Người báo cáo:</strong> {selectedReport.reporterUsername}
+                            </p>
                             <p className="text-text dark:text-white">
                                 <strong>Loại:</strong> {selectedReport.targetTypeId === 1 ? "Bài đăng" : "Người dùng"}
                             </p>
-                            <p className="text-text dark:text-white"><strong>ID mục
-                                tiêu:</strong> {selectedReport.targetId}</p>
-                            <p className="text-text dark:text-white"><strong>Lý
-                                do:</strong> {selectedReport.reason?.name || "Không xác định"}</p>
-                            <p className="text-text dark:text-white"><strong>Thời
-                                gian:</strong> {new Date(selectedReport.reportTime).toLocaleString("vi-VN")}</p>
-                            <p className="text-text dark:text-white"><strong>Trạng
-                                thái:</strong> {selectedReport.processingStatusName || "Không xác định"}</p>
+                            <p className="text-text dark:text-white">
+                                <strong>ID mục tiêu:</strong> {selectedReport.targetId}
+                            </p>
+                            <p className="text-text dark:text-white">
+                                <strong>Lý do:</strong> {selectedReport.reason?.name || "Không xác định"}
+                            </p>
+                            <p className="text-text dark:text-white">
+                                <strong>Thời gian:</strong> {new Date(selectedReport.reportTime).toLocaleString("vi-VN")}
+                            </p>
+                            <p className="text-text dark:text-white">
+                                <strong>Trạng thái:</strong> {selectedReport.processingStatusName || "Không xác định"}
+                            </p>
                             <h5 className="text-lg font-semibold mt-4 dark:text-white">Lịch sử xử lý</h5>
                             <div className="overflow-x-auto">
-                                <table
-                                    className="w-full border-collapse bg-white dark:bg-gray-900 border border-gray-light rounded-md">
+                                <table className="w-full border-collapse bg-white dark:bg-gray-900 border border-gray-light rounded-md">
                                     <thead>
                                     <tr className="bg-gray-100 dark:bg-gray-800">
                                         <th className="p-3 text-left text-text dark:text-white">Thời gian</th>
@@ -313,9 +449,15 @@ const ReportsManagement = () => {
                                     <tbody>
                                     {reportHistory.map((history) => (
                                         <tr key={history.id} className="border-t border-gray-200 dark:border-gray-700">
-                                            <td className="p-3 text-gray-900 dark:text-gray-300">{new Date(history.actionTime).toLocaleString("vi-VN")}</td>
-                                            <td className="p-3 text-gray-900 dark:text-gray-300">{history.reporterUsername || "Không xác định"}</td>
-                                            <td className="p-3 text-gray-900 dark:text-gray-300">{history.processingStatusName || "Không xác định"}</td>
+                                            <td className="p-3 text-gray-900 dark:text-gray-300">
+                                                {new Date(history.actionTime).toLocaleString("vi-VN")}
+                                            </td>
+                                            <td className="p-3 text-gray-900 dark:text-gray-300">
+                                                {history.reporterUsername || "Không xác định"}
+                                            </td>
+                                            <td className="p-3 text-gray-900 dark:text-gray-300">
+                                                {history.processingStatusName || "Không xác định"}
+                                            </td>
                                         </tr>
                                     ))}
                                     </tbody>

@@ -134,6 +134,7 @@ public class URLConfig {
     public static final String UPDATE_REPORT_STATUS = "/{reportId}/status";
     public static final String MANAGE_REPORT_BY_ID = "/{reportId}";
     public static final String GET_REPORT_HISTORY = "/{reportId}/history";
+    public static final String GET_UNREAD_REPORT = "/unread";
     // Report URLs
     public static final String REPORT_BASE = "/api/reports";
     public static final String CREATE_REPORT = "/create";
