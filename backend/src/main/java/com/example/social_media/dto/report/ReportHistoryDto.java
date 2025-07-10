@@ -2,20 +2,16 @@ package com.example.social_media.dto.report;
 
 import java.time.Instant;
 
-public class ReportResponseDto {
+public class ReportHistoryDto {
     private Integer id;
     private Integer reporterId;
     private String reporterUsername;
-    private Integer targetId;
-    private Integer targetTypeId;
-    private String targetTypeName;
-    private ReportReasonDto reason;
+    private Integer reportId;
     private Integer processingStatusId;
     private String processingStatusName;
-    private Instant reportTime;
+    private Instant actionTime;
     private Boolean status;
 
-    // Getters and Setters
     public Integer getId() {
         return id;
     }
@@ -40,36 +36,12 @@ public class ReportResponseDto {
         this.reporterUsername = reporterUsername;
     }
 
-    public Integer getTargetId() {
-        return targetId;
+    public Integer getReportId() {
+        return reportId;
     }
 
-    public void setTargetId(Integer targetId) {
-        this.targetId = targetId;
-    }
-
-    public Integer getTargetTypeId() {
-        return targetTypeId;
-    }
-
-    public void setTargetTypeId(Integer targetTypeId) {
-        this.targetTypeId = targetTypeId;
-    }
-
-    public String getTargetTypeName() {
-        return targetTypeName;
-    }
-
-    public void setTargetTypeName(String targetTypeName) {
-        this.targetTypeName = targetTypeName;
-    }
-
-    public ReportReasonDto getReason() {
-        return reason;
-    }
-
-    public void setReason(ReportReasonDto reason) {
-        this.reason = reason;
+    public void setReportId(Integer reportId) {
+        this.reportId = reportId;
     }
 
     public Integer getProcessingStatusId() {
@@ -88,12 +60,12 @@ public class ReportResponseDto {
         this.processingStatusName = processingStatusName;
     }
 
-    public Instant getReportTime() {
-        return reportTime;
+    public Instant getActionTime() {
+        return actionTime;
     }
 
-    public void setReportTime(Instant reportTime) {
-        this.reportTime = reportTime;
+    public void setActionTime(Instant actionTime) {
+        this.actionTime = actionTime;
     }
 
     public Boolean getStatus() {

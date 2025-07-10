@@ -4,6 +4,7 @@ import com.example.social_media.dto.report.ReportResponseDto;
 import com.example.social_media.entity.Report;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.query.Procedure;
 import org.springframework.data.repository.query.Param;
@@ -33,7 +34,14 @@ public interface ReportRepository extends JpaRepository<Report, Integer> {
             @Param("processing_status_id") Integer processingStatusId
     );
 
+    @EntityGraph(attributePaths = {"reporter", "targetType", "reason", "processingStatus"})
     Page<Report> findByStatus(Boolean status, Pageable pageable);
-    Optional<Report> findTopByOrderByIdDesc();
+
+    @EntityGraph(attributePaths = {"reporter", "targetType", "reason", "processingStatus"})
     Page<Report> findByProcessingStatusId(Integer processingStatusId, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"reporter", "targetType", "reason", "processingStatus"})
+    Optional<Report> findById(Integer id);
+
+    Optional<Report> findTopByOrderByIdDesc();
 }

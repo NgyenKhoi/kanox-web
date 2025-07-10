@@ -223,7 +223,7 @@ function TweetCard({ tweet, onPostUpdate }) {
         });
         const data = await response.json();
         if (response.ok) {
-          setReasons(data);
+          setReasons(Array.isArray(data) ? data : []);
         } else {
           throw new Error(data.message || "Lỗi khi lấy danh sách lý do báo cáo");
         }
@@ -271,8 +271,6 @@ function TweetCard({ tweet, onPostUpdate }) {
       setIsSubmittingReport(false);
     }
   };
-
-
 
   useEffect(() => {
     if (comments.length > 0) {

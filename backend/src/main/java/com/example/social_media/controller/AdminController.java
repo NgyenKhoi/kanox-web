@@ -1,12 +1,11 @@
 package com.example.social_media.controller;
 
 import com.example.social_media.config.URLConfig;
-import com.example.social_media.dto.notification.NotificationDto;
+import com.example.social_media.dto.report.ReportResponseDto;
 import com.example.social_media.dto.report.UpdateReportStatusRequestDto;
-import com.example.social_media.entity.Notification;
-import com.example.social_media.entity.Report;
-import com.example.social_media.entity.ReportHistory;
-import com.example.social_media.entity.User;
+import com.example.social_media.dto.report.ReportHistoryDto;
+import com.example.social_media.dto.report.ReportReasonDto;
+import com.example.social_media.entity.*;
 import com.example.social_media.exception.UserNotFoundException;
 import com.example.social_media.repository.ReportHistoryRepository;
 import com.example.social_media.repository.ReportRepository;
@@ -25,6 +24,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping(URLConfig.ADMIN_BASE)
@@ -54,9 +54,6 @@ public class AdminController {
         this.reportHistoryRepository = reportHistoryRepository;
     }
 
-    // === QUẢN LÝ NGƯỜI DÙNG ===
-    
-    // Lấy danh sách người dùng
     @GetMapping(URLConfig.GET_ALL_USER)
     public ResponseEntity<?> getAllUsers(
             @RequestParam(defaultValue = "0") int page,
@@ -73,7 +70,6 @@ public class AdminController {
         }
     }
 
-    // Lấy thông tin một người dùng
     @GetMapping(URLConfig.MANAGE_USER_INFO)
     public ResponseEntity<?> getUserInfo(@PathVariable Integer userId) {
         try {
@@ -88,7 +84,6 @@ public class AdminController {
         }
     }
 
-    // Cập nhật thông tin người dùng
     @PutMapping(URLConfig.MANAGE_USER_INFO)
     public ResponseEntity<?> updateUser(@PathVariable Integer userId, @RequestBody User userUpdate) {
         try {
@@ -103,21 +98,20 @@ public class AdminController {
         }
     }
 
-    // Cập nhật trạng thái người dùng (khóa/mở khóa)
     @PatchMapping(URLConfig.UPDATE_USER_STATUS)
     public ResponseEntity<?> updateUserStatus(
-            @PathVariable Integer userId, 
+            @PathVariable Integer userId,
             @RequestParam Boolean status
     ) {
         try {
             String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
             User admin = customUserDetailsService.getUserByUsername(currentUsername);
-            
+
             User updatedUser = userService.updateUserStatus(userId, status);
             String statusMessage = status ? "unlocked" : "locked";
-            
+
             return ResponseEntity.ok(Map.of(
-                    "message", "User account " + statusMessage + " successfully", 
+                    "message", "User account " + statusMessage + " successfully",
                     "data", updatedUser
             ));
         } catch (UserNotFoundException e) {
@@ -129,25 +123,24 @@ public class AdminController {
         }
     }
 
-    // Gửi thông báo cho người dùng
     @PostMapping(URLConfig.SEND_NOTIFICATION_FOR_USER)
     public ResponseEntity<?> sendNotification(@RequestBody Map<String, Object> notificationRequest) {
         try {
             String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
             User admin = customUserDetailsService.getUserByUsername(currentUsername);
-            
+
             Integer userId = (Integer) notificationRequest.get("userId");
             String message = (String) notificationRequest.get("message");
             String notificationType = (String) notificationRequest.get("type");
-            
+
             notificationService.sendNotification(
                     userId,
-                    notificationType, 
-                    message, 
-                    admin.getId(), 
+                    notificationType,
+                    message,
+                    admin.getId(),
                     "USER"
             );
-            
+
             return ResponseEntity.ok(Map.of("message", "Notification sent successfully"));
         } catch (UserNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -158,7 +151,6 @@ public class AdminController {
         }
     }
 
-    // Lấy danh sách báo cáo
     @GetMapping(URLConfig.GET_REPORTS)
     public ResponseEntity<?> getReports(
             @RequestParam(defaultValue = "0") int page,
@@ -167,12 +159,12 @@ public class AdminController {
     ) {
         try {
             Pageable pageable = PageRequest.of(page, size);
-            Page<Report> reports;
+            Page<ReportResponseDto> reports;
             if (processingStatusId.isEmpty()) {
-                reports = reportRepository.findByStatus(true, pageable); // Chỉ lấy báo cáo chưa xóa
+                reports = reportService.getReportsPaged(true, pageable);
             } else {
                 Integer statusId = Integer.parseInt(processingStatusId);
-                reports = reportRepository.findByProcessingStatusId(statusId, pageable);
+                reports = reportService.getReportsByProcessingStatusId(statusId, pageable);
             }
             return ResponseEntity.ok(Map.of("message", "Reports retrieved successfully", "data", reports));
         } catch (NumberFormatException e) {
@@ -184,7 +176,6 @@ public class AdminController {
         }
     }
 
-    // Cập nhật trạng thái báo cáo
     @PutMapping(URLConfig.UPDATE_REPORT_STATUS)
     public ResponseEntity<?> updateReportStatus(
             @PathVariable Integer reportId,
@@ -211,7 +202,7 @@ public class AdminController {
     @GetMapping(URLConfig.MANAGE_REPORT_BY_ID)
     public ResponseEntity<?> getReportById(@PathVariable Integer reportId) {
         try {
-            Report report = reportService.getReportById(reportId);
+            ReportResponseDto report = reportService.getReportById(reportId);
             return ResponseEntity.ok(Map.of("message", "Report retrieved successfully", "data", report));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -221,7 +212,7 @@ public class AdminController {
                     .body(Map.of("message", "Error retrieving report", "error", e.getMessage()));
         }
     }
-    // AdminController.java
+
     @DeleteMapping(URLConfig.MANAGE_REPORT_BY_ID)
     public ResponseEntity<?> deleteReport(@PathVariable Integer reportId) {
         try {
@@ -237,12 +228,29 @@ public class AdminController {
     }
 
     @GetMapping(URLConfig.GET_REPORT_HISTORY)
-    public ResponseEntity<List<ReportHistory>> getReportHistory(@PathVariable Integer reportId) {
+    public ResponseEntity<?> getReportHistory(@PathVariable Integer reportId) {
         try {
             List<ReportHistory> history = reportHistoryRepository.findByReportId(reportId);
-            return ResponseEntity.ok(history);
+            List<ReportHistoryDto> historyDtos = history.stream()
+                    .map(this::convertToReportHistoryDto)
+                    .collect(Collectors.toList());
+            return ResponseEntity.ok(historyDtos);
         } catch (Exception e) {
-            return ResponseEntity.status(500).body(null);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Error retrieving report history", "error", e.getMessage()));
         }
+    }
+
+    private ReportHistoryDto convertToReportHistoryDto(ReportHistory history) {
+        ReportHistoryDto dto = new ReportHistoryDto();
+        dto.setId(history.getId());
+        dto.setReporterId(history.getReporter() != null ? history.getReporter().getId() : null);
+        dto.setReporterUsername(history.getReporter() != null ? history.getReporter().getUsername() : null);
+        dto.setReportId(history.getReport() != null ? history.getReport().getId() : null);
+        dto.setProcessingStatusId(history.getProcessingStatus() != null ? history.getProcessingStatus().getId() : null);
+        dto.setProcessingStatusName(history.getProcessingStatus() != null ? history.getProcessingStatus().getName() : null);
+        dto.setActionTime(history.getActionTime());
+        dto.setStatus(history.getStatus());
+        return dto;
     }
 }

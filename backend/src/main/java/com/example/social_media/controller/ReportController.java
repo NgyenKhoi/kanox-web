@@ -2,6 +2,7 @@ package com.example.social_media.controller;
 
 import com.example.social_media.config.URLConfig;
 import com.example.social_media.dto.report.CreateReportRequestDto;
+import com.example.social_media.dto.report.ReportReasonDto;
 import com.example.social_media.entity.ReportReason;
 import com.example.social_media.entity.User;
 import com.example.social_media.exception.UserNotFoundException;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping(URLConfig.REPORT_BASE)
@@ -24,7 +26,11 @@ public class ReportController {
     private final CustomUserDetailsService customUserDetailsService;
     private final ReportReasonRepository reportReasonRepository;
 
-    public ReportController(ReportService reportService, CustomUserDetailsService customUserDetailsService, ReportReasonRepository reportReasonRepository) {
+    public ReportController(
+            ReportService reportService,
+            CustomUserDetailsService customUserDetailsService,
+            ReportReasonRepository reportReasonRepository
+    ) {
         this.reportService = reportService;
         this.customUserDetailsService = customUserDetailsService;
         this.reportReasonRepository = reportReasonRepository;
@@ -53,12 +59,25 @@ public class ReportController {
     }
 
     @GetMapping(URLConfig.REPORT_REASON)
-    public ResponseEntity<List<ReportReason>> getReportReasons() {
+    public ResponseEntity<?> getReportReasons() {
         try {
             List<ReportReason> reasons = reportReasonRepository.findAll();
-            return ResponseEntity.ok(reasons);
+            List<ReportReasonDto> reasonDtos = reasons.stream()
+                    .map(this::convertToReportReasonDto)
+                    .collect(Collectors.toList());
+            return ResponseEntity.ok(reasonDtos);
         } catch (Exception e) {
-            return ResponseEntity.status(500).body(null);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Failed to retrieve report reasons", "error", e.getMessage()));
         }
+    }
+
+    private ReportReasonDto convertToReportReasonDto(ReportReason reason) {
+        ReportReasonDto dto = new ReportReasonDto();
+        dto.setId(reason.getId());
+        dto.setName(reason.getName());
+        dto.setDescription(reason.getDescription());
+        dto.setStatus(reason.getStatus());
+        return dto;
     }
 }

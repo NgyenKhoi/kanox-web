@@ -92,6 +92,8 @@
         CONSTRAINT UQ_User_ListName UNIQUE (user_id, list_name)
     );
 
+	
+
     --Lưu danh sách người dùng trong mỗi danh sách custom.
 		CREATE PROCEDURE sp_DeleteCustomList
 		@user_id INT,
@@ -2403,7 +2405,6 @@ WHERE definition LIKE '%friendship%';
 		action_time DATETIME DEFAULT GETDATE(),
 		status BIT DEFAULT 1
 	);
-
     ----------------PROC FOR ADD REPORT----------------
 
 	CREATE OR ALTER PROCEDURE sp_AddReport
