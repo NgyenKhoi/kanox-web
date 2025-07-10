@@ -3,6 +3,7 @@ package com.example.social_media.service;
 import com.example.social_media.dto.report.CreateReportRequestDto;
 import com.example.social_media.dto.report.ReportResponseDto;
 import com.example.social_media.dto.report.UpdateReportStatusRequestDto;
+import com.example.social_media.dto.report.ReportReasonDto;
 import com.example.social_media.entity.*;
 import com.example.social_media.exception.UserNotFoundException;
 import com.example.social_media.repository.*;
@@ -14,7 +15,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 
@@ -65,8 +65,8 @@ public class ReportService {
                     request.getTargetId(),
                     request.getTargetTypeId(),
                     request.getReasonId(),
-                    1, // processing_status_id = 1 (Pending)
-                    true // status = true
+                    1,
+                    true
             );
 
             Report report = reportRepository.findById(reportId)
@@ -105,13 +105,15 @@ public class ReportService {
     }
 
     @Transactional(readOnly = true)
-    public Page<Report> getReportsPaged(Boolean status, Pageable pageable) {
-        return reportRepository.findByStatus(status, pageable);
+    public Page<ReportResponseDto> getReportsPaged(Boolean status, Pageable pageable) {
+        Page<Report> reportPage = reportRepository.findByStatus(status, pageable);
+        return reportPage.map(this::convertToReportResponseDto);
     }
 
     @Transactional(readOnly = true)
-    public Page<Report> getReportsByProcessingStatusId(Integer processingStatusId, Pageable pageable) {
-        return reportRepository.findByProcessingStatusId(processingStatusId, pageable);
+    public Page<ReportResponseDto> getReportsByProcessingStatusId(Integer processingStatusId, Pageable pageable) {
+        Page<Report> reportPage = reportRepository.findByProcessingStatusId(processingStatusId, pageable);
+        return reportPage.map(this::convertToReportResponseDto);
     }
 
     @Transactional
@@ -171,9 +173,33 @@ public class ReportService {
         }
     }
 
-    public Report getReportById(Integer reportId) {
-        return reportRepository.findById(reportId)
+    public ReportResponseDto getReportById(Integer reportId) {
+        Report report = reportRepository.findById(reportId)
                 .orElseThrow(() -> new IllegalArgumentException("Report not found with id: " + reportId));
+        return convertToReportResponseDto(report);
+    }
+
+    private ReportResponseDto convertToReportResponseDto(Report report) {
+        ReportResponseDto dto = new ReportResponseDto();
+        dto.setId(report.getId());
+        dto.setReporterId(report.getReporter() != null ? report.getReporter().getId() : null);
+        dto.setReporterUsername(report.getReporter() != null ? report.getReporter().getUsername() : null);
+        dto.setTargetId(report.getTargetId());
+        dto.setTargetTypeId(report.getTargetType() != null ? report.getTargetType().getId() : null);
+        dto.setTargetTypeName(report.getTargetType() != null ? report.getTargetType().getName() : null);
+        if (report.getReason() != null) {
+            ReportReasonDto reasonDto = new ReportReasonDto();
+            reasonDto.setId(report.getReason().getId());
+            reasonDto.setName(report.getReason().getName());
+            reasonDto.setDescription(report.getReason().getDescription());
+            reasonDto.setStatus(report.getReason().getStatus());
+            dto.setReason(reasonDto);
+        }
+        dto.setProcessingStatusId(report.getProcessingStatus() != null ? report.getProcessingStatus().getId() : null);
+        dto.setProcessingStatusName(report.getProcessingStatus() != null ? report.getProcessingStatus().getName() : null);
+        dto.setReportTime(report.getReportTime());
+        dto.setStatus(report.getStatus());
+        return dto;
     }
 
     @Transactional
