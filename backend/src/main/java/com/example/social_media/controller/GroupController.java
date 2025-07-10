@@ -252,10 +252,10 @@ public class GroupController {
     }
 
     // 3. Xóa cộng đồng
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteGroup(@PathVariable Integer id) {
-        groupService.deleteGroup(id);
-        return ResponseEntity.noContent().build();
+    @DeleteMapping(URLConfig.DELETE_GROUP_BY_ADMIN)
+    public ResponseEntity<Void> deleteGroupByAdmin(@PathVariable Integer groupId) {
+        groupService.deleteGroupAsAdmin(groupId);
+        return ResponseEntity.ok().build();
     }
         @DeleteMapping("/{groupId}/leave")
         public ResponseEntity<?> leaveGroup (@PathVariable Integer groupId,

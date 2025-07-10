@@ -16,13 +16,14 @@ export const fetchAllGroups = async () => {
     return res.json();
 };
 
-export const deleteGroup = async (groupId) => {
-    const res = await fetch(`${API_BASE}/groups/${groupId}`, {
+export const deleteGroupAsAdmin = async (groupId) => {
+    const res = await fetch(`${API_BASE}/groups/admin/${groupId}`, {
         method: "DELETE",
         headers: getTokenHeader(),
     });
-    if (!res.ok) throw new Error("Không thể xoá nhóm");
+    if (!res.ok) throw new Error("Không thể xoá nhóm (admin)");
 };
+
 
 export const fetchGroupDetail = async (groupId) => {
     const res = await fetch(`${API_BASE}/groups/detail/${groupId}`, {
