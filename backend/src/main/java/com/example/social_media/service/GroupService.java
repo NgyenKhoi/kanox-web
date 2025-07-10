@@ -147,6 +147,20 @@ public class GroupService {
     }
 
     @Transactional
+    public void deleteGroupAsAdmin(Integer groupId) {
+        Group group = groupRepository.findById(groupId)
+                .orElseThrow(() -> new NotFoundException("Group không tồn tại"));
+
+        // Đánh dấu là đã xóa thay vì xóa hẳn
+        group.setStatus(false);
+        groupRepository.save(group);
+
+        // Deactivate all group members
+        groupMemberRepository.deactivateByGroupId(groupId);
+    }
+
+
+    @Transactional
     public void addMember(Integer groupId, String username) {
         Group group = groupRepository.findByIdAndStatusTrue(groupId)
                 .orElseThrow(() -> new IllegalArgumentException("Group không tồn tại"));

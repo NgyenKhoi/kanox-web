@@ -1,6 +1,19 @@
 import React, { useEffect, useState } from "react";
-import { Container, Row, Col, Card, Button, Table, Badge, Spinner, Alert } from "react-bootstrap";
-import { fetchAllGroups, deleteGroup } from "../../api/groupApi"; // 🟡 Import API
+import {
+  Container,
+  Row,
+  Col,
+  Card,
+  Button,
+  Table,
+  Badge,
+  Spinner,
+  Alert,
+} from "react-bootstrap";
+import {
+  fetchAllGroups,
+  deleteGroupAsAdmin, // ✅ Import đúng hàm API
+} from "../../api/groupApi";
 
 const CommunitiesManagement = () => {
   const [communities, setCommunities] = useState([]);
@@ -9,7 +22,7 @@ const CommunitiesManagement = () => {
 
   const loadCommunities = async () => {
     try {
-      const data = await fetchAllGroups(); // ✅ Gọi API từ file groupApi
+      const data = await fetchAllGroups();
       setCommunities(data);
     } catch (err) {
       setError(err.message);
@@ -24,16 +37,16 @@ const CommunitiesManagement = () => {
 
   const handleView = (id) => {
     console.log(`Xem cộng đồng ID: ${id}`);
-    // Optional: Gọi fetchGroupDetail nếu cần
   };
 
-  const handleManageMembers = (id) =>
-      console.log(`Quản lý thành viên cộng đồng ID: ${id}`);
+  const handleManageMembers = (id) => {
+    console.log(`Quản lý thành viên cộng đồng ID: ${id}`);
+  };
 
   const handleDelete = async (id) => {
     try {
-      await deleteGroup(id); // ✅ Gọi API xóa nhóm
-      setCommunities((prev) => prev.filter((c) => c.id !== id)); // Cập nhật UI
+      await deleteGroupAsAdmin(id); // ✅ Dùng API đúng endpoint admin
+      setCommunities((prev) => prev.filter((c) => c.id !== id));
     } catch (err) {
       alert("Lỗi khi xóa nhóm: " + err.message);
     }
