@@ -1,6 +1,7 @@
 import React from "react";
 import { FaCheckCircle, FaCircle, FaEllipsisH } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
+import moment from "moment";
 
 function NotificationItem({ notification, handleMarkRead, handleMarkUnread }) {
   const navigate = useNavigate();
@@ -77,9 +78,11 @@ function NotificationItem({ notification, handleMarkRead, handleMarkUnread }) {
                   </p>
               )}
 
-              <p className="text-muted text-xs mt-2">
-                {new Date(notification.createdAt).toLocaleString()}
-              </p>
+                <p className="text-muted text-xs mt-2">
+                    {notification.timestamp
+                        ? moment(notification.timestamp).fromNow()
+                        : "Thời gian không xác định"}
+                </p>
             </div>
           </div>
         </div>

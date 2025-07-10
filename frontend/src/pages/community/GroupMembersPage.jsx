@@ -90,9 +90,13 @@
                                                 onClick={() => navigate(`/profile/${member.username}`)}
                                             >
                                                 {member.displayName}
-                                                {member.isOwner && <span title="Chủ nhóm">👑</span>}
-                                                {!member.isOwner && member.isAdmin && <span title="Quản trị viên">🛡️</span>}
-                                                {!member.isOwner && !member.isAdmin && <span title="Thành viên">👤</span>}
+                                                {member.isOwner ? (
+                                                    <span title="Chủ nhóm">👑</span>
+                                                ) : member.isAdmin ? (
+                                                    <span title="Quản trị viên">🛡️</span>
+                                                ) : (
+                                                    <span title="Thành viên">👤</span>
+                                                )}
                                             </p>
                                             <p className="m-0 text-sm text-gray-500 dark:text-gray-400">
                                                 @{member.username}
@@ -100,7 +104,7 @@
                                         </div>
                                     </div>
 
-                                    {member.username !== user.username && (
+                                    {member.username !== user.username && (user.owner || user.admin) && (
                                         <Button
                                             variant="outline-danger"
                                             size="sm"

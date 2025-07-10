@@ -178,6 +178,10 @@ public class GroupController {
             @PathVariable Integer groupId,
             @RequestHeader("Authorization") String token
     ) {
+        if (token != null && token.startsWith("Bearer ")) {
+            token = token.substring(7);
+        }
+
         String username = jwtService.extractUsername(token);
         groupService.requestToJoinGroup(groupId, username);
         return ResponseEntity.ok().build();
@@ -216,6 +220,10 @@ public class GroupController {
             @PathVariable Integer groupId,
             @RequestHeader("Authorization") String token
     ) {
+        if (token != null && token.startsWith("Bearer ")) {
+            token = token.substring(7);
+        }
+
         String username = jwtService.extractUsername(token);
         groupService.cancelJoinRequest(groupId, username);
         return ResponseEntity.ok(Map.of("message", "Đã hủy yêu cầu tham gia nhóm."));
@@ -252,13 +260,17 @@ public class GroupController {
     }
 
 
-        @DeleteMapping("/{groupId}/leave")
-        public ResponseEntity<?> leaveGroup (@PathVariable Integer groupId,
-                @RequestHeader("Authorization") String token){
-            String username = jwtService.extractUsername(token);
-            groupService.leaveGroup(groupId, username);
-            return ResponseEntity.ok().body(Map.of("message", "Rời khỏi nhóm thành công"));
-
+    @DeleteMapping("/{groupId}/leave")
+    public ResponseEntity<?> leaveGroup(
+            @PathVariable Integer groupId,
+            @RequestHeader("Authorization") String token
+    ) {
+        if (token != null && token.startsWith("Bearer ")) {
+            token = token.substring(7);
         }
 
+        String username = jwtService.extractUsername(token);
+        groupService.leaveGroup(groupId, username);
+        return ResponseEntity.ok(Map.of("message", "Rời khỏi nhóm thành công"));
     }
+}
