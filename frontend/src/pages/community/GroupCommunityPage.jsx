@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useContext } from "react";
+import React, { useEffect, useState, useContext, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button, Dropdown, Row, Col, Modal, ListGroup, Form } from "react-bootstrap"; // Thêm Modal, ListGroup, Form
 import { AuthContext } from "../../context/AuthContext";
@@ -14,6 +14,9 @@ export default function GroupCommunityPage() {
 
     const [groupInfo, setGroupInfo] = useState(null);
     const [posts, setPosts] = useState([]);
+    const savedPosts = useMemo(() => {
+        return posts.filter((p) => p.isSaved);
+    }, [posts]);
     const [loading, setLoading] = useState(true);
     const [isMember, setIsMember] = useState(false);
     const [showInviteModal, setShowInviteModal] = useState(false);
@@ -22,20 +25,23 @@ export default function GroupCommunityPage() {
 
     useEffect(() => {
         if (!groupId || !token) return;
-        const fetchGroupData = async () => {
+        const fetchData = async () => {
             try {
                 await Promise.all([fetchGroupDetail(), fetchPostsByGroup()]);
-                if (groupInfo?.isAdmin || groupInfo?.isOwner) {
-                    await fetchJoinRequests(); // Gọi fetchJoinRequests khi là admin/owner
-                }
                 setLoading(false);
             } catch (err) {
                 console.error("Lỗi khi tải dữ liệu nhóm:", err.message);
                 setLoading(false);
             }
         };
-        fetchGroupData();
-    }, [groupId, token, groupInfo?.isAdmin, groupInfo?.isOwner]); // Thêm groupInfo.isAdmin, groupInfo.isOwner vào dependency
+        fetchData();
+    }, [groupId, token]);
+
+    useEffect(() => {
+        if ((groupInfo?.isAdmin || groupInfo?.isOwner) && token) {
+            fetchJoinRequests();
+        }
+    }, [groupInfo?.isAdmin, groupInfo?.isOwner, token]);
 
     const fetchGroupDetail = async () => {
         try {
@@ -301,49 +307,51 @@ export default function GroupCommunityPage() {
                     )}
 
                     {/* Action buttons */}
-                    <div className="mt-3 flex gap-2 flex-wrap">
-                        {groupInfo.inviteStatus === "PENDING" && (
-                            <p className="text-sm text-yellow-500">Đang chờ duyệt vào nhóm</p>
-                        )}
-                        {!isMember &&
-                            !groupInfo.isOwner &&
-                            !groupInfo.isAdmin &&
-                            groupInfo.inviteStatus !== "PENDING" && (
+                    <div className="mt-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div className="d-flex gap-2 flex-wrap">
+                            {groupInfo.inviteStatus === "PENDING" && (
+                                <p className="text-sm text-warning m-0">Đang chờ duyệt vào nhóm</p>
+                            )}
+                            {!isMember &&
+                                !groupInfo.isOwner &&
+                                !groupInfo.isAdmin &&
+                                groupInfo.inviteStatus !== "PENDING" && (
+                                    <>
+                                        {groupInfo.privacyLevel === "public" && (
+                                            <Button variant="primary" size="sm" onClick={handleJoinGroup}>
+                                                Tham gia nhóm
+                                            </Button>
+                                        )}
+                                        {groupInfo.privacyLevel === "private" && (
+                                            <Button variant="primary" size="sm" onClick={handleJoinGroup}>
+                                                Yêu cầu tham gia
+                                            </Button>
+                                        )}
+                                        {groupInfo.privacyLevel === "hidden" && (
+                                            <p className="text-sm text-muted m-0">
+                                                Bạn cần được mời để tham gia nhóm này.
+                                            </p>
+                                        )}
+                                    </>
+                                )}
+                            {isMember && (
+                                <Button variant="outline-danger" size="sm" onClick={handleLeaveGroup}>
+                                    Rời nhóm
+                                </Button>
+                            )}
+                            {(groupInfo.isAdmin || groupInfo.isOwner) && (
                                 <>
-                                    {groupInfo.privacyLevel === "public" && (
-                                        <Button variant="primary" size="sm" onClick={handleJoinGroup}>
-                                            Tham gia nhóm
-                                        </Button>
-                                    )}
-                                    {groupInfo.privacyLevel === "private" && (
-                                        <Button variant="primary" size="sm" onClick={handleJoinGroup}>
-                                            Yêu cầu tham gia
-                                        </Button>
-                                    )}
-                                    {groupInfo.privacyLevel === "hidden" && (
-                                        <p className="text-sm text-muted">Bạn cần được mời để tham gia nhóm này.</p>
-                                    )}
+                                    <Button variant="primary" size="sm" onClick={() => setShowInviteModal(true)}>
+                                        Mời thành viên
+                                    </Button>
+                                    <Button variant="primary" size="sm" onClick={() => setShowJoinRequestsModal(true)}>
+                                        Quản lý yêu cầu tham gia
+                                    </Button>
                                 </>
                             )}
-                        {isMember && (
-                            <Button variant="outline-danger" size="sm" onClick={handleLeaveGroup}>
-                                Rời nhóm
-                            </Button>
-                        )}
-                        {(groupInfo.isAdmin || groupInfo.isOwner) && (
-                            <>
-                                <Button variant="primary" size="sm" onClick={() => setShowInviteModal(true)}>
-                                    Mời thành viên
-                                </Button>
-                                <Button variant="primary" size="sm" onClick={() => setShowJoinRequestsModal(true)}>
-                                    Quản lý yêu cầu tham gia
-                                </Button>
-                            </>
-                        )}
-                    </div>
+                        </div>
 
-                    {/* Dropdown Menu */}
-                    <div className="mt-3">
+                        {/* Dropdown Menu */}
                         <Dropdown align="end">
                             <Dropdown.Toggle variant="light" className="border px-2">
                                 ⋯
@@ -386,7 +394,7 @@ export default function GroupCommunityPage() {
                                             key={post.id}
                                             tweet={post}
                                             onPostUpdate={fetchPostsByGroup}
-                                            savedPosts={posts.filter((p) => p.isSaved)}
+                                            savedPosts={savedPosts}
                                         />
                                     ))
                                 ) : (

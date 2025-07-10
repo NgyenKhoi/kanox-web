@@ -55,6 +55,10 @@ public class GroupService {
         this.friendshipRepository = friendshipRepository;
     }
 
+    public boolean isMember(Integer groupId, String username) {
+        return groupMemberRepository.existsByGroupIdAndUserUsername(groupId, username);
+    }
+
     @Transactional
     public Group createGroup(String ownerUsername, String name, String description, String privacyLevel, MultipartFile avatarFile) throws IOException {
         User owner = userRepository.findByUsernameAndStatusTrue(ownerUsername)
