@@ -5,6 +5,7 @@ import "react-toastify/dist/ReactToastify.css";
 import "./App.css";
 import moment from "moment";
 import PrivateRoute from "./components/common/PrivateRoute/PrivateRoute";
+import { EmojiProvider } from "./context/EmojiContext";
 
 import SidebarLeft from "./components/layout/SidebarLeft/SidebarLeft";
 import { ThemeContext, ThemeProvider } from "./context/ThemeContext";
@@ -48,8 +49,6 @@ function AppContent() {
   const navigate = useNavigate();
   const [showCreatePost, setShowCreatePost] = useState(false);
   const location = useLocation();
-  const [showReportNotification, setShowReportNotification] = useState(false);
-  const [newReport, setNewReport] = useState(null);
   const [notifications, setNotifications] = useState([]);
 
   const handleCallStatus = (status) => {
@@ -147,8 +146,11 @@ function AppContent() {
       subscriptions.push(
           subscribe("/topic/admin/reports", (message) => {
             console.log("Received new report notification:", message);
-            setNewReport(message);
-            setShowReportNotification(true);
+            toast.info(`Báo cáo mới từ ${message.reporterUsername}: ${message.reason}`, {
+              onClick: () => {
+                navigate("/admin", { state: { newReport: message } });
+              },
+            });
           }, "admin-reports")
       );
     }
@@ -469,73 +471,34 @@ function AppContent() {
                   </Button>
                 </Modal.Footer>
               </Modal>
-
-              <Modal
-                  show={showReportNotification}
-                  onHide={() => setShowReportNotification(false)}
-                  centered
-                  className="bg-[var(--background-color)] text-[var(--text-color)]"
-              >
-                <Modal.Header closeButton>
-                  <Modal.Title>Báo cáo mới</Modal.Title>
-                </Modal.Header>
-                <Modal.Body>
-                  {newReport ? (
-                      <div>
-                        <p><strong>Báo cáo từ:</strong> {newReport.reporterUsername || "Người dùng ẩn danh"}</p>
-                        <p><strong>Loại:</strong> {newReport.reportType || "Không xác định"}</p>
-                        <p><strong>ID mục tiêu:</strong> {newReport.targetId}</p>
-                        <p><strong>Lý do:</strong> {newReport.reason || "Không có lý do"}</p>
-                        <p><strong>Thời gian:</strong> {moment(newReport.createdAt * 1000).fromNow()}</p>
-                      </div>
-                  ) : (
-                      <p>Không có thông tin báo cáo.</p>
-                  )}
-                </Modal.Body>
-                <Modal.Footer>
-                  <Button
-                      variant="secondary"
-                      onClick={() => setShowReportNotification(false)}
-                  >
-                    Đóng
-                  </Button>
-                  <Button
-                      variant="primary"
-                      onClick={() => {
-                        setShowReportNotification(false);
-                        navigate("/admin", { state: { newReport } }); // Truyền newReport qua state
-                      }}
-                  >
-                    Xem chi tiết
-                  </Button>
-                </Modal.Footer>
-              </Modal>
             </>
         )}
       </>
   );
 }
 
-  function App() {
+function App() {
   return (
       <Router>
         <AuthProvider>
           <WebSocketProvider>
-            <ThemeProvider>
-              <AppContent />
-              <ToastContainer
-                  position="top-right"
-                  autoClose={3000}
-                  hideProgressBar={false}
-                  newestOnTop={false}
-                  closeOnClick
-                  rtl={false}
-                  pauseOnFocusLoss
-                  draggable
-                  pauseOnHover
-                  theme="light"
-              />
-            </ThemeProvider>
+            <EmojiProvider>
+              <ThemeProvider>
+                <AppContent />
+                <ToastContainer
+                    position="top-right"
+                    autoClose={3000}
+                    hideProgressBar={false}
+                    newestOnTop={false}
+                    closeOnClick
+                    rtl={false}
+                    pauseOnFocusLoss
+                    draggable
+                    pauseOnHover
+                    theme="light"
+                />
+              </ThemeProvider>
+            </EmojiProvider>
           </WebSocketProvider>
         </AuthProvider>
       </Router>

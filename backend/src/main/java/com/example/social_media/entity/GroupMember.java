@@ -36,6 +36,10 @@ public class GroupMember {
     @Column(name = "invite_status")
     private String inviteStatus = "PENDING";
 
+    @ColumnDefault("0")
+    @Column(name = "is_owner")
+    private Boolean isOwner = false;
+
     public GroupMemberId getId() {
         return id;
     }
@@ -98,5 +102,13 @@ public class GroupMember {
 
     public void setInviteStatus(String inviteStatus) {
         this.inviteStatus = inviteStatus;
+    }
+
+    public Boolean getIsOwner() {
+        return isOwner != null && isOwner;
+    }
+
+    public void setIsOwner(Boolean isOwner) {
+        this.isOwner = isOwner;
     }
 }

@@ -2300,6 +2300,7 @@ WHERE definition LIKE '%friendship%';
         user_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
         join_at DATETIME DEFAULT GETDATE(),
         is_admin BIT DEFAULT 0,
+		is_owner BIT DEFAULT 0,
         status BIT DEFAULT 1,
 		invite_status NVARCHAR(20) DEFAULT 'PENDING',
         PRIMARY KEY (group_id, user_id)

@@ -56,6 +56,8 @@ import { useCommentActions } from "../../../hooks/useCommentAction";
 import useEmojiList from "../../../hooks/useEmojiList";
 import MediaActionBar from "../../utils/MediaActionBar";
 import useCommentAvatar from "../../../hooks/useCommentAvatar";
+import usePostMedia from "../../../hooks/usePostMedia"
+import { useEmojiContext } from "../../../context/EmojiContext";
 
 function TweetCard({ tweet, onPostUpdate }) {
   const { user, loading, token } = useContext(AuthContext);
@@ -93,7 +95,6 @@ function TweetCard({ tweet, onPostUpdate }) {
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [selectedMediaFiles, setSelectedMediaFiles] = useState([]);
   const [selectedMediaPreviews, setSelectedMediaPreviews] = useState([]);
-  const { emojiList } = useEmojiList();
   const commentInputRef = useRef(null);
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportReasonId, setReportReasonId] = useState("");
@@ -104,23 +105,19 @@ function TweetCard({ tweet, onPostUpdate }) {
   const ownerId = owner?.id || null;
   const postId = id || null;
   const targetTypeId = tweet?.targetTypeId || 1;
-
+  
   const avatarMedia = useMedia([ownerId], "PROFILE", "image");
-  const imageMedia = useMedia([postId], "POST", "image");
-  const videoMedia = useMedia([postId], "POST", "video");
+  const { imageData, videoData } = usePostMedia(postId);
   const avatarData = !loading && token && ownerId ? avatarMedia.mediaData : {};
   const avatarError = avatarMedia.error;
-  const imageData = !loading && token && postId ? imageMedia.mediaData : {};
-  const mediaError = imageMedia.error;
-  const videoData = !loading && token && postId ? videoMedia.mediaData : {};
-  const videoError = videoMedia.error;
+  const { emojiList: mainEmojiList, emojiMap } = useEmojiContext();
+  const { emojiList: messageEmojiList } = useEmojiList();
 
   const avatarUrl = avatarData?.[ownerId]?.[0]?.url || null;
   const imageUrls = imageData?.[postId] || [];
   const videoUrls = videoData?.[postId] || [];
   const { avatarUrl: currentAvatarUrl } = useCommentAvatar(user?.id);
 
-  const fileInputRef = useRef();
 
   const {
     reactionCountMap,
@@ -148,7 +145,7 @@ function TweetCard({ tweet, onPostUpdate }) {
   };
 
   const handleNextImage = () => {
-    if (currentImageIndex < imageUrls.length - 1) {
+    if (Array.isArray(imageUrls) && currentImageIndex < imageUrls.length - 1) {
       setCurrentImageIndex((prev) => prev + 1);
       setSelectedImage(imageUrls[currentImageIndex + 1].url);
     }
@@ -1014,7 +1011,7 @@ function TweetCard({ tweet, onPostUpdate }) {
                                             className="scrollbar-hide"
                                         >
                                           <div className="flex flex-wrap">
-                                            {emojiList.map((emoji, idx) => (
+                                            {messageEmojiList.map((emoji, idx) => (
                                                 <span
                                                     key={idx}
                                                     className="text-2xl cursor-pointer m-1"

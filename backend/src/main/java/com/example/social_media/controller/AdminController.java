@@ -244,8 +244,11 @@ public class AdminController {
                     .collect(Collectors.toList());
             return ResponseEntity.ok(historyDtos);
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("message", "Error retrieving report history", "error", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", "Lỗi khi lấy lịch sử báo cáo: " + e.getMessage(),
+                    "errors", Map.of()
+            ));
         }
     }
 
@@ -261,6 +264,7 @@ public class AdminController {
         dto.setStatus(history.getStatus());
         return dto;
     }
+
     @DeleteMapping(URLConfig.DELETE_GROUP_BY_ADMIN)
     public ResponseEntity<?> deleteGroupByAdmin(@PathVariable Integer groupId) {
         try {
@@ -272,6 +276,26 @@ public class AdminController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("message", "Error deleting group", "error", e.getMessage()));
+        }
+    }
+
+
+
+    @GetMapping(URLConfig.GET_UNREAD_REPORT)
+    public ResponseEntity<?> getUnreadReports(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        try {
+            Pageable pageable = PageRequest.of(page, size);
+            Page<ReportResponseDto> reports = reportService.getReportsByProcessingStatusId(1, pageable);
+            return ResponseEntity.ok(Map.of("data", reports));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", "Lỗi khi lấy danh sách báo cáo chưa đọc: " + e.getMessage(),
+                    "errors", Map.of()
+            ));
         }
     }
 

@@ -115,7 +115,7 @@ export default function GroupCommunityPage() {
                 setIsMember(true);
                 toast.success("Tham gia nhóm thành công!");
             } else {
-                setGroupInfo({ ...groupInfo, inviteStatus: "PENDING" });
+                await fetchGroupDetail();
                 toast.success("Yêu cầu tham gia đã được gửi!");
             }
         } catch (err) {
@@ -274,6 +274,23 @@ export default function GroupCommunityPage() {
     if (!groupInfo) return <div className="text-center py-4">Không tìm thấy nhóm.</div>;
     const canViewContent = isMember || groupInfo.privacyLevel === "public";
 
+    const handleCancelJoinRequest = async () => {
+        try {
+            const res = await fetch(`${process.env.REACT_APP_API_URL}/groups/${groupId}/cancel-request`, {
+                method: "DELETE",
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.message || "Không thể hủy yêu cầu.");
+            }
+            setGroupInfo({ ...groupInfo, inviteStatus: null });
+            toast.success("Đã hủy yêu cầu tham gia nhóm.");
+        } catch (err) {
+            toast.error(err.message);
+        }
+    };
+
     return (
         <Row className="m-0 h-100 w-100">
             {/* Nội dung chính */}
@@ -305,8 +322,13 @@ export default function GroupCommunityPage() {
                     {/* Action buttons */}
                     <div className="mt-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
                         <div className="d-flex gap-2 flex-wrap">
-                            {groupInfo.inviteStatus === "PENDING" && (
-                                <p className="text-sm text-warning m-0">Đang chờ duyệt vào nhóm</p>
+                            {groupInfo.inviteStatus === "REQUESTED" && (
+                                <>
+                                    <p className="text-sm text-warning m-0">Đang chờ duyệt vào nhóm</p>
+                                    <Button variant="outline-secondary" size="sm" onClick={handleCancelJoinRequest}>
+                                        Hủy yêu cầu
+                                    </Button>
+                                </>
                             )}
                             {!isMember &&
                                 !groupInfo.isOwner &&

@@ -1,6 +1,7 @@
 package com.example.social_media.service;
 
 import com.example.social_media.dto.group.GroupDisplayDto;
+import com.example.social_media.dto.group.GroupMemberDisplayDto;
 import com.example.social_media.dto.group.GroupSimpleDto;
 import com.example.social_media.dto.group.GroupSummaryDto;
 import com.example.social_media.dto.user.UserBasicDisplayDto;
@@ -82,6 +83,7 @@ public class GroupService {
         member.setUser(owner);
         member.setJoinAt(Instant.now());
         member.setIsAdmin(true);
+        member.setIsOwner(true);
         member.setStatus(true);
         member.setInviteStatus("ACCEPTED");
 
@@ -146,46 +148,6 @@ public class GroupService {
         groupMemberRepository.deactivateByGroupId(groupId);
     }
 
-    @Transactional
-    public void deleteGroupAsAdmin(Integer groupId) {
-        Group group = groupRepository.findById(groupId)
-                .orElseThrow(() -> new NotFoundException("Group không tồn tại"));
-
-        // Đánh dấu là đã xóa thay vì xóa hẳn
-        group.setStatus(false);
-        groupRepository.save(group);
-
-        // Deactivate all group members
-        groupMemberRepository.deactivateByGroupId(groupId);
-    }
-
-
-    @Transactional
-    public void addMember(Integer groupId, String username) {
-        Group group = groupRepository.findByIdAndStatusTrue(groupId)
-                .orElseThrow(() -> new IllegalArgumentException("Group không tồn tại"));
-
-        User user = userRepository.findByUsernameAndStatusTrue(username)
-                .orElseThrow(() -> new UserNotFoundException("User không tồn tại"));
-
-        GroupMemberId id = new GroupMemberId();
-        id.setGroupId(groupId);
-        id.setUserId(user.getId());
-
-        if (groupMemberRepository.existsById(id)) {
-            throw new IllegalArgumentException("User đã là thành viên");
-        }
-
-        GroupMember member = new GroupMember();
-        member.setId(id);
-        member.setGroup(group);
-        member.setUser(user);
-        member.setJoinAt(Instant.now());
-        member.setIsAdmin(false);
-        member.setStatus(true);
-
-        groupMemberRepository.save(member);
-    }
 
     @Transactional
     public void removeMember(Integer groupId, Integer targetUserId, String requesterUsername) {
@@ -211,14 +173,16 @@ public class GroupService {
         Pageable pageable = PageRequest.of(page, size);
         Page<GroupMember> members = groupMemberRepository.findAcceptedMembersByGroupId(groupId, pageable);
 
-        List<UserBasicDisplayDto> memberDtos = members
+        List<GroupMemberDisplayDto> memberDtos = members
                 .map(m -> {
                     User user = m.getUser();
-                    return new UserBasicDisplayDto(
+                    return new GroupMemberDisplayDto(
                             user.getId(),
                             user.getDisplayName(),
                             user.getUsername(),
-                            mediaService.getAvatarUrlByUserId(user.getId())
+                            mediaService.getAvatarUrlByUserId(user.getId()),
+                            Boolean.TRUE.equals(m.getIsAdmin()),
+                            Boolean.TRUE.equals(m.getIsOwner())
                     );
                 })
                 .getContent();
@@ -680,5 +644,20 @@ public class GroupService {
                             u.getUsername()
                     );
                 }).collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void cancelJoinRequest(Integer groupId, String username) {
+        User user = userRepository.findByUsernameAndStatusTrue(username)
+                .orElseThrow(() -> new UserNotFoundException("Người dùng không tồn tại"));
+
+        GroupMember member = groupMemberRepository.findById(new GroupMemberId(groupId, user.getId()))
+                .orElseThrow(() -> new IllegalArgumentException("Yêu cầu tham gia không tồn tại"));
+
+        if (!"REQUESTED".equals(member.getInviteStatus())) {
+            throw new IllegalStateException("Chỉ có thể hủy khi đang ở trạng thái yêu cầu tham gia");
+        }
+
+        groupMemberRepository.delete(member);
     }
 }

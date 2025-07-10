@@ -14,52 +14,32 @@ export default function useReaction({ user, targetId, targetTypeCode }) {
     useEffect(() => {
         if (!user?.id || !targetId || !targetTypeCode || !token) return;
 
-        const fetchAll = async () => {
+        const fetchSummary = async () => {
             try {
-                await Promise.all([
-                    fetchReactionCounts(),
-                    fetchTopReactions()
-                ]);
+                const res = await fetch(
+                    `${process.env.REACT_APP_API_URL}/reactions/summary?targetId=${targetId}&targetTypeCode=${targetTypeCode}`,
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+
+                if (!res.ok) throw new Error("Không thể lấy summary reactions.");
+
+                const data = await res.json();
+
+                setReactionCountMap(data.countMap || {});
+                setTopReactions(
+                    (data.topReactions || []).map((item) => ({
+                        name: item.reactionType.name,
+                        emoji: item.reactionType.emoji,
+                        count: item.count,
+                    }))
+                );
             } catch (err) {
-                console.error("Lỗi khi tải dữ liệu reactions:", err.message);
+                console.error("Lỗi khi lấy summary reactions:", err.message);
             }
         };
 
-        fetchAll();
+        fetchSummary();
     }, [user?.id, targetId, targetTypeCode, token]);
-
-    const fetchReactionCounts = async () => {
-        try {
-            const res = await fetch(
-                `${process.env.REACT_APP_API_URL}/reactions/count?targetId=${targetId}&targetTypeCode=${targetTypeCode}`,
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-            if (!res.ok) throw new Error("Không thể lấy thống kê cảm xúc.");
-            const data = await res.json();
-            if (typeof data === "object") setReactionCountMap(data);
-        } catch (err) {
-            console.error("Lỗi khi lấy tổng reaction:", err.message);
-        }
-    };
-
-    const fetchTopReactions = async () => {
-        try {
-            const res = await fetch(
-                `${process.env.REACT_APP_API_URL}/reactions/top3?targetId=${targetId}&targetTypeCode=${targetTypeCode}`,
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-            if (!res.ok) throw new Error("Không thể lấy top cảm xúc.");
-            const data = await res.json();
-
-            setTopReactions(data.map(item => ({
-                name: item.reactionType.name,
-                emoji: item.reactionType.emoji,
-                count: item.count
-            })));
-        } catch (err) {
-            console.error("Lỗi top reactions:", err.message);
-        }
-    };
 
     const fetchUsersByReaction = async (emojiName) => {
         if (reactionUserMap[emojiName]) return;
@@ -72,10 +52,9 @@ export default function useReaction({ user, targetId, targetTypeCode }) {
 
             if (!res.ok) throw new Error("Không thể lấy danh sách người dùng thả reaction.");
             const data = await res.json();
-            setReactionUserMap(prev => ({ ...prev, [emojiName]: data }));
+            setReactionUserMap((prev) => ({ ...prev, [emojiName]: data }));
 
-            // Cập nhật emoji hiện tại nếu người dùng đã thả emoji này
-            if (data.some(u => u.id === user.id)) {
+            if (data.some((u) => u.id === user.id)) {
                 setCurrentEmoji(emojiMap[emojiName]);
             }
         } catch (err) {
@@ -101,7 +80,10 @@ export default function useReaction({ user, targetId, targetTypeCode }) {
 
             if (!res.ok) throw new Error("Không thể thả cảm xúc.");
             setCurrentEmoji(emojiMap[reactionName]);
-            fetchReactionCounts();
+            // reload summary sau khi gửi
+            setTimeout(() => {
+                fetchUsersByReaction(reactionName);
+            }, 300);
         } catch (err) {
             toast.error(err.message);
         }
@@ -121,7 +103,10 @@ export default function useReaction({ user, targetId, targetTypeCode }) {
 
             if (!res.ok) throw new Error("Không thể gỡ cảm xúc.");
             setCurrentEmoji(null);
-            fetchReactionCounts();
+            // reload summary sau khi gỡ
+            setTimeout(() => {
+                fetchUsersByReaction(currentEmoji?.name);
+            }, 300);
         } catch (err) {
             toast.error(err.message);
         }

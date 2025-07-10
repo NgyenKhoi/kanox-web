@@ -7,6 +7,7 @@ import com.example.social_media.dto.report.ReportReasonDto;
 import com.example.social_media.entity.*;
 import com.example.social_media.exception.UserNotFoundException;
 import com.example.social_media.repository.*;
+import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -14,6 +15,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.SQLException;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -75,7 +77,7 @@ public class ReportService {
             messagingTemplate.convertAndSend("/topic/admin/reports", Map.of(
                     "id", reportId,
                     "targetId", request.getTargetId(),
-                    "reportType", request.getTargetTypeId() == 1 ? "POST" : request.getTargetTypeId() == 2 ? "USER" : "UNKNOWN",
+                    "targetTypeId", request.getTargetTypeId(),
                     "reporterUsername", reporter.getUsername(),
                     "reason", reason.getName(),
                     "createdAt", System.currentTimeMillis() / 1000
@@ -91,7 +93,11 @@ public class ReportService {
             history.setStatus(true);
             reportHistoryRepository.save(history);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to create report: " + e.getMessage());
+            String errorMessage = e.getCause() instanceof SQLException ? e.getCause().getMessage() : "Failed to create report";
+            if (errorMessage.contains("Bạn đã báo cáo nội dung này trước đó.")) {
+                throw new IllegalArgumentException("Bạn đã báo cáo nội dung này trước đó. Vui lòng chờ xử lý.");
+            }
+            throw new RuntimeException("Failed to create report: " + errorMessage);
         }
     }
 
@@ -116,6 +122,12 @@ public class ReportService {
         return reportPage.map(this::convertToReportResponseDto);
     }
 
+    @Transactional(readOnly = true)
+    public Page<ReportResponseDto> getReportsByTargetTypeId(Integer targetTypeId, Pageable pageable) {
+        Page<Report> reportPage = reportRepository.findByTargetTypeId(targetTypeId, pageable);
+        return reportPage.map(this::convertToReportResponseDto);
+    }
+
     @Transactional
     public void updateReportStatus(Integer reportId, UpdateReportStatusRequestDto request) {
         User admin = userRepository.findById(request.getAdminId())
@@ -135,41 +147,9 @@ public class ReportService {
                     request.getAdminId(),
                     request.getProcessingStatusId()
             );
-
-            ReportHistory history = new ReportHistory();
-            history.setReporter(admin);
-            history.setReport(report);
-            history.setProcessingStatus(status);
-            history.setActionTime(Instant.now());
-            history.setStatus(true);
-            reportHistoryRepository.save(history);
-
-            String message;
-            switch (request.getProcessingStatusId()) {
-                case 1:
-                    message = "Báo cáo của bạn đang chờ xử lý.";
-                    break;
-                case 2:
-                    message = "Báo cáo của bạn đang được xem xét.";
-                    break;
-                case 3:
-                    message = "Báo cáo của bạn đã được duyệt.";
-                    break;
-                case 4:
-                    message = "Báo cáo của bạn đã bị từ chối.";
-                    break;
-                default:
-                    message = "Trạng thái báo cáo đã được cập nhật.";
-            }
-            notificationService.sendReportNotification(
-                    report.getReporter().getId(),
-                    "REPORT_STATUS_UPDATED",
-                    message,
-                    report.getTargetId(),
-                    report.getTargetType().getId()
-            );
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to update report status: " + e.getMessage());
+        } catch (DataAccessException e) {
+            String errorMessage = e.getCause() instanceof SQLException ? e.getCause().getMessage() : "Failed to update report status";
+            throw new RuntimeException("Failed to update report status: " + errorMessage);
         }
     }
 

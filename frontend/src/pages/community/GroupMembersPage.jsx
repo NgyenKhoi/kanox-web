@@ -20,7 +20,7 @@
 
         const fetchMembers = async () => {
             try {
-                const res = await fetch(`${process.env.REACT_APP_API_URL}/groups/${groupId}/members`, {
+                const res = await fetch(`${process.env.REACT_APP_API_URL}/groups/${groupId}/members?page=0&size=100`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 if (!res.ok) {
@@ -45,7 +45,7 @@
                 const res = await fetch(
                     `${process.env.REACT_APP_API_URL}/groups/${groupId}/remove?targetUserId=${targetUserId}&requesterUsername=${user.username}`,
                     {
-                        method: "POST",
+                        method: "DELETE",
                         headers: { Authorization: `Bearer ${token}` },
                     }
                 );
