@@ -5,7 +5,7 @@ import com.example.social_media.dto.group.GroupSimpleDto;
 import com.example.social_media.dto.group.GroupSummaryDto;
 import com.example.social_media.dto.user.UserBasicDisplayDto;
 import com.example.social_media.entity.*;
-import com.example.social_media.exception.NotFoundException;
+        import com.example.social_media.exception.NotFoundException;
 import com.example.social_media.exception.UnauthorizedException;
 import com.example.social_media.exception.UserNotFoundException;
 import com.example.social_media.repository.FriendshipRepository;
@@ -53,6 +53,10 @@ public class GroupService {
         this.notificationService = notificationService;
         this.dataSyncService = dataSyncService;
         this.friendshipRepository = friendshipRepository;
+    }
+
+    public boolean isMember(Integer groupId, String username) {
+        return groupMemberRepository.existsByGroupIdAndUserUsername(groupId, username);
     }
 
     @Transactional
@@ -189,25 +193,6 @@ public class GroupService {
         groupMemberRepository.save(member);
     }
 
-    @Transactional
-    public void assignAdmin(Integer groupId, Integer targetUserId, String requesterUsername) {
-        Group group = groupRepository.findById(groupId)
-                .orElseThrow(() -> new IllegalArgumentException("Group không tồn tại"));
-
-        User requester = userRepository.findByUsernameAndStatusTrue(requesterUsername)
-                .orElseThrow(() -> new UserNotFoundException("Người gửi không tồn tại"));
-
-        if (!group.getOwner().getId().equals(requester.getId())) {
-            throw new UnauthorizedException("Chỉ owner mới được gán quyền admin");
-        }
-
-        GroupMember member = groupMemberRepository.findById_GroupIdAndId_UserId(groupId, targetUserId)
-                .orElseThrow(() -> new IllegalArgumentException("Thành viên không tồn tại"));
-
-        member.setIsAdmin(true);
-        groupMemberRepository.save(member);
-    }
-
     public Map<String, Object> getGroupMembers(Integer groupId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
         Page<GroupMember> members = groupMemberRepository.findAcceptedMembersByGroupId(groupId, pageable);
@@ -233,6 +218,24 @@ public class GroupService {
     }
 
     @Transactional
+    public void assignAdmin(Integer groupId, Integer targetUserId, String requesterUsername) {
+        Group group = groupRepository.findById(groupId)
+                .orElseThrow(() -> new IllegalArgumentException("Group không tồn tại"));
+
+        User requester = userRepository.findByUsernameAndStatusTrue(requesterUsername)
+                .orElseThrow(() -> new UserNotFoundException("Người gửi không tồn tại"));
+
+        if (!group.getOwner().getId().equals(requester.getId())) {
+            throw new UnauthorizedException("Chỉ owner mới được gán quyền admin");
+        }
+
+        GroupMember member = groupMemberRepository.findById_GroupIdAndId_UserId(groupId, targetUserId)
+                .orElseThrow(() -> new IllegalArgumentException("Thành viên không tồn tại"));
+
+        member.setIsAdmin(true);
+        groupMemberRepository.save(member);
+    }
+
     public void inviteMember(Integer groupId, String usernameToInvite) {
         Group group = groupRepository.findByIdAndStatusTrue(groupId)
                 .orElseThrow(() -> new NotFoundException("Group not found"));
@@ -255,13 +258,13 @@ public class GroupService {
         member.setJoinAt(Instant.now());
         groupMemberRepository.save(member);
 
-        // Send group invite notification
         notificationService.sendNotification(
                 userToInvite.getId(),
                 "GROUP_INVITE",
-                "{displayName} đã mời bạn vào một nhóm",
+                group.getName() + " muốn mời bạn tham gia vào nhóm",
                 group.getId(),
-                "GROUP"
+                "GROUP",
+                mediaService.getGroupAvatarUrl(group.getId())
         );
     }
 
@@ -292,19 +295,19 @@ public class GroupService {
             throw new IllegalStateException("Trạng thái lời mời không hợp lệ.");
         }
 
-        // ✅ Chuyển từ PENDING → REQUESTED
         member.setInviteStatus("REQUESTED");
         member.setJoinAt(Instant.now());
         groupMemberRepository.save(member);
 
-        // ✅ Gửi thông báo tới admin/owner
+        // Sửa: Thêm tham số image
         Group group = member.getGroup();
         notificationService.sendNotification(
                 group.getOwner().getId(),
                 "GROUP_JOIN_REQUEST",
                 user.getDisplayName() + " đã chấp nhận lời mời và đang chờ phê duyệt",
                 group.getId(),
-                "GROUP"
+                "GROUP",
+                mediaService.getGroupAvatarUrl(group.getId())
         );
     }
 
@@ -360,15 +363,38 @@ public class GroupService {
         request.setJoinAt(Instant.now());
         request.setIsAdmin(false);
         request.setStatus(true);
+
+        String displayName = user.getDisplayName() != null ? user.getDisplayName() : user.getUsername();
+        String groupAvatarUrl = mediaService.getGroupAvatarUrl(group.getId());
+
         if ("public".equalsIgnoreCase(group.getPrivacyLevel())) {
             request.setInviteStatus("ACCEPTED");
+            groupMemberRepository.save(request);
+
+            // Sửa: Thêm tham số image
+            notificationService.sendNotification(
+                    group.getOwner().getId(),
+                    "GROUP_USER_JOINED",
+                    displayName + " đã tham gia nhóm " + group.getName(),
+                    group.getId(),
+                    "GROUP",
+                    groupAvatarUrl
+            );
         } else if ("private".equalsIgnoreCase(group.getPrivacyLevel())) {
             request.setInviteStatus("REQUESTED");
+            groupMemberRepository.save(request);
+
+            notificationService.sendNotification(
+                    group.getOwner().getId(),
+                    "GROUP_JOIN_REQUEST",
+                    displayName + " đã yêu cầu tham gia nhóm " + group.getName(),
+                    group.getId(),
+                    "GROUP",
+                    groupAvatarUrl
+            );
         } else {
             throw new UnauthorizedException("Bạn không thể tự tham gia nhóm này");
         }
-
-        groupMemberRepository.save(request);
     }
 
     @Transactional
@@ -394,6 +420,18 @@ public class GroupService {
         member.setInviteStatus("ACCEPTED");
         member.setJoinAt(Instant.now());
         groupMemberRepository.save(member);
+
+        // Notify the user that their join request was approved
+        User user = member.getUser();
+        String displayName = user.getDisplayName() != null ? user.getDisplayName() : user.getUsername();
+        notificationService.sendNotification(
+                userId,
+                "GROUP_REQUEST_APPROVED",
+                "Yêu cầu tham gia nhóm " + group.getName() + " của bạn đã được duyệt",
+                group.getId(),
+                "GROUP",
+                mediaService.getGroupAvatarUrl(group.getId())
+        );
     }
 
     @Transactional
@@ -418,20 +456,29 @@ public class GroupService {
 
         member.setInviteStatus("REJECTED");
         groupMemberRepository.save(member);
+
+        // Notify the user that their join request was rejected
+        User user = member.getUser();
+        String displayName = user.getDisplayName() != null ? user.getDisplayName() : user.getUsername();
+        notificationService.sendNotification(
+                userId,
+                "GROUP_REQUEST_REJECTED",
+                "Yêu cầu tham gia nhóm " + group.getName() + " của bạn đã bị từ chối",
+                group.getId(),
+                "GROUP",
+                mediaService.getGroupAvatarUrl(group.getId())
+        );
     }
 
     public List<UserBasicDisplayDto> getJoinRequestsForGroup(Integer groupId, String adminUsername) {
         Group group = groupRepository.findById(groupId)
                 .orElseThrow(() -> new IllegalArgumentException("Group không tồn tại"));
-
         User admin = userRepository.findByUsernameAndStatusTrue(adminUsername)
                 .orElseThrow(() -> new UserNotFoundException("Người gọi không tồn tại"));
-
         boolean isAdmin = groupMemberRepository.isGroupAdmin(groupId, admin.getId());
         if (!group.getOwner().getId().equals(admin.getId()) && !isAdmin) {
             throw new UnauthorizedException("Chỉ admin hoặc chủ nhóm mới được xem yêu cầu tham gia");
         }
-
         return groupMemberRepository.findById_GroupIdAndInviteStatus(groupId, "REQUESTED").stream()
                 .map(member -> {
                     User user = member.getUser();
@@ -620,5 +667,4 @@ public class GroupService {
                     );
                 }).collect(Collectors.toList());
     }
-
 }

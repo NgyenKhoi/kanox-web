@@ -9,6 +9,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.Instant;
 
@@ -19,14 +20,19 @@ public class NotificationService {
     private final TargetTypeRepository targetTypeRepository;
     private final NotificationStatusRepository notificationStatusRepository;
     private final UserRepository userRepository;
+    private final GroupRepository groupRepository;
+    private final MediaService mediaService;
     private final SimpMessagingTemplate messagingTemplate;
 
+    @Autowired
     public NotificationService(
             NotificationRepository notificationRepository,
             NotificationTypeRepository notificationTypeRepository,
             TargetTypeRepository targetTypeRepository,
             NotificationStatusRepository notificationStatusRepository,
             UserRepository userRepository,
+            GroupRepository groupRepository,
+            MediaService mediaService,
             SimpMessagingTemplate messagingTemplate
     ) {
         this.notificationRepository = notificationRepository;
@@ -34,11 +40,18 @@ public class NotificationService {
         this.targetTypeRepository = targetTypeRepository;
         this.notificationStatusRepository = notificationStatusRepository;
         this.userRepository = userRepository;
+        this.groupRepository = groupRepository;
+        this.mediaService = mediaService;
         this.messagingTemplate = messagingTemplate;
     }
 
     @Transactional
     public void sendNotification(Integer userId, String notificationTypeName, String message, Integer targetId, String targetTypeCode) {
+        sendNotification(userId, notificationTypeName, message, targetId, targetTypeCode, null);
+    }
+
+    @Transactional
+    public void sendNotification(Integer userId, String notificationTypeName, String message, Integer targetId, String targetTypeCode, String image) {
         NotificationType notificationType = notificationTypeRepository.findByNameAndStatus(notificationTypeName, true)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid notification type: " + notificationTypeName));
 
@@ -50,10 +63,28 @@ public class NotificationService {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
-        User targetUser = userRepository.findById(targetId)
-                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + targetId));
-        String displayName = targetUser.getDisplayName() != null ? targetUser.getDisplayName() : targetUser.getUsername();
-        String username = targetUser.getUsername();
+
+        String displayName;
+        String username;
+        String notificationImage = image;
+
+        if ("GROUP".equals(targetTypeCode)) {
+            Group group = groupRepository.findById(targetId)
+                    .orElseThrow(() -> new IllegalArgumentException("Group not found with id: " + targetId));
+            displayName = group.getName();
+            username = group.getOwner().getUsername();
+            if (notificationImage == null) {
+                notificationImage = mediaService.getGroupAvatarUrl(targetId);
+            }
+        } else {
+            User targetUser = userRepository.findById(targetId)
+                    .orElseThrow(() -> new UserNotFoundException("User not found with id: " + targetId));
+            displayName = targetUser.getDisplayName() != null ? targetUser.getDisplayName() : targetUser.getUsername();
+            username = targetUser.getUsername();
+            if (notificationImage == null) {
+                notificationImage = mediaService.getAvatarUrlByUserId(targetId);
+            }
+        }
 
         Notification notification = new Notification();
         notification.setUser(user);
@@ -76,6 +107,7 @@ public class NotificationService {
         notificationDto.setUsername(username);
         notificationDto.setCreatedAt(savedNotification.getCreatedAt());
         notificationDto.setStatus(status.getName());
+        notificationDto.setImage(notificationImage);
 
         System.out.println("Sending notification to /topic/notifications/" + userId + ": " + notificationDto);
         messagingTemplate.convertAndSend("/topic/notifications/" + userId, notificationDto);
@@ -83,10 +115,23 @@ public class NotificationService {
 
     public Page<NotificationDto> getNotifications(Integer userId, Pageable pageable) {
         return notificationRepository.findByUserId(userId, pageable).map(notification -> {
-            User targetUser = userRepository.findById(notification.getTargetId())
-                    .orElseThrow(() -> new UserNotFoundException("User not found with id: " + notification.getTargetId()));
-            String displayName = targetUser.getDisplayName() != null ? targetUser.getDisplayName() : targetUser.getUsername();
-            String username = targetUser.getUsername();
+            String displayName;
+            String username;
+            String image;
+            if ("GROUP".equals(notification.getTargetType().getCode())) {
+                Group group = groupRepository.findById(notification.getTargetId())
+                        .orElseThrow(() -> new IllegalArgumentException("Group not found with id: " + notification.getTargetId()));
+                displayName = group.getName();
+                username = group.getOwner().getUsername();
+                image = mediaService.getGroupAvatarUrl(notification.getTargetId());
+            } else {
+                User targetUser = userRepository.findById(notification.getTargetId())
+                        .orElseThrow(() -> new UserNotFoundException("User not found with id: " + notification.getTargetId()));
+                displayName = targetUser.getDisplayName() != null ? targetUser.getDisplayName() : targetUser.getUsername();
+                username = targetUser.getUsername();
+                image = mediaService.getAvatarUrlByUserId(notification.getTargetId());
+            }
+
             NotificationDto dto = new NotificationDto();
             dto.setId(notification.getId());
             dto.setType(notification.getType().getName());
@@ -94,9 +139,10 @@ public class NotificationService {
             dto.setTargetId(notification.getTargetId());
             dto.setTargetType(notification.getTargetType().getCode());
             dto.setDisplayName(displayName);
-             dto.setUsername(username);
+            dto.setUsername(username);
             dto.setCreatedAt(notification.getCreatedAt());
             dto.setStatus(notification.getStatus().getName());
+            dto.setImage(image);
             return dto;
         });
     }

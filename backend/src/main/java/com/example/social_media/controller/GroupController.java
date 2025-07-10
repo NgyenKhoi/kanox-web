@@ -125,9 +125,21 @@ public class GroupController {
     @GetMapping(URLConfig.GET_MEMBER)
     public ResponseEntity<Map<String, Object>> getMembers(
             @PathVariable Integer groupId,
+            @RequestHeader("Authorization") String authHeader,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
+        String token = authHeader.substring(7); // bỏ "Bearer "
+        String username = jwtService.extractUsername(token);
+
+        if (!groupService.isMember(groupId, username)) {
+            return ResponseEntity.status(403).body(Map.of(
+                    "status", "error",
+                    "message", "Bạn không có quyền xem danh sách thành viên",
+                    "errors", new HashMap<>()
+            ));
+        }
+
         return ResponseEntity.ok(groupService.getGroupMembers(groupId, page, size));
     }
 
@@ -164,7 +176,9 @@ public class GroupController {
     @PostMapping(URLConfig.REQUEST_JOIN_GROUP)
     public ResponseEntity<Void> requestToJoinGroup(
             @PathVariable Integer groupId,
-            @RequestParam String username) {
+            @RequestHeader("Authorization") String token
+    ) {
+        String username = jwtService.extractUsername(token);
         groupService.requestToJoinGroup(groupId, username);
         return ResponseEntity.ok().build();
     }

@@ -3061,7 +3061,11 @@ WHERE definition LIKE '%friendship%';
 	('FRIEND_ACCEPTED', 'accepted friend request', 1),
 	('FOLLOW', 'Someone followed you', 1),
 	('GROUP_INVITE', 'You have been invited to join a group', 1),
-	('REPORT_STATUS_UPDATED', 'New report update', 1);
+	('REPORT_STATUS_UPDATED', 'New report update', 1),
+	('GROUP_USER_JOINED', 'A user has joined your group', 1),
+    ('GROUP_JOIN_REQUEST', 'A user has requested to join your group', 1),
+    ('GROUP_REQUEST_APPROVED', 'Your group join request has been approved', 1),
+    ('GROUP_REQUEST_REJECTED', 'Your group join request has been rejected', 1);
 
     -- tblReactionType (Loại phản hồi: Like, Love, Haha, v.v.)
 	INSERT INTO tblReactionType (name, description, emoji, status) VALUES
