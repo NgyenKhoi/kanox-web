@@ -4,6 +4,7 @@ import com.example.social_media.config.URLConfig;
 import com.example.social_media.service.UserService;
 import com.example.social_media.service.GroupService;
 import com.example.social_media.service.PostService;
+import com.example.social_media.service.ReportService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,12 +20,14 @@ public class DashboardController {
     private final UserService userService;
     private final GroupService groupService;
     private final PostService postService;
+    private final ReportService reportService;
 
     @Autowired
-    public DashboardController(UserService userService, GroupService groupService, PostService postService) {
+    public DashboardController(UserService userService, GroupService groupService, PostService postService, ReportService reportService) {
         this.userService = userService;
         this.groupService = groupService;
         this.postService = postService;
+        this.reportService = reportService;
     }
 
     @GetMapping("/stats")
@@ -33,6 +36,7 @@ public class DashboardController {
         stats.put("totalUsers", userService.countAllUsers());
         stats.put("totalGroups", groupService.countAllGroups());
         stats.put("totalPosts", postService.countAllPosts());
+        stats.put("totalReports", reportService.countAllReports());
         return ResponseEntity.ok(stats);
     }
 }

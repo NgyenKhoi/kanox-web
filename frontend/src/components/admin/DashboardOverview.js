@@ -38,7 +38,7 @@ const DashboardOverview = () => {
           { label: "Tổng số người dùng", value: data.totalUsers, icon: "👥" },
           { label: "Tổng số bài viết", value: data.totalPosts, icon: "📋" },
           { label: "Tổng số cộng đồng", value: data.totalGroups, icon: "🏘️" },
-          { label: "Báo cáo mới", value: "45", icon: "⚠️" }, // giữ nguyên
+          { label: "Báo cáo mới", value: data.totalReports, icon: "⚠️" },
         ]);
       } catch (error) {
         console.error("Lỗi khi load thống kê dashboard:", error);

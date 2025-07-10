@@ -460,4 +460,5 @@ public class PostService {
     public long countAllPosts() {
         return postRepository.count();
     }
+
 }

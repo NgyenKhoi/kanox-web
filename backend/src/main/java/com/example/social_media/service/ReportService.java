@@ -208,4 +208,8 @@ public class ReportService {
             throw new RuntimeException("Failed to delete report: " + e.getMessage());
         }
     }
+    public long countAllReports() {
+        return reportRepository.count();
+    }
+
 }
