@@ -241,12 +241,7 @@ public class GroupController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // 3. Xóa cộng đồng
-    @DeleteMapping(URLConfig.DELETE_GROUP_BY_ADMIN)
-    public ResponseEntity<Void> deleteGroupByAdmin(@PathVariable Integer groupId) {
-        groupService.deleteGroupAsAdmin(groupId);
-        return ResponseEntity.ok().build();
-    }
+
         @DeleteMapping("/{groupId}/leave")
         public ResponseEntity<?> leaveGroup (@PathVariable Integer groupId,
                 @RequestHeader("Authorization") String token){

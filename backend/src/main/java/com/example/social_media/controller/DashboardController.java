@@ -1,5 +1,6 @@
 package com.example.social_media.controller;
 
+import com.example.social_media.config.URLConfig;
 import com.example.social_media.service.UserService;
 import com.example.social_media.service.GroupService;
 import com.example.social_media.service.PostService;
@@ -13,7 +14,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/admin/dashboard")
+@RequestMapping(URLConfig.ADMIN_BASE + "/dashboard")
 public class DashboardController {
     private final UserService userService;
     private final GroupService groupService;
@@ -34,4 +35,4 @@ public class DashboardController {
         stats.put("totalPosts", postService.countAllPosts());
         return ResponseEntity.ok(stats);
     }
-} 
+}

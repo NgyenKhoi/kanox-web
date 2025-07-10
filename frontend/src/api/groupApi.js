@@ -17,7 +17,7 @@ export const fetchAllGroups = async () => {
 };
 
 export const deleteGroupAsAdmin = async (groupId) => {
-    const res = await fetch(`${API_BASE}/groups/admin/${groupId}`, {
+    const res = await fetch(`${API_BASE}/admin/groups/${groupId}`, {
         method: "DELETE",
         headers: getTokenHeader(),
     });
