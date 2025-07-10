@@ -100,7 +100,7 @@ public class GroupController {
     public ResponseEntity<Void> addMember(
             @PathVariable Integer groupId,
             @RequestParam String username) {
-        groupService.addMember(groupId, username);
+        groupService.requestToJoinGroup(groupId, username);
         return ResponseEntity.ok().build();
     }
 
@@ -209,6 +209,16 @@ public class GroupController {
             @PathVariable Integer groupId,
             @RequestParam String adminUsername) {
         return ResponseEntity.ok(groupService.getJoinRequestsForGroup(groupId, adminUsername));
+    }
+
+    @DeleteMapping("/{groupId}/cancel-request")
+    public ResponseEntity<?> cancelJoinRequest(
+            @PathVariable Integer groupId,
+            @RequestHeader("Authorization") String token
+    ) {
+        String username = jwtService.extractUsername(token);
+        groupService.cancelJoinRequest(groupId, username);
+        return ResponseEntity.ok(Map.of("message", "Đã hủy yêu cầu tham gia nhóm."));
     }
 
     @GetMapping(URLConfig.GET_GROUP_DETAIL)

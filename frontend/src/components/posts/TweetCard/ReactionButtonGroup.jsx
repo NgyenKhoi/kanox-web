@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Button, OverlayTrigger, Tooltip } from "react-bootstrap";
 import { FaRegHeart } from "react-icons/fa";
 import useReaction from "../../../hooks/useReaction";
+import { useEmojiContext } from "../../../context/EmojiContext";
 
 function ReactionButtonGroup({ user, targetId, targetTypeCode }) {
     const [showPopover, setShowPopover] = useState(false);
@@ -10,11 +11,12 @@ function ReactionButtonGroup({ user, targetId, targetTypeCode }) {
 
     const {
         currentEmoji,
-        emojiMap,
         reactionCountMap,
         sendReaction,
         removeReaction,
     } = useReaction({ user, targetId, targetTypeCode });
+    const { emojiList: mainEmojiList, emojiMap } = useEmojiContext();
+
 
     const totalCount = Object.values(reactionCountMap).reduce((sum, count) => sum + count, 0);
 
@@ -79,19 +81,19 @@ function ReactionButtonGroup({ user, targetId, targetTypeCode }) {
                     onMouseLeave={handleMouseLeave}
                     style={{ position: "absolute", bottom: "36px", left: 0, zIndex: 1000, transition: "opacity 0.2s ease" }}
                 >
-                    {Object.entries(emojiMap).map(([name, emoji]) => (
+                    {mainEmojiList.map((emojiObj) => (
                         <OverlayTrigger
-                            key={name}
+                            key={emojiObj.name}
                             placement="top"
-                            overlay={<Tooltip>{name}</Tooltip>}
+                            overlay={<Tooltip>{emojiObj.name}</Tooltip>}
                         >
-              <span
-                  className="reaction-emoji scale-hover text-[var(--text-color)]"
-                  onClick={() => handleEmojiClick(name)}
-                  role="button"
-              >
-                {emoji}
-              </span>
+    <span
+        className="reaction-emoji scale-hover text-[var(--text-color)]"
+        onClick={() => handleEmojiClick(emojiObj.name)}
+        role="button"
+    >
+      {emojiObj.emoji}
+    </span>
                         </OverlayTrigger>
                     ))}
                 </div>
