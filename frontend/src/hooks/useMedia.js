@@ -2,7 +2,7 @@ import { useState, useEffect, useContext, useMemo } from "react";
 import { AuthContext } from "../context/AuthContext";
 import { toast } from "react-toastify";
 
-const profileMediaCache = new Map(); // ✅ Chỉ cache với PROFILE
+const profileMediaCache = new Map();
 
 const useMedia = (
     targetIds,

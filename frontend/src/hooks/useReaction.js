@@ -55,15 +55,26 @@ export default function useReaction({ user, targetId, targetTypeCode }) {
             setReactionUserMap((prev) => ({ ...prev, [emojiName]: data }));
 
             if (data.some((u) => u.id === user.id)) {
-                setCurrentEmoji(emojiMap[emojiName]);
+                const emoji = emojiMap?.[emojiName];
+                if (emoji) {
+                    setCurrentEmoji(emoji);
+                } else {
+                    console.warn("Không tìm thấy emoji:", emojiName);
+                }
             }
         } catch (err) {
-            console.error("Lỗi khi lấy user reaction:", err.message);
+            console.error("Lỗi khi lấy danh sách người dùng thả reaction:", err.message);
         }
     };
-
     const sendReaction = async (reactionName) => {
-        if (currentEmoji === emojiMap[reactionName]) {
+        const emoji = emojiMap?.[reactionName];
+        if (!emoji) {
+            console.error("Emoji không tồn tại trong emojiMap:", reactionName);
+            toast.error("Biểu cảm không hợp lệ hoặc chưa được tải.");
+            return;
+        }
+
+        if (currentEmoji === emoji) {
             await removeReaction();
             return;
         }
@@ -79,8 +90,8 @@ export default function useReaction({ user, targetId, targetTypeCode }) {
             });
 
             if (!res.ok) throw new Error("Không thể thả cảm xúc.");
-            setCurrentEmoji(emojiMap[reactionName]);
-            // reload summary sau khi gửi
+            setCurrentEmoji(emoji);
+
             setTimeout(() => {
                 fetchUsersByReaction(reactionName);
             }, 300);
