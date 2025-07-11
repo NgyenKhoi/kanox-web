@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.SQLException;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -128,10 +129,22 @@ public class ReportService {
         return reportPage.map(this::convertToReportResponseDto);
     }
 
+    @Transactional(readOnly = true)
+    public Page<ReportResponseDto> getReportsByTargetTypeIdAndProcessingStatusId(Integer targetTypeId, Integer processingStatusId, Pageable pageable) {
+        Page<Report> reportPage = reportRepository.findByTargetTypeIdAndProcessingStatusId(targetTypeId, processingStatusId, pageable);
+        return reportPage.map(this::convertToReportResponseDto);
+    }
+
     @Transactional
     public void updateReportStatus(Integer reportId, UpdateReportStatusRequestDto request) {
-        User admin = userRepository.findById(request.getAdminId())
-                .orElseThrow(() -> new UserNotFoundException("Admin not found with id: " + request.getAdminId()));
+        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        System.out.println("Current username: " + currentUsername);
+        if (currentUsername == null) {
+            throw new IllegalStateException("No authenticated user found");
+        }
+        User admin = userRepository.findByUsername(currentUsername)
+                .orElseThrow(() -> new UserNotFoundException("Admin not found with username: " + currentUsername));
+        System.out.println("Admin ID: " + admin.getId());
         if (!admin.getIsAdmin()) {
             throw new IllegalArgumentException("User is not an admin");
         }
@@ -142,11 +155,84 @@ public class ReportService {
                 .orElseThrow(() -> new IllegalArgumentException("Report status not found with id: " + request.getProcessingStatusId()));
 
         try {
-            reportRepository.updateReportStatus(
-                    reportId,
-                    request.getAdminId(),
-                    request.getProcessingStatusId()
+            // Cập nhật trạng thái báo cáo
+            reportRepository.updateReportStatus(reportId, admin.getId(), request.getProcessingStatusId());
+
+            // Xây dựng thông báo
+            String message;
+            switch (request.getProcessingStatusId()) {
+                case 1:
+                    message = "Báo cáo của bạn (ID: " + reportId + ") đang chờ xử lý bởi " + admin.getDisplayName();
+                    break;
+                case 2:
+                    message = "Báo cáo của bạn (ID: " + reportId + ") đang được xem xét bởi " + admin.getDisplayName();
+                    break;
+                case 3:
+                    message = "Báo cáo của bạn (ID: " + reportId + ") đã được duyệt bởi " + admin.getDisplayName();
+                    break;
+                case 4:
+                    message = "Báo cáo của bạn (ID: " + reportId + ") đã bị từ chối bởi " + admin.getDisplayName();
+                    break;
+                default:
+                    message = "Báo cáo của bạn (ID: " + reportId + ") đã được cập nhật bởi " + admin.getDisplayName();
+            }
+
+            // Gửi thông báo qua WebSocket
+            messagingTemplate.convertAndSend(
+                    "/topic/notifications/" + report.getReporter().getId(),
+                    Map.of(
+                            "id", reportId,
+                            "message", message,
+                            "type", "REPORT_STATUS_UPDATED",
+                            "targetId", admin.getId(), // Sửa: Sử dụng admin.getId() thay vì report.getTargetId()
+                            "targetTypeId", report.getTargetType().getId(),
+                            "adminId", admin.getId(),
+                            "adminDisplayName", admin.getDisplayName() != null ? admin.getDisplayName() : admin.getUsername(),
+                            "createdAt", System.currentTimeMillis() / 1000,
+                            "status", request.getProcessingStatusId() == 3 ? "read" : "unread"
+                    )
             );
+
+            // Lưu thông báo vào bảng tblNotification
+            notificationService.sendNotification(
+                    report.getReporter().getId(),
+                    "REPORT_STATUS_UPDATED",
+                    message,
+                    admin.getId(), // Sửa: Sử dụng admin.getId() thay vì report.getTargetId()
+                    "PROFILE" // Sửa: Đặt targetType là PROFILE vì targetId là admin
+            );
+
+            // Kiểm tra lạm dụng báo cáo (nếu cần)
+            if (request.getProcessingStatusId() == 4) { // Rejected
+                long rejectedCount = reportRepository.countByReporterIdAndProcessingStatusIdAndReportTime(
+                        report.getReporter().getId(),
+                        4,
+                        LocalDate.now()
+                );
+                if (rejectedCount >= 5) {
+                    String abuseMessage = "Bạn đã gửi quá nhiều báo cáo không hợp lệ hôm nay. Vui lòng kiểm tra lại hành vi báo cáo của bạn.";
+                    notificationService.sendNotification(
+                            report.getReporter().getId(),
+                            "REPORT_ABUSE_WARNING",
+                            abuseMessage,
+                            admin.getId(), // Sửa: Sử dụng admin.getId()
+                            "PROFILE"
+                    );
+                    messagingTemplate.convertAndSend(
+                            "/topic/notifications/" + report.getReporter().getId(),
+                            Map.of(
+                                    "id", reportId,
+                                    "message", abuseMessage,
+                                    "type", "REPORT_ABUSE_WARNING",
+                                    "targetId", admin.getId(), // Sửa: Sử dụng admin.getId()
+                                    "targetTypeId", report.getTargetType().getId(),
+                                    "createdAt", System.currentTimeMillis() / 1000,
+                                    "status", "unread"
+                            )
+                    );
+                }
+            }
+
         } catch (DataAccessException e) {
             String errorMessage = e.getCause() instanceof SQLException ? e.getCause().getMessage() : "Failed to update report status";
             throw new RuntimeException("Failed to update report status: " + errorMessage);
@@ -200,6 +286,32 @@ public class ReportService {
             history.setActionTime(Instant.now());
             history.setStatus(true);
             reportHistoryRepository.save(history);
+
+            // Gửi thông báo qua WebSocket
+            String message = "Báo cáo của bạn (ID: " + reportId + ") đã bị xóa bởi " + admin.getDisplayName();
+            messagingTemplate.convertAndSend(
+                    "/topic/notifications/" + report.getReporter().getId(),
+                    Map.of(
+                            "id", reportId,
+                            "message", message,
+                            "type", "REPORT_DELETED",
+                            "targetId", report.getTargetId(),
+                            "targetTypeId", report.getTargetType().getId(),
+                            "adminId", admin.getId(),
+                            "adminDisplayName", admin.getDisplayName() != null ? admin.getDisplayName() : admin.getUsername(),
+                            "createdAt", System.currentTimeMillis() / 1000,
+                            "status", "unread"
+                    )
+            );
+
+            // Lưu thông báo vào database
+            notificationService.sendNotification(
+                    report.getReporter().getId(),
+                    "REPORT_DELETED",
+                    message,
+                    report.getTargetId(),
+                    report.getTargetType().getCode()
+            );
 
             report.setStatus(false);
             reportRepository.save(report);

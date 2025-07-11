@@ -123,8 +123,6 @@ public class URLConfig {
     public static final String GET_GROUP_DETAIL = "/{groupId}/detail";
 
 
-
-
     //Admin urls
     public static final String ADMIN_BASE = "/api/admin";
     public static final String GET_ALL_USER = "/users";

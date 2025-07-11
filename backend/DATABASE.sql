@@ -2633,8 +2633,7 @@ WHERE definition LIKE '%friendship%';
 
 			-- Ghi lịch sử báo cáo
 			INSERT INTO tblReportHistory (reporter_id, report_id, processing_status_id, action_time, status)
-			SELECT reporter_id, @report_id, @processing_status_id, GETDATE(), 1
-			FROM tblReport WHERE id = @report_id;
+			VALUES (@admin_id, @report_id, @processing_status_id, GETDATE(), 1);
 
 			-- Check for report abuse (5 reports per day)
 			DECLARE @reporter_id INT, @target_type_id INT;
@@ -2654,7 +2653,7 @@ WHERE definition LIKE '%friendship%';
 				-- Ngưỡng lạm dụng: 5 báo cáo bị từ chối trong 1 ngày
 				IF @rejected_count >= 5
 				BEGIN
-					-- Ghi log lạm dụng
+					-- Ghi log hành động lạm dụng
 					DECLARE @action_type_id_abuse INT;
 					SELECT @action_type_id_abuse = id FROM tblActionType WHERE name = 'REPORT_ABUSE_WARNING';
 					IF @action_type_id_abuse IS NULL
@@ -2664,47 +2663,8 @@ WHERE definition LIKE '%friendship%';
 						SET @action_type_id_abuse = SCOPE_IDENTITY();
 					END
 					EXEC sp_LogActivity @reporter_id, @action_type_id_abuse, NULL, NULL, 1, @report_id, 'REPORT';
-
-					-- Gửi thông báo cảnh báo
-					DECLARE @notification_type_id INT;
-					SELECT @notification_type_id = id FROM tblNotificationType WHERE name = 'REPORT_ABUSE_WARNING';
-					IF @notification_type_id IS NULL
-					BEGIN
-						INSERT INTO tblNotificationType (name, description, status)
-						VALUES ('REPORT_ABUSE_WARNING', 'Warning for report abuse', 1);
-						SET @notification_type_id = SCOPE_IDENTITY();
-					END
-
-					DECLARE @message NVARCHAR(255) = 'Bạn đã gửi quá nhiều báo cáo không hợp lệ hôm nay. Vui lòng kiểm tra lại hành vi báo cáo của bạn.';
-					EXEC sp_AddNotification
-						@user_id = @reporter_id,
-						@type_id = @notification_type_id,
-						@message = @message,
-						@target_id = @report_id,
-						@target_type_id = @target_type_id;
 				END
 			END
-
-			-- Notify reporter
-			DECLARE @notification_type_id_status INT;
-			SELECT @notification_type_id_status = id FROM tblNotificationType WHERE name = 'REPORT_STATUS_UPDATED' AND status = 1;
-			IF @notification_type_id_status IS NULL
-			BEGIN
-				INSERT INTO tblNotificationType (name, description, status)
-				VALUES ('REPORT_STATUS_UPDATED', 'Report status updated', 1);
-				SET @notification_type_id_status = SCOPE_IDENTITY();
-			END
-
-			DECLARE @message_status NVARCHAR(255);
-			SET @message_status = 'Your report (ID: ' + CAST(@report_id AS NVARCHAR(10)) + ') has been updated to: ' + 
-								  (SELECT name FROM tblReportStatus WHERE id = @processing_status_id);
-
-			EXEC sp_AddNotification
-				@user_id = @reporter_id,
-				@type_id = @notification_type_id_status,
-				@message = @message_status,
-				@target_id = @report_id,
-				@target_type_id = @target_type_id;
 
 			-- Log activity
 			DECLARE @action_type_id_status INT;
@@ -2731,7 +2691,11 @@ WHERE definition LIKE '%friendship%';
 
 	-- Create or update sp_GetReports
 	CREATE OR ALTER PROCEDURE sp_GetReports
-		@status BIT = 1
+		@status BIT = 1,
+		@targetTypeId INT = NULL,
+		@processingStatusId INT = NULL,
+		@page INT = 0,
+		@size INT = 10
 	AS
 	BEGIN
 		SET NOCOUNT ON;
@@ -2754,8 +2718,12 @@ WHERE definition LIKE '%friendship%';
 		JOIN tblTargetType tt ON r.target_type_id = tt.id
 		JOIN tblReportReason rr ON r.reason_id = rr.id
 		JOIN tblReportStatus rs ON r.processing_status_id = rs.id
-		WHERE r.status = @status
-		ORDER BY r.report_time DESC;
+		WHERE (@status IS NULL OR r.status = @status)
+			AND (@targetTypeId IS NULL OR r.target_type_id = @targetTypeId)
+			AND (@processingStatusId IS NULL OR r.processing_status_id = @processingStatusId)
+		ORDER BY r.report_time DESC
+		OFFSET @page * @size ROWS
+		FETCH NEXT @size ROWS ONLY;
 	END;
 
     ---------------------------------------
@@ -3051,8 +3019,10 @@ WHERE definition LIKE '%friendship%';
 	('GRANT_ADMIN', 'Admin granted admin role to user'),
 	('REVOKE_ADMIN', 'Admin revoked admin role from user'),
 	('ACTIVATE_BANNED_KEYWORD', 'Admin activated banned keyword'),
-	('DEACTIVATE_BANNED_KEYWORD', 'Admin deactivated banned keyword');
+	('DEACTIVATE_BANNED_KEYWORD', 'Admin deactivated banned keyword'),
+	('REPORT_ABUSE_WARNING', 'User received warning for report abuse');
 
+	select * from tblTargetType
     -- tblNotificationType (Loại thông báo)
     INSERT INTO tblNotificationType (name, description, status) VALUES
     ('FRIEND_REQUEST', 'New friend request received', 1),
@@ -3066,7 +3036,8 @@ WHERE definition LIKE '%friendship%';
 	('GROUP_USER_JOINED', 'A user has joined your group', 1),
     ('GROUP_JOIN_REQUEST', 'A user has requested to join your group', 1),
     ('GROUP_REQUEST_APPROVED', 'Your group join request has been approved', 1),
-    ('GROUP_REQUEST_REJECTED', 'Your group join request has been rejected', 1);
+    ('GROUP_REQUEST_REJECTED', 'Your group join request has been rejected', 1),
+	('REPORT_ABUSE_WARNING', 'Warning for report abuse', 1);
 
     -- tblReactionType (Loại phản hồi: Like, Love, Haha, v.v.)
 	INSERT INTO tblReactionType (name, description, emoji, status) VALUES

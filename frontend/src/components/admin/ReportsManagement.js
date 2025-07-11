@@ -1,50 +1,42 @@
-import React, { useState, useEffect, useContext } from "react";
-import { toast } from "react-toastify";
-import { WebSocketContext } from "../../context/WebSocketContext";
-import { useLocation, useNavigate } from "react-router-dom";
+import React, {useState, useEffect, useContext} from "react";
+import {toast} from "react-toastify";
+import {WebSocketContext} from "../../context/WebSocketContext";
+import {useLocation, useNavigate} from "react-router-dom";
 
 const ReportsManagement = () => {
-    const { subscribe, unsubscribe } = useContext(WebSocketContext);
-    const [reports, setReports] = useState([]);
-    const [unreadReports, setUnreadReports] = useState([]);
-    const [userReports, setUserReports] = useState([]);
+    const {subscribe, unsubscribe} = useContext(WebSocketContext);
     const [postReports, setPostReports] = useState([]);
+    const [userReports, setUserReports] = useState([]);
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
-    const [statusFilter, setStatusFilter] = useState("");
     const [selectedReport, setSelectedReport] = useState(null);
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [reportHistory, setReportHistory] = useState([]);
-    const [activeTab, setActiveTab] = useState("all");
+    const [activeMainTab, setActiveMainTab] = useState("posts");
+    const [activeSubTab, setActiveSubTab] = useState("all");
     const location = useLocation();
     const navigate = useNavigate();
 
     const token = localStorage.getItem("token") || sessionStorage.getItem("token");
 
-    const loadReports = async (tab = activeTab) => {
+    const loadReports = async (mainTab = activeMainTab, subTab = activeSubTab) => {
         if (!token) {
             toast.error("Vui lòng đăng nhập để tải báo cáo!");
             return;
         }
         try {
             setLoading(true);
-            let url;
-            if (tab === "unread") {
-                url = new URL(`${process.env.REACT_APP_API_URL}/admin/unread`);
-            } else if (tab === "users") {
-                url = new URL(`${process.env.REACT_APP_API_URL}/admin/list`);
-                url.searchParams.append("targetTypeId", "2");
-            } else if (tab === "posts") {
-                url = new URL(`${process.env.REACT_APP_API_URL}/admin/list`);
-                url.searchParams.append("targetTypeId", "1");
-            } else {
-                url = new URL(`${process.env.REACT_APP_API_URL}/admin/list`);
-            }
+            const url = new URL(`${process.env.REACT_APP_API_URL}/admin/list`);
             url.searchParams.append("page", currentPage);
             url.searchParams.append("size", 10);
-            if (statusFilter && tab === "all") {
-                url.searchParams.append("processingStatusId", statusFilter);
+            if (mainTab === "posts") {
+                url.searchParams.append("targetTypeId", "1");
+            } else if (mainTab === "users") {
+                url.searchParams.append("targetTypeId", "4");
+            }
+            if (subTab !== "all") {
+                url.searchParams.append("processingStatusId", subTab);
             }
             const response = await fetch(url, {
                 method: "GET",
@@ -55,14 +47,10 @@ const ReportsManagement = () => {
             });
             const data = await response.json();
             if (!response.ok) throw new Error(data.message || "Không thể tải danh sách báo cáo");
-            if (tab === "unread") {
-                setUnreadReports(data.data?.content || []);
-            } else if (tab === "users") {
-                setUserReports(data.data?.content || []);
-            } else if (tab === "posts") {
+            if (mainTab === "posts") {
                 setPostReports(data.data?.content || []);
             } else {
-                setReports(data.data?.content || []);
+                setUserReports(data.data?.content || []);
             }
             setTotalPages(data.data?.totalPages || 0);
         } catch (error) {
@@ -157,7 +145,6 @@ const ReportsManagement = () => {
                     Authorization: `Bearer ${token}`,
                 },
                 body: JSON.stringify({
-                    adminId: parseInt(localStorage.getItem("userId")),
                     processingStatusId: parseInt(statusId),
                 }),
             });
@@ -168,11 +155,8 @@ const ReportsManagement = () => {
             toast.success("Đã cập nhật trạng thái báo cáo!");
             setShowDetailModal(false);
             loadReports();
-            if (statusId !== 1) {
-                setUnreadReports((prev) => prev.filter((report) => report.id !== reportId));
-            }
         } catch (error) {
-            console.error("Lỗi khi cập nhật trạng thái:", error, { reportId, statusId });
+            console.error("Lỗi khi cập nhật trạng thái:", error, {reportId, statusId});
             toast.error("Lỗi khi cập nhật trạng thái: " + error.message);
         }
     };
@@ -182,7 +166,7 @@ const ReportsManagement = () => {
         if (location.state?.newReport) {
             toast.info(`Báo cáo mới từ ${location.state.newReport.reporterUsername}: ${location.state.newReport.reason}`);
         }
-    }, [currentPage, statusFilter, location.state]);
+    }, [currentPage, activeMainTab, activeSubTab]);
 
     useEffect(() => {
         if (!subscribe || !unsubscribe) return;
@@ -191,17 +175,13 @@ const ReportsManagement = () => {
             console.log("Received new report:", message);
             toast.info(`Báo cáo mới từ ${message.reporterUsername}: ${message.reason}`, {
                 onClick: () => {
-                    navigate("/admin", { state: { newReport: message } });
+                    navigate("/admin", {state: {newReport: message}});
                 },
             });
-            setUnreadReports((prev) => [message, ...prev]);
-            if (activeTab === "all" || (activeTab === "posts" && message.targetTypeId === 1) || (activeTab === "users" && message.targetTypeId === 2)) {
-                setReports((prev) => [message, ...prev]);
-            }
-            if (activeTab === "posts" && message.targetTypeId === 1) {
+            if (message.targetTypeId === 1 && (activeMainTab === "posts" && (activeSubTab === "all" || activeSubTab === "1"))) {
                 setPostReports((prev) => [message, ...prev]);
             }
-            if (activeTab === "users" && message.targetTypeId === 2) {
+            if (message.targetTypeId === 4 && (activeMainTab === "users" && (activeSubTab === "all" || activeSubTab === "1"))) {
                 setUserReports((prev) => [message, ...prev]);
             }
         }, "admin-reports");
@@ -209,7 +189,7 @@ const ReportsManagement = () => {
         return () => {
             if (subscription) unsubscribe("admin-reports");
         };
-    }, [subscribe, unsubscribe, navigate, activeTab]);
+    }, [subscribe, unsubscribe, navigate, activeMainTab, activeSubTab]);
 
     const handlePageChange = (page) => {
         setCurrentPage(page);
@@ -222,80 +202,65 @@ const ReportsManagement = () => {
                 <div className="flex gap-4 mb-4">
                     <button
                         className={`px-4 py-2 rounded-md ${
-                            activeTab === "all" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-white"
+                            activeMainTab === "posts" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-white"
                         }`}
                         onClick={() => {
-                            setActiveTab("all");
+                            setActiveMainTab("posts");
+                            setActiveSubTab("all");
                             setCurrentPage(0);
-                            loadReports("all");
-                        }}
-                    >
-                        Tất cả báo cáo
-                    </button>
-                    <button
-                        className={`px-4 py-2 rounded-md ${
-                            activeTab === "unread" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-white"
-                        }`}
-                        onClick={() => {
-                            setActiveTab("unread");
-                            setCurrentPage(0);
-                            loadReports("unread");
-                        }}
-                    >
-                        Báo cáo mới ({unreadReports.length})
-                    </button>
-                    <button
-                        className={`px-4 py-2 rounded-md ${
-                            activeTab === "users" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-white"
-                        }`}
-                        onClick={() => {
-                            setActiveTab("users");
-                            setCurrentPage(0);
-                            loadReports("users");
-                        }}
-                    >
-                        Báo cáo người dùng
-                    </button>
-                    <button
-                        className={`px-4 py-2 rounded-md ${
-                            activeTab === "posts" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-white"
-                        }`}
-                        onClick={() => {
-                            setActiveTab("posts");
-                            setCurrentPage(0);
-                            loadReports("posts");
+                            loadReports("posts", "all");
                         }}
                     >
                         Báo cáo bài đăng
                     </button>
+                    <button
+                        className={`px-4 py-2 rounded-md ${
+                            activeMainTab === "users" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-white"
+                        }`}
+                        onClick={() => {
+                            setActiveMainTab("users");
+                            setActiveSubTab("all");
+                            setCurrentPage(0);
+                            loadReports("users", "all");
+                        }}
+                    >
+                        Báo cáo người dùng
+                    </button>
                 </div>
-                {activeTab === "all" && (
-                    <div>
-                        <label className="block text-sm font-medium mb-2 dark:text-gray-300">Lọc theo trạng thái</label>
-                        <select
-                            value={statusFilter}
-                            onChange={(e) => {
-                                setStatusFilter(e.target.value);
+                <div className="flex gap-4 mb-4">
+                    {["all", "1", "2", "3", "4"].map((subTab) => (
+                        <button
+                            key={subTab}
+                            className={`px-4 py-2 rounded-md ${
+                                activeSubTab === subTab ? "bg-blue-300 text-white" : "bg-gray-100 text-gray-700 dark:bg-gray-600 dark:text-white"
+                            }`}
+                            onClick={() => {
+                                setActiveSubTab(subTab);
                                 setCurrentPage(0);
-                                loadReports();
+                                loadReports(activeMainTab, subTab);
                             }}
-                            className="w-full p-2 border border-border rounded-md bg-background text-text focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white dark:border-gray-600"
                         >
-                            <option value="">Tất cả</option>
-                            <option value="1">Đang chờ xử lý</option>
-                            <option value="2">Đang xem xét</option>
-                            <option value="3">Đã duyệt</option>
-                            <option value="4">Đã từ chối</option>
-                        </select>
-                    </div>
-                )}
+                            {subTab === "all"
+                                ? "Tất cả"
+                                : subTab === "1"
+                                    ? "Đang chờ"
+                                    : subTab === "2"
+                                        ? "Đang xem xét"
+                                        : subTab === "3"
+                                            ? "Đã duyệt"
+                                            : "Đã từ chối"}
+                        </button>
+                    ))}
+                </div>
             </div>
 
             {loading ? (
                 <div className="flex justify-center">
                     <svg className="animate-spin h-8 w-8 text-blue-500" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8h8a8 8 0 01-8 8 8 8 0 01-8-8z" />
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"
+                                fill="none"/>
+                        <path className="opacity-75" fill="currentColor"
+                              d="M4 12a8 8 0 018-8v8h8a8 8 0 01-8 8 8 8 0 01-8-8z"/>
                     </svg>
                 </div>
             ) : (
@@ -314,7 +279,7 @@ const ReportsManagement = () => {
                             </tr>
                             </thead>
                             <tbody>
-                            {(activeTab === "unread" ? unreadReports : activeTab === "users" ? userReports : activeTab === "posts" ? postReports : reports).map((report) => (
+                            {(activeMainTab === "posts" ? postReports : userReports).map((report) => (
                                 <tr
                                     key={report.id}
                                     className="border-t border-gray-light hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -327,25 +292,25 @@ const ReportsManagement = () => {
                                     <td className="p-3 text-text dark:text-white">{report.targetId}</td>
                                     <td className="p-3 text-text dark:text-white">{report.reason?.name || "Không xác định"}</td>
                                     <td className="p-3">
-                      <span
-                          className={`px-2 py-1 rounded-full text-sm ${
-                              report.processingStatusId === 1
-                                  ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-700 dark:text-yellow-200"
-                                  : report.processingStatusId === 2
-                                      ? "bg-blue-100 text-blue-800 dark:bg-blue-700 dark:text-blue-200"
-                                      : report.processingStatusId === 3
-                                          ? "bg-green-100 text-green-800 dark:bg-green-700 dark:text-green-200"
-                                          : "bg-red-100 text-red-800 dark:bg-red-700 dark:text-red-200"
-                          }`}
-                      >
-                        {report.processingStatusId === 1
-                            ? "Đang chờ"
-                            : report.processingStatusId === 2
-                                ? "Đang xem xét"
-                                : report.processingStatusId === 3
-                                    ? "Đã duyệt"
-                                    : "Đã từ chối"}
-                      </span>
+                                            <span
+                                                className={`px-2 py-1 rounded-full text-sm ${
+                                                    report.processingStatusId === 1
+                                                        ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-700 dark:text-yellow-200"
+                                                        : report.processingStatusId === 2
+                                                            ? "bg-blue-100 text-blue-800 dark:bg-blue-700 dark:text-blue-200"
+                                                            : report.processingStatusId === 3
+                                                                ? "bg-green-100 text-green-800 dark:bg-green-700 dark:text-green-200"
+                                                                : "bg-red-100 text-red-800 dark:bg-red-700 dark:text-red-200"
+                                                }`}
+                                            >
+                                                {report.processingStatusId === 1
+                                                    ? "Đang chờ"
+                                                    : report.processingStatusId === 2
+                                                        ? "Đang xem xét"
+                                                        : report.processingStatusId === 3
+                                                            ? "Đã duyệt"
+                                                            : "Đã từ chối"}
+                                            </span>
                                     </td>
                                     <td className="p-3 flex gap-2">
                                         <button
@@ -431,14 +396,16 @@ const ReportsManagement = () => {
                                 <strong>Lý do:</strong> {selectedReport.reason?.name || "Không xác định"}
                             </p>
                             <p className="text-text dark:text-white">
-                                <strong>Thời gian:</strong> {new Date(selectedReport.reportTime).toLocaleString("vi-VN")}
+                                <strong>Thời
+                                    gian:</strong> {new Date(selectedReport.reportTime * 1000).toLocaleString("vi-VN")}
                             </p>
                             <p className="text-text dark:text-white">
                                 <strong>Trạng thái:</strong> {selectedReport.processingStatusName || "Không xác định"}
                             </p>
                             <h5 className="text-lg font-semibold mt-4 dark:text-white">Lịch sử xử lý</h5>
                             <div className="overflow-x-auto">
-                                <table className="w-full border-collapse bg-white dark:bg-gray-900 border border-gray-light rounded-md">
+                                <table
+                                    className="w-full border-collapse bg-white dark:bg-gray-900 border border-gray-light rounded-md">
                                     <thead>
                                     <tr className="bg-gray-100 dark:bg-gray-800">
                                         <th className="p-3 text-left text-text dark:text-white">Thời gian</th>
