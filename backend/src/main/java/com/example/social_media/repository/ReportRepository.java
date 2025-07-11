@@ -6,9 +6,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.query.Procedure;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -48,6 +50,13 @@ public interface ReportRepository extends JpaRepository<Report, Integer> {
 
     @EntityGraph(attributePaths = {"reporter", "targetType", "reason", "processingStatus"})
     Optional<Report> findById(Integer id);
+
+    @Query("SELECT COUNT(*) FROM Report r WHERE r.reporter.id = :reporterId AND r.processingStatus.id = :statusId AND r.reportTime >= :startOfDay AND r.status = true")
+    long countByReporterIdAndProcessingStatusIdAndReportTime(
+            @Param("reporterId") Integer reporterId,
+            @Param("statusId") Integer statusId,
+            @Param("startOfDay") LocalDate startOfDay
+    );
 
     Optional<Report> findTopByOrderByIdDesc();
 }

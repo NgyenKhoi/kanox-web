@@ -48,7 +48,10 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
                     id: notif.id,
                     type: notif.type,
                     userId: notif.userId || null,
-                    displayName: notif.targetType === "GROUP" ? notif.groupName || "Nhóm" : notif.displayName || "Người dùng",
+                    displayName:
+                        notif.targetType === "GROUP"
+                            ? notif.groupName || "Nhóm"
+                            : notif.displayName || "Người dùng",
                     username: notif.username || "unknown",
                     message: notif.message,
                     tags: notif.tags || [],
@@ -56,9 +59,9 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
                     isRead: notif.status === "read",
                     image: notif.image || null,
                     targetId: notif.targetId || notif.userId,
+                    targetType: notif.targetType || "PROFILE",
                 }))
                 : [];
-
             formattedNotifications.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
             setNotifications(formattedNotifications);
@@ -111,13 +114,25 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
     useEffect(() => {
         fetchNotifications();
 
-        // Đăng ký WebSocket để nhận thông báo real-time
         if (!user || !subscribe || !unsubscribe) return;
 
         const subscription = subscribe(
             `/topic/notifications/${user.id}`,
             (notification) => {
                 console.log("Received notification:", notification);
+
+                if (notification.type === "bulk-read") {
+                    // Xử lý thông báo mark all as read
+                    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+                    setUnreadCount(0);
+                    window.dispatchEvent(
+                        new CustomEvent("updateUnreadNotificationCount", {
+                            detail: { unreadCount: 0 },
+                        })
+                    );
+                    return;
+                }
+
                 toast.info(notification.message);
 
                 setNotifications((prev) => {
@@ -125,13 +140,14 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
                         id: notification.id,
                         type: notification.type,
                         userId: user.id,
-                        displayName: notification.targetType === "GROUP"
-                            ? notification.groupName || "Nhóm"
-                            : notification.displayName || "Người dùng",
+                        displayName:
+                            notification.targetType === "GROUP"
+                                ? notification.groupName || "Nhóm"
+                                : notification.adminDisplayName || notification.displayName || "Người dùng",
                         username: notification.username || "unknown",
                         message: notification.message,
                         tags: notification.tags || [],
-                        timestamp: notification.createdAt,
+                        timestamp: notification.createdAt, 
                         isRead: notification.status === "read",
                         image: notification.image || null,
                         targetId: notification.targetId || user.id,
@@ -139,7 +155,7 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
                     };
 
                     const newList = [newNotification, ...prev];
-                    setUnreadCount(newList.filter(n => !n.isRead).length);
+                    setUnreadCount(newList.filter((n) => !n.isRead).length);
                     return newList;
                 });
             },
