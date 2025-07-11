@@ -100,12 +100,13 @@ function TweetCard({ tweet, onPostUpdate }) {
   const [reportReasonId, setReportReasonId] = useState("");
   const [reasons, setReasons] = useState([]);
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
+  const memoizedInitialReactionCountMap = useMemo(() => tweet.reactionCountMap || {}, [tweet.reactionCountMap]);
 
   const currentUserId = user?.id;
   const ownerId = owner?.id || null;
   const postId = id || null;
   const targetTypeId = tweet?.targetTypeId || 1;
-  
+
   const avatarMedia = useMedia([ownerId], "PROFILE", "image");
   const { imageData, videoData } = usePostMedia(postId);
   const avatarData = !loading && token && ownerId ? avatarMedia.mediaData : {};
@@ -127,7 +128,12 @@ function TweetCard({ tweet, onPostUpdate }) {
     removeReaction,
     fetchUsersByReaction,
     reactionUserMap,
-  } = useReaction({ user, targetId: tweet.id, targetTypeCode: "POST" });
+  } = useReaction({
+    user,
+    targetId: tweet.id,
+    targetTypeCode: "POST",
+    initialReactionCountMap: memoizedInitialReactionCountMap,
+  });
 
   const totalCount = Object.values(reactionCountMap).reduce((sum, count) => sum + count, 0);
 
@@ -854,7 +860,12 @@ function TweetCard({ tweet, onPostUpdate }) {
                   </OverlayTrigger>
                 </div>
                 <div className="text-center">
-                  <ReactionButtonGroup user={user} targetId={postId} targetTypeCode="POST" />
+                  <ReactionButtonGroup
+                      user={user}
+                      targetId={tweet.id}
+                      targetTypeCode="POST"
+                      initialReactionCountMap={tweet.reactionCountMap}
+                  />
                 </div>
                 <div className="text-center">
                   <OverlayTrigger placement="top" overlay={<Tooltip>Chia sẻ</Tooltip>}>

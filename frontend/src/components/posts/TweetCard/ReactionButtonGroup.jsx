@@ -5,7 +5,8 @@ import useReaction from "../../../hooks/useReaction";
 import { useEmojiContext } from "../../../context/EmojiContext";
 import { toast } from "react-toastify";
 
-function ReactionButtonGroup({ user, targetId, targetTypeCode }) {
+function ReactionButtonGroup({ user, targetId, targetTypeCode, initialReactionCountMap = {} }) {
+    const memoizedReactionCountMap = useMemo(() => initialReactionCountMap, [initialReactionCountMap]);
     const [showPopover, setShowPopover] = useState(false);
     const hoverTimeout = useRef(null);
     const ref = useRef();
@@ -15,7 +16,12 @@ function ReactionButtonGroup({ user, targetId, targetTypeCode }) {
         reactionCountMap,
         sendReaction,
         removeReaction,
-    } = useReaction({ user, targetId, targetTypeCode });
+    } = useReaction({
+        user,
+        targetId,
+        targetTypeCode,
+        initialReactionCountMap: memoizedReactionCountMap,
+    });
     const { emojiList: mainEmojiList, emojiMap } = useEmojiContext();
 
 
