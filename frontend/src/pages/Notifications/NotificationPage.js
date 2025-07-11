@@ -123,18 +123,6 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
             `/topic/notifications/${user.id}`,
             (notification) => {
                 console.log("Received notification:", notification);
-
-                if (notification.type === "bulk-read") {
-                    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-                    setUnreadCount(0);
-                    window.dispatchEvent(
-                        new CustomEvent("updateUnreadNotificationCount", {
-                            detail: { unreadCount: 0 },
-                        })
-                    );
-                    return;
-                }
-
                 const newNotification = {
                     id: notification.id,
                     type: notification.type,
@@ -157,6 +145,8 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
                     onClick: () => {
                         if (notification.type === "REPORT_STATUS_UPDATED" || notification.type === "REPORT_ABUSE_WARNING") {
                             navigate(`/profile/${notification.adminDisplayName || notification.username}`);
+                        } else if (notification.targetType === "GROUP") {
+                            navigate(`/community/${notification.targetId}`);
                         }
                     },
                 });
