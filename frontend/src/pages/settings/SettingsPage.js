@@ -327,21 +327,23 @@ function SettingsPage() {
                                     </Button>
                                     <hr className="my-4" />
                                     <h4 className="text-dark mb-4">Bảo mật tài khoản</h4>
-                                    <Button
-                                        variant="warning"
-                                        className="rounded-pill px-4 py-2 fw-bold mb-3"
-                                        onClick={() => setShowPasswordModal(true)}
-                                    >
-                                        Đổi mật khẩu
-                                    </Button>
+                                    <div className="d-flex flex-wrap gap-3">
+                                        <Button
+                                            variant="warning"
+                                            className="rounded-pill px-4 py-2 fw-bold"
+                                            onClick={() => setShowPasswordModal(true)}
+                                        >
+                                            Đổi mật khẩu
+                                        </Button>
 
-                                    <Button
-                                        variant="success"
-                                        className="rounded-pill px-4 py-2 fw-bold"
-                                        onClick={() => setShowEmailModal(true)}
-                                    >
-                                        Thêm email để xác minh
-                                    </Button>
+                                        <Button
+                                            variant="success"
+                                            className="rounded-pill px-4 py-2 fw-bold"
+                                            onClick={() => setShowEmailModal(true)}
+                                        >
+                                            Thêm email để xác minh
+                                        </Button>
+                                    </div>
                                 </Form>
                             </div>
                         </Col>
