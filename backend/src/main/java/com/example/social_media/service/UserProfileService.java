@@ -145,7 +145,7 @@ public class UserProfileService {
     public UserTagDto getUserTagByUsername(String username) {
         User user = userRepository.findByUsernameAndStatusTrue(username)
                 .orElseThrow(() -> new UserNotFoundException("Người dùng không tìm thấy"));
-        return new UserTagDto(user);
+        return new UserTagDto(user.getId(), user.getUsername(), user.getDisplayName());
     }
 
     @Transactional

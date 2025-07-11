@@ -1,7 +1,5 @@
 package com.example.social_media.dto.user;
 
-import com.example.social_media.entity.User;
-
 public class UserTagDto {
     private Integer id;
     private String username;
@@ -9,11 +7,6 @@ public class UserTagDto {
 
     public UserTagDto() {}
 
-    public UserTagDto(User user) {
-        this.id = user.getId();
-        this.username = user.getUsername();
-        this.displayName = user.getDisplayName();
-    }
 
     public UserTagDto(Integer id, String username, String displayName) {
         this.id = id;

@@ -642,14 +642,18 @@ public class PostService {
                                          Map<Integer, List<MediaDto>> mediaMap, Map<Integer, Map<ReactionType, Long>> reactionCountMap) {
         PostResponseDto dto = new PostResponseDto();
         dto.setId(post.getId());
-        dto.setOwner(new UserTagDto(post.getOwner()));
+        User owner = post.getOwner();
+        dto.setOwner(new UserTagDto(owner.getId(), owner.getUsername(), owner.getDisplayName()));
         dto.setContent(post.getContent());
         dto.setPrivacySetting(post.getPrivacySetting());
         dto.setCreatedAt(post.getCreatedAt());
 
         List<PostTag> postTags = postTagsMap.getOrDefault(post.getId(), List.of());
         dto.setTaggedUsers(postTags.stream()
-                .map(postTag -> new UserTagDto(postTag.getTaggedUser()))
+                .map(postTag -> {
+                    User tagged = postTag.getTaggedUser();
+                    return new UserTagDto(tagged.getId(), tagged.getUsername(), tagged.getDisplayName());
+                })
                 .collect(Collectors.toList()));
 
         dto.setCommentCount(post.getTblComments().size());

@@ -171,7 +171,10 @@ public class FriendshipService {
                 .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
         Page<Friendship> sentRequests = friendshipRepository.findByUserAndFriendshipStatusAndStatus(user, "pending", true, pageable);
         List<UserTagDto> users = sentRequests.getContent().stream()
-                .map(friendship -> new UserTagDto(friendship.getFriend()))
+                .map(friendship -> {
+                    User friend = friendship.getFriend();
+                    return new UserTagDto(friend.getId(), friend.getUsername(), friend.getDisplayName());
+                })
                 .collect(Collectors.toList());
 
         return new PageResponseDto<>(
@@ -190,7 +193,10 @@ public class FriendshipService {
                 .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
         Page<Friendship> receivedRequests = friendshipRepository.findByFriendAndFriendshipStatusAndStatus(user, "pending", true, pageable);
         List<UserTagDto> users = receivedRequests.getContent().stream()
-                .map(friendship -> new UserTagDto(friendship.getUser()))
+                .map(friendship -> {
+                    User sender = friendship.getUser();
+                    return new UserTagDto(sender.getId(), sender.getUsername(), sender.getDisplayName());
+                })
                 .collect(Collectors.toList());
 
         return new PageResponseDto<>(

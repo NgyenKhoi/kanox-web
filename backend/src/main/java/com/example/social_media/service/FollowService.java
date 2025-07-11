@@ -129,11 +129,10 @@ public class FollowService {
 
         Page<Follow> following = followRepository.findByFollowerAndStatus(user, true, pageable);
         List<UserTagDto> followingList = following.getContent().stream()
-                .map(f -> new UserTagDto(f.getFollowee()))
-                .filter(dto -> !blockRepository.existsByUserAndBlockedUserAndStatus(
-                        new User(dto.getId()), new User(viewerId), true) &&
-                        !blockRepository.existsByUserAndBlockedUserAndStatus(
-                                new User(viewerId), new User(dto.getId()), true))
+                .map(f -> f.getFollowee())
+                .filter(followee -> !blockRepository.existsByUserAndBlockedUserAndStatus(followee, new User(viewerId), true) &&
+                        !blockRepository.existsByUserAndBlockedUserAndStatus(new User(viewerId), followee, true))
+                .map(f -> new UserTagDto(f.getId(), f.getUsername(), f.getDisplayName()))
                 .collect(Collectors.toList());
 
         return new PageResponseDto<>(
@@ -157,11 +156,10 @@ public class FollowService {
 
         Page<Follow> followers = followRepository.findByFolloweeAndStatus(user, true, pageable);
         List<UserTagDto> followersList = followers.getContent().stream()
-                .map(f -> new UserTagDto(f.getFollower()))
-                .filter(dto -> !blockRepository.existsByUserAndBlockedUserAndStatus(
-                        new User(dto.getId()), new User(viewerId), true) &&
-                        !blockRepository.existsByUserAndBlockedUserAndStatus(
-                                new User(viewerId), new User(dto.getId()), true))
+                .map(f -> f.getFollower())
+                .filter(follower -> !blockRepository.existsByUserAndBlockedUserAndStatus(follower, new User(viewerId), true) &&
+                        !blockRepository.existsByUserAndBlockedUserAndStatus(new User(viewerId), follower, true))
+                .map(f -> new UserTagDto(f.getId(), f.getUsername(), f.getDisplayName()))
                 .collect(Collectors.toList());
 
         return new PageResponseDto<>(
