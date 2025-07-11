@@ -14,11 +14,13 @@ import {
   fetchAllGroups,
   deleteGroupAsAdmin, // ✅ Import đúng hàm API
 } from "../../api/groupApi";
+import { useNavigate } from "react-router-dom"; // ✅ Thêm điều hướng
 
 const CommunitiesManagement = () => {
   const [communities, setCommunities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const navigate = useNavigate(); // ✅ Khai báo hook điều hướng
 
   const loadCommunities = async () => {
     try {
@@ -36,11 +38,11 @@ const CommunitiesManagement = () => {
   }, []);
 
   const handleView = (id) => {
-    console.log(`Xem cộng đồng ID: ${id}`);
+    navigate(`/admin/groups/${id}/view`); // 🔄 Bạn có thể sửa thành route bạn dùng cho xem chi tiết
   };
 
   const handleManageMembers = (id) => {
-    console.log(`Quản lý thành viên cộng đồng ID: ${id}`);
+    navigate(`/groups/${id}/members`); // ✅ Điều hướng đúng đến trang GroupMembersPage
   };
 
   const handleDelete = async (id) => {
