@@ -62,6 +62,13 @@ public class ReportService {
         ReportReason reason = reportReasonRepository.findById(request.getReasonId())
                 .orElseThrow(() -> new IllegalArgumentException("Report reason not found with id: " + request.getReasonId()));
 
+        // Kiểm tra báo cáo trùng lặp
+        boolean existingReport = reportRepository.existsByReporterIdAndTargetIdAndTargetTypeIdAndStatus(
+                request.getReporterId(), request.getTargetId(), request.getTargetTypeId(), true);
+        if (existingReport) {
+            throw new IllegalArgumentException("Bạn đã báo cáo nội dung này trước đó. Vui lòng chờ xử lý.");
+        }
+
         try {
             Integer reportId = reportRepository.addReport(
                     request.getReporterId(),
@@ -84,6 +91,28 @@ public class ReportService {
                     "createdAt", System.currentTimeMillis() / 1000
             ));
 
+            messagingTemplate.convertAndSend(
+                    "/topic/notifications/" + reporter.getId(),
+                    Map.of(
+                            "id", reportId,
+                            "message", "Báo cáo của bạn (ID: " + reportId + ") đã được gửi thành công",
+                            "type", "REPORT_SUBMITTED",
+                            "targetId", request.getTargetId(),
+                            "targetType", request.getTargetTypeId() == 1 ? "POST" : "PROFILE",
+                            "createdAt", System.currentTimeMillis() / 1000,
+                            "status", "read",
+                            "reportId", reportId
+                    )
+            );
+
+            notificationService.sendNotification(
+                    reporter.getId(),
+                    "REPORT_SUBMITTED",
+                    "Báo cáo của bạn (ID: " + reportId + ") đã được gửi thành công",
+                    null,
+                    request.getTargetTypeId() == 1 ? "POST" : "PROFILE"
+            );
+
             ReportStatus status = reportStatusRepository.findById(1)
                     .orElseThrow(() -> new IllegalArgumentException("Report status not found with id: 1"));
             ReportHistory history = new ReportHistory();
@@ -94,11 +123,8 @@ public class ReportService {
             history.setStatus(true);
             reportHistoryRepository.save(history);
         } catch (Exception e) {
-            String errorMessage = e.getCause() instanceof SQLException ? e.getCause().getMessage() : "Failed to create report";
-            if (errorMessage.contains("Bạn đã báo cáo nội dung này trước đó.")) {
-                throw new IllegalArgumentException("Bạn đã báo cáo nội dung này trước đó. Vui lòng chờ xử lý.");
-            }
-            throw new RuntimeException("Failed to create report: " + errorMessage);
+            String errorMessage = e.getCause() instanceof SQLException ? e.getCause().getMessage() : e.getMessage();
+            throw new RuntimeException("Lỗi khi tạo báo cáo: " + errorMessage);
         }
     }
 
@@ -138,13 +164,11 @@ public class ReportService {
     @Transactional
     public void updateReportStatus(Integer reportId, UpdateReportStatusRequestDto request) {
         String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-        System.out.println("Current username: " + currentUsername);
         if (currentUsername == null) {
             throw new IllegalStateException("No authenticated user found");
         }
         User admin = userRepository.findByUsername(currentUsername)
                 .orElseThrow(() -> new UserNotFoundException("Admin not found with username: " + currentUsername));
-        System.out.println("Admin ID: " + admin.getId());
         if (!admin.getIsAdmin()) {
             throw new IllegalArgumentException("User is not an admin");
         }
@@ -175,7 +199,7 @@ public class ReportService {
                     message = "Báo cáo của bạn (ID: " + reportId + ") đã được cập nhật bởi " + admin.getDisplayName();
             }
 
-            // Gửi thông báo qua WebSocket
+            // Gửi thông báo WebSocket duy nhất
             messagingTemplate.convertAndSend(
                     "/topic/notifications/" + report.getReporter().getId(),
                     Map.of(
@@ -183,11 +207,12 @@ public class ReportService {
                             "message", message,
                             "type", "REPORT_STATUS_UPDATED",
                             "targetId", admin.getId(),
-                            "targetType", "PROFILE", // Sửa: Gửi targetType dạng chuỗi
+                            "targetType", "PROFILE",
                             "adminId", admin.getId(),
                             "adminDisplayName", admin.getDisplayName() != null ? admin.getDisplayName() : admin.getUsername(),
                             "createdAt", System.currentTimeMillis() / 1000,
-                            "status", request.getProcessingStatusId() == 3 ? "read" : "unread"
+                            "status", request.getProcessingStatusId() == 3 ? "read" : "unread",
+                            "reportId", reportId // Thêm reportId để lọc trùng lặp
                     )
             );
 
@@ -202,10 +227,7 @@ public class ReportService {
 
             if (request.getProcessingStatusId() == 4) { // Rejected
                 long rejectedCount = reportRepository.countByReporterIdAndProcessingStatusIdAndReportTime(
-                        report.getReporter().getId(),
-                        4,
-                        LocalDate.now()
-                );
+                        report.getReporter().getId(), 4, LocalDate.now());
                 if (rejectedCount >= 5) {
                     String abuseMessage = "Bạn đã gửi quá nhiều báo cáo không hợp lệ hôm nay. Vui lòng kiểm tra lại hành vi báo cáo của bạn.";
                     notificationService.sendNotification(
@@ -222,9 +244,10 @@ public class ReportService {
                                     "message", abuseMessage,
                                     "type", "REPORT_ABUSE_WARNING",
                                     "targetId", admin.getId(),
-                                    "targetType", "PROFILE", // Sửa: Gửi targetType dạng chuỗi
+                                    "targetType", "PROFILE",
                                     "createdAt", System.currentTimeMillis() / 1000,
-                                    "status", "unread"
+                                    "status", "unread",
+                                    "reportId", reportId
                             )
                     );
                 }

@@ -48,22 +48,16 @@ public class ReportController {
             request.setReporterId(currentUser.getId());
             reportService.createReport(request);
             return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(Map.of("message", "Report created successfully"));
+                    .body(Map.of("message", "Báo cáo đã được gửi thành công"));
         } catch (UserNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("message", "User not found", "error", e.getMessage()));
+                    .body(Map.of("status", "error", "message", "Không tìm thấy người dùng", "errors", Map.of()));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of(
-                    "status", "error",
-                    "message", e.getMessage(),
-                    "errors", Map.of()
-            ));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("status", "error", "message", e.getMessage(), "errors", Map.of()));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of(
-                    "status", "error",
-                    "message", "Lỗi khi gửi báo cáo: " + e.getMessage(),
-                    "errors", Map.of()
-            ));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("status", "error", "message", "Lỗi khi gửi báo cáo: " + e.getMessage(), "errors", Map.of()));
         }
     }
 

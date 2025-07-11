@@ -59,4 +59,13 @@ public interface ReportRepository extends JpaRepository<Report, Integer> {
     );
 
     Optional<Report> findTopByOrderByIdDesc();
+
+    @Query("SELECT CASE WHEN COUNT(r) > 0 THEN true ELSE false END FROM Report r " +
+            "WHERE r.reporter.id = :reporterId AND r.targetId = :targetId AND r.targetType.id = :targetTypeId AND r.status = :status")
+    boolean existsByReporterIdAndTargetIdAndTargetTypeIdAndStatus(
+            @Param("reporterId") Integer reporterId,
+            @Param("targetId") Integer targetId,
+            @Param("targetTypeId") Integer targetTypeId,
+            @Param("status") Boolean status
+    );
 }

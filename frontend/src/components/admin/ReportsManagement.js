@@ -175,13 +175,13 @@ const ReportsManagement = () => {
             console.log("Received new report:", message);
             toast.info(`Báo cáo mới từ ${message.reporterUsername}: ${message.reason}`, {
                 onClick: () => {
-                    navigate("/admin", {state: {newReport: message}});
+                    navigate("/admin", { state: { newReport: message } });
                 },
             });
-            if (message.targetTypeId === 1 && (activeMainTab === "posts" && (activeSubTab === "all" || activeSubTab === "1"))) {
+            // Thêm báo cáo mới vào danh sách phù hợp
+            if (message.targetTypeId === 1) {
                 setPostReports((prev) => [message, ...prev]);
-            }
-            if (message.targetTypeId === 4 && (activeMainTab === "users" && (activeSubTab === "all" || activeSubTab === "1"))) {
+            } else if (message.targetTypeId === 4) {
                 setUserReports((prev) => [message, ...prev]);
             }
         }, "admin-reports");
@@ -189,7 +189,7 @@ const ReportsManagement = () => {
         return () => {
             if (subscription) unsubscribe("admin-reports");
         };
-    }, [subscribe, unsubscribe, navigate, activeMainTab, activeSubTab]);
+    }, [subscribe, unsubscribe, navigate]);
 
     const handlePageChange = (page) => {
         setCurrentPage(page);
@@ -197,12 +197,12 @@ const ReportsManagement = () => {
 
     return (
         <div className="bg-background text-text p-6 min-h-screen">
-            <h2 className="text-2xl font-bold mb-4 dark:text-white">Quản lý Báo cáo</h2>
-            <div className="mb-4">
-                <div className="flex gap-4 mb-4">
+            <h2 className="text-2xl font-bold mb-6 dark:text-white">Quản lý Báo cáo</h2>
+            <div className="mb-6 flex flex-col gap-4">
+                <div className="flex gap-2">
                     <button
-                        className={`px-4 py-2 rounded-md ${
-                            activeMainTab === "posts" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-white"
+                        className={`px-4 py-2 rounded-md font-medium transition-colors duration-200 ${
+                            activeMainTab === "posts" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600"
                         }`}
                         onClick={() => {
                             setActiveMainTab("posts");
@@ -214,8 +214,8 @@ const ReportsManagement = () => {
                         Báo cáo bài đăng
                     </button>
                     <button
-                        className={`px-4 py-2 rounded-md ${
-                            activeMainTab === "users" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-white"
+                        className={`px-4 py-2 rounded-md font-medium transition-colors duration-200 ${
+                            activeMainTab === "users" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600"
                         }`}
                         onClick={() => {
                             setActiveMainTab("users");
@@ -227,12 +227,12 @@ const ReportsManagement = () => {
                         Báo cáo người dùng
                     </button>
                 </div>
-                <div className="flex gap-4 mb-4">
+                <div className="flex gap-2 flex-wrap">
                     {["all", "1", "2", "3", "4"].map((subTab) => (
                         <button
                             key={subTab}
-                            className={`px-4 py-2 rounded-md ${
-                                activeSubTab === subTab ? "bg-blue-300 text-white" : "bg-gray-100 text-gray-700 dark:bg-gray-600 dark:text-white"
+                            className={`px-3 py-1 rounded-md font-medium transition-colors duration-200 ${
+                                activeSubTab === subTab ? "bg-blue-300 text-white" : "bg-gray-100 text-gray-700 dark:bg-gray-600 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-500"
                             }`}
                             onClick={() => {
                                 setActiveSubTab(subTab);
@@ -257,32 +257,30 @@ const ReportsManagement = () => {
             {loading ? (
                 <div className="flex justify-center">
                     <svg className="animate-spin h-8 w-8 text-blue-500" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"
-                                fill="none"/>
-                        <path className="opacity-75" fill="currentColor"
-                              d="M4 12a8 8 0 018-8v8h8a8 8 0 01-8 8 8 8 0 01-8-8z"/>
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8h8a8 8 0 01-8 8 8 8 0 01-8-8z"/>
                     </svg>
                 </div>
             ) : (
                 <>
-                    <div className="overflow-x-auto">
-                        <table className="w-full border-collapse bg-background border border-gray-light rounded-md">
+                    <div className="overflow-x-auto rounded-lg shadow">
+                        <table className="w-full border-collapse bg-background border border-gray-200 dark:border-gray-700 rounded-lg">
                             <thead>
                             <tr className="bg-gray-100 dark:bg-gray-800">
-                                <th className="p-3 text-left text-text dark:text-white">ID</th>
-                                <th className="p-3 text-left text-text dark:text-white">Người báo cáo</th>
-                                <th className="p-3 text-left text-text dark:text-white">Loại</th>
-                                <th className="p-3 text-left text-text dark:text-white">ID mục tiêu</th>
-                                <th className="p-3 text-left text-text dark:text-white">Lý do</th>
-                                <th className="p-3 text-left text-text dark:text-white">Trạng thái</th>
-                                <th className="p-3 text-left text-text dark:text-white">Hành động</th>
+                                <th className="p-3 text-left text-text dark:text-white font-semibold">ID</th>
+                                <th className="p-3 text-left text-text dark:text-white font-semibold">Người báo cáo</th>
+                                <th className="p-3 text-left text-text dark:text-white font-semibold">Loại</th>
+                                <th className="p-3 text-left text-text dark:text-white font-semibold">ID mục tiêu</th>
+                                <th className="p-3 text-left text-text dark:text-white font-semibold">Lý do</th>
+                                <th className="p-3 text-left text-text dark:text-white font-semibold">Trạng thái</th>
+                                <th className="p-3 text-left text-text dark:text-white font-semibold">Hành động</th>
                             </tr>
                             </thead>
                             <tbody>
                             {(activeMainTab === "posts" ? postReports : userReports).map((report) => (
                                 <tr
                                     key={report.id}
-                                    className="border-t border-gray-light hover:bg-gray-100 dark:hover:bg-gray-700"
+                                    className="border-t border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150"
                                 >
                                     <td className="p-3 text-text dark:text-white">{report.id}</td>
                                     <td className="p-3 text-text dark:text-white">{report.reporterUsername}</td>
@@ -292,36 +290,36 @@ const ReportsManagement = () => {
                                     <td className="p-3 text-text dark:text-white">{report.targetId}</td>
                                     <td className="p-3 text-text dark:text-white">{report.reason?.name || "Không xác định"}</td>
                                     <td className="p-3">
-                                            <span
-                                                className={`px-2 py-1 rounded-full text-sm ${
-                                                    report.processingStatusId === 1
-                                                        ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-700 dark:text-yellow-200"
-                                                        : report.processingStatusId === 2
-                                                            ? "bg-blue-100 text-blue-800 dark:bg-blue-700 dark:text-blue-200"
-                                                            : report.processingStatusId === 3
-                                                                ? "bg-green-100 text-green-800 dark:bg-green-700 dark:text-green-200"
-                                                                : "bg-red-100 text-red-800 dark:bg-red-700 dark:text-red-200"
-                                                }`}
-                                            >
-                                                {report.processingStatusId === 1
-                                                    ? "Đang chờ"
-                                                    : report.processingStatusId === 2
-                                                        ? "Đang xem xét"
-                                                        : report.processingStatusId === 3
-                                                            ? "Đã duyệt"
-                                                            : "Đã từ chối"}
-                                            </span>
+                                <span
+                                    className={`px-2 py-1 rounded-full text-sm font-medium ${
+                                        report.processingStatusId === 1
+                                            ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-700 dark:text-yellow-200"
+                                            : report.processingStatusId === 2
+                                                ? "bg-blue-100 text-blue-800 dark:bg-blue-700 dark:text-blue-200"
+                                                : report.processingStatusId === 3
+                                                    ? "bg-green-100 text-green-800 dark:bg-green-700 dark:text-green-200"
+                                                    : "bg-red-100 text-red-800 dark:bg-red-700 dark:text-red-200"
+                                    }`}
+                                >
+                                    {report.processingStatusId === 1
+                                        ? "Đang chờ"
+                                        : report.processingStatusId === 2
+                                            ? "Đang xem xét"
+                                            : report.processingStatusId === 3
+                                                ? "Đã duyệt"
+                                                : "Đã từ chối"}
+                                </span>
                                     </td>
                                     <td className="p-3 flex gap-2">
                                         <button
                                             onClick={() => handleViewDetail(report.id)}
-                                            className="px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            className="px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-150"
                                         >
                                             Chi tiết
                                         </button>
                                         <button
                                             onClick={() => handleDismissReport(report.id)}
-                                            className="px-3 py-1 bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500"
+                                            className="px-3 py-1 bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors duration-150"
                                         >
                                             Xóa
                                         </button>
@@ -332,11 +330,11 @@ const ReportsManagement = () => {
                         </table>
                     </div>
                     {totalPages > 1 && (
-                        <div className="flex justify-center mt-4">
+                        <div className="flex justify-center mt-6 gap-2">
                             <button
                                 disabled={currentPage === 0}
                                 onClick={() => handlePageChange(currentPage - 1)}
-                                className="px-4 py-2 mx-1 bg-gray-200 text-gray-700 rounded-md disabled:opacity-50"
+                                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md disabled:opacity-50 hover:bg-gray-300 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 transition-colors duration-150"
                             >
                                 Trước
                             </button>
@@ -344,9 +342,9 @@ const ReportsManagement = () => {
                                 <button
                                     key={page}
                                     onClick={() => handlePageChange(page)}
-                                    className={`px-4 py-2 mx-1 ${
-                                        currentPage === page ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-700"
-                                    } rounded-md`}
+                                    className={`px-4 py-2 rounded-md font-medium ${
+                                        currentPage === page ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600"
+                                    } transition-colors duration-150`}
                                 >
                                     {page + 1}
                                 </button>
@@ -354,7 +352,7 @@ const ReportsManagement = () => {
                             <button
                                 disabled={currentPage === totalPages - 1}
                                 onClick={() => handlePageChange(currentPage + 1)}
-                                className="px-4 py-2 mx-1 bg-gray-200 text-gray-700 rounded-md disabled:opacity-50"
+                                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md disabled:opacity-50 hover:bg-gray-300 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 transition-colors duration-150"
                             >
                                 Sau
                             </button>
@@ -396,21 +394,19 @@ const ReportsManagement = () => {
                                 <strong>Lý do:</strong> {selectedReport.reason?.name || "Không xác định"}
                             </p>
                             <p className="text-text dark:text-white">
-                                <strong>Thời
-                                    gian:</strong> {new Date(selectedReport.reportTime * 1000).toLocaleString("vi-VN")}
+                                <strong>Thời gian:</strong> {new Date(selectedReport.reportTime * 1000).toLocaleString("vi-VN")}
                             </p>
                             <p className="text-text dark:text-white">
                                 <strong>Trạng thái:</strong> {selectedReport.processingStatusName || "Không xác định"}
                             </p>
                             <h5 className="text-lg font-semibold mt-4 dark:text-white">Lịch sử xử lý</h5>
-                            <div className="overflow-x-auto">
-                                <table
-                                    className="w-full border-collapse bg-white dark:bg-gray-900 border border-gray-light rounded-md">
+                            <div className="overflow-y-auto max-h-64">
+                                <table className="w-full border-collapse bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md">
                                     <thead>
                                     <tr className="bg-gray-100 dark:bg-gray-800">
-                                        <th className="p-3 text-left text-text dark:text-white">Thời gian</th>
-                                        <th className="p-3 text-left text-text dark:text-white">Admin</th>
-                                        <th className="p-3 text-left text-text dark:text-white">Trạng thái</th>
+                                        <th className="p-3 text-left text-text dark:text-white font-semibold">Thời gian</th>
+                                        <th className="p-3 text-left text-text dark:text-white font-semibold">Admin</th>
+                                        <th className="p-3 text-left text-text dark:text-white font-semibold">Trạng thái</th>
                                     </tr>
                                     </thead>
                                     <tbody>
@@ -433,25 +429,25 @@ const ReportsManagement = () => {
                             <div className="flex justify-end gap-2 mt-4">
                                 <button
                                     onClick={() => setShowDetailModal(false)}
-                                    className="px-4 py-2 bg-gray-300 text-gray-700 dark:bg-gray-600 dark:text-gray-300 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-400"
+                                    className="px-4 py-2 bg-gray-300 text-gray-700 dark:bg-gray-600 dark:text-gray-300 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors duration-150"
                                 >
                                     Đóng
                                 </button>
                                 <button
                                     onClick={() => handleUpdateStatus(selectedReport?.id, 2)}
-                                    className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 dark:hover:bg-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 dark:hover:bg-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-150"
                                 >
                                     Đang xem xét
                                 </button>
                                 <button
                                     onClick={() => handleUpdateStatus(selectedReport?.id, 3)}
-                                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 dark:hover:bg-green-500 focus:outline-none focus:ring-2 focus:ring-green-500"
+                                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 dark:hover:bg-green-500 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors duration-150"
                                 >
                                     Duyệt
                                 </button>
                                 <button
                                     onClick={() => handleUpdateStatus(selectedReport?.id, 4)}
-                                    className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 dark:hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-500"
+                                    className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 dark:hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors duration-150"
                                 >
                                     Từ chối
                                 </button>
