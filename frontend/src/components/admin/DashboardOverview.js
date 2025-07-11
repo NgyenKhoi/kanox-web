@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Container,
   Row,
@@ -7,19 +7,47 @@ import {
   ListGroup,
   Button,
   Table,
-} from "react-bootstrap"; // Đã thêm Table
+} from "react-bootstrap";
 
-// Component: DashboardOverview - Tổng quan Dashboard
 const DashboardOverview = () => {
-  // Dữ liệu giả cho thống kê dashboard
-  const stats = [
-    { label: "Tổng số người dùng", value: "15,450", icon: "👥" },
-    { label: "Tổng số bài viết", value: "8,210", icon: "📋" },
-    { label: "Tổng số cộng đồng", value: "120", icon: "🏘️" },
-    { label: "Báo cáo mới", value: "45", icon: "⚠️" },
-  ];
+  const [stats, setStats] = useState([
+    { label: "Tổng số người dùng", value: "Đang tải...", icon: "👥" },
+    { label: "Tổng số bài viết", value: "Đang tải...", icon: "📋" },
+    { label: "Tổng số cộng đồng", value: "Đang tải...", icon: "🏘️" },
+    { label: "Báo cáo mới", value: "45", icon: "⚠️" }, // placeholder
+  ]);
 
-  // Dữ liệu cho bảng thống kê hàng tháng (thay thế cho DataGrid)
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch(
+            `${process.env.REACT_APP_API_URL}/admin/dashboard/stats`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+        );
+
+        if (!response.ok) throw new Error("Lỗi khi lấy dữ liệu thống kê");
+
+        const data = await response.json();
+
+        setStats([
+          { label: "Tổng số người dùng", value: data.totalUsers, icon: "👥" },
+          { label: "Tổng số bài viết", value: data.totalPosts, icon: "📋" },
+          { label: "Tổng số cộng đồng", value: data.totalGroups, icon: "🏘️" },
+          { label: "Báo cáo mới", value: data.totalReports, icon: "⚠️" },
+        ]);
+      } catch (error) {
+        console.error("Lỗi khi load thống kê dashboard:", error);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
   const monthlyStats = [
     { id: 1, month: "Tháng 1", users: 44, posts: 23, communities: 15 },
     { id: 2, month: "Tháng 2", users: 55, posts: 25, communities: 18 },

@@ -13,6 +13,7 @@ import com.example.social_media.service.CustomUserDetailsService;
 import com.example.social_media.service.NotificationService;
 import com.example.social_media.service.ReportService;
 import com.example.social_media.service.UserService;
+import com.example.social_media.service.GroupService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -21,6 +22,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+
 
 import java.util.List;
 import java.util.Map;
@@ -37,6 +39,8 @@ public class AdminController {
     private final ReportService reportService;
     private final ReportRepository reportRepository;
     private final ReportHistoryRepository reportHistoryRepository;
+    private final GroupService groupService;
+
 
     public AdminController(
             UserService userService,
@@ -44,7 +48,9 @@ public class AdminController {
             CustomUserDetailsService customUserDetailsService,
             ReportService reportService,
             ReportRepository reportRepository,
-            ReportHistoryRepository reportHistoryRepository
+            ReportHistoryRepository reportHistoryRepository,
+            GroupService groupService
+
     ) {
         this.userService = userService;
         this.notificationService = notificationService;
@@ -52,6 +58,8 @@ public class AdminController {
         this.reportService = reportService;
         this.reportRepository = reportRepository;
         this.reportHistoryRepository = reportHistoryRepository;
+        this.groupService = groupService;
+
     }
 
     @GetMapping(URLConfig.GET_ALL_USER)
@@ -263,6 +271,22 @@ public class AdminController {
         return dto;
     }
 
+    @DeleteMapping(URLConfig.DELETE_GROUP_BY_ADMIN)
+    public ResponseEntity<?> deleteGroupByAdmin(@PathVariable Integer groupId) {
+        try {
+            groupService.deleteGroupAsAdmin(groupId);
+            return ResponseEntity.ok(Map.of("message", "Group deleted successfully"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("message", "Group not found", "error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Error deleting group", "error", e.getMessage()));
+        }
+    }
+
+
+
     @GetMapping(URLConfig.GET_UNREAD_REPORT)
     public ResponseEntity<?> getUnreadReports(
             @RequestParam(defaultValue = "0") int page,
@@ -280,4 +304,5 @@ public class AdminController {
             ));
         }
     }
+
 }

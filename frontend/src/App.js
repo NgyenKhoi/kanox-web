@@ -5,6 +5,7 @@ import "react-toastify/dist/ReactToastify.css";
 import "./App.css";
 import moment from "moment";
 import PrivateRoute from "./components/common/PrivateRoute/PrivateRoute";
+import { EmojiProvider } from "./context/EmojiContext";
 
 import SidebarLeft from "./components/layout/SidebarLeft/SidebarLeft";
 import { ThemeContext, ThemeProvider } from "./context/ThemeContext";
@@ -476,26 +477,28 @@ function AppContent() {
   );
 }
 
-  function App() {
+function App() {
   return (
       <Router>
         <AuthProvider>
           <WebSocketProvider>
-            <ThemeProvider>
-              <AppContent />
-              <ToastContainer
-                  position="top-right"
-                  autoClose={3000}
-                  hideProgressBar={false}
-                  newestOnTop={false}
-                  closeOnClick
-                  rtl={false}
-                  pauseOnFocusLoss
-                  draggable
-                  pauseOnHover
-                  theme="light"
-              />
-            </ThemeProvider>
+            <EmojiProvider>
+              <ThemeProvider>
+                <AppContent />
+                <ToastContainer
+                    position="top-right"
+                    autoClose={3000}
+                    hideProgressBar={false}
+                    newestOnTop={false}
+                    closeOnClick
+                    rtl={false}
+                    pauseOnFocusLoss
+                    draggable
+                    pauseOnHover
+                    theme="light"
+                />
+              </ThemeProvider>
+            </EmojiProvider>
           </WebSocketProvider>
         </AuthProvider>
       </Router>

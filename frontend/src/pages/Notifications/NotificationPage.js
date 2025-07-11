@@ -14,6 +14,7 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(true);
     const { subscribe, unsubscribe } = useContext(WebSocketContext);
+    const [unreadCount, setUnreadCount] = useState(0);
 
     const fetchNotifications = async () => {
         setLoading(true);
@@ -58,7 +59,10 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
                 }))
                 : [];
 
+            formattedNotifications.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
             setNotifications(formattedNotifications);
+            setUnreadCount(formattedNotifications.filter(n => !n.isRead).length);
         } catch (error) {
             console.error("Lỗi khi lấy thông báo:", error);
             toast.error(error.message || "Không thể lấy thông báo!");
@@ -67,9 +71,41 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
         }
     };
 
+    const markAllAsRead = async () => {
+        const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+        if (!token) return;
+
+        try {
+            await fetch(`${process.env.REACT_APP_API_URL}/notifications/mark-all-read`, {
+                method: "PUT",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            // Cập nhật UI
+            setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+            setUnreadCount(0);
+            window.dispatchEvent(
+                new CustomEvent("updateUnreadNotificationCount", {
+                    detail: { unreadCount: 0 },
+                })
+            );
+        } catch (err) {
+            console.error("Lỗi khi markAllAsRead:", err);
+        }
+    };
+
     useEffect(() => {
         if (!user) return;
-        fetchNotifications();
+        fetchNotifications().then(() => {
+            // Gửi sự kiện để reset badge về 0 khi mở trang
+            window.dispatchEvent(
+                new CustomEvent("updateUnreadNotificationCount", {
+                    detail: { unreadCount: 0 },
+                })
+            );
+        });
     }, [user]);
 
     useEffect(() => {
@@ -84,8 +120,8 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
                 console.log("Received notification:", notification);
                 toast.info(notification.message);
 
-                setNotifications((prev) => [
-                    {
+                setNotifications((prev) => {
+                    const newNotification = {
                         id: notification.id,
                         type: notification.type,
                         userId: user.id,
@@ -99,10 +135,13 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
                         isRead: notification.status === "read",
                         image: notification.image || null,
                         targetId: notification.targetId || user.id,
-                        targetType: notification.targetType || "PROFILE", // <- Quan trọng
-                    },
-                    ...prev,
-                ]);
+                        targetType: notification.targetType || "PROFILE",
+                    };
+
+                    const newList = [newNotification, ...prev];
+                    setUnreadCount(newList.filter(n => !n.isRead).length);
+                    return newList;
+                });
             },
             `notifications-${user.id}`
         );
@@ -186,6 +225,13 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
             );
 
             toast.success("Đã đánh dấu chưa đọc!");
+
+            window.dispatchEvent(
+                new CustomEvent("updateUnreadNotificationCount", {
+                    detail: { unreadCount: unreadCount + 1 }, // cập nhật mới
+                })
+            );
+
         } catch (error) {
             console.error("Lỗi khi đánh dấu chưa đọc:", error);
             toast.error(error.message || "Không thể đánh dấu chưa đọc!");

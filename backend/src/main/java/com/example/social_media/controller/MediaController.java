@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -89,6 +90,24 @@ public class MediaController {
             return ResponseEntity.ok(mediaMap);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body("Invalid request: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/post/{postId}")
+    public ResponseEntity<?> getPostMedia(@PathVariable Integer postId) {
+        try {
+            List<MediaDto> imageList = mediaService.getMediaByTargetDto(postId, "POST", "image", true);
+            List<MediaDto> videoList = mediaService.getMediaByTargetDto(postId, "POST", "video", true);
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("image", imageList);
+            result.put("video", videoList);
+
+            return ResponseEntity.ok(result);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Lỗi server: " + e.getMessage());
         }
     }
 }

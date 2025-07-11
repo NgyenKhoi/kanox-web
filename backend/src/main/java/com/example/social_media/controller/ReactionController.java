@@ -12,6 +12,7 @@ import com.example.social_media.service.ReactionService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -117,5 +118,21 @@ public class ReactionController {
     ) {
         List<UserBasicDisplayDto> users = reactionService.getUsersByReactionType(targetId, targetTypeCode, emojiName);
         return ResponseEntity.ok(users);
+    }
+
+    @GetMapping("/summary")
+    public ResponseEntity<Map<String, Object>> getReactionSummary(
+            @RequestParam Integer targetId,
+            @RequestParam String targetTypeCode
+    ) {
+        Map<String, Object> result = new HashMap<>();
+
+        Map<ReactionType, Long> countMap = reactionService.countAllReactions(targetId, targetTypeCode);
+        List<ReactionTypeCountDto> top3 = reactionService.getTop3Reactions(targetId, targetTypeCode);
+
+        result.put("countMap", countMap);
+        result.put("topReactions", top3);
+
+        return ResponseEntity.ok(result);
     }
 }

@@ -74,4 +74,26 @@ public class NotificationController {
             return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage(), "errors", Map.of()));
         }
     }
+
+    @PutMapping("/mark-all-read")
+    public ResponseEntity<?> markAllNotificationsAsRead() {
+        try {
+            String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+            User currentUser = customUserDetailsService.getUserByUsername(currentUsername);
+            notificationService.markAllAsRead(currentUser.getId());
+            return ResponseEntity.ok(Map.of("message", "Tất cả thông báo đã được đánh dấu là đã đọc."));
+        } catch (UserNotFoundException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", e.getMessage(),
+                    "errors", Map.of()
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of(
+                    "status", "error",
+                    "message", "Lỗi khi đánh dấu tất cả thông báo.",
+                    "errors", Map.of()
+            ));
+        }
+    }
 }

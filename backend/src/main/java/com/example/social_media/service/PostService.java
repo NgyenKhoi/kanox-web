@@ -246,23 +246,38 @@ public class PostService {
             commentRepository.save(comment);
         });
 
-        // Xóa mềm bài viết
         logger.debug("Xóa mềm bài viết với id: {}", postId);
         post.setStatus(false);
         postRepository.save(post);
     }
 
     public List<PostResponseDto> getAllPosts(String username) {
-        logger.info("Fetching all posts for user: {}", username);
+        logger.info("Fetching newsfeed for user: {}", username);
 
-        var user = userRepository.findByUsernameAndStatusTrue(username)
+        User user = userRepository.findByUsernameAndStatusTrue(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found or inactive"));
 
         List<Integer> hiddenPostIds = hiddenPostRepository.findHiddenPostIdsByUserId(user.getId());
 
+        List<Integer> joinedGroupIds = groupMemberRepository
+                .findByUserIdAndStatusTrueAndInviteStatusAccepted(user.getId())
+                .stream()
+                .map(m -> m.getGroup().getId())
+                .toList();
+
         List<Post> posts = postRepository.findAllActivePosts();
+
         return posts.stream()
-                .filter(post -> !hiddenPostIds.contains(post.getId())) // ← Lọc bài bị ẩn
+                .filter(post -> !hiddenPostIds.contains(post.getId()))
+                .filter(post -> {
+                    if (post.getGroup() != null) {
+                        String privacy = post.getGroup().getPrivacyLevel();
+                        if ("public".equals(privacy)) return true;
+                        // Nếu nhóm là private thì user phải là thành viên
+                        return joinedGroupIds.contains(post.getGroup().getId());
+                    }
+                    return true;
+                })
                 .filter(post -> hasAccess(user.getId(), post.getId(), 1))
                 .map(post -> convertToDto(post, user.getId()))
                 .collect(Collectors.toList());
@@ -460,4 +475,5 @@ public class PostService {
     public long countAllPosts() {
         return postRepository.count();
     }
+
 }

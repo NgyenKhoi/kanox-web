@@ -100,7 +100,7 @@ public class GroupController {
     public ResponseEntity<Void> addMember(
             @PathVariable Integer groupId,
             @RequestParam String username) {
-        groupService.addMember(groupId, username);
+        groupService.requestToJoinGroup(groupId, username);
         return ResponseEntity.ok().build();
     }
 
@@ -178,6 +178,10 @@ public class GroupController {
             @PathVariable Integer groupId,
             @RequestHeader("Authorization") String token
     ) {
+        if (token != null && token.startsWith("Bearer ")) {
+            token = token.substring(7);
+        }
+
         String username = jwtService.extractUsername(token);
         groupService.requestToJoinGroup(groupId, username);
         return ResponseEntity.ok().build();
@@ -211,6 +215,20 @@ public class GroupController {
         return ResponseEntity.ok(groupService.getJoinRequestsForGroup(groupId, adminUsername));
     }
 
+    @DeleteMapping("/{groupId}/cancel-request")
+    public ResponseEntity<?> cancelJoinRequest(
+            @PathVariable Integer groupId,
+            @RequestHeader("Authorization") String token
+    ) {
+        if (token != null && token.startsWith("Bearer ")) {
+            token = token.substring(7);
+        }
+
+        String username = jwtService.extractUsername(token);
+        groupService.cancelJoinRequest(groupId, username);
+        return ResponseEntity.ok(Map.of("message", "Đã hủy yêu cầu tham gia nhóm."));
+    }
+
     @GetMapping(URLConfig.GET_GROUP_DETAIL)
     public ResponseEntity<?> getGroupDetail(
             @PathVariable Integer groupId,
@@ -241,19 +259,18 @@ public class GroupController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // 3. Xóa cộng đồng
-    @DeleteMapping(URLConfig.DELETE_GROUP_BY_ADMIN)
-    public ResponseEntity<Void> deleteGroupByAdmin(@PathVariable Integer groupId) {
-        groupService.deleteGroupAsAdmin(groupId);
-        return ResponseEntity.ok().build();
-    }
-        @DeleteMapping("/{groupId}/leave")
-        public ResponseEntity<?> leaveGroup (@PathVariable Integer groupId,
-                @RequestHeader("Authorization") String token){
-            String username = jwtService.extractUsername(token);
-            groupService.leaveGroup(groupId, username);
-            return ResponseEntity.ok().body(Map.of("message", "Rời khỏi nhóm thành công"));
 
+    @DeleteMapping("/{groupId}/leave")
+    public ResponseEntity<?> leaveGroup(
+            @PathVariable Integer groupId,
+            @RequestHeader("Authorization") String token
+    ) {
+        if (token != null && token.startsWith("Bearer ")) {
+            token = token.substring(7);
         }
 
+        String username = jwtService.extractUsername(token);
+        groupService.leaveGroup(groupId, username);
+        return ResponseEntity.ok(Map.of("message", "Rời khỏi nhóm thành công"));
     }
+}

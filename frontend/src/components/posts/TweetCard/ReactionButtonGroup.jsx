@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from "react";
 import { Button, OverlayTrigger, Tooltip } from "react-bootstrap";
 import { FaRegHeart } from "react-icons/fa";
 import useReaction from "../../../hooks/useReaction";
+import { useEmojiContext } from "../../../context/EmojiContext";
+import { toast } from "react-toastify";
 
 function ReactionButtonGroup({ user, targetId, targetTypeCode }) {
     const [showPopover, setShowPopover] = useState(false);
@@ -10,16 +12,23 @@ function ReactionButtonGroup({ user, targetId, targetTypeCode }) {
 
     const {
         currentEmoji,
-        emojiMap,
         reactionCountMap,
         sendReaction,
         removeReaction,
     } = useReaction({ user, targetId, targetTypeCode });
+    const { emojiList: mainEmojiList, emojiMap } = useEmojiContext();
+
 
     const totalCount = Object.values(reactionCountMap).reduce((sum, count) => sum + count, 0);
 
     const handleEmojiClick = async (name) => {
-        if (emojiMap[name] === currentEmoji) {
+        const emoji = emojiMap?.[name];
+        if (!emoji) {
+            toast.error("Biểu cảm không hợp lệ hoặc chưa tải.");
+            return;
+        }
+
+        if (currentEmoji?.name === name) {
             await removeReaction();
         } else {
             await sendReaction(name);
@@ -69,7 +78,7 @@ function ReactionButtonGroup({ user, targetId, targetTypeCode }) {
                 }}
                 aria-label="Chọn biểu cảm"
             >
-                {currentEmoji || <FaRegHeart size={20} />}
+                {currentEmoji?.emoji || <FaRegHeart size={20} />}
             </Button>
 
             {showPopover && (
@@ -79,19 +88,19 @@ function ReactionButtonGroup({ user, targetId, targetTypeCode }) {
                     onMouseLeave={handleMouseLeave}
                     style={{ position: "absolute", bottom: "36px", left: 0, zIndex: 1000, transition: "opacity 0.2s ease" }}
                 >
-                    {Object.entries(emojiMap).map(([name, emoji]) => (
+                    {mainEmojiList.map((emojiObj) => (
                         <OverlayTrigger
-                            key={name}
+                            key={emojiObj.name}
                             placement="top"
-                            overlay={<Tooltip>{name}</Tooltip>}
+                            overlay={<Tooltip>{emojiObj.name}</Tooltip>}
                         >
-              <span
-                  className="reaction-emoji scale-hover text-[var(--text-color)]"
-                  onClick={() => handleEmojiClick(name)}
-                  role="button"
-              >
-                {emoji}
-              </span>
+    <span
+        className="reaction-emoji scale-hover text-[var(--text-color)]"
+        onClick={() => handleEmojiClick(emojiObj.name)}
+        role="button"
+    >
+      {emojiObj.emoji}
+    </span>
                         </OverlayTrigger>
                     ))}
                 </div>

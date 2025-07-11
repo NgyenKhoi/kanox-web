@@ -121,7 +121,7 @@ public class URLConfig {
     public static final String REJECT_JOIN_REQUEST = "/{groupId}/reject-request";
     public static final String GET_JOIN_REQUESTS = "/{groupId}/join-requests";
     public static final String GET_GROUP_DETAIL = "/{groupId}/detail";
-    public static final String DELETE_GROUP_BY_ADMIN = "/admin/{groupId}";  // NEW
+
 
     //Admin urls
     public static final String ADMIN_BASE = "/api/admin";
@@ -129,6 +129,12 @@ public class URLConfig {
     public static final String MANAGE_USER_INFO = "/users/{userId}";
     public static final String UPDATE_USER_STATUS = "/users/{userId}/status";
     public static final String SEND_NOTIFICATION_FOR_USER = "/users/send-notification";
+    public static final String DELETE_GROUP_BY_ADMIN = "/groups/{groupId}";
+    // Dashboard URLs
+    public static final String DASHBOARD_BASE = ADMIN_BASE + "/dashboard";
+    public static final String DASHBOARD_STATS = "/stats";
+
+
     //Admin report urls
     public static final String GET_REPORTS = "/list";
     public static final String UPDATE_REPORT_STATUS = "/{reportId}/status";
