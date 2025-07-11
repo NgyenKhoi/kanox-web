@@ -38,7 +38,7 @@ export default function GroupCommunityPage() {
     }, [groupId, token]);
 
     useEffect(() => {
-        if ((groupInfo?.isAdmin || groupInfo?.isOwner) && token) {
+        if ((groupInfo?.admin || groupInfo?.owner) && token) {
             fetchJoinRequests();
         }
     }, [groupInfo?.isAdmin, groupInfo?.isOwner, token]);
@@ -382,7 +382,7 @@ export default function GroupCommunityPage() {
                                 <Dropdown.Item onClick={() => navigate(`/groups/${groupId}/members`)}>
                                     Xem danh sách thành viên
                                 </Dropdown.Item>
-                                {(groupInfo.isAdmin || groupInfo.isOwner) && (
+                                {(groupInfo.admin || groupInfo.owner) && (
                                     <>
                                         <Dropdown.Divider />
                                         <Dropdown.Item className="text-danger" onClick={() => alert("Xóa nhóm")}>

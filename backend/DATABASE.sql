@@ -33,6 +33,18 @@
         profile_privacy_setting VARCHAR(20) CHECK (profile_privacy_setting IN ('public', 'friends', 'only_me', 'custom', 'default')) DEFAULT 'default',
         status BIT NOT NULL DEFAULT 1
     );
+
+	CREATE TABLE tblVerifiedEmail (
+    id INT PRIMARY KEY IDENTITY(1, 1),
+    user_id INT NOT NULL,
+    email NVARCHAR(50) NOT NULL,
+    verification_code NVARCHAR(10) NOT NULL,
+    verified BIT NOT NULL DEFAULT 0,
+    created_at DATETIME2 NOT NULL DEFAULT GETDATE(),
+
+    CONSTRAINT fk_verified_email_user FOREIGN KEY (user_id) REFERENCES tblUser(id) ON DELETE CASCADE,
+    CONSTRAINT uq_verified_email UNIQUE (user_id, email)
+);
 	--table for temporary save token to verify if email exists or not
 	CREATE TABLE tblVerificationToken (
     id INT  PRIMARY KEY IDENTITY(1,1),

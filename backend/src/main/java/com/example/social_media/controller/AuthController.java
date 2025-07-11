@@ -18,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.List;
@@ -314,5 +315,11 @@ public class AuthController {
             logger.warn("User not found for username: {}", username);
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "User not found"));
         }
+    }
+
+    @PostMapping("/change-password")
+    public ResponseEntity<?> changePassword(@RequestBody ChangePasswordRequestDto request, @AuthenticationPrincipal User user) {
+        authService.changePassword(user, request.getCurrentPassword(), request.getNewPassword(), request.getConfirmPassword());
+        return ResponseEntity.ok("Đổi mật khẩu thành công");
     }
 }
