@@ -1,6 +1,9 @@
 package com.example.social_media.dto.media;
 
-public class MediaDto {
+import java.io.Serializable;
+
+public class MediaDto implements Serializable {
+    private static final long serialVersionUID = 1L;
     private Integer id;
     private String url;
     private String type;

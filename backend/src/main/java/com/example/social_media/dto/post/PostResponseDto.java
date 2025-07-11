@@ -2,11 +2,14 @@ package com.example.social_media.dto.post;
 
 import com.example.social_media.dto.media.MediaDto;
 import com.example.social_media.dto.user.UserTagDto;
+
+import java.io.Serializable;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
-public class PostResponseDto {
+public class PostResponseDto implements Serializable {
+    private static final long serialVersionUID = 1L;
     private Integer id;
     private UserTagDto owner;
     private String content;

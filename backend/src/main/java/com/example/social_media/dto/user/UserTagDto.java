@@ -1,6 +1,9 @@
 package com.example.social_media.dto.user;
 
-public class UserTagDto {
+import java.io.Serializable;
+
+public class UserTagDto implements Serializable {
+    private static final long serialVersionUID = 1L;
     private Integer id;
     private String username;
     private String displayName;
