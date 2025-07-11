@@ -155,10 +155,8 @@ public class ReportService {
                 .orElseThrow(() -> new IllegalArgumentException("Report status not found with id: " + request.getProcessingStatusId()));
 
         try {
-            // Cập nhật trạng thái báo cáo
             reportRepository.updateReportStatus(reportId, admin.getId(), request.getProcessingStatusId());
 
-            // Xây dựng thông báo
             String message;
             switch (request.getProcessingStatusId()) {
                 case 1:
@@ -184,8 +182,8 @@ public class ReportService {
                             "id", reportId,
                             "message", message,
                             "type", "REPORT_STATUS_UPDATED",
-                            "targetId", admin.getId(), // Sửa: Sử dụng admin.getId() thay vì report.getTargetId()
-                            "targetTypeId", report.getTargetType().getId(),
+                            "targetId", admin.getId(),
+                            "targetType", "PROFILE", // Sửa: Gửi targetType dạng chuỗi
                             "adminId", admin.getId(),
                             "adminDisplayName", admin.getDisplayName() != null ? admin.getDisplayName() : admin.getUsername(),
                             "createdAt", System.currentTimeMillis() / 1000,
@@ -193,16 +191,15 @@ public class ReportService {
                     )
             );
 
-            // Lưu thông báo vào bảng tblNotification
+            // Lưu thông báo vào database
             notificationService.sendNotification(
                     report.getReporter().getId(),
                     "REPORT_STATUS_UPDATED",
                     message,
-                    admin.getId(), // Sửa: Sử dụng admin.getId() thay vì report.getTargetId()
-                    "PROFILE" // Sửa: Đặt targetType là PROFILE vì targetId là admin
+                    admin.getId(),
+                    "PROFILE"
             );
 
-            // Kiểm tra lạm dụng báo cáo (nếu cần)
             if (request.getProcessingStatusId() == 4) { // Rejected
                 long rejectedCount = reportRepository.countByReporterIdAndProcessingStatusIdAndReportTime(
                         report.getReporter().getId(),
@@ -215,7 +212,7 @@ public class ReportService {
                             report.getReporter().getId(),
                             "REPORT_ABUSE_WARNING",
                             abuseMessage,
-                            admin.getId(), // Sửa: Sử dụng admin.getId()
+                            admin.getId(),
                             "PROFILE"
                     );
                     messagingTemplate.convertAndSend(
@@ -224,18 +221,68 @@ public class ReportService {
                                     "id", reportId,
                                     "message", abuseMessage,
                                     "type", "REPORT_ABUSE_WARNING",
-                                    "targetId", admin.getId(), // Sửa: Sử dụng admin.getId()
-                                    "targetTypeId", report.getTargetType().getId(),
+                                    "targetId", admin.getId(),
+                                    "targetType", "PROFILE", // Sửa: Gửi targetType dạng chuỗi
                                     "createdAt", System.currentTimeMillis() / 1000,
                                     "status", "unread"
                             )
                     );
                 }
             }
-
         } catch (DataAccessException e) {
             String errorMessage = e.getCause() instanceof SQLException ? e.getCause().getMessage() : "Failed to update report status";
             throw new RuntimeException("Failed to update report status: " + errorMessage);
+        }
+    }
+
+    @Transactional
+    public void deleteReport(Integer reportId) {
+        Report report = reportRepository.findById(reportId)
+                .orElseThrow(() -> new IllegalArgumentException("Report not found with id: " + reportId));
+        ReportStatus status = reportStatusRepository.findById(4)
+                .orElseThrow(() -> new IllegalArgumentException("Report status not found with id: 4"));
+
+        try {
+            ReportHistory history = new ReportHistory();
+            String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+            User admin = userRepository.findByUsername(currentUsername)
+                    .orElseThrow(() -> new UserNotFoundException("Admin not found"));
+            history.setReporter(admin);
+            history.setReport(report);
+            history.setProcessingStatus(status);
+            history.setActionTime(Instant.now());
+            history.setStatus(true);
+            reportHistoryRepository.save(history);
+
+            String message = "Báo cáo của bạn (ID: " + reportId + ") đã bị xóa bởi " + admin.getDisplayName();
+            messagingTemplate.convertAndSend(
+                    "/topic/notifications/" + report.getReporter().getId(),
+                    Map.of(
+                            "id", reportId,
+                            "message", message,
+                            "type", "REPORT_DELETED",
+                            "targetId", admin.getId(),
+                            "targetType", "PROFILE", // Sửa: Gửi targetType dạng chuỗi
+                            "adminId", admin.getId(),
+                            "adminDisplayName", admin.getDisplayName() != null ? admin.getDisplayName() : admin.getUsername(),
+                            "createdAt", System.currentTimeMillis() / 1000,
+                            "status", "unread"
+                    )
+            );
+
+            notificationService.sendNotification(
+                    report.getReporter().getId(),
+                    "REPORT_DELETED",
+                    message,
+                    admin.getId(),
+                    "PROFILE"
+            );
+
+            report.setStatus(false);
+            reportRepository.save(report);
+            reportRepository.delete(report);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to delete report: " + e.getMessage());
         }
     }
 
@@ -268,58 +315,7 @@ public class ReportService {
         return dto;
     }
 
-    @Transactional
-    public void deleteReport(Integer reportId) {
-        Report report = reportRepository.findById(reportId)
-                .orElseThrow(() -> new IllegalArgumentException("Report not found with id: " + reportId));
-        ReportStatus status = reportStatusRepository.findById(4)
-                .orElseThrow(() -> new IllegalArgumentException("Report status not found with id: 4"));
 
-        try {
-            ReportHistory history = new ReportHistory();
-            String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-            User admin = userRepository.findByUsername(currentUsername)
-                    .orElseThrow(() -> new UserNotFoundException("Admin not found"));
-            history.setReporter(admin);
-            history.setReport(report);
-            history.setProcessingStatus(status);
-            history.setActionTime(Instant.now());
-            history.setStatus(true);
-            reportHistoryRepository.save(history);
-
-            // Gửi thông báo qua WebSocket
-            String message = "Báo cáo của bạn (ID: " + reportId + ") đã bị xóa bởi " + admin.getDisplayName();
-            messagingTemplate.convertAndSend(
-                    "/topic/notifications/" + report.getReporter().getId(),
-                    Map.of(
-                            "id", reportId,
-                            "message", message,
-                            "type", "REPORT_DELETED",
-                            "targetId", report.getTargetId(),
-                            "targetTypeId", report.getTargetType().getId(),
-                            "adminId", admin.getId(),
-                            "adminDisplayName", admin.getDisplayName() != null ? admin.getDisplayName() : admin.getUsername(),
-                            "createdAt", System.currentTimeMillis() / 1000,
-                            "status", "unread"
-                    )
-            );
-
-            // Lưu thông báo vào database
-            notificationService.sendNotification(
-                    report.getReporter().getId(),
-                    "REPORT_DELETED",
-                    message,
-                    report.getTargetId(),
-                    report.getTargetType().getCode()
-            );
-
-            report.setStatus(false);
-            reportRepository.save(report);
-            reportRepository.delete(report);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to delete report: " + e.getMessage());
-        }
-    }
     public long countAllReports() {
         return reportRepository.count();
     }
