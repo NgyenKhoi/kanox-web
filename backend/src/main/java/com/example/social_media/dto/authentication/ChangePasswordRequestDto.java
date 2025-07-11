@@ -4,6 +4,9 @@ public class ChangePasswordRequestDto {
     private String currentPassword;
     private String newPassword;
     private String confirmPassword;
+    public ChangePasswordRequestDto() {
+
+    }
 
     public ChangePasswordRequestDto(String currentPassword, String newPassword, String confirmPassword) {
         this.currentPassword = currentPassword;
