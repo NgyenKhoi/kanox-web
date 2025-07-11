@@ -678,9 +678,9 @@ public class GroupService {
                     User u = m.getUser();
                     return new UserBasicDisplayDto(
                             u.getId(),
-                            mediaService.getAvatarUrlByUserId(u.getId()),
                             u.getDisplayName(),
-                            u.getUsername()
+                            u.getUsername(),
+                            mediaService.getAvatarUrlByUserId(u.getId())
                     );
                 }).collect(Collectors.toList());
     }
