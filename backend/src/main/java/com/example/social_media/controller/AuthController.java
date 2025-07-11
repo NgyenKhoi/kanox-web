@@ -322,4 +322,19 @@ public class AuthController {
         authService.changePassword(user, request.getCurrentPassword(), request.getNewPassword(), request.getConfirmPassword());
         return ResponseEntity.ok("Đổi mật khẩu thành công");
     }
+
+    @PostMapping("/send-verification-email")
+    public ResponseEntity<?> sendVerificationEmail(@RequestBody Map<String, String> req,
+                                                   @AuthenticationPrincipal User user) {
+        String email = req.get("email");
+        authService.sendVerificationEmail(email, user);
+        return ResponseEntity.ok("Gửi email xác minh thành công");
+    }
+
+    @PostMapping("/verify-email")
+    public ResponseEntity<?> verifyEmail(@RequestBody Map<String, String> req) {
+        String code = req.get("code");
+        authService.verifyEmailCode(code);
+        return ResponseEntity.ok("Xác minh email thành công");
+    }
 }

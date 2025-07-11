@@ -18,6 +18,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -314,6 +315,10 @@ public class AuthService {
 
         if (ve.isVerified()) {
             throw new IllegalArgumentException("Email đã được xác minh");
+        }
+
+        if (Duration.between(ve.getCreatedAt(), Instant.now()).toMinutes() > 10) {
+            throw new IllegalArgumentException("Mã xác minh đã hết hạn");
         }
 
         ve.setVerified(true);

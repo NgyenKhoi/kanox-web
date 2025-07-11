@@ -114,13 +114,6 @@ public class MailService {
         mailSender.send(message);
     }
 
-    public void sendSimpleEmail(String toEmail, String subject, String content) {
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setTo(toEmail);
-        message.setSubject(subject);
-        message.setText(content);
-        mailSender.send(message);
-    }
 
     public void sendEmailVerificationLink(String toEmail, String verificationLink) {
         String subject = "Xác minh email phụ của bạn";
