@@ -200,6 +200,8 @@ function CommentThread({
                                 user={{ id: currentUserId }}
                                 targetId={comment.commentId}
                                 targetTypeCode="COMMENT"
+                                initialReactionCountMap={comment.reactionCountMap}
+                                initialEmojiName={comment.currentEmojiName}
                             />
                         </div>
 

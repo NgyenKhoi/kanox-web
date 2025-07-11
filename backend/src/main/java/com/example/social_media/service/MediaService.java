@@ -283,11 +283,21 @@ public class MediaService {
             e.printStackTrace();
         }
 
-        TargetType targetType = targetTypeRepository.findByCode(targetTypeCode).orElseThrow(() -> new IllegalArgumentException("Loại target không hợp lệ"));
-        MediaType mediaType = mediaTypeRepository.findByName(mediaTypeName).orElseThrow(() -> new IllegalArgumentException("Loại media không hợp lệ"));
+        TargetType targetType = targetTypeRepository.findByCode(targetTypeCode)
+                .orElseThrow(() -> new IllegalArgumentException("Loại target không hợp lệ"));
 
-        List<Media> mediaList = mediaRepository.findByTargetIdInAndTargetTypeIdAndMediaTypeIdAndStatus(
-                targetIds, targetType.getId(), mediaType.getId(), status);
+        List<Media> mediaList;
+
+        // ✅ Nếu mediaTypeName null => lấy tất cả media type
+        if (mediaTypeName != null) {
+            MediaType mediaType = mediaTypeRepository.findByName(mediaTypeName)
+                    .orElseThrow(() -> new IllegalArgumentException("Loại media không hợp lệ"));
+            mediaList = mediaRepository.findByTargetIdInAndTargetTypeIdAndMediaTypeIdAndStatus(
+                    targetIds, targetType.getId(), mediaType.getId(), status);
+        } else {
+            mediaList = mediaRepository.findByTargetIdInAndTargetTypeIdAndStatus(
+                    targetIds, targetType.getId(), status);
+        }
 
         List<MediaDto> dtoList = mediaList.stream().map(this::toDto).collect(Collectors.toList());
 

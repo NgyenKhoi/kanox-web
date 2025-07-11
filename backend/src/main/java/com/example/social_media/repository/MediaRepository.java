@@ -21,4 +21,5 @@ public interface MediaRepository extends JpaRepository<Media, Integer> {
 );
     Optional<Media> findFirstByTargetIdAndTargetType_CodeAndMediaType_NameOrderByCreatedAtDesc(Integer userId, String profile, String image);
     List<Media> findByTargetIdAndTargetTypeCodeAndCaptionAndStatusTrue(Integer groupId, String group, String avatar);
+    List<Media> findByTargetIdInAndTargetTypeIdAndStatus(List<Integer> targetIds, Integer targetTypeId, Boolean status);
 }
