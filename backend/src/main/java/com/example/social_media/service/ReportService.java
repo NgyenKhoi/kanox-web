@@ -155,7 +155,7 @@ public class ReportService {
                 .orElseThrow(() -> new IllegalArgumentException("Report status not found with id: " + request.getProcessingStatusId()));
 
         try {
-            // Sử dụng admin.getId() thay vì request.getAdminId()
+            // Cập nhật trạng thái báo cáo
             reportRepository.updateReportStatus(reportId, admin.getId(), request.getProcessingStatusId());
 
             // Xây dựng thông báo
@@ -184,7 +184,7 @@ public class ReportService {
                             "id", reportId,
                             "message", message,
                             "type", "REPORT_STATUS_UPDATED",
-                            "targetId", report.getTargetId(),
+                            "targetId", admin.getId(), // Sửa: Sử dụng admin.getId() thay vì report.getTargetId()
                             "targetTypeId", report.getTargetType().getId(),
                             "adminId", admin.getId(),
                             "adminDisplayName", admin.getDisplayName() != null ? admin.getDisplayName() : admin.getUsername(),
@@ -193,13 +193,13 @@ public class ReportService {
                     )
             );
 
-            // Lưu thông báo vào bảng tblNotification thông qua NotificationService
+            // Lưu thông báo vào bảng tblNotification
             notificationService.sendNotification(
                     report.getReporter().getId(),
                     "REPORT_STATUS_UPDATED",
                     message,
-                    report.getTargetId(),
-                    report.getTargetType().getCode()
+                    admin.getId(), // Sửa: Sử dụng admin.getId() thay vì report.getTargetId()
+                    "PROFILE" // Sửa: Đặt targetType là PROFILE vì targetId là admin
             );
 
             // Kiểm tra lạm dụng báo cáo (nếu cần)
@@ -215,8 +215,8 @@ public class ReportService {
                             report.getReporter().getId(),
                             "REPORT_ABUSE_WARNING",
                             abuseMessage,
-                            report.getTargetId(),
-                            report.getTargetType().getCode()
+                            admin.getId(), // Sửa: Sử dụng admin.getId()
+                            "PROFILE"
                     );
                     messagingTemplate.convertAndSend(
                             "/topic/notifications/" + report.getReporter().getId(),
@@ -224,7 +224,7 @@ public class ReportService {
                                     "id", reportId,
                                     "message", abuseMessage,
                                     "type", "REPORT_ABUSE_WARNING",
-                                    "targetId", report.getTargetId(),
+                                    "targetId", admin.getId(), // Sửa: Sử dụng admin.getId()
                                     "targetTypeId", report.getTargetType().getId(),
                                     "createdAt", System.currentTimeMillis() / 1000,
                                     "status", "unread"
