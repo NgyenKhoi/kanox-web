@@ -4,11 +4,13 @@ import com.example.social_media.config.URLConfig;
 import com.example.social_media.dto.authentication.RegisterRequestDto;
 import com.example.social_media.entity.User;
 import com.example.social_media.entity.VerificationToken;
+import com.example.social_media.entity.VerifiedEmail;
 import com.example.social_media.exception.EmailAlreadyExistsException;
 import com.example.social_media.exception.InvalidPasswordException;
 import com.example.social_media.exception.UserNotFoundException;
 import com.example.social_media.repository.UserRepository;
 import com.example.social_media.repository.VerificationTokenRepository;
+import com.example.social_media.repository.VerifiedEmailRepository;
 import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,14 +33,17 @@ public class AuthService {
     private final MailService mailService;
     private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
     private final DataSyncService dataSyncService;
+    private final VerifiedEmailRepository verifiedEmailRepository;
 
 
-    public AuthService(MailService mailService, UserRepository userRepository, PasswordEncoder passwordEncoder, VerificationTokenRepository verificationTokenRepository, DataSyncService dataSyncService) {
+    public AuthService(MailService mailService, UserRepository userRepository, PasswordEncoder passwordEncoder, VerificationTokenRepository verificationTokenRepository, DataSyncService dataSyncService,
+                       VerifiedEmailRepository verifiedEmailRepository) {
         this.mailService = mailService;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.verificationTokenRepository = verificationTokenRepository;
         this.dataSyncService = dataSyncService;
+        this.verifiedEmailRepository = verifiedEmailRepository;
     }
 
     public Optional<User> getUserByUsername(String username) {
@@ -239,6 +244,7 @@ public class AuthService {
         User newUser = new User();
         newUser.setUsername(username);
         newUser.setEmail(email);
+        newUser.setDisplayName(baseUsername);
         newUser.setGoogleId(googleId);
         newUser.setPassword(passwordEncoder.encode(tempPassword));
         newUser.setStatus(true);
@@ -273,5 +279,44 @@ public class AuthService {
             logger.error("Unexpected error saving user with email: {}, detail: {}", email, e.getMessage());
             throw new IllegalStateException("Không thể tạo user: " + e.getMessage());
         }
+    }
+
+    public void changePassword(User user, String currentPassword, String newPassword, String confirmPassword) {
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            throw new InvalidPasswordException("Mật khẩu hiện tại không đúng");
+        }
+
+        if (!newPassword.equals(confirmPassword)) {
+            throw new IllegalArgumentException("Mật khẩu mới không khớp");
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+    }
+
+    public void sendVerificationEmail(String email, User user) {
+        String code = UUID.randomUUID().toString();
+        VerifiedEmail ve = new VerifiedEmail();
+        ve.setUser(user);
+        ve.setEmail(email);
+        ve.setVerified(false);
+        ve.setVerificationCode(code);
+        ve.setCreatedAt(Instant.now());
+        verifiedEmailRepository.save(ve);
+
+        String verifyLink = URLConfig.EMAIL_VERIFY_EXTRA + code;
+        mailService.sendEmailVerificationLink(email, verifyLink); // hoặc gửi code
+    }
+
+    public void verifyEmailCode(String code) {
+        VerifiedEmail ve = verifiedEmailRepository.findByVerificationCode(code)
+                .orElseThrow(() -> new IllegalArgumentException("Mã xác minh không hợp lệ"));
+
+        if (ve.isVerified()) {
+            throw new IllegalArgumentException("Email đã được xác minh");
+        }
+
+        ve.setVerified(true);
+        verifiedEmailRepository.save(ve);
     }
 }

@@ -490,7 +490,7 @@ public class GroupService {
         User viewer = userRepository.findByUsernameAndStatusTrue(viewerUsername)
                 .orElseThrow(() -> new UserNotFoundException("Người dùng không tồn tại"));
 
-        int memberCount = groupMemberRepository.findById_GroupIdAndStatusTrue(groupId).size();
+        int memberCount = groupMemberRepository.findAcceptedMembers(groupId).size();
 
         boolean isAdmin = Boolean.TRUE.equals(groupMemberRepository.isGroupAdmin(groupId, viewer.getId()));
         boolean isOwner = group.getOwner().getId().equals(viewer.getId());

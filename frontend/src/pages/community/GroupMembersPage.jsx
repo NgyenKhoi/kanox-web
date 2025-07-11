@@ -90,9 +90,9 @@
                                                 onClick={() => navigate(`/profile/${member.username}`)}
                                             >
                                                 {member.displayName}
-                                                {member.isOwner ? (
+                                                {member.onwer ? (
                                                     <span title="Chủ nhóm">👑</span>
-                                                ) : member.isAdmin ? (
+                                                ) : member.admin ? (
                                                     <span title="Quản trị viên">🛡️</span>
                                                 ) : (
                                                     <span title="Thành viên">👤</span>

@@ -211,8 +211,11 @@ public class GroupController {
     @GetMapping(URLConfig.GET_JOIN_REQUESTS)
     public ResponseEntity<List<UserBasicDisplayDto>> getJoinRequestsForGroup(
             @PathVariable Integer groupId,
-            @RequestParam String adminUsername) {
-        return ResponseEntity.ok(groupService.getJoinRequestsForGroup(groupId, adminUsername));
+            @RequestHeader("Authorization") String authHeader
+    ) {
+        String token = authHeader.substring(7);
+        String username = jwtService.extractUsername(token);
+        return ResponseEntity.ok(groupService.getJoinRequestsForGroup(groupId, username));
     }
 
     @DeleteMapping("/{groupId}/cancel-request")

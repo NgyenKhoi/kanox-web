@@ -28,8 +28,6 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, GroupM
             "WHERE gm.id.groupId = :groupId AND gm.id.userId = :userId AND gm.status = true")
     Boolean isGroupAdmin(@Param("groupId") Integer groupId, @Param("userId") Integer userId);
 
-    List<GroupMember> findById_GroupIdAndStatusTrue(Integer groupId);
-
     @Query("SELECT gm.group FROM GroupMember gm " +
             "WHERE gm.user.id = :userId AND gm.inviteStatus = :status")
     List<Group> findGroupsByUserIdAndInviteStatus(@Param("userId") Integer userId, @Param("status") String status);
@@ -55,13 +53,12 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, GroupM
 
     boolean existsById_GroupIdAndId_UserIdAndStatusTrueAndInviteStatus(Integer groupId, Integer userId, String inviteStatus);
 
-    @Query("SELECT gm.group FROM GroupMember gm " +
-            "WHERE gm.user.id = :userId AND gm.inviteStatus = 'PENDING'")
-    List<Group> findPendingGroupsByUserId(@Param("userId") Integer userId);
 
     @Query("SELECT gm FROM GroupMember gm WHERE gm.id.groupId = :groupId AND gm.id.userId IN :userIds AND gm.status = true AND gm.inviteStatus = 'ACCEPTED'")
     List<GroupMember> findAcceptedMembersByGroupIdAndUserIds(@Param("groupId") Integer groupId, @Param("userIds") List<Integer> userIds);
 
     boolean existsByGroupIdAndUserUsername(Integer groupId, String username);
 
+    @Query("SELECT gm FROM GroupMember gm WHERE gm.id.groupId = :groupId AND gm.status = true AND gm.inviteStatus = 'ACCEPTED'")
+    List<GroupMember> findAcceptedMembers(@Param("groupId") Integer groupId);
 }
