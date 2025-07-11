@@ -2688,7 +2688,7 @@ WHERE definition LIKE '%friendship%';
 			RAISERROR (@ErrorMessage, 16, 1);
 		END CATCH;
 	END;
-
+	
 	-- Create or update sp_GetReports
 	CREATE OR ALTER PROCEDURE sp_GetReports
 		@status BIT = 1,
