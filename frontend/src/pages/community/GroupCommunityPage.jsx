@@ -331,8 +331,8 @@ export default function GroupCommunityPage() {
                                 </>
                             )}
                             {!isMember &&
-                                !groupInfo.isOwner &&
-                                !groupInfo.isAdmin &&
+                                !groupInfo.owner &&
+                                !groupInfo.admin &&
                                 groupInfo.inviteStatus !== "REQUESTED" && (
                                     <>
                                         {groupInfo.privacyLevel === "public" && (
@@ -357,7 +357,7 @@ export default function GroupCommunityPage() {
                                     Rời nhóm
                                 </Button>
                             )}
-                            {groupInfo && (groupInfo.isAdmin || groupInfo.isOwner) && (
+                            {groupInfo && (groupInfo.admin || groupInfo.owner) && (
                                 <>
                                     <Button variant="primary" size="sm" onClick={() => setShowInviteModal(true)}>
                                         Mời thành viên
