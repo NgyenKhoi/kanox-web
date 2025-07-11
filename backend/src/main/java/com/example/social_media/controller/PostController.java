@@ -380,4 +380,41 @@ public class PostController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
+
+    @GetMapping(URLConfig.GET_POST_USER_INGROUP)
+    public ResponseEntity<Map<String, Object>> getPostsByUserInGroup(
+            @PathVariable Integer groupId,
+            @PathVariable String username,
+            @RequestHeader("Authorization") String authHeader) {
+        try {
+            String token = authHeader.substring(7);
+            String currentUsername = jwtService.extractUsername(token);
+            logger.debug("Fetching posts in group {} of user {} by viewer {}", groupId, username, currentUsername);
+
+            List<PostResponseDto> posts = postService.getPostsByUserInGroup(groupId, username, currentUsername);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Lấy bài viết của người dùng trong nhóm thành công");
+            response.put("data", posts);
+            return ResponseEntity.ok(response);
+        } catch (UnauthorizedException e) {
+            logger.error("Unauthorized access: {}", e.getMessage());
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("status", "error");
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
+        } catch (UserNotFoundException e) {
+            logger.error("User not found: {}", e.getMessage());
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("status", "error");
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+        } catch (Exception e) {
+            logger.error("Unexpected error fetching posts by user in group: {}", e.getMessage(), e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("status", "error");
+            errorResponse.put("message", "Lỗi hệ thống: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
 }

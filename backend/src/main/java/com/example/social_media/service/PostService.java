@@ -472,6 +472,39 @@ public class PostService {
                 .collect(Collectors.toList());
     }
 
+    public List<PostResponseDto> getPostsByUserInGroup(Integer groupId, String targetUsername, String currentUsername) {
+        logger.info("Lấy bài viết trong nhóm {} của người dùng {} cho người dùng {}", groupId, targetUsername, currentUsername);
+
+        User currentUser = userRepository.findByUsernameAndStatusTrue(currentUsername)
+                .orElseThrow(() -> new UserNotFoundException("Người dùng hiện tại không tồn tại hoặc không hoạt động"));
+
+        User targetUser = userRepository.findByUsernameAndStatusTrue(targetUsername)
+                .orElseThrow(() -> new UserNotFoundException("Người dùng cần lấy bài viết không tồn tại"));
+
+        Group group = groupRepository.findByIdAndStatusTrue(groupId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy nhóm hoặc nhóm đã bị vô hiệu"));
+
+        if (!"public".equalsIgnoreCase(group.getPrivacyLevel())) {
+            boolean isMember = groupMemberRepository.existsById_GroupIdAndId_UserIdAndStatusTrueAndInviteStatus(
+                    groupId, currentUser.getId(), "ACCEPTED");
+
+            if (!isMember) {
+                throw new UnauthorizedException("Bạn không có quyền truy cập bài viết trong nhóm này");
+            }
+        }
+
+        List<Integer> hiddenPostIds = hiddenPostRepository.findHiddenPostIdsByUserId(currentUser.getId());
+
+        List<Post> posts = postRepository.findByOwnerIdAndGroupIdAndStatusTrueOrderByCreatedAtDesc(
+                targetUser.getId(), groupId);
+
+        return posts.stream()
+                .filter(post -> !hiddenPostIds.contains(post.getId()))
+                .filter(post -> hasAccess(currentUser.getId(), post.getId(), 1))
+                .map(post -> convertToDto(post, currentUser.getId()))
+                .collect(Collectors.toList());
+    }
+
     public long countAllPosts() {
         return postRepository.count();
     }

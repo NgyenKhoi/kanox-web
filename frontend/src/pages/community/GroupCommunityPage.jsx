@@ -6,6 +6,7 @@ import TweetCard from "../../components/posts/TweetCard/TweetCard";
 import TweetInput from "../../components/posts/TweetInput/TweetInput";
 import { toast } from "react-toastify";
 import SidebarRight from "../../components/layout/SidebarRight/SidebarRight";
+import AssignRoleModal from "../../components/community/AssignRoleModal";
 
 export default function GroupCommunityPage() {
     const { groupId } = useParams();
@@ -20,11 +21,18 @@ export default function GroupCommunityPage() {
     const [loading, setLoading] = useState(true);
     const [isMember, setIsMember] = useState(false);
     const [showInviteModal, setShowInviteModal] = useState(false);
-    const [showJoinRequestsModal, setShowJoinRequestsModal] = useState(false); // Thêm state
-    const [joinRequests, setJoinRequests] = useState([]); // Thêm state
+    const [showJoinRequestsModal, setShowJoinRequestsModal] = useState(false);
+    const [joinRequests, setJoinRequests] = useState([]);
+    const [activeTab, setActiveTab] = useState("all");
+    const [myPosts, setMyPosts] = useState([]);
+    const [showAssignModal, setShowAssignModal] = useState(false);
 
     useEffect(() => {
         if (!groupId || !token) return;
+        setMyPosts([]);
+        setJoinRequests([]);
+        setActiveTab("all");
+
         const fetchData = async () => {
             try {
                 await Promise.all([fetchGroupDetail(), fetchPostsByGroup()]);
@@ -42,6 +50,12 @@ export default function GroupCommunityPage() {
             fetchJoinRequests();
         }
     }, [groupInfo, token]);
+
+    useEffect(() => {
+        if (activeTab === "mine") {
+            fetchMyPostsInGroup();
+        }
+    }, [activeTab]);
 
     const fetchGroupDetail = async () => {
         try {
@@ -67,6 +81,19 @@ export default function GroupCommunityPage() {
             setPosts(data.content || []);
         } catch (err) {
             console.error("Lỗi khi lấy bài đăng nhóm:", err.message);
+        }
+    };
+
+    const fetchMyPostsInGroup = async () => {
+        try {
+            const res = await fetch(`${process.env.REACT_APP_API_URL}/posts/group/${groupId}/user/${user.username}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!res.ok) throw new Error("Không thể lấy bài đăng của bạn.");
+            const data = await res.json();
+            setMyPosts(data.data || []);
+        } catch (err) {
+            console.error("Lỗi khi lấy bài đăng của bạn:", err.message);
         }
     };
 
@@ -331,8 +358,8 @@ export default function GroupCommunityPage() {
                                 </>
                             )}
                             {!isMember &&
-                                !groupInfo.isOwner &&
-                                !groupInfo.isAdmin &&
+                                !groupInfo.owner &&
+                                !groupInfo.admin &&
                                 groupInfo.inviteStatus !== "REQUESTED" && (
                                     <>
                                         {groupInfo.privacyLevel === "public" && (
@@ -357,7 +384,7 @@ export default function GroupCommunityPage() {
                                     Rời nhóm
                                 </Button>
                             )}
-                            {groupInfo && (groupInfo.isAdmin || groupInfo.isOwner) && (
+                            {groupInfo && (groupInfo.admin || groupInfo.owner) && (
                                 <>
                                     <Button variant="primary" size="sm" onClick={() => setShowInviteModal(true)}>
                                         Mời thành viên
@@ -376,9 +403,6 @@ export default function GroupCommunityPage() {
                             </Dropdown.Toggle>
                             <Dropdown.Menu>
                                 <Dropdown.Item onClick={() => alert("Báo cáo nhóm")}>Báo cáo nhóm</Dropdown.Item>
-                                <Dropdown.Item onClick={() => navigate(`/my-group-posts/${groupId}`)}>
-                                    Bài đăng của tôi
-                                </Dropdown.Item>
                                 <Dropdown.Item onClick={() => navigate(`/groups/${groupId}/members`)}>
                                     Xem danh sách thành viên
                                 </Dropdown.Item>
@@ -388,7 +412,7 @@ export default function GroupCommunityPage() {
                                         <Dropdown.Item className="text-danger" onClick={() => alert("Xóa nhóm")}>
                                             Xóa nhóm
                                         </Dropdown.Item>
-                                        <Dropdown.Item onClick={() => navigate(`/groups/${groupId}/manage-admins`)}>
+                                        <Dropdown.Item onClick={() => setShowAssignModal(true)}>
                                             Trao quyền quản trị viên
                                         </Dropdown.Item>
                                     </>
@@ -396,27 +420,67 @@ export default function GroupCommunityPage() {
                             </Dropdown.Menu>
                         </Dropdown>
                     </div>
-
+                    <div className="mt-4 border-bottom mb-3">
+                        <ul className="nav nav-tabs">
+                            <li className="nav-item">
+                                <button
+                                    className={`nav-link ${activeTab === "all" ? "active" : ""}`}
+                                    onClick={() => setActiveTab("all")}
+                                >
+                                    Tất cả bài đăng
+                                </button>
+                            </li>
+                            <li className="nav-item">
+                                <button
+                                    className={`nav-link ${activeTab === "mine" ? "active" : ""}`}
+                                    onClick={() => setActiveTab("mine")}
+                                >
+                                    Bài đăng của tôi
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
                     {/* Nội dung bài đăng */}
                     {canViewContent ? (
                         <>
                             {isMember && (
                                 <div className="mt-4">
-                                    <TweetInput onPostSuccess={fetchPostsByGroup} groupId={groupId} />
+                                    <TweetInput
+                                        onPostSuccess={() => {
+                                            fetchPostsByGroup();
+                                            if (activeTab === "mine") {
+                                                fetchMyPostsInGroup();
+                                            }
+                                        }}
+                                        groupId={groupId}
+                                    />
                                 </div>
                             )}
                             <div className="space-y-4 mt-4">
-                                {posts.length > 0 ? (
-                                    posts.map((post) => (
+                                {activeTab === "all" ? (
+                                    posts.length > 0 ? (
+                                        posts.map((post) => (
+                                            <TweetCard
+                                                key={post.id}
+                                                tweet={post}
+                                                onPostUpdate={fetchPostsByGroup}
+                                                savedPosts={savedPosts}
+                                            />
+                                        ))
+                                    ) : (
+                                        <p className="text-muted">Chưa có bài đăng nào trong nhóm này.</p>
+                                    )
+                                ) : myPosts.length > 0 ? (
+                                    myPosts.map((post) => (
                                         <TweetCard
                                             key={post.id}
                                             tweet={post}
-                                            onPostUpdate={fetchPostsByGroup}
+                                            onPostUpdate={fetchMyPostsInGroup}
                                             savedPosts={savedPosts}
                                         />
                                     ))
                                 ) : (
-                                    <p className="text-muted">Chưa có bài đăng nào trong nhóm này.</p>
+                                    <p className="text-muted">Bạn chưa đăng bài nào trong nhóm này.</p>
                                 )}
                             </div>
                         </>
@@ -438,6 +502,14 @@ export default function GroupCommunityPage() {
 
             {/* Modal quản lý yêu cầu tham gia */}
             <JoinRequestsModal show={showJoinRequestsModal} onHide={() => setShowJoinRequestsModal(false)} joinRequests={joinRequests} />
+
+            <AssignRoleModal
+                show={showAssignModal}
+                onHide={() => setShowAssignModal(false)}
+                groupId={groupId}
+                token={token}
+                onRoleAssigned={() => fetchGroupDetail()}
+            />
         </Row>
     );
 }
