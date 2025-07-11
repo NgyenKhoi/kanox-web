@@ -112,14 +112,18 @@ public class GroupController {
         groupService.removeMember(groupId, targetUserId, requesterUsername);
         return ResponseEntity.ok().build();
     }
-
-    @PostMapping(URLConfig.ASSIGN_ADMIN)
-    public ResponseEntity<Void> assignAdmin(
+    @PostMapping(URLConfig.ASSIGN_ROLE)
+    public ResponseEntity<?> assignRole(
             @PathVariable Integer groupId,
             @RequestParam Integer targetUserId,
-            @RequestParam String requesterUsername) {
-        groupService.assignAdmin(groupId, targetUserId, requesterUsername);
-        return ResponseEntity.ok().build();
+            @RequestParam String role,
+            @RequestHeader("Authorization") String authHeader
+    ) {
+        String token = authHeader.startsWith("Bearer ") ? authHeader.substring(7) : authHeader;
+        String requesterUsername = jwtService.extractUsername(token);
+
+        groupService.assignRole(groupId, targetUserId, requesterUsername, role);
+        return ResponseEntity.ok(Map.of("message", "Trao quyền " + role + " thành công"));
     }
 
     @GetMapping(URLConfig.GET_MEMBER)
@@ -187,7 +191,6 @@ public class GroupController {
         return ResponseEntity.ok().build();
     }
 
-    // Admin duyệt yêu cầu tham gia
     @PostMapping(URLConfig.APPROVE_JOIN_REQUEST)
     public ResponseEntity<Void> approveJoinRequest(
             @PathVariable Integer groupId,
@@ -197,7 +200,6 @@ public class GroupController {
         return ResponseEntity.ok().build();
     }
 
-    // Admin từ chối yêu cầu tham gia
     @PostMapping(URLConfig.REJECT_JOIN_REQUEST)
     public ResponseEntity<Void> rejectJoinRequest(
             @PathVariable Integer groupId,
@@ -206,8 +208,7 @@ public class GroupController {
         groupService.rejectJoinRequest(groupId, userId, adminUsername);
         return ResponseEntity.ok().build();
     }
-
-    // Lấy danh sách yêu cầu vào group (cho admin)
+    //GET MAPPING getJoinRequestsForGroup
     @GetMapping(URLConfig.GET_JOIN_REQUESTS)
     public ResponseEntity<List<UserBasicDisplayDto>> getJoinRequestsForGroup(
             @PathVariable Integer groupId,
@@ -217,8 +218,8 @@ public class GroupController {
         String username = jwtService.extractUsername(token);
         return ResponseEntity.ok(groupService.getJoinRequestsForGroup(groupId, username));
     }
-
-    @DeleteMapping("/{groupId}/cancel-request")
+    //DELETE MAPPING cancelJoinRequest
+    @DeleteMapping(URLConfig.CANCEL_JOIN_REQUEST)
     public ResponseEntity<?> cancelJoinRequest(
             @PathVariable Integer groupId,
             @RequestHeader("Authorization") String token
