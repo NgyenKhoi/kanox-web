@@ -62,13 +62,6 @@ public class ReportService {
         ReportReason reason = reportReasonRepository.findById(request.getReasonId())
                 .orElseThrow(() -> new IllegalArgumentException("Report reason not found with id: " + request.getReasonId()));
 
-        // Kiểm tra báo cáo trùng lặp
-        boolean existingReport = reportRepository.existsByReporterIdAndTargetIdAndTargetTypeIdAndStatus(
-                request.getReporterId(), request.getTargetId(), request.getTargetTypeId(), true);
-        if (existingReport) {
-            throw new IllegalArgumentException("Bạn đã báo cáo nội dung này trước đó. Vui lòng chờ xử lý.");
-        }
-
         try {
             Integer reportId = reportRepository.addReport(
                     request.getReporterId(),
@@ -90,28 +83,6 @@ public class ReportService {
                     "reason", reason.getName(),
                     "createdAt", System.currentTimeMillis() / 1000
             ));
-
-            messagingTemplate.convertAndSend(
-                    "/topic/notifications/" + reporter.getId(),
-                    Map.of(
-                            "id", reportId,
-                            "message", "Báo cáo của bạn (ID: " + reportId + ") đã được gửi thành công",
-                            "type", "REPORT_SUBMITTED",
-                            "targetId", request.getTargetId(),
-                            "targetType", request.getTargetTypeId() == 1 ? "POST" : "PROFILE",
-                            "createdAt", System.currentTimeMillis() / 1000,
-                            "status", "read",
-                            "reportId", reportId
-                    )
-            );
-
-            notificationService.sendNotification(
-                    reporter.getId(),
-                    "REPORT_SUBMITTED",
-                    "Báo cáo của bạn (ID: " + reportId + ") đã được gửi thành công",
-                    null,
-                    request.getTargetTypeId() == 1 ? "POST" : "PROFILE"
-            );
 
             ReportStatus status = reportStatusRepository.findById(1)
                     .orElseThrow(() -> new IllegalArgumentException("Report status not found with id: 1"));
@@ -211,8 +182,7 @@ public class ReportService {
                             "adminId", admin.getId(),
                             "adminDisplayName", admin.getDisplayName() != null ? admin.getDisplayName() : admin.getUsername(),
                             "createdAt", System.currentTimeMillis() / 1000,
-                            "status", request.getProcessingStatusId() == 3 ? "read" : "unread",
-                            "reportId", reportId // Thêm reportId để lọc trùng lặp
+                            "status", request.getProcessingStatusId() == 3 ? "read" : "unread"
                     )
             );
 
@@ -246,8 +216,7 @@ public class ReportService {
                                     "targetId", admin.getId(),
                                     "targetType", "PROFILE",
                                     "createdAt", System.currentTimeMillis() / 1000,
-                                    "status", "unread",
-                                    "reportId", reportId
+                                    "status", "unread"
                             )
                     );
                 }
