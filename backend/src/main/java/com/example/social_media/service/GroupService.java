@@ -501,9 +501,9 @@ public class GroupService {
                     User user = member.getUser();
                     return new UserBasicDisplayDto(
                             user.getId(),
-                            mediaService.getAvatarUrlByUserId(user.getId()),
                             user.getDisplayName(),
-                            user.getUsername()
+                            user.getUsername(),
+                            mediaService.getAvatarUrlByUserId(user.getId())
                     );
                 })
                 .collect(Collectors.toList());
