@@ -138,8 +138,13 @@ public class ReportService {
     @Transactional
     public void updateReportStatus(Integer reportId, UpdateReportStatusRequestDto request) {
         String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        System.out.println("Current username: " + currentUsername);
+        if (currentUsername == null) {
+            throw new IllegalStateException("No authenticated user found");
+        }
         User admin = userRepository.findByUsername(currentUsername)
-                .orElseThrow(() -> new UserNotFoundException("Admin not found"));
+                .orElseThrow(() -> new UserNotFoundException("Admin not found with username: " + currentUsername));
+        System.out.println("Admin ID: " + admin.getId());
         if (!admin.getIsAdmin()) {
             throw new IllegalArgumentException("User is not an admin");
         }
@@ -150,8 +155,8 @@ public class ReportService {
                 .orElseThrow(() -> new IllegalArgumentException("Report status not found with id: " + request.getProcessingStatusId()));
 
         try {
-            // Gọi stored procedure để cập nhật trạng thái báo cáo
-            reportRepository.updateReportStatus(reportId, request.getAdminId(), request.getProcessingStatusId());
+            // Sử dụng admin.getId() thay vì request.getAdminId()
+            reportRepository.updateReportStatus(reportId, admin.getId(), request.getProcessingStatusId());
 
             // Xây dựng thông báo
             String message;
@@ -179,7 +184,7 @@ public class ReportService {
                             "id", reportId,
                             "message", message,
                             "type", "REPORT_STATUS_UPDATED",
-                            "targetId", report.getTargetId(), // Bao gồm target_id của báo cáo
+                            "targetId", report.getTargetId(),
                             "targetTypeId", report.getTargetType().getId(),
                             "adminId", admin.getId(),
                             "adminDisplayName", admin.getDisplayName() != null ? admin.getDisplayName() : admin.getUsername(),

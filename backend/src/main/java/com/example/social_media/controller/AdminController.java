@@ -196,9 +196,6 @@ public class AdminController {
             @RequestBody UpdateReportStatusRequestDto request
     ) {
         try {
-            String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-            User admin = customUserDetailsService.getUserByUsername(currentUsername);
-            request.setAdminId(admin.getId());
             reportService.updateReportStatus(reportId, request);
             return ResponseEntity.ok(Map.of("message", "Report status updated successfully"));
         } catch (UserNotFoundException e) {
