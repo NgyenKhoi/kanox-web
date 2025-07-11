@@ -27,7 +27,7 @@ const ReportsManagement = () => {
         }
         try {
             setLoading(true);
-            const url = new URL(`${process.env.REACT_APP_API_URL}/api/admin/list`);
+            const url = new URL(`${process.env.REACT_APP_API_URL}/admin/list`);
             url.searchParams.append("page", currentPage);
             url.searchParams.append("size", 10);
             if (mainTab === "posts") {
@@ -67,7 +67,7 @@ const ReportsManagement = () => {
             return;
         }
         try {
-            const response = await fetch(`${process.env.REACT_APP_API_URL}/api/admin/${reportId}/history`, {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/admin/${reportId}/history`, {
 headers: {
     "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
@@ -87,7 +87,7 @@ const handleViewDetail = async (reportId) => {
         return;
     }
     try {
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/api/admin/${reportId}`, {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/admin/${reportId}`, {
             headers: {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${token}`,
@@ -109,7 +109,7 @@ const handleDismissReport = async (id) => {
         return;
     }
     try {
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/api/admin/${id}`, {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/admin/${id}`, {
             method: "DELETE",
             headers: {
                 "Content-Type": "application/json",
@@ -138,7 +138,7 @@ const handleUpdateStatus = async (reportId, statusId) => {
         return;
     }
     try {
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/api/admin/${parseInt(reportId)}/status`, {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/admin/${parseInt(reportId)}/status`, {
             method: "PUT",
             headers: {
                 "Content-Type": "application/json",
