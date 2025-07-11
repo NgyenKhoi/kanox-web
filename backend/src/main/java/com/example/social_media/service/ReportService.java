@@ -128,6 +128,12 @@ public class ReportService {
         return reportPage.map(this::convertToReportResponseDto);
     }
 
+    @Transactional(readOnly = true)
+    public Page<ReportResponseDto> getReportsByTargetTypeIdAndProcessingStatusId(Integer targetTypeId, Integer processingStatusId, Pageable pageable) {
+        Page<Report> reportPage = reportRepository.findByTargetTypeIdAndProcessingStatusId(targetTypeId, processingStatusId, pageable);
+        return reportPage.map(this::convertToReportResponseDto);
+    }
+
     @Transactional
     public void updateReportStatus(Integer reportId, UpdateReportStatusRequestDto request) {
         User admin = userRepository.findById(request.getAdminId())

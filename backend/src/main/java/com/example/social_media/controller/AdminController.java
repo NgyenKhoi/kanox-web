@@ -155,16 +155,22 @@ public class AdminController {
     public ResponseEntity<?> getReports(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "") String processingStatusId
+            @RequestParam(required = false) String processingStatusId,
+            @RequestParam(required = false) Integer targetTypeId
     ) {
         try {
             Pageable pageable = PageRequest.of(page, size);
             Page<ReportResponseDto> reports;
-            if (processingStatusId.isEmpty()) {
-                reports = reportService.getReportsPaged(true, pageable);
-            } else {
+            if (targetTypeId != null && processingStatusId != null && !processingStatusId.isEmpty()) {
+                Integer statusId = Integer.parseInt(processingStatusId);
+                reports = reportService.getReportsByTargetTypeIdAndProcessingStatusId(targetTypeId, statusId, pageable);
+            } else if (targetTypeId != null) {
+                reports = reportService.getReportsByTargetTypeId(targetTypeId, pageable);
+            } else if (processingStatusId != null && !processingStatusId.isEmpty()) {
                 Integer statusId = Integer.parseInt(processingStatusId);
                 reports = reportService.getReportsByProcessingStatusId(statusId, pageable);
+            } else {
+                reports = reportService.getReportsPaged(true, pageable);
             }
             return ResponseEntity.ok(Map.of("message", "Reports retrieved successfully", "data", reports));
         } catch (NumberFormatException e) {
