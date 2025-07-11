@@ -264,20 +264,36 @@ export default function GroupCommunityPage() {
                     {joinRequests.length > 0 ? (
                         <ListGroup>
                             {joinRequests.map((request) => (
-                                <ListGroup.Item key={request.id} className="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <strong>{request.displayName || request.username}</strong>
+                                <ListGroup.Item
+                                    key={request.id}
+                                    className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3"
+                                >
+                                    <div className="d-flex align-items-center gap-3">
+                                        <img
+                                            src={request.avatarUrl || "https://via.placeholder.com/40"}
+                                            alt={request.displayName || request.username}
+                                            className="rounded-circle"
+                                            width="40"
+                                            height="40"
+                                        />
+                                        <div>
+                                            <strong>{request.displayName || request.username}</strong>
+                                            <div className="text-muted">@{request.username}</div>
+                                        </div>
                                     </div>
-                                    <div>
+                                    <div className="d-flex gap-2 mt-2 mt-md-0">
                                         <Button
                                             variant="success"
                                             size="sm"
-                                            className="me-2"
                                             onClick={() => handleApproveRequest(request.id)}
                                         >
                                             Duyệt
                                         </Button>
-                                        <Button variant="danger" size="sm" onClick={() => handleRejectRequest(request.id)}>
+                                        <Button
+                                            variant="danger"
+                                            size="sm"
+                                            onClick={() => handleRejectRequest(request.id)}
+                                        >
                                             Từ chối
                                         </Button>
                                     </div>

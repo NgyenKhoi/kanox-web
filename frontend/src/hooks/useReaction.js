@@ -2,17 +2,26 @@ import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import useEmojiMap from "./useEmojiMap";
 
-export default function useReaction({ user, targetId, targetTypeCode }) {
+export default function useReaction({
+                                        user,
+                                        targetId,
+                                        targetTypeCode,
+                                        initialReactionCountMap = {},
+                                    }) {
     const [currentEmoji, setCurrentEmoji] = useState(null);
-    const [reactionCountMap, setReactionCountMap] = useState({});
+    const [reactionCountMap, setReactionCountMap] = useState(initialReactionCountMap);
     const [topReactions, setTopReactions] = useState([]);
     const [reactionUserMap, setReactionUserMap] = useState({});
     const { emojiMap } = useEmojiMap();
-
     const token = localStorage.getItem("token");
 
     useEffect(() => {
         if (!user?.id || !targetId || !targetTypeCode || !token) return;
+
+        if (initialReactionCountMap && Object.keys(initialReactionCountMap).length > 0) {
+            console.debug("[useReaction] Bỏ qua gọi API summary vì đã có initialReactionCountMap");
+            return;
+        }
 
         const fetchSummary = async () => {
             try {
@@ -39,7 +48,7 @@ export default function useReaction({ user, targetId, targetTypeCode }) {
         };
 
         fetchSummary();
-    }, [user?.id, targetId, targetTypeCode, token]);
+    }, [user?.id, targetId, targetTypeCode, token, initialReactionCountMap]);
 
     const fetchUsersByReaction = async (emojiName) => {
         if (reactionUserMap[emojiName]) return;

@@ -10,4 +10,6 @@ import java.util.List;
 public interface PostTagRepository extends JpaRepository<PostTag, Integer> {
     List<PostTag> findByPostIdAndStatusTrue(Integer postId);
     void deleteByPostId(Integer postId);
+
+    List<PostTag> findByPost_IdInAndStatusTrue(List<Integer> postIds);
 }

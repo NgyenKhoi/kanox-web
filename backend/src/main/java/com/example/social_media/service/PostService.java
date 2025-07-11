@@ -1,5 +1,6 @@
 package com.example.social_media.service;
 
+import com.example.social_media.dto.media.MediaDto;
 import com.example.social_media.dto.post.PostRequestDto;
 import com.example.social_media.dto.post.PostResponseDto;
 import com.example.social_media.dto.user.UserTagDto;
@@ -14,12 +15,16 @@ import com.example.social_media.repository.post_repository.PostTagRepository;
 import com.example.social_media.repository.post_repository.SavedPostRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -38,34 +43,40 @@ public class PostService {
     private final HiddenPostRepository hiddenPostRepository;
     private final GroupRepository groupRepository;
     private final GroupMemberRepository groupMemberRepository;
+    private final ReactionService reactionService;
+    private final TargetTypeRepository targetTypeRepository;
+
     public PostService(PostRepository postRepository, PostTagRepository postTagRepository,
-            UserRepository userRepository, ContentPrivacyRepository contentPrivacyRepository,
-            CustomPrivacyListRepository customPrivacyListRepository, PrivacyService privacyService,
-            MediaService mediaService, CommentRepository commentRepository,
+                       UserRepository userRepository, ContentPrivacyRepository contentPrivacyRepository,
+                       CustomPrivacyListRepository customPrivacyListRepository, PrivacyService privacyService,
+                       MediaService mediaService, CommentRepository commentRepository,
                        SavedPostRepository savedPostRepository, HiddenPostRepository hiddenPostRepository,
-                       GroupRepository groupRepository,
-                       GroupMemberRepository groupMemberRepository) {
+                       GroupRepository groupRepository, GroupMemberRepository groupMemberRepository,
+                       ReactionService reactionService,
+                       TargetTypeRepository targetTypeRepository) {
         this.postRepository = postRepository;
         this.postTagRepository = postTagRepository;
         this.userRepository = userRepository;
         this.contentPrivacyRepository = contentPrivacyRepository;
         this.customPrivacyListRepository = customPrivacyListRepository;
         this.privacyService = privacyService;
-        this.mediaService = mediaService; // Khởi tạo MediaService
+        this.mediaService = mediaService;
         this.commentRepository = commentRepository;
         this.savedPostRepository = savedPostRepository;
         this.hiddenPostRepository = hiddenPostRepository;
         this.groupRepository = groupRepository;
         this.groupMemberRepository = groupMemberRepository;
+        this.reactionService = reactionService;
+        this.targetTypeRepository = targetTypeRepository;
     }
-
+    @CacheEvict(value = {"newsfeed", "postsByUsername", "communityFeed", "postsByGroup", "postsByUserInGroup", "savedPosts"}, allEntries = true)
     @Transactional
     public PostResponseDto createPost(PostRequestDto dto, String username, List<MultipartFile> mediaFiles) {
-        logger.info("Creating post for user: {}", username);
+        logger.info("Tạo bài viết cho người dùng: {}", username);
         logger.debug("PostRequestDto: {}", dto);
 
         var user = userRepository.findByUsernameAndStatusTrue(username)
-                .orElseThrow(() -> new UserNotFoundException("User not found or inactive"));
+                .orElseThrow(() -> new UserNotFoundException("Không tìm thấy người dùng hoặc người dùng không hoạt động"));
 
         String privacySetting = dto.getPrivacySetting() != null ? dto.getPrivacySetting()
                 : privacyService.getPrivacySettingByUserId(user.getId()).getPostViewer();
@@ -75,17 +86,17 @@ public class PostService {
         }
 
         if (!List.of("public", "friends", "only_me", "custom").contains(privacySetting)) {
-            throw new IllegalArgumentException("Invalid privacy setting: " + privacySetting);
+            throw new IllegalArgumentException("Cài đặt quyền riêng tư không hợp lệ: " + privacySetting);
         }
 
         CustomPrivacyList customList = null;
         Integer customListId = dto.getCustomListId();
         if ("custom".equals(privacySetting)) {
             if (customListId == null) {
-                throw new IllegalArgumentException("Custom list ID is required for custom privacy setting");
+                throw new IllegalArgumentException("Yêu cầu ID danh sách tùy chỉnh cho cài đặt quyền riêng tư tùy chỉnh");
             }
             customList = customPrivacyListRepository.findByIdAndStatus(customListId, true)
-                    .orElseThrow(() -> new IllegalArgumentException("Custom list not found with id: " + customListId));
+                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy danh sách tùy chỉnh với id: " + customListId));
         }
 
         String taggedUserIds = dto.getTaggedUserIds() != null
@@ -93,19 +104,19 @@ public class PostService {
                 : null;
 
         Integer groupId = dto.getGroupId();
-        if (groupId != null && !groupRepository.findByIdAndStatusTrue(groupId).isPresent()) {
-            throw new IllegalArgumentException("Group not found or inactive with id: " + groupId);
+        if (groupId != null && groupRepository.findByIdAndStatusTrue(groupId).isEmpty()) {
+            throw new IllegalArgumentException("Không tìm thấy nhóm hoặc nhóm không hoạt động với id: " + groupId);
         }
 
         Integer newPostId = postRepository.createPost(
                 user.getId(), dto.getContent(), privacySetting, null, taggedUserIds, customListId, groupId);
 
         if (newPostId == null) {
-            throw new RegistrationException("Failed to create post");
+            throw new RegistrationException("Không thể tạo bài viết");
         }
 
         Post latestPost = postRepository.findById(newPostId)
-                .orElseThrow(() -> new RegistrationException("Post creation failed - not found"));
+                .orElseThrow(() -> new RegistrationException("Tạo bài viết thất bại - không tìm thấy"));
 
         ContentPrivacy contentPrivacy = contentPrivacyRepository.findByContentIdAndContentTypeId(newPostId, 1)
                 .orElseGet(() -> {
@@ -114,6 +125,8 @@ public class PostService {
                     id.setContentId(newPostId);
                     id.setContentTypeId(1);
                     newPrivacy.setId(id);
+                    newPrivacy.setContentType(targetTypeRepository.findByCode("post")
+                            .orElseThrow(() -> new IllegalArgumentException("Loại mục tiêu không hợp lệ: post")));
                     newPrivacy.setStatus(true);
                     return newPrivacy;
                 });
@@ -125,67 +138,78 @@ public class PostService {
             try {
                 mediaService.uploadPostMediaFiles(user.getId(), newPostId, mediaFiles, dto.getContent());
             } catch (Exception e) {
-                logger.error("Failed to upload media: {}", e.getMessage());
-                throw new IllegalArgumentException("Failed to upload media: " + e.getMessage(), e);
+                logger.error("Không thể tải lên media: {}", e.getMessage());
+                throw new IllegalArgumentException("Không thể tải lên media: " + e.getMessage(), e);
             }
         }
 
+        List<PostTag> postTags = List.of();
         if (dto.getTaggedUserIds() != null) {
             postTagRepository.deleteByPostId(newPostId);
             for (Integer taggedUserId : dto.getTaggedUserIds()) {
                 var taggedUser = userRepository.findById(taggedUserId)
-                        .orElseThrow(() -> new UserNotFoundException("Tagged user not found: " + taggedUserId));
+                        .orElseThrow(() -> new UserNotFoundException("Không tìm thấy người dùng được gắn thẻ: " + taggedUserId));
                 PostTag postTag = new PostTag();
                 postTag.setPost(latestPost);
                 postTag.setTaggedUser(taggedUser);
                 postTag.setStatus(true);
                 postTagRepository.save(postTag);
             }
+            postTags = postTagRepository.findByPostIdAndStatusTrue(newPostId);
         }
 
-        return convertToDto(latestPost, user.getId());
-    }
+        List<SavedPost> savedPosts = savedPostRepository.findByUserIdAndStatusTrue(user.getId());
+        List<Integer> savedPostIds = savedPosts.stream()
+                .map(sp -> sp.getPost().getId())
+                .collect(Collectors.toList());
 
+        Map<Integer, List<MediaDto>> mediaMap = new HashMap<>();
+        mediaMap.putAll(mediaService.getMediaByTargetIds(List.of(newPostId), "POST", "image", true));
+        mediaMap.putAll(mediaService.getMediaByTargetIds(List.of(newPostId), "POST", "video", true));
+
+        Map<Integer, Map<ReactionType, Long>> reactionCountMap = Map.of(
+                newPostId, reactionService.countAllReactions(newPostId, "POST")
+        );
+
+        return convertToDto(latestPost, user.getId(), savedPostIds, Map.of(newPostId, postTags), mediaMap, reactionCountMap);
+    }
+    @CacheEvict(value = {"newsfeed", "postsByUsername", "communityFeed", "postsByGroup", "postsByUserInGroup", "savedPosts"}, allEntries = true)
     @Transactional
     public PostResponseDto updatePost(Integer postId, PostRequestDto dto, String username) {
-        logger.info("Updating post {} for user: {}", postId, username);
+        logger.info("Cập nhật bài viết {} cho người dùng: {}", postId, username);
         logger.debug("PostRequestDto: {}", dto);
 
         var user = userRepository.findByUsernameAndStatusTrue(username)
-                .orElseThrow(() -> new UserNotFoundException("User not found or inactive"));
+                .orElseThrow(() -> new UserNotFoundException("Không tìm thấy người dùng hoặc người dùng không hoạt động"));
 
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new UserNotFoundException("Post not found"));
+                .orElseThrow(() -> new UserNotFoundException("Không tìm thấy bài viết"));
 
         if (!post.getOwner().getId().equals(user.getId())) {
-            throw new UnauthorizedException("You are not authorized to update this post");
+            throw new UnauthorizedException("Bạn không có quyền cập nhật bài viết này");
         }
 
         String privacySetting = dto.getPrivacySetting() != null ? dto.getPrivacySetting()
                 : privacyService.getPrivacySettingByUserId(user.getId()).getPostViewer();
 
-        // Normalize privacySetting: map 'private' to 'only_me'
         if ("private".equals(privacySetting)) {
             privacySetting = "only_me";
         }
 
-        // Validate privacySetting
         if (!List.of("public", "friends", "only_me", "custom").contains(privacySetting)) {
-            throw new IllegalArgumentException("Invalid privacy setting: " + privacySetting);
+            throw new IllegalArgumentException("Cài đặt quyền riêng tư không hợp lệ: " + privacySetting);
         }
 
-        // Validate and fetch CustomPrivacyList if privacySetting is 'custom'
         CustomPrivacyList customList = null;
         Integer customListId = dto.getCustomListId();
         if ("custom".equals(privacySetting)) {
             if (customListId == null) {
-                throw new IllegalArgumentException("Custom list ID is required for custom privacy setting");
+                throw new IllegalArgumentException("Yêu cầu ID danh sách tùy chỉnh cho cài đặt quyền riêng tư tùy chỉnh");
             }
             customList = customPrivacyListRepository.findByIdAndStatus(customListId, true)
-                    .orElseThrow(() -> new IllegalArgumentException("Custom list not found with id: " + customListId));
+                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy danh sách tùy chỉnh với id: " + customListId));
         }
 
-        // Update ContentPrivacy
         ContentPrivacy existingPrivacy = contentPrivacyRepository.findByContentIdAndContentTypeId(postId, 1)
                 .orElseGet(() -> {
                     ContentPrivacy newPrivacy = new ContentPrivacy();
@@ -193,6 +217,8 @@ public class PostService {
                     id.setContentId(postId);
                     id.setContentTypeId(1);
                     newPrivacy.setId(id);
+                    newPrivacy.setContentType(targetTypeRepository.findByCode("post")
+                            .orElseThrow(() -> new IllegalArgumentException("Loại mục tiêu không hợp lệ: post")));
                     newPrivacy.setStatus(true);
                     return newPrivacy;
                 });
@@ -200,35 +226,47 @@ public class PostService {
         existingPrivacy.setCustomList(customList);
         contentPrivacyRepository.save(existingPrivacy);
 
-        // Update post
         post.setContent(dto.getContent());
         post.setPrivacySetting(privacySetting);
         postRepository.save(post);
 
-        // Update tags
-        postTagRepository.deleteByPostId(postId);
+        List<PostTag> postTags = List.of();
         if (dto.getTaggedUserIds() != null) {
+            postTagRepository.deleteByPostId(postId);
             for (Integer taggedUserId : dto.getTaggedUserIds()) {
                 var taggedUser = userRepository.findById(taggedUserId)
-                        .orElseThrow(() -> new UserNotFoundException("Tagged user not found: " + taggedUserId));
+                        .orElseThrow(() -> new UserNotFoundException("Không tìm thấy người dùng được gắn thẻ: " + taggedUserId));
                 PostTag postTag = new PostTag();
                 postTag.setPost(post);
                 postTag.setTaggedUser(taggedUser);
                 postTag.setStatus(true);
                 postTagRepository.save(postTag);
             }
+            postTags = postTagRepository.findByPostIdAndStatusTrue(postId);
         }
 
-        return convertToDto(post, user.getId());
-    }
+        List<SavedPost> savedPosts = savedPostRepository.findByUserIdAndStatusTrue(user.getId());
+        List<Integer> savedPostIds = savedPosts.stream()
+                .map(sp -> sp.getPost().getId())
+                .collect(Collectors.toList());
 
+        Map<Integer, List<MediaDto>> mediaMap = new HashMap<>();
+        mediaMap.putAll(mediaService.getMediaByTargetIds(List.of(postId), "POST", "image", true));
+        mediaMap.putAll(mediaService.getMediaByTargetIds(List.of(postId), "POST", "video", true));
+
+        Map<Integer, Map<ReactionType, Long>> reactionCountMap = Map.of(
+                postId, reactionService.countAllReactions(postId, "POST")
+        );
+
+        return convertToDto(post, user.getId(), savedPostIds, Map.of(postId, postTags), mediaMap, reactionCountMap);
+    }
+    @CacheEvict(value = {"newsfeed", "postsByUsername", "communityFeed", "postsByGroup", "postsByUserInGroup", "savedPosts"}, allEntries = true)
     @Transactional
     public void deletePost(Integer postId, String username) {
         logger.info("Xóa bài viết {} cho người dùng: {}", postId, username);
 
         var user = userRepository.findByUsernameAndStatusTrue(username)
-                .orElseThrow(
-                        () -> new UserNotFoundException("Không tìm thấy người dùng hoặc người dùng không hoạt động"));
+                .orElseThrow(() -> new UserNotFoundException("Không tìm thấy người dùng hoặc người dùng không hoạt động"));
 
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy bài viết với id: " + postId));
@@ -251,64 +289,249 @@ public class PostService {
         postRepository.save(post);
     }
 
+    @Cacheable(value = "newsfeed", key = "#username + (#lastCreatedAt != null ? #lastCreatedAt : '')")
     public List<PostResponseDto> getAllPosts(String username) {
-        logger.info("Fetching newsfeed for user: {}", username);
+        logger.info("Lấy newsfeed tối ưu cho người dùng: {}", username);
 
         User user = userRepository.findByUsernameAndStatusTrue(username)
-                .orElseThrow(() -> new UserNotFoundException("User not found or inactive"));
+                .orElseThrow(() -> new UserNotFoundException("Không tìm thấy người dùng hoặc người dùng không hoạt động"));
 
+        // 1. Lấy tất cả bài viết newsfeed (tối đa 10–20 bản ghi như bạn nói)
+        List<Post> posts = postRepository.findNewsfeedPosts(user.getId());
+        if (posts.isEmpty()) return List.of();
+
+        // 2. Các ID cần thiết
+        List<Integer> postIds = posts.stream().map(Post::getId).toList();
         List<Integer> hiddenPostIds = hiddenPostRepository.findHiddenPostIdsByUserId(user.getId());
+        List<Integer> savedPostIds = savedPostRepository.findByUserIdAndStatusTrue(user.getId())
+                .stream().map(sp -> sp.getPost().getId()).toList();
+
+        List<Integer> joinedGroupIds = groupMemberRepository
+                .findByUserIdAndStatusTrueAndInviteStatusAccepted(user.getId())
+                .stream().map(m -> m.getGroup().getId()).toList();
+
+        Map<Integer, Boolean> accessMap = privacyService.checkContentAccessBatch(user.getId(), postIds, "post");
+
+        // 3. Dữ liệu liên quan
+        Map<Integer, List<PostTag>> postTagsMap = postTagRepository.findByPost_IdInAndStatusTrue(postIds)
+                .stream().collect(Collectors.groupingBy(pt -> pt.getPost().getId()));
+
+        Map<Integer, List<MediaDto>> mediaMap = mediaService.getMediaByTargetIds(postIds, "POST", null, true);
+
+        Map<Integer, Map<ReactionType, Long>> reactionCountMap = reactionService.countAllReactionsBatch(postIds, "POST");
+
+        // 4. Lọc và trả về DTO
+        return posts.stream()
+                .filter(post -> !hiddenPostIds.contains(post.getId()))
+                .filter(post -> accessMap.getOrDefault(post.getId(), false))
+                .filter(post -> {
+                    Group group = post.getGroup();
+                    if (group == null) return true;
+                    if ("public".equalsIgnoreCase(group.getPrivacyLevel())) return true;
+                    return joinedGroupIds.contains(group.getId());
+                })
+                .map(post -> convertToDto(post, user.getId(), savedPostIds, postTagsMap, mediaMap, reactionCountMap))
+                .toList();
+    }
+
+    @Cacheable(value = "postsByUsername", key = "#targetUsername + ':' + #currentUsername")
+    public List<PostResponseDto> getPostsByUsername(String targetUsername, String currentUsername) {
+        logger.info("Lấy bài viết cho username: {} bởi người dùng: {}", targetUsername, currentUsername);
+
+        var currentUser = userRepository.findByUsernameAndStatusTrue(currentUsername)
+                .orElseThrow(() -> new UserNotFoundException("Không tìm thấy người dùng hiện tại hoặc người dùng không hoạt động"));
+
+        List<Integer> hiddenPostIds = hiddenPostRepository.findHiddenPostIdsByUserId(currentUser.getId());
+
+        List<SavedPost> savedPosts = savedPostRepository.findByUserIdAndStatusTrue(currentUser.getId());
+        List<Integer> savedPostIds = savedPosts.stream()
+                .map(sp -> sp.getPost().getId())
+                .collect(Collectors.toList());
+
+        List<Post> posts = postRepository.findActivePostsByUsername(targetUsername);
+        List<Integer> postIds = posts.stream().map(Post::getId).collect(Collectors.toList());
+        Map<Integer, Boolean> accessMap = privacyService.checkContentAccessBatch(currentUser.getId(), postIds, "post");
+
+        Map<Integer, List<PostTag>> postTagsMap = postIds.stream()
+                .flatMap(postId -> postTagRepository.findByPostIdAndStatusTrue(postId).stream())
+                .collect(Collectors.groupingBy(pt -> pt.getPost().getId()));
+
+        Map<Integer, List<MediaDto>> mediaMap = new HashMap<>();
+        if (!postIds.isEmpty()) {
+            mediaMap.putAll(mediaService.getMediaByTargetIds(postIds, "POST", "image", true));
+            mediaMap.putAll(mediaService.getMediaByTargetIds(postIds, "POST", "video", true));
+        }
+
+        Map<Integer, Map<ReactionType, Long>> reactionCountMap = postIds.stream()
+                .collect(Collectors.toMap(
+                        postId -> postId,
+                        postId -> reactionService.countAllReactions(postId, "POST")
+                ));
+
+        return posts.stream()
+                .filter(post -> !hiddenPostIds.contains(post.getId()))
+                .filter(post -> accessMap.getOrDefault(post.getId(), false))
+                .map(post -> convertToDto(post, currentUser.getId(), savedPostIds, postTagsMap, mediaMap, reactionCountMap))
+                .collect(Collectors.toList());
+    }
+
+    @Cacheable(value = "communityFeed", key = "#username")
+    public List<PostResponseDto> getCommunityFeed(String username) {
+        logger.info("Lấy dòng cộng đồng cho người dùng: {}", username);
+
+        User user = userRepository.findByUsernameAndStatusTrue(username)
+                .orElseThrow(() -> new UserNotFoundException("Không tìm thấy người dùng hoặc người dùng không hoạt động"));
 
         List<Integer> joinedGroupIds = groupMemberRepository
                 .findByUserIdAndStatusTrueAndInviteStatusAccepted(user.getId())
                 .stream()
-                .map(m -> m.getGroup().getId())
+                .map(member -> member.getGroup().getId())
                 .toList();
 
-        List<Post> posts = postRepository.findAllActivePosts();
+        List<SavedPost> savedPosts = savedPostRepository.findByUserIdAndStatusTrue(user.getId());
+        List<Integer> savedPostIds = savedPosts.stream()
+                .map(sp -> sp.getPost().getId())
+                .collect(Collectors.toList());
+
+        List<Post> posts = joinedGroupIds.isEmpty() ?
+                postRepository.findPostsFromPublicGroups() :
+                postRepository.findByGroupIdInAndStatusTrueOrderByCreatedAtDesc(joinedGroupIds);
+
+        List<Integer> postIds = posts.stream().map(Post::getId).collect(Collectors.toList());
+        Map<Integer, Boolean> accessMap = privacyService.checkContentAccessBatch(user.getId(), postIds, "post");
+
+        Map<Integer, List<PostTag>> postTagsMap = postIds.stream()
+                .flatMap(postId -> postTagRepository.findByPostIdAndStatusTrue(postId).stream())
+                .collect(Collectors.groupingBy(pt -> pt.getPost().getId()));
+
+        Map<Integer, List<MediaDto>> mediaMap = new HashMap<>();
+        if (!postIds.isEmpty()) {
+            mediaMap.putAll(mediaService.getMediaByTargetIds(postIds, "POST", "image", true));
+            mediaMap.putAll(mediaService.getMediaByTargetIds(postIds, "POST", "video", true));
+        }
+
+        Map<Integer, Map<ReactionType, Long>> reactionCountMap = postIds.stream()
+                .collect(Collectors.toMap(
+                        postId -> postId,
+                        postId -> reactionService.countAllReactions(postId, "POST")
+                ));
+
+        return posts.stream()
+                .filter(post -> accessMap.getOrDefault(post.getId(), false))
+                .map(post -> convertToDto(post, user.getId(), savedPostIds, postTagsMap, mediaMap, reactionCountMap))
+                .toList();
+    }
+
+    @Cacheable(value = "postsByGroup", key = "#groupId + ':' + #username")
+    public List<PostResponseDto> getPostsByGroup(Integer groupId, String username) {
+        logger.info("Lấy bài viết trong nhóm {} cho người dùng {}", groupId, username);
+
+        User user = userRepository.findByUsernameAndStatusTrue(username)
+                .orElseThrow(() -> new UserNotFoundException("Không tìm thấy người dùng hoặc người dùng không hoạt động"));
+
+        Group group = groupRepository.findByIdAndStatusTrue(groupId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy nhóm hoặc nhóm đã bị vô hiệu"));
+
+        if ("private".equals(group.getPrivacyLevel())) {
+            boolean isMember = groupMemberRepository.existsById_GroupIdAndId_UserIdAndStatusTrueAndInviteStatus(
+                    groupId, user.getId(), "ACCEPTED");
+
+            if (!isMember) {
+                throw new UnauthorizedException("Bạn không phải là thành viên của nhóm này");
+            }
+        }
+
+        List<Integer> hiddenPostIds = hiddenPostRepository.findHiddenPostIdsByUserId(user.getId());
+
+        List<SavedPost> savedPosts = savedPostRepository.findByUserIdAndStatusTrue(user.getId());
+        List<Integer> savedPostIds = savedPosts.stream()
+                .map(sp -> sp.getPost().getId())
+                .collect(Collectors.toList());
+
+        List<Post> posts = postRepository.findByGroupIdAndStatusTrueOrderByCreatedAtDesc(groupId);
+        List<Integer> postIds = posts.stream().map(Post::getId).collect(Collectors.toList());
+        Map<Integer, Boolean> accessMap = privacyService.checkContentAccessBatch(user.getId(), postIds, "post");
+
+        Map<Integer, List<PostTag>> postTagsMap = postIds.stream()
+                .flatMap(postId -> postTagRepository.findByPostIdAndStatusTrue(postId).stream())
+                .collect(Collectors.groupingBy(pt -> pt.getPost().getId()));
+
+        Map<Integer, List<MediaDto>> mediaMap = new HashMap<>();
+        if (!postIds.isEmpty()) {
+            mediaMap.putAll(mediaService.getMediaByTargetIds(postIds, "POST", "image", true));
+            mediaMap.putAll(mediaService.getMediaByTargetIds(postIds, "POST", "video", true));
+        }
+
+        Map<Integer, Map<ReactionType, Long>> reactionCountMap = postIds.stream()
+                .collect(Collectors.toMap(
+                        postId -> postId,
+                        postId -> reactionService.countAllReactions(postId, "POST")
+                ));
 
         return posts.stream()
                 .filter(post -> !hiddenPostIds.contains(post.getId()))
-                .filter(post -> {
-                    if (post.getGroup() != null) {
-                        String privacy = post.getGroup().getPrivacyLevel();
-                        if ("public".equals(privacy)) return true;
-                        // Nếu nhóm là private thì user phải là thành viên
-                        return joinedGroupIds.contains(post.getGroup().getId());
-                    }
-                    return true;
-                })
-                .filter(post -> hasAccess(user.getId(), post.getId(), 1))
-                .map(post -> convertToDto(post, user.getId()))
+                .filter(post -> accessMap.getOrDefault(post.getId(), false))
+                .map(post -> convertToDto(post, user.getId(), savedPostIds, postTagsMap, mediaMap, reactionCountMap))
                 .collect(Collectors.toList());
     }
 
-    public List<PostResponseDto> getPostsByUsername(String targetUsername, String currentUsername) {
-        logger.info("Fetching posts for username: {} by user: {}", targetUsername, currentUsername);
+    @Cacheable(value = "postsByUserInGroup", key = "#groupId + ':' + #targetUsername + ':' + #currentUsername")
+    public List<PostResponseDto> getPostsByUserInGroup(Integer groupId, String targetUsername, String currentUsername) {
+        logger.info("Lấy bài viết trong nhóm {} của người dùng {} cho người dùng {}", groupId, targetUsername, currentUsername);
 
-        var currentUser = userRepository.findByUsernameAndStatusTrue(currentUsername)
-                .orElseThrow(() -> new UserNotFoundException("Current user not found or inactive"));
+        User currentUser = userRepository.findByUsernameAndStatusTrue(currentUsername)
+                .orElseThrow(() -> new UserNotFoundException("Không tìm thấy người dùng hiện tại hoặc người dùng không hoạt động"));
+
+        User targetUser = userRepository.findByUsernameAndStatusTrue(targetUsername)
+                .orElseThrow(() -> new UserNotFoundException("Không tìm thấy người dùng cần lấy bài viết"));
+
+        Group group = groupRepository.findByIdAndStatusTrue(groupId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy nhóm hoặc nhóm đã bị vô hiệu"));
+
+        if (!"public".equalsIgnoreCase(group.getPrivacyLevel())) {
+            boolean isMember = groupMemberRepository.existsById_GroupIdAndId_UserIdAndStatusTrueAndInviteStatus(
+                    groupId, currentUser.getId(), "ACCEPTED");
+
+            if (!isMember) {
+                throw new UnauthorizedException("Bạn không có quyền truy cập bài viết trong nhóm này");
+            }
+        }
 
         List<Integer> hiddenPostIds = hiddenPostRepository.findHiddenPostIdsByUserId(currentUser.getId());
 
-        List<Post> posts = postRepository.findActivePostsByUsername(targetUsername);
+        List<SavedPost> savedPosts = savedPostRepository.findByUserIdAndStatusTrue(currentUser.getId());
+        List<Integer> savedPostIds = savedPosts.stream()
+                .map(sp -> sp.getPost().getId())
+                .collect(Collectors.toList());
+
+        List<Post> posts = postRepository.findByOwnerIdAndGroupIdAndStatusTrueOrderByCreatedAtDesc(
+                targetUser.getId(), groupId);
+        List<Integer> postIds = posts.stream().map(Post::getId).collect(Collectors.toList());
+        Map<Integer, Boolean> accessMap = privacyService.checkContentAccessBatch(currentUser.getId(), postIds, "post");
+
+        Map<Integer, List<PostTag>> postTagsMap = postIds.stream()
+                .flatMap(postId -> postTagRepository.findByPostIdAndStatusTrue(postId).stream())
+                .collect(Collectors.groupingBy(pt -> pt.getPost().getId()));
+
+        Map<Integer, List<MediaDto>> mediaMap = new HashMap<>();
+        if (!postIds.isEmpty()) {
+            mediaMap.putAll(mediaService.getMediaByTargetIds(postIds, "POST", "image", true));
+            mediaMap.putAll(mediaService.getMediaByTargetIds(postIds, "POST", "video", true));
+        }
+
+        Map<Integer, Map<ReactionType, Long>> reactionCountMap = postIds.stream()
+                .collect(Collectors.toMap(
+                        postId -> postId,
+                        postId -> reactionService.countAllReactions(postId, "POST")
+                ));
+
         return posts.stream()
-                .filter(post -> !hiddenPostIds.contains(post.getId())) // ← Lọc bài bị ẩn
-                .filter(post -> hasAccess(currentUser.getId(), post.getId(), 1))
-                .map(post -> convertToDto(post, currentUser.getId()))
+                .filter(post -> !hiddenPostIds.contains(post.getId()))
+                .filter(post -> accessMap.getOrDefault(post.getId(), false))
+                .map(post -> convertToDto(post, currentUser.getId(), savedPostIds, postTagsMap, mediaMap, reactionCountMap))
                 .collect(Collectors.toList());
     }
-
-    private boolean hasAccess(Integer userId, Integer contentId, Integer contentTypeId) {
-        logger.debug("Checking access for userId: {}, contentId: {}, contentTypeId: {}", userId, contentId,
-                contentTypeId);
-        Post post = postRepository.findById(contentId)
-                .orElseThrow(() -> new UserNotFoundException("Post not found with id: " + contentId));
-        boolean hasAccess = privacyService.checkContentAccess(userId, contentId, "post");
-        logger.debug("Access result for userId: {}, contentId: {} - {}", userId, contentId, hasAccess);
-        return hasAccess;
-    }
-
+    @CacheEvict(value = {"savedPosts", "newsfeed"}, allEntries = true)
     @Transactional
     public void savePost(Integer postId, String username) {
         logger.info("Lưu bài viết {} cho người dùng: {}", postId, username);
@@ -332,8 +555,7 @@ public class PostService {
             throw new RuntimeException("Không thể lưu bài viết: " + e.getMessage(), e);
         }
     }
-
-
+    @CacheEvict(value = {"savedPosts", "newsfeed"}, allEntries = true)
     @Transactional
     public void hidePost(Integer postId, String username) {
         logger.info("Ẩn bài viết {} cho người dùng: {}", postId, username);
@@ -352,14 +574,14 @@ public class PostService {
             throw new RuntimeException("Không thể ẩn bài viết: " + e.getMessage(), e);
         }
     }
-
+    @CacheEvict(value = {"savedPosts", "newsfeed"}, allEntries = true)
     @Transactional
     public void unsavePost(Integer postId, String username) {
         var user = userRepository.findByUsernameAndStatusTrue(username)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException("Không tìm thấy người dùng hoặc người dùng không hoạt động"));
 
         var post = postRepository.findById(postId)
-                .orElseThrow(() -> new IllegalArgumentException("Post not found"));
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy bài viết"));
 
         var savedPostOpt = savedPostRepository.findByUserIdAndPostId(user.getId(), postId);
 
@@ -372,136 +594,42 @@ public class PostService {
         }
     }
 
-
-
-    private PostResponseDto convertToDto(Post post, Integer currentUserId) {
-        PostResponseDto dto = new PostResponseDto();
-        dto.setId(post.getId());
-        dto.setOwner(new UserTagDto(post.getOwner()));
-        dto.setContent(post.getContent());
-        dto.setPrivacySetting(post.getPrivacySetting());
-        dto.setCreatedAt(post.getCreatedAt());
-
-        List<PostTag> postTags = postTagRepository.findByPostIdAndStatusTrue(post.getId());
-        dto.setTaggedUsers(postTags.stream()
-                .map(postTag -> new UserTagDto(postTag.getTaggedUser()))
-                .collect(Collectors.toList()));
-
-        dto.setCommentCount(post.getTblComments().size());
-        dto.setLikeCount(0);
-        dto.setShareCount(0);
-        dto.setSaved(savedPostRepository.existsByUserIdAndPostIdAndStatusTrue(currentUserId, post.getId()));
-
-        // Add group info if post belongs to a group
-        if (post.getGroup() != null) {
-            dto.setGroupId(post.getGroup().getId());
-            dto.setGroupName(post.getGroup().getName());
-            String groupAvatarUrl = mediaService.getFirstMediaUrlByTarget(
-                    post.getGroup().getId(), "GROUP");
-            dto.setGroupAvatarUrl(groupAvatarUrl);
-
-            dto.setGroupPrivacyLevel(post.getGroup().getPrivacyLevel());
-        }
-
-        return dto;
-    }
-
-
+    @Cacheable(value = "savedPosts", key = "#username + ':' + #from + ':' + #to")
     public List<PostResponseDto> getSavedPostsForUser(String username, Instant from, Instant to) {
         var user = userRepository.findByUsernameAndStatusTrue(username)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException("Không tìm thấy người dùng hoặc người dùng không hoạt động"));
 
-        List<SavedPost> savedPosts = savedPostRepository
-                .findActiveSavedPostsByUserIdAndSaveTimeBetween(user.getId(), from, to);
-
-        return savedPosts.stream()
-                .map(sp -> convertToDto(sp.getPost(), user.getId()))
+        List<SavedPost> savedPosts = savedPostRepository.findActiveSavedPostsByUserIdAndSaveTimeBetween(user.getId(), from, to);
+        List<Integer> savedPostIds = savedPosts.stream()
+                .map(sp -> sp.getPost().getId())
                 .collect(Collectors.toList());
-    }
 
-    public List<PostResponseDto> getCommunityFeed(String username) {
-        User user = userRepository.findByUsernameAndStatusTrue(username)
-                .orElseThrow(() -> new UserNotFoundException("Người dùng không tồn tại"));
-
-        List<Integer> joinedGroupIds = groupMemberRepository
-                .findByUserIdAndStatusTrueAndInviteStatusAccepted(user.getId())
-                .stream()
-                .map(member -> member.getGroup().getId())
+        List<Post> posts = savedPosts.stream()
+                .map(SavedPost::getPost)
                 .toList();
 
-        List<Post> posts;
-        if (!joinedGroupIds.isEmpty()) {
-            posts = postRepository.findByGroupIdInAndStatusTrueOrderByCreatedAtDesc(joinedGroupIds);
-        } else {
-            posts = postRepository.findPostsFromPublicGroups();
+        List<Integer> postIds = posts.stream().map(Post::getId).collect(Collectors.toList());
+        Map<Integer, Boolean> accessMap = privacyService.checkContentAccessBatch(user.getId(), postIds, "post");
+
+        Map<Integer, List<PostTag>> postTagsMap = postIds.stream()
+                .flatMap(postId -> postTagRepository.findByPostIdAndStatusTrue(postId).stream())
+                .collect(Collectors.groupingBy(pt -> pt.getPost().getId()));
+
+        Map<Integer, List<MediaDto>> mediaMap = new HashMap<>();
+        if (!postIds.isEmpty()) {
+            mediaMap.putAll(mediaService.getMediaByTargetIds(postIds, "POST", "image", true));
+            mediaMap.putAll(mediaService.getMediaByTargetIds(postIds, "POST", "video", true));
         }
 
-        return posts.stream()
-                .filter(post -> hasAccess(user.getId(), post.getId(), 1)) // kiểm tra quyền xem
-                .map(post -> convertToDto(post, user.getId()))
-                .toList();
-    }
-
-    public List<PostResponseDto> getPostsByGroup(Integer groupId, String username) {
-        logger.info("Lấy bài viết trong nhóm {} cho người dùng {}", groupId, username);
-
-        User user = userRepository.findByUsernameAndStatusTrue(username)
-                .orElseThrow(() -> new UserNotFoundException("Người dùng không tồn tại hoặc không hoạt động"));
-
-        Group group = groupRepository.findByIdAndStatusTrue(groupId)
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy nhóm hoặc nhóm đã bị vô hiệu"));
-
-        // Nếu nhóm là private thì chỉ cho phép thành viên truy cập
-        if ("private".equals(group.getPrivacyLevel())) {
-            boolean isMember = groupMemberRepository.existsById_GroupIdAndId_UserIdAndStatusTrueAndInviteStatus(
-                    groupId, user.getId(), "ACCEPTED");
-
-            if (!isMember) {
-                throw new UnauthorizedException("Bạn không phải là thành viên của nhóm này");
-            }
-        }
-
-        List<Integer> hiddenPostIds = hiddenPostRepository.findHiddenPostIdsByUserId(user.getId());
-
-        List<Post> posts = postRepository.findByGroupIdAndStatusTrueOrderByCreatedAtDesc(groupId);
+        Map<Integer, Map<ReactionType, Long>> reactionCountMap = postIds.stream()
+                .collect(Collectors.toMap(
+                        postId -> postId,
+                        postId -> reactionService.countAllReactions(postId, "POST")
+                ));
 
         return posts.stream()
-                .filter(post -> !hiddenPostIds.contains(post.getId()))
-                .filter(post -> hasAccess(user.getId(), post.getId(), 1)) // đảm bảo kiểm tra quyền riêng tư
-                .map(post -> convertToDto(post, user.getId()))
-                .collect(Collectors.toList());
-    }
-
-    public List<PostResponseDto> getPostsByUserInGroup(Integer groupId, String targetUsername, String currentUsername) {
-        logger.info("Lấy bài viết trong nhóm {} của người dùng {} cho người dùng {}", groupId, targetUsername, currentUsername);
-
-        User currentUser = userRepository.findByUsernameAndStatusTrue(currentUsername)
-                .orElseThrow(() -> new UserNotFoundException("Người dùng hiện tại không tồn tại hoặc không hoạt động"));
-
-        User targetUser = userRepository.findByUsernameAndStatusTrue(targetUsername)
-                .orElseThrow(() -> new UserNotFoundException("Người dùng cần lấy bài viết không tồn tại"));
-
-        Group group = groupRepository.findByIdAndStatusTrue(groupId)
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy nhóm hoặc nhóm đã bị vô hiệu"));
-
-        if (!"public".equalsIgnoreCase(group.getPrivacyLevel())) {
-            boolean isMember = groupMemberRepository.existsById_GroupIdAndId_UserIdAndStatusTrueAndInviteStatus(
-                    groupId, currentUser.getId(), "ACCEPTED");
-
-            if (!isMember) {
-                throw new UnauthorizedException("Bạn không có quyền truy cập bài viết trong nhóm này");
-            }
-        }
-
-        List<Integer> hiddenPostIds = hiddenPostRepository.findHiddenPostIdsByUserId(currentUser.getId());
-
-        List<Post> posts = postRepository.findByOwnerIdAndGroupIdAndStatusTrueOrderByCreatedAtDesc(
-                targetUser.getId(), groupId);
-
-        return posts.stream()
-                .filter(post -> !hiddenPostIds.contains(post.getId()))
-                .filter(post -> hasAccess(currentUser.getId(), post.getId(), 1))
-                .map(post -> convertToDto(post, currentUser.getId()))
+                .filter(post -> accessMap.getOrDefault(post.getId(), false))
+                .map(post -> convertToDto(post, user.getId(), savedPostIds, postTagsMap, mediaMap, reactionCountMap))
                 .collect(Collectors.toList());
     }
 
@@ -509,4 +637,45 @@ public class PostService {
         return postRepository.count();
     }
 
+    private PostResponseDto convertToDto(Post post, Integer currentUserId,
+                                         List<Integer> savedPostIds, Map<Integer, List<PostTag>> postTagsMap,
+                                         Map<Integer, List<MediaDto>> mediaMap, Map<Integer, Map<ReactionType, Long>> reactionCountMap) {
+        PostResponseDto dto = new PostResponseDto();
+        dto.setId(post.getId());
+        dto.setOwner(new UserTagDto(post.getOwner()));
+        dto.setContent(post.getContent());
+        dto.setPrivacySetting(post.getPrivacySetting());
+        dto.setCreatedAt(post.getCreatedAt());
+
+        List<PostTag> postTags = postTagsMap.getOrDefault(post.getId(), List.of());
+        dto.setTaggedUsers(postTags.stream()
+                .map(postTag -> new UserTagDto(postTag.getTaggedUser()))
+                .collect(Collectors.toList()));
+
+        dto.setCommentCount(post.getTblComments().size());
+
+        Map<ReactionType, Long> reactions = reactionCountMap.getOrDefault(post.getId(), Map.of());
+        dto.setReactionCountMap(reactions.entrySet().stream()
+                .collect(Collectors.toMap(
+                        entry -> entry.getKey().getName(),
+                        Map.Entry::getValue
+                )));
+        dto.setLikeCount(reactions.getOrDefault(
+                reactionService.getMainReactions().stream()
+                        .filter(rt -> "like".equalsIgnoreCase(rt.getName()))
+                        .findFirst().orElse(null), 0L).intValue());
+
+        dto.setMedia(mediaMap.getOrDefault(post.getId(), List.of()));
+
+        dto.setSaved(savedPostIds.contains(post.getId()));
+
+        if (post.getGroup() != null) {
+            dto.setGroupId(post.getGroup().getId());
+            dto.setGroupName(post.getGroup().getName());
+            dto.setGroupAvatarUrl(mediaService.getFirstMediaUrlByTarget(post.getGroup().getId(), "GROUP"));
+            dto.setGroupPrivacyLevel(post.getGroup().getPrivacyLevel());
+        }
+
+        return dto;
+    }
 }

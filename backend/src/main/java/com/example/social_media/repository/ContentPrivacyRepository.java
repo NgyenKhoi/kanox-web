@@ -19,7 +19,6 @@ public interface ContentPrivacyRepository extends JpaRepository<ContentPrivacy, 
     @Query(value = "CALL sp_CheckContentAccess(:userId, :contentId, :contentTypeId, @hasAccess)", nativeQuery = true)
     void checkContentAccess(Integer userId, Integer contentId, Integer contentTypeId);
 
-    List<ContentPrivacy> findAllByCustomListIdAndStatus(Integer customListId, Boolean status);
 
     @Modifying
     @Query("UPDATE ContentPrivacy cp SET cp.privacySetting = 'default', cp.customList = null, cp.updatedAt = CURRENT_TIMESTAMP " +
@@ -28,5 +27,14 @@ public interface ContentPrivacyRepository extends JpaRepository<ContentPrivacy, 
     @Query("SELECT p.owner.id FROM Post p WHERE p.id = :contentId AND p.status = true")
 
     Optional<Integer> findOwnerIdByContentId(@Param("contentId") Integer contentId);
+
+    // ContentPrivacyRepository
+    @Query("SELECT cp FROM ContentPrivacy cp WHERE cp.id.contentId IN :contentIds AND cp.id.contentTypeId = :contentTypeId")
+    List<ContentPrivacy> findByContentIdsAndContentTypeId(@Param("contentIds") List<Integer> contentIds, @Param("contentTypeId") Integer contentTypeId);
+
+    @Query("SELECT cp.id.contentId, p.owner.id FROM ContentPrivacy cp " +
+            "JOIN Post p ON cp.id.contentId = p.id " +
+            "WHERE cp.id.contentId IN :contentIds AND cp.id.contentTypeId = 1")
+    List<Object[]> findOwnerIdsByContentIds(@Param("contentIds") List<Integer> contentIds);
 
 }

@@ -152,4 +152,22 @@ public class ReactionService {
     private void clearCache(Integer targetId, String targetTypeCode) {
         redisReactionTemplate.delete(String.format("reaction:top3:%s:%d", targetTypeCode, targetId));
     }
+
+    public Map<Integer, Map<ReactionType, Long>> countAllReactionsBatch(List<Integer> targetIds, String targetTypeCode) {
+        List<Object[]> rows = reactionRepository.countAllByTargetIdsAndType(targetIds, targetTypeCode);
+
+        Map<Integer, Map<ReactionType, Long>> result = new HashMap<>();
+        for (Object[] row : rows) {
+            Integer targetId = (Integer) row[0];
+            String reactionName = (String) row[1];
+            Long count = (Long) row[2];
+
+            ReactionType type = reactionTypeRepository.findByNameIgnoreCase(reactionName)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy ReactionType: " + reactionName));
+
+            result.computeIfAbsent(targetId, k -> new HashMap<>()).put(type, count);
+        }
+
+        return result;
+    }
 }

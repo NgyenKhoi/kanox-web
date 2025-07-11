@@ -14,6 +14,9 @@ import java.util.Optional;
 public interface SavedPostRepository extends JpaRepository<SavedPost, SavedPostId> {
 
     Optional<SavedPost> findByUserIdAndPostId(Integer userId, Integer postId);
+    @Query("SELECT sp FROM SavedPost sp WHERE sp.user.id = :userId AND sp.status = true")
+    List<SavedPost> findByUserIdAndStatusTrue(@Param("userId") Integer userId);
+
 
     @Query("SELECT sp FROM SavedPost sp " +
             "WHERE sp.user.id = :userId " +
@@ -30,5 +33,4 @@ public interface SavedPostRepository extends JpaRepository<SavedPost, SavedPostI
     // Gọi stored procedure sp_SavePost
     @Procedure(procedureName = "sp_SavePost")
     void callSavePost(@Param("user_id") Integer userId, @Param("post_id") Integer postId);
-    boolean existsByUserIdAndPostIdAndStatusTrue(Integer userId, Integer postId);
 }

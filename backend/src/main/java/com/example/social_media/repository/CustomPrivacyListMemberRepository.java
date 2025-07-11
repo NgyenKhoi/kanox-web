@@ -3,6 +3,7 @@ package com.example.social_media.repository;
 import com.example.social_media.entity.CustomPrivacyListMember;
 import com.example.social_media.entity.CustomPrivacyListMemberId;
 import com.example.social_media.entity.User;
+import io.lettuce.core.dynamic.annotation.Param;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -24,4 +25,7 @@ public interface CustomPrivacyListMemberRepository extends JpaRepository<CustomP
     @Modifying
     @Query("UPDATE CustomPrivacyListMember m SET m.status = false WHERE m.list.id = :listId AND m.memberUser.id = :memberUserId AND m.status = true")
     int deleteByListIdAndMemberUserId(Integer listId, Integer memberUserId);
+
+    @Query("SELECT m FROM CustomPrivacyListMember m WHERE m.list.id IN :listIds AND m.memberUser.id = :memberUserId AND m.status = true")
+    List<CustomPrivacyListMember> findByListIdsAndMemberUserIdAndStatus(@Param("listIds") List<Integer> listIds, @Param("memberUserId") Integer memberUserId);
 }

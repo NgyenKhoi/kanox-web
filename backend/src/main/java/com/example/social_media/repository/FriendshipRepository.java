@@ -17,12 +17,10 @@ public interface FriendshipRepository extends JpaRepository<Friendship, Friendsh
     Optional<Friendship> findByUserAndFriend(User user, User friend);
     boolean existsByUserAndFriendAndStatus(User user, User friend, Boolean status);
 
-    @Query("SELECT f FROM Friendship f WHERE (f.user = :user OR f.friend = :user) " +
-            "AND f.friendshipStatus = 'accepted' AND f.status = true")
-    Page<Friendship> findFriendsByUser(User user, Pageable pageable);
 
     Page<Friendship> findByUserAndFriendshipStatusAndStatus(User user, String friendshipStatus, Boolean status, Pageable pageable);
     Page<Friendship> findByFriendAndFriendshipStatusAndStatus(User friend, String friendshipStatus, Boolean status, Pageable pageable);
+
     @Query("SELECT f FROM Friendship f WHERE " +
             "(f.user.id = :userId OR f.friend.id = :userId) " +
             "AND f.friendshipStatus = :friendshipStatus AND f.status = :status")
@@ -33,5 +31,12 @@ public interface FriendshipRepository extends JpaRepository<Friendship, Friendsh
             Pageable pageable);
 
     Optional<Friendship> findByUserIdAndFriendIdAndFriendshipStatusAndStatus(
-            Integer userId, Integer friendId, String friendshipStatus, boolean status);
+            @Param("userId") Integer userId,
+            @Param("friendId") Integer friendId,
+            @Param("friendshipStatus") String friendshipStatus,
+            @Param("status") boolean status);
+
+    @Query("SELECT f.friend.id FROM Friendship f WHERE f.user.id = :userId AND f.friendshipStatus = :status AND f.status = true")
+    List<Integer> findFriendIdsByUserIdAndStatus(@Param("userId") Integer userId, @Param("status") String status);
+
 }

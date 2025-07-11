@@ -1,9 +1,12 @@
 package com.example.social_media.repository;
-
 import com.example.social_media.entity.PrivacySetting;
+import io.lettuce.core.dynamic.annotation.Param;
 import org.springframework.data.jpa.repository.JpaRepository;
-import java.util.Optional;
+import org.springframework.data.jpa.repository.Query;
+
+import java.util.List;
 
 public interface PrivacySettingRepository extends JpaRepository<PrivacySetting, Integer> {
-    Optional<PrivacySetting> findByTblUserId(Integer userId);
+    @Query("SELECT ps FROM PrivacySetting ps WHERE ps.tblUser.id IN :userIds")
+    List<PrivacySetting> findByUserIdIn(@Param("userIds") List<Integer> userIds);
 }
