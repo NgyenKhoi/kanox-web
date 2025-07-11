@@ -277,7 +277,7 @@ function ProfilePage() {
                 body: JSON.stringify({
                     reporterId: user.id,
                     targetId: userProfile.id,
-                    targetTypeId: 2, // 2 = USER
+                    targetTypeId: 4, 
                     reasonId: parseInt(reportReasonId),
                 }),
             });
