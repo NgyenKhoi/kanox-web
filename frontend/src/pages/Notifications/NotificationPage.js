@@ -139,12 +139,15 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
                     image: notification.image || null,
                     targetId: notification.targetId || user.id,
                     targetType: notification.targetType || "PROFILE",
+                    reportId: notification.reportId
                 };
 
                 toast.info(notification.message, {
                     onClick: () => {
                         if (notification.type === "REPORT_STATUS_UPDATED" || notification.type === "REPORT_ABUSE_WARNING") {
-                            navigate(`/profile/${notification.adminDisplayName || notification.username}`);
+                            navigate(`/profile/${notification.adminDisplayName || notification.username || "unknown"}`);
+                        } else if (notification.type === "REPORT_SUBMITTED") {
+                            navigate(notification.targetType === "POST" ? `/post/${notification.targetId}` : `/profile/${notification.targetId}`);
                         } else if (notification.targetType === "GROUP") {
                             navigate(`/community/${notification.targetId}`);
                         }
@@ -152,7 +155,7 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
                 });
 
                 setNotifications((prev) => {
-                    const filteredNotifications = prev.filter((n) => n.id !== newNotification.id);
+                    const filteredNotifications = prev.filter((n) => n.reportId !== newNotification.reportId);
                     const newList = [newNotification, ...filteredNotifications];
                     newList.sort((a, b) => b.timestamp - a.timestamp);
                     setUnreadCount(newList.filter((n) => !n.isRead).length);
