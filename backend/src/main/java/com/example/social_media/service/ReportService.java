@@ -137,8 +137,9 @@ public class ReportService {
 
     @Transactional
     public void updateReportStatus(Integer reportId, UpdateReportStatusRequestDto request) {
-        User admin = userRepository.findById(request.getAdminId())
-                .orElseThrow(() -> new UserNotFoundException("Admin not found with id: " + request.getAdminId()));
+        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        User admin = userRepository.findByUsername(currentUsername)
+                .orElseThrow(() -> new UserNotFoundException("Admin not found"));
         if (!admin.getIsAdmin()) {
             throw new IllegalArgumentException("User is not an admin");
         }

@@ -2631,7 +2631,7 @@ WHERE definition LIKE '%friendship%';
 			SET processing_status_id = @processing_status_id
 			WHERE id = @report_id;
 
-			-- Ghi lịch sử báo cáo (sử dụng admin_id thay vì reporter_id)
+			-- Ghi lịch sử báo cáo
 			INSERT INTO tblReportHistory (reporter_id, report_id, processing_status_id, action_time, status)
 			VALUES (@admin_id, @report_id, @processing_status_id, GETDATE(), 1);
 
@@ -2663,65 +2663,8 @@ WHERE definition LIKE '%friendship%';
 						SET @action_type_id_abuse = SCOPE_IDENTITY();
 					END
 					EXEC sp_LogActivity @reporter_id, @action_type_id_abuse, NULL, NULL, 1, @report_id, 'REPORT';
-
-					-- Gửi thông báo cảnh báo lạm dụng
-					DECLARE @notification_type_id_abuse INT;
-					SELECT @notification_type_id_abuse = id FROM tblNotificationType WHERE name = 'REPORT_ABUSE_WARNING' AND status = 1;
-					IF @notification_type_id_abuse IS NULL
-					BEGIN
-						INSERT INTO tblNotificationType (name, description, status)
-						VALUES ('REPORT_ABUSE_WARNING', 'Warning for report abuse', 1);
-						SET @notification_type_id_abuse = SCOPE_IDENTITY();
-					END
-
-					DECLARE @message_abuse NVARCHAR(255) = 'Bạn đã gửi quá nhiều báo cáo không hợp lệ hôm nay. Vui lòng kiểm tra lại hành vi báo cáo của bạn.';
-					EXEC sp_AddNotification
-						@user_id = @reporter_id,
-						@type_id = @notification_type_id_abuse,
-						@message = @message_abuse,
-						@target_id = @report_id,
-						@target_type_id = @target_type_id;
 				END
 			END
-
-			-- Notify reporter about status update
-			DECLARE @notification_type_id_status INT;
-			SELECT @notification_type_id_status = id FROM tblNotificationType WHERE name = 'REPORT_STATUS_UPDATED' AND status = 1;
-			IF @notification_type_id_status IS NULL
-			BEGIN
-				RAISERROR('Notification type REPORT_STATUS_UPDATED not found.', 16, 1);
-				ROLLBACK TRANSACTION;
-				RETURN;
-			END
-
-			DECLARE @admin_display_name NVARCHAR(255);
-			SELECT @admin_display_name = ISNULL(display_name, username) FROM tblUser WHERE id = @admin_id;
-
-			DECLARE @message_status NVARCHAR(255);
-			SET @message_status = 'Báo cáo của bạn (ID: ' + CAST(@report_id AS NVARCHAR(10)) + ') đã được ' +
-								  CASE @processing_status_id
-									  WHEN 1 THEN 'chờ xử lý'
-									  WHEN 2 THEN 'xem xét'
-									  WHEN 3 THEN 'duyệt'
-									  WHEN 4 THEN 'từ chối'
-									  ELSE 'cập nhật'
-								  END + ' bởi ' + ISNULL(@admin_display_name, 'Admin');
-
-			DECLARE @profile_target_type_id INT;
-			SELECT @profile_target_type_id = id FROM tblTargetType WHERE code = 'PROFILE';
-			IF @profile_target_type_id IS NULL
-			BEGIN
-				RAISERROR('Target type PROFILE not found.', 16, 1);
-				ROLLBACK TRANSACTION;
-				RETURN;
-			END
-
-			EXEC sp_AddNotification
-				@user_id = @reporter_id,
-				@type_id = @notification_type_id_status,
-				@message = @message_status,
-				@target_id = @admin_id,
-				@target_type_id = @profile_target_type_id;
 
 			-- Log activity
 			DECLARE @action_type_id_status INT;

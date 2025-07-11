@@ -127,40 +127,39 @@ const handleDismissReport = async (id) => {
     }
 };
 
-const handleUpdateStatus = async (reportId, statusId) => {
-    if (!token) {
-        toast.error("Vui lòng đăng nhập để cập nhật trạng thái báo cáo!");
-        return;
-    }
-    if (!reportId || isNaN(parseInt(reportId))) {
-        toast.error("ID báo cáo không hợp lệ!");
-        console.error("Invalid reportId:", reportId);
-        return;
-    }
-    try {
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/admin/${parseInt(reportId)}/status`, {
-            method: "PUT",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-                adminId: parseInt(localStorage.getItem("userId")),
-                processingStatusId: parseInt(statusId),
-            }),
-        });
-        if (!response.ok) {
-            const data = await response.json();
-            throw new Error(data.message || "Lỗi khi cập nhật trạng thái");
+    const handleUpdateStatus = async (reportId, statusId) => {
+        if (!token) {
+            toast.error("Vui lòng đăng nhập để cập nhật trạng thái báo cáo!");
+            return;
         }
-        toast.success("Đã cập nhật trạng thái báo cáo!");
-        setShowDetailModal(false);
-        loadReports();
-    } catch (error) {
-        console.error("Lỗi khi cập nhật trạng thái:", error, { reportId, statusId });
-        toast.error("Lỗi khi cập nhật trạng thái: " + error.message);
-    }
-};
+        if (!reportId || isNaN(parseInt(reportId))) {
+            toast.error("ID báo cáo không hợp lệ!");
+            console.error("Invalid reportId:", reportId);
+            return;
+        }
+        try {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/admin/${parseInt(reportId)}/status`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    processingStatusId: parseInt(statusId),
+                }),
+            });
+            if (!response.ok) {
+                const data = await response.json();
+                throw new Error(data.message || "Lỗi khi cập nhật trạng thái");
+            }
+            toast.success("Đã cập nhật trạng thái báo cáo!");
+            setShowDetailModal(false);
+            loadReports();
+        } catch (error) {
+            console.error("Lỗi khi cập nhật trạng thái:", error, { reportId, statusId });
+            toast.error("Lỗi khi cập nhật trạng thái: " + error.message);
+        }
+    };
 
 useEffect(() => {
     loadReports();

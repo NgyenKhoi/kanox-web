@@ -3,7 +3,6 @@ package com.example.social_media.dto.report;
 import jakarta.validation.constraints.NotNull;
 
 public class UpdateReportStatusRequestDto {
-    @NotNull
     private Integer adminId;
 
     @NotNull
