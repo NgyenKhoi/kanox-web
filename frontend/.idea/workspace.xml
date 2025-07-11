@@ -5,11 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="c6c17ae2-c6cb-4c94-a6b8-91c54839fa5e" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/../backend/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/controller/ReportController.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/controller/ReportController.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/service/ReportService.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/service/ReportService.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/admin/ReportsManagement.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/admin/ReportsManagement.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/pages/Notifications/NotificationPage.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/pages/Notifications/NotificationPage.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -156,7 +153,7 @@
       <workItem from="1752052273721" duration="3547000" />
       <workItem from="1752067696739" duration="7692000" />
       <workItem from="1752117629151" duration="1233000" />
-      <workItem from="1752234570105" duration="2603000" />
+      <workItem from="1752234570105" duration="4467000" />
     </task>
     <servers />
   </component>
