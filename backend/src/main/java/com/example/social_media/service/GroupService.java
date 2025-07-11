@@ -209,22 +209,48 @@ public class GroupService {
     }
 
     @Transactional
-    public void assignAdmin(Integer groupId, Integer targetUserId, String requesterUsername) {
+    public void assignRole(Integer groupId, Integer targetUserId, String requesterUsername, String role) {
         Group group = groupRepository.findById(groupId)
-                .orElseThrow(() -> new IllegalArgumentException("Group không tồn tại"));
+                .orElseThrow(() -> new NotFoundException("Group không tồn tại"));
 
         User requester = userRepository.findByUsernameAndStatusTrue(requesterUsername)
                 .orElseThrow(() -> new UserNotFoundException("Người gửi không tồn tại"));
 
         if (!group.getOwner().getId().equals(requester.getId())) {
-            throw new UnauthorizedException("Chỉ owner mới được gán quyền admin");
+            throw new UnauthorizedException("Chỉ chủ nhóm mới được gán vai trò");
         }
 
-        GroupMember member = groupMemberRepository.findById_GroupIdAndId_UserId(groupId, targetUserId)
-                .orElseThrow(() -> new IllegalArgumentException("Thành viên không tồn tại"));
+        GroupMember targetMember = groupMemberRepository.findById_GroupIdAndId_UserId(groupId, targetUserId)
+                .orElseThrow(() -> new NotFoundException("Người dùng không phải thành viên nhóm"));
 
-        member.setIsAdmin(true);
-        groupMemberRepository.save(member);
+        GroupMemberId requesterId = new GroupMemberId(groupId, requester.getId());
+        GroupMember requesterMember = groupMemberRepository.findById(requesterId)
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy thông tin người gọi"));
+
+        switch (role.toUpperCase()) {
+            case "ADMIN":
+                targetMember.setIsAdmin(true);
+                groupMemberRepository.save(targetMember);
+                break;
+
+            case "OWNER":
+                if (targetUserId.equals(requester.getId())) {
+                    throw new IllegalArgumentException("Bạn đang là chủ nhóm rồi");
+                }
+
+                requesterMember.setIsOwner(false);
+                targetMember.setIsOwner(true);
+                targetMember.setIsAdmin(true); // Chủ nhóm phải là admin
+
+                group.setOwner(targetMember.getUser());
+
+                groupMemberRepository.saveAll(List.of(requesterMember, targetMember));
+                groupRepository.save(group);
+                break;
+
+            default:
+                throw new IllegalArgumentException("Vai trò không hợp lệ. Chỉ chấp nhận ADMIN hoặc OWNER");
+        }
     }
 
     public void inviteMember(Integer groupId, String usernameToInvite) {

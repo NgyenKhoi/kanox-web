@@ -63,6 +63,9 @@ public class ReportService {
                 .orElseThrow(() -> new IllegalArgumentException("Report reason not found with id: " + request.getReasonId()));
 
         try {
+            ReportStatus status = reportStatusRepository.findById(1)
+                    .orElseThrow(() -> new IllegalArgumentException("Report status not found with id: 1"));
+
             Integer reportId = reportRepository.addReport(
                     request.getReporterId(),
                     request.getTargetId(),
@@ -81,11 +84,11 @@ public class ReportService {
                     "targetTypeId", request.getTargetTypeId(),
                     "reporterUsername", reporter.getUsername(),
                     "reason", reason.getName(),
-                    "createdAt", System.currentTimeMillis() / 1000
+                    "createdAt", System.currentTimeMillis() / 1000,
+                    "processingStatusId", status.getId(),
+                    "processingStatusName", status.getName()
             ));
 
-            ReportStatus status = reportStatusRepository.findById(1)
-                    .orElseThrow(() -> new IllegalArgumentException("Report status not found with id: 1"));
             ReportHistory history = new ReportHistory();
             history.setReporter(reporter);
             history.setReport(report);

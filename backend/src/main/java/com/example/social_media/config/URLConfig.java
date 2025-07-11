@@ -26,6 +26,7 @@ public class URLConfig {
     public static final String HIDE_POST = "/{postId}/hide";
     public static final String UNSAVE_POST = "/unsave/{postId}";
     public static final String GET_SAVE_POST ="/saved-posts";
+    public static final String GET_POST_USER_INGROUP = "/group/{groupId}/user/{username}";
     // Upload Management URLs
     public static final String UPLOAD_BASE = "/api/upload";
     // Chat URLs
@@ -122,6 +123,9 @@ public class URLConfig {
     public static final String REJECT_JOIN_REQUEST = "/{groupId}/reject-request";
     public static final String GET_JOIN_REQUESTS = "/{groupId}/join-requests";
     public static final String GET_GROUP_DETAIL = "/{groupId}/detail";
+    public static final String ASSIGN_ROLE = "/{groupId}/assign-role";
+    public static final String CANCEL_JOIN_REQUEST = "/{groupId}/cancel-request";
+
 
 
     //Admin urls

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from "react";
-import { Container, Row, Col, Form, Button, Spinner } from "react-bootstrap";
+import { Container, Row, Col, Form, Button, Spinner, Modal } from "react-bootstrap";
 import { FaArrowLeft, FaLock, FaList } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
@@ -28,6 +28,9 @@ function SettingsPage() {
     const [emailSent, setEmailSent] = useState(false);
     const [emailForm, setEmailForm] = useState({ email: "", sending: false });
     const [changingPassword, setChangingPassword] = useState(false);
+    const [showPasswordModal, setShowPasswordModal] = useState(false);
+    const [showNewPasswordForm, setShowNewPasswordForm] = useState(false);
+    const [showEmailModal, setShowEmailModal] = useState(false);
 
     const handlePasswordChange = (e) => {
         const { name, value } = e.target;
@@ -324,84 +327,21 @@ function SettingsPage() {
                                     </Button>
                                     <hr className="my-4" />
                                     <h4 className="text-dark mb-4">Bảo mật tài khoản</h4>
-
-                                    {/* Đổi mật khẩu */}
-                                    <Form.Group className="mb-3">
-                                        <Form.Label className="fw-bold text-dark">Mật khẩu hiện tại</Form.Label>
-                                        <Form.Control
-                                            type="password"
-                                            name="currentPassword"
-                                            value={passwordForm.currentPassword}
-                                            onChange={handlePasswordChange}
-                                        />
-                                    </Form.Group>
-                                    <Form.Group className="mb-3">
-                                        <Form.Label className="fw-bold text-dark">Mật khẩu mới</Form.Label>
-                                        <Form.Control
-                                            type="password"
-                                            name="newPassword"
-                                            value={passwordForm.newPassword}
-                                            onChange={handlePasswordChange}
-                                        />
-                                    </Form.Group>
-                                    <Form.Group className="mb-3">
-                                        <Form.Label className="fw-bold text-dark">Xác nhận mật khẩu mới</Form.Label>
-                                        <Form.Control
-                                            type="password"
-                                            name="confirmPassword"
-                                            value={passwordForm.confirmPassword}
-                                            onChange={handlePasswordChange}
-                                        />
-                                    </Form.Group>
                                     <Button
                                         variant="warning"
-                                        className="rounded-pill px-4 py-2 fw-bold mb-4"
-                                        onClick={submitChangePassword}
-                                        disabled={changingPassword}
+                                        className="rounded-pill px-4 py-2 fw-bold mb-3"
+                                        onClick={() => setShowPasswordModal(true)}
                                     >
-                                        {changingPassword ? "Đang đổi mật khẩu..." : "Đổi mật khẩu"}
+                                        Đổi mật khẩu
                                     </Button>
 
-                                    {/* Thêm Email mới */}
-                                    <hr className="my-4" />
-                                    <h4 className="text-dark mb-3">Thêm email để xác minh</h4>
-                                    <Form.Group className="mb-3">
-                                        <Form.Label className="fw-bold text-dark">Email mới</Form.Label>
-                                        <Form.Control
-                                            type="email"
-                                            value={emailForm.email}
-                                            onChange={(e) => setEmailForm({ ...emailForm, email: e.target.value })}
-                                        />
-                                    </Form.Group>
                                     <Button
                                         variant="success"
                                         className="rounded-pill px-4 py-2 fw-bold"
-                                        onClick={submitSendVerifyEmail}
-                                        disabled={emailForm.sending}
+                                        onClick={() => setShowEmailModal(true)}
                                     >
-                                        {emailForm.sending ? "Đang gửi..." : "Gửi email xác minh"}
+                                        Thêm email để xác minh
                                     </Button>
-                                    {emailSent && (
-                                        <>
-                                            <Form.Group className="mt-3">
-                                                <Form.Label className="fw-bold text-dark">Mã xác minh</Form.Label>
-                                                <Form.Control
-                                                    type="text"
-                                                    value={verifyCode}
-                                                    onChange={(e) => setVerifyCode(e.target.value)}
-                                                    placeholder="Nhập mã xác minh bạn nhận được trong email"
-                                                />
-                                            </Form.Group>
-                                            <Button
-                                                variant="info"
-                                                className="rounded-pill px-4 py-2 fw-bold mt-2"
-                                                onClick={handleVerifyCode}
-                                                disabled={verifying}
-                                            >
-                                                {verifying ? "Đang xác minh..." : "Xác minh mã"}
-                                            </Button>
-                                        </>
-                                    )}
                                 </Form>
                             </div>
                         </Col>
@@ -409,6 +349,133 @@ function SettingsPage() {
                     </Row>
                 </Container>
             </Container>
+            <Modal show={showPasswordModal} onHide={() => {
+                setShowPasswordModal(false);
+                setShowNewPasswordForm(false);
+                setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+            }} centered>
+                <Modal.Header closeButton>
+                    <Modal.Title>Đổi mật khẩu</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    {!showNewPasswordForm ? (
+                        <>
+                            <Form.Group>
+                                <Form.Label>Mật khẩu hiện tại</Form.Label>
+                                <Form.Control
+                                    type="password"
+                                    name="currentPassword"
+                                    value={passwordForm.currentPassword}
+                                    onChange={handlePasswordChange}
+                                />
+                            </Form.Group>
+                            <div className="mt-3 text-end">
+                                <Button
+                                    variant="primary"
+                                    onClick={() => {
+                                        if (!passwordForm.currentPassword) {
+                                            toast.warn("Vui lòng nhập mật khẩu hiện tại");
+                                            return;
+                                        }
+                                        setShowNewPasswordForm(true);
+                                    }}
+                                >
+                                    Tiếp tục
+                                </Button>
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            <Form.Group>
+                                <Form.Label>Mật khẩu mới</Form.Label>
+                                <Form.Control
+                                    type="password"
+                                    name="newPassword"
+                                    value={passwordForm.newPassword}
+                                    onChange={handlePasswordChange}
+                                />
+                            </Form.Group>
+                            <Form.Group className="mt-2">
+                                <Form.Label>Xác nhận mật khẩu mới</Form.Label>
+                                <Form.Control
+                                    type="password"
+                                    name="confirmPassword"
+                                    value={passwordForm.confirmPassword}
+                                    onChange={handlePasswordChange}
+                                />
+                            </Form.Group>
+                            <div className="mt-3 text-end">
+                                <Button
+                                    variant="secondary"
+                                    className="me-2"
+                                    onClick={() => {
+                                        setShowPasswordModal(false);
+                                        setShowNewPasswordForm(false);
+                                        setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+                                    }}
+                                >
+                                    Hủy
+                                </Button>
+                                <Button variant="warning" onClick={submitChangePassword} disabled={changingPassword}>
+                                    {changingPassword ? "Đang đổi mật khẩu..." : "Đổi mật khẩu"}
+                                </Button>
+                            </div>
+                        </>
+                    )}
+                </Modal.Body>
+            </Modal>
+
+            <Modal show={showEmailModal} onHide={() => {
+                setShowEmailModal(false);
+                setVerifyCode("");
+                setEmailSent(false);
+            }} centered>
+                <Modal.Header closeButton>
+                    <Modal.Title>Xác minh Email</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    <Form.Group>
+                        <Form.Label>Email mới</Form.Label>
+                        <Form.Control
+                            type="email"
+                            value={emailForm.email}
+                            onChange={(e) => setEmailForm({ ...emailForm, email: e.target.value })}
+                        />
+                    </Form.Group>
+                    <div className="mt-3 text-end">
+                        <Button
+                            variant="success"
+                            onClick={submitSendVerifyEmail}
+                            disabled={emailForm.sending}
+                        >
+                            {emailForm.sending ? "Đang gửi..." : "Gửi mã xác minh"}
+                        </Button>
+                    </div>
+
+                    {emailSent && (
+                        <>
+                            <Form.Group className="mt-3">
+                                <Form.Label>Mã xác minh</Form.Label>
+                                <Form.Control
+                                    type="text"
+                                    value={verifyCode}
+                                    onChange={(e) => setVerifyCode(e.target.value)}
+                                    placeholder="Nhập mã xác minh bạn nhận được trong email"
+                                />
+                            </Form.Group>
+                            <div className="mt-3 text-end">
+                                <Button
+                                    variant="info"
+                                    onClick={handleVerifyCode}
+                                    disabled={verifying}
+                                >
+                                    {verifying ? "Đang xác minh..." : "Xác minh mã"}
+                                </Button>
+                            </div>
+                        </>
+                    )}
+                </Modal.Body>
+            </Modal>
         </>
     );
 }
