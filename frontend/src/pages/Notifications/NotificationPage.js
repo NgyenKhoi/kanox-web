@@ -112,49 +112,49 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
     }, [user]);
 
     useEffect(() => {
+        if (!user) return;
         fetchNotifications();
+    }, [user]);
 
+    useEffect(() => {
         if (!user || !subscribe || !unsubscribe) return;
 
         const subscription = subscribe(
             `/topic/notifications/${user.id}`,
             (notification) => {
                 console.log("Received notification:", notification);
+                const newNotification = {
+                    id: notification.id,
+                    type: notification.type,
+                    userId: user.id,
+                    displayName:
+                        notification.targetType === "GROUP"
+                            ? notification.groupName || "Nhóm"
+                            : notification.adminDisplayName || notification.displayName || "Người dùng",
+                    username: notification.username || notification.adminDisplayName || "unknown",
+                    message: notification.message,
+                    tags: notification.tags || [],
+                    timestamp: notification.createdAt * 1000,
+                    isRead: notification.status === "read",
+                    image: notification.image || null,
+                    targetId: notification.targetId || user.id,
+                    targetType: notification.targetType || "PROFILE",
+                };
 
-                if (notification.type === "bulk-read") {
-                    // Xử lý thông báo mark all as read
-                    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-                    setUnreadCount(0);
-                    window.dispatchEvent(
-                        new CustomEvent("updateUnreadNotificationCount", {
-                            detail: { unreadCount: 0 },
-                        })
-                    );
-                    return;
-                }
-
-                toast.info(notification.message);
+                toast.info(notification.message, {
+                    onClick: () => {
+                        if (notification.type === "REPORT_STATUS_UPDATED" || notification.type === "REPORT_ABUSE_WARNING") {
+                            navigate(`/profile/${notification.adminDisplayName || notification.username}`);
+                        } else if (notification.targetType === "GROUP") {
+                            navigate(`/community/${notification.targetId}`);
+                        }
+                    },
+                });
 
                 setNotifications((prev) => {
-                    const newNotification = {
-                        id: notification.id,
-                        type: notification.type,
-                        userId: user.id,
-                        displayName:
-                            notification.targetType === "GROUP"
-                                ? notification.groupName || "Nhóm"
-                                : notification.adminDisplayName || notification.displayName || "Người dùng",
-                        username: notification.username || "unknown",
-                        message: notification.message,
-                        tags: notification.tags || [],
-                        timestamp: notification.createdAt, 
-                        isRead: notification.status === "read",
-                        image: notification.image || null,
-                        targetId: notification.targetId || user.id,
-                        targetType: notification.targetType || "PROFILE",
-                    };
-
-                    const newList = [newNotification, ...prev];
+                    const filteredNotifications = prev.filter((n) => n.id !== newNotification.id);
+                    const newList = [newNotification, ...filteredNotifications];
+                    newList.sort((a, b) => b.timestamp - a.timestamp);
                     setUnreadCount(newList.filter((n) => !n.isRead).length);
                     return newList;
                 });
@@ -165,7 +165,7 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
         return () => {
             if (subscription) unsubscribe(`notifications-${user.id}`);
         };
-    }, [user, subscribe, unsubscribe]);
+    }, [user, subscribe, unsubscribe, navigate]);
 
     const handleMarkRead = async (id, username = null) => {
         const token =

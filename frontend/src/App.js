@@ -154,21 +154,6 @@ function AppContent() {
           }, "admin-reports")
       );
     }
-    subscriptions.push(
-        subscribe(`/topic/notifications/${user.id}`, (notification) => {
-          console.log("Received notification:", notification);
-          toast.info(notification.message, {
-            onClick: () => {
-              if (notification.targetType === "GROUP") {
-                navigate(`/community/${notification.targetId}`);
-              } else if (notification.username && notification.username !== "unknown") {
-                navigate(`/profile/${notification.username}`);
-              }
-            },
-          });
-          setNotifications((prev) => [notification, ...prev]);
-        }, `notifications-${user.id}`)
-    );
 
     const handleIncomingCall = (event) => {
       const {chatId, sessionId, from, to} = event.detail;
