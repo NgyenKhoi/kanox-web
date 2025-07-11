@@ -41,7 +41,7 @@ export default function GroupCommunityPage() {
         if ((groupInfo?.admin || groupInfo?.owner) && token) {
             fetchJoinRequests();
         }
-    }, [groupInfo?.isAdmin, groupInfo?.isOwner, token]);
+    }, [groupInfo, token]);
 
     const fetchGroupDetail = async () => {
         try {

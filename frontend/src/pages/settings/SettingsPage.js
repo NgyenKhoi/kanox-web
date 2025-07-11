@@ -18,6 +18,91 @@ function SettingsPage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [isDarkMode, setIsDarkMode] = useState(false);
+    const [passwordForm, setPasswordForm] = useState({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+    });
+    const [verifyCode, setVerifyCode] = useState("");
+    const [verifying, setVerifying] = useState(false);
+    const [emailSent, setEmailSent] = useState(false);
+    const [emailForm, setEmailForm] = useState({ email: "", sending: false });
+    const [changingPassword, setChangingPassword] = useState(false);
+
+    const handlePasswordChange = (e) => {
+        const { name, value } = e.target;
+        setPasswordForm((prev) => ({ ...prev, [name]: value }));
+    };
+
+    const submitChangePassword = async () => {
+        setChangingPassword(true);
+        const token = sessionStorage.getItem("token") || localStorage.getItem("token");
+        try {
+            const res = await fetch(`${process.env.REACT_APP_API_URL}/auth/change-password`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify(passwordForm),
+            });
+
+            const data = await res.text(); // backend trả string
+            if (!res.ok) throw new Error(data);
+            toast.success("Đổi mật khẩu thành công");
+            setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+        } catch (err) {
+            toast.error(err.message || "Lỗi khi đổi mật khẩu");
+        } finally {
+            setChangingPassword(false);
+        }
+    };
+
+    const submitSendVerifyEmail = async () => {
+        setEmailForm((prev) => ({ ...prev, sending: true }));
+        const token = sessionStorage.getItem("token") || localStorage.getItem("token");
+        try {
+            const res = await fetch(`${process.env.REACT_APP_API_URL}/auth/send-verification-email`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ email: emailForm.email }),
+            });
+
+            const data = await res.text(); // hoặc json tùy backend
+            if (!res.ok) throw new Error(data);
+            toast.success("Đã gửi email xác minh");
+            setEmailSent(true);
+        } catch (err) {
+            toast.error(err.message || "Không thể gửi email xác minh");
+        } finally {
+            setEmailForm((prev) => ({ ...prev, sending: false }));
+        }
+    };
+
+    const handleVerifyCode = async () => {
+        setVerifying(true);
+        try {
+            const res = await fetch(`${process.env.REACT_APP_API_URL}/auth/verify-email`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ code: verifyCode }),
+            });
+
+            const data = await res.text();
+            if (!res.ok) throw new Error(data);
+
+            toast.success("Xác minh email thành công");
+            setVerifyCode("");
+            setEmailSent(false); // reset sau xác minh
+        } catch (err) {
+            toast.error(err.message || "Mã xác minh không hợp lệ");
+        } finally {
+            setVerifying(false);
+        }
+    };
 
     const fetchPrivacySettings = async () => {
         setLoading(true);
@@ -237,6 +322,86 @@ function SettingsPage() {
                                             "Lưu thay đổi"
                                         )}
                                     </Button>
+                                    <hr className="my-4" />
+                                    <h4 className="text-dark mb-4">Bảo mật tài khoản</h4>
+
+                                    {/* Đổi mật khẩu */}
+                                    <Form.Group className="mb-3">
+                                        <Form.Label className="fw-bold text-dark">Mật khẩu hiện tại</Form.Label>
+                                        <Form.Control
+                                            type="password"
+                                            name="currentPassword"
+                                            value={passwordForm.currentPassword}
+                                            onChange={handlePasswordChange}
+                                        />
+                                    </Form.Group>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label className="fw-bold text-dark">Mật khẩu mới</Form.Label>
+                                        <Form.Control
+                                            type="password"
+                                            name="newPassword"
+                                            value={passwordForm.newPassword}
+                                            onChange={handlePasswordChange}
+                                        />
+                                    </Form.Group>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label className="fw-bold text-dark">Xác nhận mật khẩu mới</Form.Label>
+                                        <Form.Control
+                                            type="password"
+                                            name="confirmPassword"
+                                            value={passwordForm.confirmPassword}
+                                            onChange={handlePasswordChange}
+                                        />
+                                    </Form.Group>
+                                    <Button
+                                        variant="warning"
+                                        className="rounded-pill px-4 py-2 fw-bold mb-4"
+                                        onClick={submitChangePassword}
+                                        disabled={changingPassword}
+                                    >
+                                        {changingPassword ? "Đang đổi mật khẩu..." : "Đổi mật khẩu"}
+                                    </Button>
+
+                                    {/* Thêm Email mới */}
+                                    <hr className="my-4" />
+                                    <h4 className="text-dark mb-3">Thêm email để xác minh</h4>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label className="fw-bold text-dark">Email mới</Form.Label>
+                                        <Form.Control
+                                            type="email"
+                                            value={emailForm.email}
+                                            onChange={(e) => setEmailForm({ ...emailForm, email: e.target.value })}
+                                        />
+                                    </Form.Group>
+                                    <Button
+                                        variant="success"
+                                        className="rounded-pill px-4 py-2 fw-bold"
+                                        onClick={submitSendVerifyEmail}
+                                        disabled={emailForm.sending}
+                                    >
+                                        {emailForm.sending ? "Đang gửi..." : "Gửi email xác minh"}
+                                    </Button>
+                                    {emailSent && (
+                                        <>
+                                            <Form.Group className="mt-3">
+                                                <Form.Label className="fw-bold text-dark">Mã xác minh</Form.Label>
+                                                <Form.Control
+                                                    type="text"
+                                                    value={verifyCode}
+                                                    onChange={(e) => setVerifyCode(e.target.value)}
+                                                    placeholder="Nhập mã xác minh bạn nhận được trong email"
+                                                />
+                                            </Form.Group>
+                                            <Button
+                                                variant="info"
+                                                className="rounded-pill px-4 py-2 fw-bold mt-2"
+                                                onClick={handleVerifyCode}
+                                                disabled={verifying}
+                                            >
+                                                {verifying ? "Đang xác minh..." : "Xác minh mã"}
+                                            </Button>
+                                        </>
+                                    )}
                                 </Form>
                             </div>
                         </Col>
