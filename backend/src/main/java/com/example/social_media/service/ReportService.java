@@ -19,6 +19,7 @@ import java.sql.SQLException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 
@@ -205,7 +206,10 @@ public class ReportService {
             );
 
             if (request.getProcessingStatusId() == 4) { // Rejected
-                LocalDateTime startOfToday = LocalDate.now().atStartOfDay(); // Rejected
+                Instant startOfToday = LocalDate.now()
+                        .atStartOfDay(ZoneId.systemDefault())
+                        .toInstant();
+
                 long rejectedCount = reportRepository.countByReporterIdAndProcessingStatusIdAndReportTime(
                         report.getReporter().getId(), 4, startOfToday
                 );

@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.query.Procedure;
 import org.springframework.data.repository.query.Param;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -56,8 +57,9 @@ public interface ReportRepository extends JpaRepository<Report, Integer> {
     long countByReporterIdAndProcessingStatusIdAndReportTime(
             @Param("reporterId") Integer reporterId,
             @Param("statusId") Integer statusId,
-            @Param("startOfDay") LocalDateTime startOfDay
+            @Param("startOfDay") Instant startOfDay
     );
+
 
     Optional<Report> findTopByOrderByIdDesc();
 
