@@ -173,16 +173,23 @@ const ReportsManagement = () => {
 
         const subscription = subscribe("/topic/admin/reports", (message) => {
             console.log("Received new report:", message);
-            toast.info(`Báo cáo mới từ ${message.reporterUsername}: ${message.reason}`, {
+            // Chuẩn hóa dữ liệu báo cáo từ WebSocket
+            const report = {
+                ...message,
+                reason: { name: message.reason || "Không xác định" }, // Chuyển reason thành đối tượng
+                processingStatusId: message.processingStatusId || 1, // Mặc định là Pending
+                processingStatusName: message.processingStatusName || "Đang chờ"
+            };
+            toast.info(`Báo cáo mới từ ${report.reporterUsername}: ${report.reason.name}`, {
                 onClick: () => {
-                    navigate("/admin", { state: { newReport: message } });
+                    navigate("/admin", { state: { newReport: report } });
                 },
             });
             // Thêm báo cáo mới vào danh sách phù hợp
-            if (message.targetTypeId === 1) {
-                setPostReports((prev) => [message, ...prev]);
-            } else if (message.targetTypeId === 4) {
-                setUserReports((prev) => [message, ...prev]);
+            if (report.targetTypeId === 1) {
+                setPostReports((prev) => [report, ...prev]);
+            } else if (report.targetTypeId === 4) {
+                setUserReports((prev) => [report, ...prev]);
             }
         }, "admin-reports");
 
