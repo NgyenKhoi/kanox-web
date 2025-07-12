@@ -11,6 +11,7 @@ import com.example.social_media.repository.ReactionRepository;
 import com.example.social_media.repository.ReactionTypeRepository;
 import com.example.social_media.repository.TargetTypeRepository;
 import com.example.social_media.repository.UserRepository;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,6 +42,11 @@ public class ReactionService {
         this.targetTypeRepository = targetTypeRepository;
         this.mediaService = mediaService;
     }
+
+    @CacheEvict(
+            value = {"newsfeed", "postsByUsername", "communityFeed", "postsByGroup", "postsByUserInGroup"},
+            allEntries = true
+    )
     public void addOrUpdateReaction(Integer userId, Integer targetId, String targetTypeCode, String emojiName) {
         TargetType targetType = getTargetTypeByCode(targetTypeCode);
         ReactionType reactionType = reactionTypeRepository.findByNameIgnoreCase(emojiName.trim())
@@ -68,6 +74,10 @@ public class ReactionService {
         }
     }
 
+    @CacheEvict(
+            value = {"newsfeed", "postsByUsername", "communityFeed", "postsByGroup", "postsByUserInGroup"},
+            allEntries = true
+    )
     @Transactional
     public void removeReaction(Integer userId, Integer targetId, String targetTypeCode) {
         TargetType targetType = getTargetTypeByCode(targetTypeCode);
