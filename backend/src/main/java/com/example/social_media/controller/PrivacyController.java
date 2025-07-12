@@ -42,10 +42,8 @@ public class PrivacyController {
             }
             Map<String, String> responseData = new HashMap<>();
             responseData.put("postVisibility", settings.getPostViewer() != null ? settings.getPostViewer() : "public");
-            responseData.put("commentPermission",
-                    settings.getCommentViewer() != null ? settings.getCommentViewer() : "public");
-            responseData.put("friendRequestPermission",
-                    settings.getMessageViewer() != null ? settings.getMessageViewer() : "friends");
+            responseData.put("commentPermission", settings.getCommentViewer() != null ? settings.getCommentViewer() : "public");
+            responseData.put("messagePermission", settings.getMessageViewer() != null ? settings.getMessageViewer() : "friends");
 
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Lấy cài đặt thành công");
@@ -54,18 +52,18 @@ public class PrivacyController {
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             logger.error("Error fetching privacy settings: {}", e.getMessage());
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("status", "error");
-            errorResponse.put("message", e.getMessage());
-            errorResponse.put("errors", new HashMap<>());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                    "status", "error",
+                    "message", e.getMessage(),
+                    "errors", new HashMap<>()
+            ));
         } catch (Exception e) {
             logger.error("Unexpected error: {}", e.getMessage(), e);
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("status", "error");
-            errorResponse.put("message", "Lỗi hệ thống: " + e.getMessage());
-            errorResponse.put("errors", new HashMap<>());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                    "status", "error",
+                    "message", "Lỗi hệ thống: " + e.getMessage(),
+                    "errors", new HashMap<>()
+            ));
         }
     }
 
@@ -93,7 +91,7 @@ public class PrivacyController {
 
             String postVisibility = settings.getOrDefault("postVisibility", "public");
             String commentPermission = settings.getOrDefault("commentPermission", "public");
-            String friendRequestPermission = settings.getOrDefault("friendRequestPermission", "friends");
+            String messagePermission = settings.getOrDefault("messagePermission", "friends");
 
             if (!List.of("public", "friends", "only_me", "custom").contains(postVisibility)) {
                 throw new IllegalArgumentException("Giá trị postVisibility không hợp lệ: " + postVisibility);
@@ -101,21 +99,20 @@ public class PrivacyController {
             if (!List.of("public", "friends", "only_me", "custom").contains(commentPermission)) {
                 throw new IllegalArgumentException("Giá trị commentPermission không hợp lệ: " + commentPermission);
             }
-            if (!List.of("public", "friends", "only_me").contains(friendRequestPermission)) {
-                throw new IllegalArgumentException(
-                        "Giá trị friendRequestPermission không hợp lệ: " + friendRequestPermission);
+            if (!List.of("public", "friends", "only_me").contains(messagePermission)) {
+                throw new IllegalArgumentException("Giá trị messagePermission không hợp lệ: " + messagePermission);
             }
 
             privacySetting.setPostViewer(postVisibility);
             privacySetting.setCommentViewer(commentPermission);
-            privacySetting.setMessageViewer(friendRequestPermission);
+            privacySetting.setMessageViewer(messagePermission);
             privacySetting.setUpdatedAt(Instant.now());
             privacyService.savePrivacySetting(privacySetting);
 
             Map<String, Object> data = new HashMap<>();
             data.put("postVisibility", postVisibility);
             data.put("commentPermission", commentPermission);
-            data.put("friendRequestPermission", friendRequestPermission);
+            data.put("messagePermission", messagePermission);
 
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Cập nhật cài đặt thành công");
@@ -127,13 +124,15 @@ public class PrivacyController {
             return ResponseEntity.badRequest().body(Map.of(
                     "status", "error",
                     "message", e.getMessage(),
-                    "errors", new HashMap<>()));
+                    "errors", new HashMap<>()
+            ));
         } catch (Exception e) {
             logger.error("Unexpected error: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
                     "status", "error",
                     "message", "Lỗi hệ thống: " + e.getMessage(),
-                    "errors", new HashMap<>()));
+                    "errors", new HashMap<>()
+            ));
         }
     }
 

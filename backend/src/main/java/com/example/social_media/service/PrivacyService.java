@@ -1,6 +1,7 @@
 package com.example.social_media.service;
 
 import com.example.social_media.dto.privacy.CustomListMemberDto;
+import com.example.social_media.dto.privacy.ProfilePrivacySettingDto;
 import com.example.social_media.entity.*;
 import com.example.social_media.exception.UserNotFoundException;
 import com.example.social_media.repository.*;
@@ -329,4 +330,14 @@ public class PrivacyService {
         }
         return accessMap;
     }
+
+    public ProfilePrivacySettingDto getProfilePrivacySetting(Integer userId) {
+        PrivacySetting setting = privacySettingRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy cài đặt quyền riêng tư cho userId = " + userId));
+
+        return new ProfilePrivacySettingDto(
+                setting.getProfileViewer()
+        );
+    }
+
 }
