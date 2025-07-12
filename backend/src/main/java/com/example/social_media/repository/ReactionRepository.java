@@ -15,7 +15,7 @@ public interface ReactionRepository extends JpaRepository<Reaction, ReactionId> 
 
     Optional<Reaction> findById(ReactionId id);
 
-    List<Reaction> findByIdTargetIdAndIdTargetTypeIdAndStatusTrue(Integer targetId, Integer targetTypeId);
+    List<Reaction> findById_TargetIdAndId_TargetTypeIdAndStatusTrue(Integer targetId, Integer targetTypeId);
 
     void deleteByIdUserIdAndIdTargetIdAndIdTargetTypeId(Integer userId, Integer targetId, Integer targetTypeId);
 

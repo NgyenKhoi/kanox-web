@@ -88,7 +88,7 @@ public class ReactionService {
         if (cached != null) return cached;
 
         TargetType targetType = getTargetTypeByCode(targetTypeCode);
-        List<Reaction> reactions = reactionRepository.findByIdTargetIdAndIdTargetTypeIdAndStatusTrue(targetId, targetType.getId());
+        List<Reaction> reactions = reactionRepository.findById_TargetIdAndId_TargetTypeIdAndStatusTrue(targetId, targetType.getId());
 
         Map<ReactionType, Long> grouped = reactions.stream()
                 .collect(Collectors.groupingBy(Reaction::getReactionType, Collectors.counting()));
@@ -105,7 +105,7 @@ public class ReactionService {
 
     public Map<ReactionType, Long> countAllReactions(Integer targetId, String targetTypeCode) {
         TargetType targetType = getTargetTypeByCode(targetTypeCode);
-        List<Reaction> reactions = reactionRepository.findByIdTargetIdAndIdTargetTypeIdAndStatusTrue(targetId, targetType.getId());
+        List<Reaction> reactions = reactionRepository.findById_TargetIdAndId_TargetTypeIdAndStatusTrue(targetId, targetType.getId());
         return reactions.stream().collect(Collectors.groupingBy(Reaction::getReactionType, Collectors.counting()));
     }
 
