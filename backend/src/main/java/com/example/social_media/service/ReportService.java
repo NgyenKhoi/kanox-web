@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -83,7 +84,7 @@ public class ReportService {
                     "targetId", request.getTargetId(),
                     "targetTypeId", request.getTargetTypeId(),
                     "reporterUsername", reporter.getUsername(),
-                    "reason", reason.getName(),
+                    "reason", Map.of("id", reason.getId(), "name", reason.getName()),
                     "createdAt", System.currentTimeMillis() / 1000,
                     "processingStatusId", status.getId(),
                     "processingStatusName", status.getName()
@@ -199,8 +200,10 @@ public class ReportService {
             );
 
             if (request.getProcessingStatusId() == 4) { // Rejected
+                LocalDateTime startOfToday = LocalDate.now().atStartOfDay(); // Rejected
                 long rejectedCount = reportRepository.countByReporterIdAndProcessingStatusIdAndReportTime(
-                        report.getReporter().getId(), 4, LocalDate.now());
+                        report.getReporter().getId(), 4, startOfToday
+                );
                 if (rejectedCount >= 5) {
                     String abuseMessage = "Bạn đã gửi quá nhiều báo cáo không hợp lệ hôm nay. Vui lòng kiểm tra lại hành vi báo cáo của bạn.";
                     notificationService.sendNotification(

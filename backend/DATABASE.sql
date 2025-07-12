@@ -2373,9 +2373,7 @@ WHERE definition LIKE '%friendship%';
         SET @is_valid = @exists;
     END;
     ----------------------------------
-
     --REPORT
-
 	CREATE TABLE tblReport (
 		id INT PRIMARY KEY IDENTITY(1,1),
 		reporter_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
@@ -2605,7 +2603,7 @@ WHERE definition LIKE '%friendship%';
 			RAISERROR (@ErrorMessage, 16, 1);
 		END CATCH;
 	END;
-
+	
 	CREATE OR ALTER PROCEDURE sp_UpdateReportStatus
 		@report_id INT,
 		@admin_id INT,
