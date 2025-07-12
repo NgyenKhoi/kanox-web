@@ -85,19 +85,40 @@ public class ReactionService {
     public List<ReactionTypeCountDto> getTop3Reactions(Integer targetId, String targetTypeCode) {
         String cacheKey = String.format("reaction:top3:%s:%d", targetTypeCode, targetId);
         List<ReactionTypeCountDto> cached = (List<ReactionTypeCountDto>) redisReactionTemplate.opsForValue().get(cacheKey);
-        if (cached != null) return cached;
+        if (cached != null) {
+            System.out.println("[CACHE HIT] top3 reactions for " + cacheKey);
+            return cached;
+        }
+
+        System.out.println("[DB FETCH] Getting top3 reactions for targetId=" + targetId + ", type=" + targetTypeCode);
 
         TargetType targetType = getTargetTypeByCode(targetTypeCode);
         List<Reaction> reactions = reactionRepository.findById_TargetIdAndId_TargetTypeIdAndStatusTrue(targetId, targetType.getId());
 
+        System.out.println("→ Total reactions fetched: " + reactions.size());
+        for (Reaction r : reactions) {
+            System.out.println("   - userId: " + r.getUser().getId()
+                    + ", emojiId: " + (r.getReactionType() != null ? r.getReactionType().getId() : "null")
+                    + ", emojiName: " + (r.getReactionType() != null ? r.getReactionType().getName() : "null"));
+        }
+
         Map<ReactionType, Long> grouped = reactions.stream()
                 .collect(Collectors.groupingBy(Reaction::getReactionType, Collectors.counting()));
+
+        System.out.println("→ Grouped result:");
+        for (Map.Entry<ReactionType, Long> entry : grouped.entrySet()) {
+            ReactionType type = entry.getKey();
+            System.out.println("   - emoji: " + (type != null ? type.getName() : "null") + " → " + entry.getValue());
+        }
 
         List<ReactionTypeCountDto> result = grouped.entrySet().stream()
                 .sorted(Map.Entry.<ReactionType, Long>comparingByValue().reversed())
                 .limit(3)
                 .map(entry -> new ReactionTypeCountDto(new ReactionResponseDto(entry.getKey()), entry.getValue()))
                 .toList();
+
+        System.out.println("→ Top 3 result:");
+        result.forEach(dto -> System.out.println("   - " + dto.getReactionType().getName() + ": " + dto.getCount()));
 
         redisReactionTemplate.opsForValue().set(cacheKey, result, CACHE_TTL);
         return result;
