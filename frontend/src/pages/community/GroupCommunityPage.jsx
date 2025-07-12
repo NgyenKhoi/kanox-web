@@ -170,7 +170,7 @@ export default function GroupCommunityPage() {
     const handleApproveRequest = async (userId) => {
         try {
             const res = await fetch(
-                `${process.env.REACT_APP_API_URL}/groups/${groupId}/approve-join-request?userId=${userId}&adminUsername=${user.username}`,
+                `${process.env.REACT_APP_API_URL}/groups/${groupId}/approve-request?userId=${userId}&adminUsername=${user.username}`,
                 {
                     method: "POST",
                     headers: { Authorization: `Bearer ${token}` },
@@ -184,10 +184,11 @@ export default function GroupCommunityPage() {
         }
     };
 
+
     const handleRejectRequest = async (userId) => {
         try {
             const res = await fetch(
-                `${process.env.REACT_APP_API_URL}/groups/${groupId}/reject-join-request?userId=${userId}&adminUsername=${user.username}`,
+                `${process.env.REACT_APP_API_URL}/groups/${groupId}/reject-request?userId=${userId}&adminUsername=${user.username}`,
                 {
                     method: "POST",
                     headers: { Authorization: `Bearer ${token}` },

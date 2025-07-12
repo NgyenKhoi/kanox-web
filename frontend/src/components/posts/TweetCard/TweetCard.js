@@ -746,55 +746,58 @@ function TweetCard({ tweet, onPostUpdate }) {
                       ].join(" ")}
                   >
                     <div className="d-flex align-items-center gap-1">
-                      {topReactions.map(({ emoji, name }) => (
-                          <OverlayTrigger
-                              key={name}
-                              placement="top"
-                              delay={{ show: 250, hide: 200 }}
-                              overlay={
-                                <Popover id={`popover-${name}`}>
-                                  <Popover.Header as="h3">
-                                    {emoji} {name}
-                                  </Popover.Header>
-                                  <Popover.Body>
-                                    {!reactionUserMap[name] ? (
-                                        <div>Đang tải...</div>
-                                    ) : reactionUserMap[name]?.length > 0 ? (
-                                        reactionUserMap[name].slice(0, 5).map((u, idx) => (
-                                            <div key={idx}>{u.displayName || u.username}</div>
-                                        ))
-                                    ) : (
-                                        <div>Chưa có ai</div>
-                                    )}
-                                    {reactionUserMap[name]?.length > 5 && (
-                                        <div className="text-muted small mt-1">
-                                          +{reactionUserMap[name].length - 5} người khác
-                                        </div>
-                                    )}
-                                  </Popover.Body>
-                                </Popover>
-                              }
-                          >
-                      <span
-                          onMouseEnter={() => {
-                            if (!reactionUserMap[name]) {
-                              fetchUsersByReaction(name);
-                            }
-                          }}
-                          onClick={() => {
-                            if (name) {
-                              setSelectedEmojiName(name);
-                              setShowReactionUserModal(true);
-                            } else {
-                              toast.error("Tên emoji không hợp lệ!");
-                            }
-                          }}
-                          style={{ fontSize: "1.2rem", cursor: "pointer", marginRight: "4px" }}
-                      >
-                        {emoji}
-                      </span>
-                          </OverlayTrigger>
-                      ))}
+                      {topReactions.map(({ reactionType, count }) => {
+                        const { emoji, name } = reactionType;
+                        return (
+                            <OverlayTrigger
+                                key={name}
+                                placement="top"
+                                delay={{ show: 250, hide: 200 }}
+                                overlay={
+                                  <Popover id={`popover-${name}`}>
+                                    <Popover.Header as="h3">
+                                      {emoji} {name}
+                                    </Popover.Header>
+                                    <Popover.Body>
+                                      {!reactionUserMap[name] ? (
+                                          <div>Đang tải...</div>
+                                      ) : reactionUserMap[name]?.length > 0 ? (
+                                          reactionUserMap[name].slice(0, 5).map((u, idx) => (
+                                              <div key={idx}>{u.displayName || u.username}</div>
+                                          ))
+                                      ) : (
+                                          <div>Chưa có ai</div>
+                                      )}
+                                      {reactionUserMap[name]?.length > 5 && (
+                                          <div className="text-muted small mt-1">
+                                            +{reactionUserMap[name].length - 5} người khác
+                                          </div>
+                                      )}
+                                    </Popover.Body>
+                                  </Popover>
+                                }
+                            >
+      <span
+          onMouseEnter={() => {
+            if (!reactionUserMap[name]) {
+              fetchUsersByReaction(name);
+            }
+          }}
+          onClick={() => {
+            if (name) {
+              setSelectedEmojiName(name);
+              setShowReactionUserModal(true);
+            } else {
+              toast.error("Tên emoji không hợp lệ!");
+            }
+          }}
+          style={{ fontSize: "1.2rem", cursor: "pointer", marginRight: "4px" }}
+      >
+        {emoji}
+      </span>
+                            </OverlayTrigger>
+                        );
+                      })}
                       {totalCount > 0 && (
                           <span className="text-[var(--text-color-muted)] ms-1">{totalCount}</span>
                       )}
