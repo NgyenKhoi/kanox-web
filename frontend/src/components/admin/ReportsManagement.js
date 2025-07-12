@@ -288,7 +288,9 @@ const ReportsManagement = () => {
                                         {report.targetTypeId === 1 ? "Bài đăng" : "Người dùng"}
                                     </td>
                                     <td className="p-3 text-text dark:text-white">{report.targetId}</td>
-                                    <td className="p-3 text-text dark:text-white">{report.reason?.name || "Không xác định"}</td>
+                                    <td className="p-3 text-text dark:text-white">{typeof report.reason === "string"
+                                        ? report.reason
+                                        : report.reason?.name || "Không xác định"}</td>
                                     <td className="p-3">
                                 <span
                                     className={`px-2 py-1 rounded-full text-sm font-medium ${

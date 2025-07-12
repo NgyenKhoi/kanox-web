@@ -79,8 +79,16 @@ public class ReportService {
             Report report = reportRepository.findById(reportId)
                     .orElseThrow(() -> new IllegalArgumentException("Report not found with id: " + reportId));
 
-            ReportResponseDto dto = convertToReportResponseDto(report);
-            messagingTemplate.convertAndSend("/topic/admin/reports", dto);
+            messagingTemplate.convertAndSend("/topic/admin/reports", Map.of(
+                    "id", reportId,
+                    "targetId", request.getTargetId(),
+                    "targetTypeId", request.getTargetTypeId(),
+                    "reporterUsername", reporter.getUsername(),
+                    "reason", reason.getName(),
+                    "createdAt", System.currentTimeMillis() / 1000,
+                    "processingStatusId", status.getId(),
+                    "processingStatusName", status.getName()
+            ));
 
             ReportHistory history = new ReportHistory();
             history.setReporter(reporter);
