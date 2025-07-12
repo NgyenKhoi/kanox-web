@@ -154,6 +154,11 @@ public class ReportService {
                 .orElseThrow(() -> new IllegalArgumentException("Report status not found with id: " + request.getProcessingStatusId()));
 
         try {
+            System.out.println("=== [DEBUG] Calling sp_UpdateReportStatus ===");
+            System.out.println("reportId = " + reportId);
+            System.out.println("adminId = " + admin.getId());
+            System.out.println("statusId = " + request.getProcessingStatusId());
+
             reportRepository.updateReportStatus(reportId, admin.getId(), request.getProcessingStatusId());
 
             String message;
@@ -227,9 +232,13 @@ public class ReportService {
                     );
                 }
             }
-        } catch (DataAccessException e) {
-            String errorMessage = e.getCause() instanceof SQLException ? e.getCause().getMessage() : "Failed to update report status";
-            throw new RuntimeException("Failed to update report status: " + errorMessage);
+        } catch (Exception e) {
+            e.printStackTrace(); // In chi tiết lỗi ra console
+            String message = e.getCause() instanceof SQLException
+                    ? e.getCause().getMessage()
+                    : e.getMessage();
+
+            throw new RuntimeException("❌ Lỗi khi cập nhật trạng thái báo cáo: " + message);
         }
     }
 
