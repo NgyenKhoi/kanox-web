@@ -11,9 +11,6 @@ import com.example.social_media.repository.ReactionRepository;
 import com.example.social_media.repository.ReactionTypeRepository;
 import com.example.social_media.repository.TargetTypeRepository;
 import com.example.social_media.repository.UserRepository;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,7 +29,6 @@ public class ReactionService {
     private final MediaService mediaService;
 
     private static final Set<String> MAIN_REACTIONS = Set.of("like", "love", "smile", "sad", "wow", "angry", "sleepy");
-    private static final Duration CACHE_TTL = Duration.ofMinutes(5);
 
     public ReactionService(ReactionRepository reactionRepository,
                            ReactionTypeRepository reactionTypeRepository,
@@ -45,7 +41,6 @@ public class ReactionService {
         this.targetTypeRepository = targetTypeRepository;
         this.mediaService = mediaService;
     }
-    @CacheEvict(value = "reactionTop3", key = "'reaction:top3:' + #targetTypeCode + ':' + #targetId")
     public void addOrUpdateReaction(Integer userId, Integer targetId, String targetTypeCode, String emojiName) {
         TargetType targetType = getTargetTypeByCode(targetTypeCode);
         ReactionType reactionType = reactionTypeRepository.findByNameIgnoreCase(emojiName.trim())
@@ -73,14 +68,12 @@ public class ReactionService {
         }
     }
 
-    @CacheEvict(value = "reactionTop3", key = "'reaction:top3:' + #targetTypeCode + ':' + #targetId")
     @Transactional
     public void removeReaction(Integer userId, Integer targetId, String targetTypeCode) {
         TargetType targetType = getTargetTypeByCode(targetTypeCode);
         reactionRepository.deleteByIdUserIdAndIdTargetIdAndIdTargetTypeId(userId, targetId, targetType.getId());
     }
 
-    @Cacheable(value = "reactionTop3", key = "'reaction:top3:' + #targetTypeCode + ':' + #targetId")
     public List<ReactionTypeCountDto> getTop3Reactions(Integer targetId, String targetTypeCode) {
         System.out.println("[DB FETCH] Getting top3 reactions for targetId=" + targetId + ", type=" + targetTypeCode);
 
