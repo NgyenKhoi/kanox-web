@@ -138,12 +138,13 @@ function SettingsPage() {
             if (!generalRes.ok || !profileRes.ok) {
                 throw new Error("Không thể lấy cài đặt quyền riêng tư.");
             }
+            console.log("generalData", generalData);
 
             setSettings({
-                postVisibility: generalData.data.postVisibility || "public",
-                commentPermission: generalData.data.commentPermission || "public",
-                profileViewer: profileData.data.profilePrivacySetting || "public",
-                customListId: profileData.data.customListId || null,
+                postVisibility: generalData.data?.postVisibility ?? "public",
+                commentPermission: generalData.data?.commentPermission ?? "public",
+                profileViewer: profileData.data?.profilePrivacySetting ?? "public",
+                customListId: profileData.data?.customListId ?? null,
             });
         } catch (error) {
             console.error("Lỗi khi lấy cài đặt:", error);
