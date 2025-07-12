@@ -14,41 +14,43 @@ export default function useReaction({
     const [reactionUserMap, setReactionUserMap] = useState({});
     const { emojiMap } = useEmojiMap();
     const token = localStorage.getItem("token");
+    const [hasFetchedSummary, setHasFetchedSummary] = useState(false);
+
+    const fetchSummary = async () => {
+        try {
+            const res = await fetch(
+                `${process.env.REACT_APP_API_URL}/reactions/summary?targetId=${targetId}&targetTypeCode=${targetTypeCode}`,
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            if (!res.ok) throw new Error("Không thể lấy summary reactions.");
+            const data = await res.json();
+
+            setReactionCountMap(data.countMap || {});
+            setTopReactions(
+                (data.topReactions || []).map((item) => ({
+                    name: item.reactionType.name,
+                    emoji: item.reactionType.emoji,
+                    count: item.count,
+                }))
+            );
+            setHasFetchedSummary(true);
+        } catch (err) {
+            console.error("Lỗi khi lấy summary reactions:", err.message);
+        }
+    };
 
     useEffect(() => {
-        if (!user?.id || !targetId || !targetTypeCode || !token) return;
+        if (!user?.id || !targetId || !targetTypeCode || !token || hasFetchedSummary) return;
 
         if (initialReactionCountMap && Object.keys(initialReactionCountMap).length > 0) {
             console.debug("[useReaction] Bỏ qua gọi API summary vì đã có initialReactionCountMap");
+            setHasFetchedSummary(true);
             return;
         }
 
-        const fetchSummary = async () => {
-            try {
-                const res = await fetch(
-                    `${process.env.REACT_APP_API_URL}/reactions/summary?targetId=${targetId}&targetTypeCode=${targetTypeCode}`,
-                    { headers: { Authorization: `Bearer ${token}` } }
-                );
-
-                if (!res.ok) throw new Error("Không thể lấy summary reactions.");
-
-                const data = await res.json();
-
-                setReactionCountMap(data.countMap || {});
-                setTopReactions(
-                    (data.topReactions || []).map((item) => ({
-                        name: item.reactionType.name,
-                        emoji: item.reactionType.emoji,
-                        count: item.count,
-                    }))
-                );
-            } catch (err) {
-                console.error("Lỗi khi lấy summary reactions:", err.message);
-            }
-        };
-
         fetchSummary();
-    }, [user?.id, targetId, targetTypeCode, token, initialReactionCountMap]);
+    }, [user?.id, targetId, targetTypeCode, token, hasFetchedSummary, initialReactionCountMap]);
 
     const fetchUsersByReaction = async (emojiName) => {
         if (reactionUserMap[emojiName]) return;
@@ -83,7 +85,7 @@ export default function useReaction({
             return;
         }
 
-        if (currentEmoji === emoji) {
+        if (currentEmoji?.name === reactionName) {
             await removeReaction();
             return;
         }
@@ -103,6 +105,7 @@ export default function useReaction({
 
             setTimeout(() => {
                 fetchUsersByReaction(reactionName);
+                fetchSummary();
             }, 300);
         } catch (err) {
             toast.error(err.message);
@@ -126,6 +129,7 @@ export default function useReaction({
             // reload summary sau khi gỡ
             setTimeout(() => {
                 fetchUsersByReaction(currentEmoji?.name);
+                fetchSummary();
             }, 300);
         } catch (err) {
             toast.error(err.message);
