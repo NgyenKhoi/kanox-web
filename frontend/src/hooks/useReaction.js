@@ -15,6 +15,7 @@ export default function useReaction({
     const { emojiMap } = useEmojiMap();
     const token = localStorage.getItem("token");
     const [hasFetchedSummary, setHasFetchedSummary] = useState(false);
+    const emojiMapReady = emojiMap && Object.keys(emojiMap).length > 0;
 
     const fetchSummary = async () => {
         try {
@@ -41,16 +42,27 @@ export default function useReaction({
     };
 
     useEffect(() => {
-        if (!user?.id || !targetId || !targetTypeCode || !token || hasFetchedSummary) return;
+        if (!user?.id || !targetId || !targetTypeCode || !token || hasFetchedSummary || !emojiMapReady) return;
 
         if (initialReactionCountMap && Object.keys(initialReactionCountMap).length > 0) {
             console.debug("[useReaction] Bỏ qua gọi API summary vì đã có initialReactionCountMap");
+            setReactionCountMap(initialReactionCountMap);
+
+            const top = Object.entries(initialReactionCountMap)
+                .map(([name, count]) => ({
+                    name,
+                    emoji: emojiMap[name]?.emoji || name,
+                    count,
+                }))
+                .sort((a, b) => b.count - a.count);
+
+            setTopReactions(top);
             setHasFetchedSummary(true);
             return;
         }
 
         fetchSummary();
-    }, [user?.id, targetId, targetTypeCode, token, hasFetchedSummary, initialReactionCountMap]);
+    }, [user?.id, targetId, targetTypeCode, token, hasFetchedSummary, initialReactionCountMap, emojiMapReady]);
 
     const fetchUsersByReaction = async (emojiName) => {
         if (reactionUserMap[emojiName]) return;
