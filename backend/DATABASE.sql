@@ -2532,6 +2532,7 @@ WHERE definition LIKE '%friendship%';
 			END
 
 			-- Check content access
+			/*
 			DECLARE @has_access BIT;
 			EXEC sp_CheckContentAccess @reporter_id, @target_id, @target_type_id, @has_access OUTPUT;
 			IF @has_access = 0
@@ -2539,7 +2540,7 @@ WHERE definition LIKE '%friendship%';
 				RAISERROR('User does not have permission to report this content.', 16, 1);
 				RETURN;
 			END
-
+			*/
 			-- Get owner_id based on target_type_id
 			DECLARE @owner_id INT;
 			SELECT @owner_id =
