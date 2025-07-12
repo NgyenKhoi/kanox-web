@@ -6,7 +6,30 @@ import moment from "moment";
 function NotificationItem({ notification, handleMarkRead, handleMarkUnread }) {
   const navigate = useNavigate();
 
-  const isRead = notification.status === "read"; // xác định trạng thái
+  const isRead = notification.status === "read";
+
+    const renderMessageWithGroupNameLink = () => {
+        const groupName = notification.groupName;
+        const message = notification.message;
+
+        if (notification.targetType === "GROUP" && groupName && message?.includes(groupName)) {
+            const parts = message.split(groupName);
+            return (
+                <p className="mb-1 text-[var(--text-color)]">
+                    {parts[0]}
+                    <span
+                        className="font-semibold text-[var(--primary-color)] cursor-pointer hover:underline"
+                        onClick={() => navigate(`/community/${notification.targetId}`)}
+                    >
+          {groupName}
+        </span>
+                    {parts[1]}
+                </p>
+            );
+        }
+
+        return <p className="mb-1 text-[var(--text-color)]">{message}</p>;
+    };
 
   const renderAvatar = () => (
       <img
@@ -66,7 +89,7 @@ function NotificationItem({ notification, handleMarkRead, handleMarkUnread }) {
             </div>
 
             <div className="mt-1 p-2 rounded-md hover:bg-black/5 dark:hover:bg-white/5 transition-colors duration-150">
-              <p className="mb-1">{notification.message}</p>
+                {renderMessageWithGroupNameLink()}
 
               {notification.tags?.length > 0 && (
                   <p className="text-[var(--primary-color)] text-sm mb-1">
