@@ -270,7 +270,11 @@ public class PrivacyService {
                 List.of() :
                 privacySettingRepository.findByUserIdIn(ownerIds);
         Map<Integer, String> ownerPrivacyMap = ownerPrivacySettings.stream()
-                .collect(Collectors.toMap(ps -> ps.getId(), ps -> ps.getPostViewer(), (p1, p2) -> p1));
+                .collect(Collectors.toMap(
+                        ps -> ps.getId(),
+                        ps -> Optional.ofNullable(ps.getPostViewer()).orElse("public"),
+                        (p1, p2) -> p1
+                ));
 
         // Lấy danh sách thành viên danh sách tùy chỉnh
         List<Integer> customListIds = contentPrivacies.stream()
@@ -288,7 +292,7 @@ public class PrivacyService {
         Map<Integer, Boolean> accessMap = new HashMap<>();
         for (Integer contentId : contentIds) {
             if (!contentOwnerMap.containsKey(contentId)) {
-                accessMap.put(contentId, false);
+                accessMap.put(contentId, true);
                 continue;
             }
 
@@ -304,7 +308,6 @@ public class PrivacyService {
             if (privacySetting == null) {
                 privacySetting = ownerPrivacyMap.getOrDefault(ownerId, "public");
             }
-
             switch (privacySetting) {
                 case "public":
                     accessMap.put(contentId, true);

@@ -323,12 +323,12 @@ public class PostService {
         // 4. Lọc và trả về DTO
         return posts.stream()
                 .filter(post -> !hiddenPostIds.contains(post.getId()))
-                .filter(post -> accessMap.getOrDefault(post.getId(), false))
                 .filter(post -> {
+                    boolean access = accessMap.getOrDefault(post.getId(), false);
                     Group group = post.getGroup();
-                    if (group == null) return true;
+                    if (group == null) return access;
                     if ("public".equalsIgnoreCase(group.getPrivacyLevel())) return true;
-                    return joinedGroupIds.contains(group.getId());
+                    return joinedGroupIds.contains(group.getId()) && access;
                 })
                 .map(post -> convertToDto(post, user.getId(), savedPostIds, postTagsMap, mediaMap, reactionCountMap))
                 .toList();
