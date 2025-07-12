@@ -154,12 +154,10 @@ function SettingsPage() {
     };
 
     useEffect(() => {
-        // if (!user) {
-        //     navigate("/");
-        //     return;
-        // }
-        fetchPrivacySettings();
-    }, [user, navigate]);
+        if (user && user.username) {
+            fetchPrivacySettings();
+        }
+    }, [user]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
