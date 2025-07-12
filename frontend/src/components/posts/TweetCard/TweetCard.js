@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect, useRef } from "react";
+import React, { useState, useContext, useEffect, useRef, useMemo } from "react";
 import {
   Card,
   Button,
@@ -100,12 +100,13 @@ function TweetCard({ tweet, onPostUpdate }) {
   const [reportReasonId, setReportReasonId] = useState("");
   const [reasons, setReasons] = useState([]);
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
+  const memoizedInitialReactionCountMap = useMemo(() => tweet.reactionCountMap || {}, [tweet.reactionCountMap]);
 
   const currentUserId = user?.id;
   const ownerId = owner?.id || null;
   const postId = id || null;
   const targetTypeId = tweet?.targetTypeId || 1;
-  
+
   const avatarMedia = useMedia([ownerId], "PROFILE", "image");
   const { imageData, videoData } = usePostMedia(postId);
   const avatarData = !loading && token && ownerId ? avatarMedia.mediaData : {};
@@ -127,7 +128,12 @@ function TweetCard({ tweet, onPostUpdate }) {
     removeReaction,
     fetchUsersByReaction,
     reactionUserMap,
-  } = useReaction({ user, targetId: tweet.id, targetTypeCode: "POST" });
+  } = useReaction({
+    user,
+    targetId: tweet.id,
+    targetTypeCode: "POST",
+    initialReactionCountMap: memoizedInitialReactionCountMap,
+  });
 
   const totalCount = Object.values(reactionCountMap).reduce((sum, count) => sum + count, 0);
 
@@ -740,55 +746,55 @@ function TweetCard({ tweet, onPostUpdate }) {
                       ].join(" ")}
                   >
                     <div className="d-flex align-items-center gap-1">
-                      {topReactions.map(({ emoji, name }) => (
-                          <OverlayTrigger
-                              key={name}
-                              placement="top"
-                              delay={{ show: 250, hide: 200 }}
-                              overlay={
-                                <Popover id={`popover-${name}`}>
-                                  <Popover.Header as="h3">
-                                    {emoji} {name}
-                                  </Popover.Header>
-                                  <Popover.Body>
-                                    {!reactionUserMap[name] ? (
-                                        <div>Đang tải...</div>
-                                    ) : reactionUserMap[name]?.length > 0 ? (
-                                        reactionUserMap[name].slice(0, 5).map((u, idx) => (
-                                            <div key={idx}>{u.displayName || u.username}</div>
-                                        ))
-                                    ) : (
-                                        <div>Chưa có ai</div>
-                                    )}
-                                    {reactionUserMap[name]?.length > 5 && (
-                                        <div className="text-muted small mt-1">
-                                          +{reactionUserMap[name].length - 5} người khác
-                                        </div>
-                                    )}
-                                  </Popover.Body>
-                                </Popover>
-                              }
-                          >
-                      <span
-                          onMouseEnter={() => {
-                            if (!reactionUserMap[name]) {
-                              fetchUsersByReaction(name);
-                            }
-                          }}
-                          onClick={() => {
-                            if (name) {
-                              setSelectedEmojiName(name);
-                              setShowReactionUserModal(true);
-                            } else {
-                              toast.error("Tên emoji không hợp lệ!");
-                            }
-                          }}
-                          style={{ fontSize: "1.2rem", cursor: "pointer", marginRight: "4px" }}
-                      >
+                      {topReactions.length > 0 ? (
+                          topReactions.map(({ name, emoji, count }) => (
+                              <OverlayTrigger
+                                  key={name}
+                                  placement="top"
+                                  delay={{ show: 250, hide: 200 }}
+                                  overlay={
+                                    <Popover id={`popover-${name}`}>
+                                      <Popover.Header as="h3">
+                                        {emoji} {name}
+                                      </Popover.Header>
+                                      <Popover.Body>
+                                        {!reactionUserMap[name] ? (
+                                            <div>Đang tải...</div>
+                                        ) : reactionUserMap[name]?.length > 0 ? (
+                                            reactionUserMap[name].slice(0, 5).map((u, idx) => (
+                                                <div key={idx}>{u.displayName || u.username}</div>
+                                            ))
+                                        ) : (
+                                            <div>Chưa có ai</div>
+                                        )}
+                                        {reactionUserMap[name]?.length > 5 && (
+                                            <div className="text-muted small mt-1">
+                                              +{reactionUserMap[name].length - 5} người khác
+                                            </div>
+                                        )}
+                                      </Popover.Body>
+                                    </Popover>
+                                  }
+                              >
+                    <span
+                        onMouseEnter={() => {
+                          if (!reactionUserMap[name]) {
+                            fetchUsersByReaction(name);
+                          }
+                        }}
+                        onClick={() => {
+                          setSelectedEmojiName(name);
+                          setShowReactionUserModal(true);
+                        }}
+                        style={{ fontSize: "1.2rem", cursor: "pointer", marginRight: "4px" }}
+                    >
                         {emoji}
-                      </span>
-                          </OverlayTrigger>
-                      ))}
+                    </span>
+                              </OverlayTrigger>
+                          ))
+                      ) : (
+                          <span className="text-[var(--text-color-muted)]">Chưa có reaction</span>
+                      )}
                       {totalCount > 0 && (
                           <span className="text-[var(--text-color-muted)] ms-1">{totalCount}</span>
                       )}
@@ -854,7 +860,12 @@ function TweetCard({ tweet, onPostUpdate }) {
                   </OverlayTrigger>
                 </div>
                 <div className="text-center">
-                  <ReactionButtonGroup user={user} targetId={postId} targetTypeCode="POST" />
+                  <ReactionButtonGroup
+                      user={user}
+                      targetId={tweet.id}
+                      targetTypeCode="POST"
+                      initialReactionCountMap={tweet.reactionCountMap}
+                  />
                 </div>
                 <div className="text-center">
                   <OverlayTrigger placement="top" overlay={<Tooltip>Chia sẻ</Tooltip>}>

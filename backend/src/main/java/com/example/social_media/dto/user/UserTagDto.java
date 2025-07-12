@@ -1,19 +1,15 @@
 package com.example.social_media.dto.user;
 
-import com.example.social_media.entity.User;
+import java.io.Serializable;
 
-public class UserTagDto {
+public class UserTagDto implements Serializable {
+    private static final long serialVersionUID = 1L;
     private Integer id;
     private String username;
     private String displayName;
 
     public UserTagDto() {}
 
-    public UserTagDto(User user) {
-        this.id = user.getId();
-        this.username = user.getUsername();
-        this.displayName = user.getDisplayName();
-    }
 
     public UserTagDto(Integer id, String username, String displayName) {
         this.id = id;

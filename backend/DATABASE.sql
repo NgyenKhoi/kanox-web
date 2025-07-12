@@ -1467,6 +1467,19 @@ GO
         status BIT DEFAULT 1,
         CONSTRAINT FK_Comment_Parent FOREIGN KEY (parent_comment_id) REFERENCES tblComment(id),
     );
+	--THIS ALL INDEX IS RELATED TO OPTIMIZE POST--
+	CREATE NONCLUSTERED INDEX idx_post_status_created_at ON tblPost (status, created_at);
+	CREATE NONCLUSTERED INDEX idx_post_owner_status ON tblPost (owner_id, status);
+	CREATE NONCLUSTERED INDEX idx_post_group_status ON tblPost (group_id, status);
+	--index for hiddenPost
+	CREATE NONCLUSTERED INDEX idx_hidden_post_user_status ON tblHiddenPost (user_id, status) INCLUDE (post_id);
+	--index for comment
+	CREATE NONCLUSTERED INDEX idx_comment_post_status ON tblComment (post_id, status) INCLUDE (id, content, user_id, created_at, updated_at, parent_comment_id);
+	--index for reaction
+	CREATE NONCLUSTERED INDEX idx_reaction_target_type_status ON tblReaction (target_id, target_type_id, status) INCLUDE (reaction_type_id);
+	--index for privacy
+	CREATE NONCLUSTERED INDEX idx_content_privacy_content_type ON tblContentPrivacy (content_id, content_type_id) INCLUDE (privacy_setting, custom_list_id);
+
 
     -----------------------PROC FOR CREATE COMMENT----------------------------
 

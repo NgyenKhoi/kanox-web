@@ -318,14 +318,33 @@ public class AuthController {
     }
 
     @PostMapping("/change-password")
-    public ResponseEntity<?> changePassword(@RequestBody ChangePasswordRequestDto request, @AuthenticationPrincipal User user) {
+    public ResponseEntity<?> changePassword(@RequestHeader("Authorization") String authHeader,
+                                            @RequestBody ChangePasswordRequestDto request) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(401).body("Missing or invalid Authorization header");
+        }
+
+        String token = authHeader.substring(7);
+        String username = jwtService.extractUsername(token);
+        User user = authService.getUserByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
         authService.changePassword(user, request.getCurrentPassword(), request.getNewPassword(), request.getConfirmPassword());
         return ResponseEntity.ok("Đổi mật khẩu thành công");
     }
 
     @PostMapping("/send-verification-email")
-    public ResponseEntity<?> sendVerificationEmail(@RequestBody Map<String, String> req,
-                                                   @AuthenticationPrincipal User user) {
+    public ResponseEntity<?> sendVerificationEmail(@RequestHeader("Authorization") String authHeader,
+                                                   @RequestBody Map<String, String> req) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(401).body("Missing or invalid Authorization header");
+        }
+
+        String token = authHeader.substring(7);
+        String username = jwtService.extractUsername(token);
+        User user = authService.getUserByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
         String email = req.get("email");
         authService.sendVerificationEmail(email, user);
         return ResponseEntity.ok("Gửi email xác minh thành công");

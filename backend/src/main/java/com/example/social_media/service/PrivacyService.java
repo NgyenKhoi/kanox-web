@@ -10,8 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -236,5 +235,95 @@ public class PrivacyService {
     public Integer getContentOwnerId(Integer contentId) {
         return contentPrivacyRepository.findOwnerIdByContentId(contentId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy chủ sở hữu nội dung"));
+    }
+
+    public Map<Integer, Boolean> checkContentAccessBatch(Integer viewerId, List<Integer> contentIds, String targetTypeCode) {
+        logger.debug("Kiểm tra quyền truy cập hàng loạt cho viewerId: {}, contentIds: {}, targetTypeCode: {}", viewerId, contentIds, targetTypeCode);
+
+        // Lấy TargetType
+        TargetType targetType = targetTypeRepository.findByCode(targetTypeCode)
+                .orElseThrow(() -> new IllegalArgumentException("Loại mục tiêu không hợp lệ: " + targetTypeCode));
+
+        // Lấy thông tin viewer
+        User viewer = userRepository.findById(viewerId)
+                .orElseThrow(() -> new UserNotFoundException("Không tìm thấy người xem với id: " + viewerId));
+
+        // Lấy danh sách ContentPrivacy cho các contentIds
+        List<ContentPrivacy> contentPrivacies = contentPrivacyRepository.findByContentIdsAndContentTypeId(contentIds, targetType.getId());
+        Map<Integer, ContentPrivacy> contentPrivacyMap = contentPrivacies.stream()
+                .collect(Collectors.toMap(cp -> cp.getId().getContentId(), cp -> cp));
+
+        // Lấy danh sách ownerId cho các contentIds
+        List<Object[]> ownerResults = contentPrivacyRepository.findOwnerIdsByContentIds(contentIds);
+        Map<Integer, Integer> contentOwnerMap = ownerResults.stream()
+                .collect(Collectors.toMap(
+                        result -> (Integer) result[0], // contentId
+                        result -> (Integer) result[1]  // ownerId
+                ));
+
+        // Lấy danh sách ID bạn bè của viewer
+        List<Integer> friendIds = friendshipRepository.findFriendIdsByUserIdAndStatus(viewerId, "accepted");
+
+        // Lấy cài đặt quyền riêng tư cho tất cả owner
+        List<Integer> ownerIds = new ArrayList<>(new HashSet<>(contentOwnerMap.values()));
+        List<PrivacySetting> ownerPrivacySettings = ownerIds.isEmpty() ?
+                List.of() :
+                privacySettingRepository.findByUserIdIn(ownerIds);
+        Map<Integer, String> ownerPrivacyMap = ownerPrivacySettings.stream()
+                .collect(Collectors.toMap(ps -> ps.getId(), ps -> ps.getPostViewer(), (p1, p2) -> p1));
+
+        // Lấy danh sách thành viên danh sách tùy chỉnh
+        List<Integer> customListIds = contentPrivacies.stream()
+                .filter(cp -> cp.getCustomList() != null)
+                .map(cp -> cp.getCustomList().getId())
+                .distinct()
+                .collect(Collectors.toList());
+        List<CustomPrivacyListMember> customListMembers = customListIds.isEmpty() ?
+                List.of() :
+                customPrivacyListMemberRepository.findByListIdsAndMemberUserIdAndStatus(customListIds, viewerId);
+        Set<Integer> accessibleCustomListIds = customListMembers.stream()
+                .map(m -> m.getList().getId())
+                .collect(Collectors.toSet());
+
+        Map<Integer, Boolean> accessMap = new HashMap<>();
+        for (Integer contentId : contentIds) {
+            if (!contentOwnerMap.containsKey(contentId)) {
+                accessMap.put(contentId, false);
+                continue;
+            }
+
+            Integer ownerId = contentOwnerMap.get(contentId);
+            if (Objects.equals(viewerId, ownerId)) {
+                accessMap.put(contentId, true);
+                continue;
+            }
+
+            ContentPrivacy contentPrivacy = contentPrivacyMap.get(contentId);
+            String privacySetting = contentPrivacy != null ? contentPrivacy.getPrivacySetting() : null;
+
+            if (privacySetting == null) {
+                privacySetting = ownerPrivacyMap.getOrDefault(ownerId, "public");
+            }
+
+            switch (privacySetting) {
+                case "public":
+                    accessMap.put(contentId, true);
+                    break;
+                case "friends":
+                    accessMap.put(contentId, friendIds.contains(ownerId));
+                    break;
+                case "custom":
+                    boolean isInCustomList = contentPrivacy != null && contentPrivacy.getCustomList() != null &&
+                            accessibleCustomListIds.contains(contentPrivacy.getCustomList().getId());
+                    accessMap.put(contentId, isInCustomList);
+                    break;
+                case "only_me":
+                    accessMap.put(contentId, false);
+                    break;
+                default:
+                    accessMap.put(contentId, true);
+            }
+        }
+        return accessMap;
     }
 }

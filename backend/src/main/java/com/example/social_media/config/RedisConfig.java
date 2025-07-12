@@ -1,7 +1,6 @@
 package com.example.social_media.config;
 
 import com.example.social_media.dto.comment.CommentResponseDto;
-import com.example.social_media.dto.media.MediaDto;
 import com.example.social_media.dto.message.MessageDto;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
