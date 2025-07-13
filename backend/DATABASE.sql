@@ -1480,218 +1480,7 @@ GO
 	--index for privacy
 	CREATE NONCLUSTERED INDEX idx_content_privacy_content_type ON tblContentPrivacy (content_id, content_type_id) INCLUDE (privacy_setting, custom_list_id);
 
-
-    -----------------------PROC FOR CREATE COMMENT----------------------------
-
-    CREATE PROCEDURE sp_CreateComment
-        @user_id INT,
-        @post_id INT,
-        @parent_comment_id INT = NULL,
-        @content NVARCHAR(1000),
-        @privacy_setting VARCHAR(20),
-        @custom_list_id INT = NULL,
-        @new_comment_id INT OUTPUT
-    AS
-    BEGIN
-        SET NOCOUNT ON;
-        DECLARE @has_access BIT;
-        DECLARE @parent_comment_owner_id INT;
-
-        -- Kiểm tra user_id và post_id
-        IF NOT EXISTS (SELECT 1 FROM tblUser WHERE id = @user_id AND status = 1)
-        BEGIN
-            RAISERROR('Invalid or inactive user_id.', 16, 1);
-            RETURN;
-        END
-
-        IF NOT EXISTS (SELECT 1 FROM tblPost WHERE id = @post_id AND status = 1)
-        BEGIN
-            RAISERROR('Invalid or inactive post_id.', 16, 1);
-            RETURN;
-        END
-
-        -- Kiểm tra quyền truy cập bài viết
-        EXEC sp_CheckContentAccess @user_id, @post_id, 1, @has_access OUTPUT;
-        IF @has_access = 0
-        BEGIN
-            RAISERROR('User does not have permission to comment on this post.', 16, 1);
-            RETURN;
-        END
-
-        -- Kiểm tra xem user_id có bị chặn bởi owner_id của bài viết không
-        IF EXISTS (
-            SELECT 1 FROM tblBlock
-            WHERE user_id = (SELECT owner_id FROM tblPost WHERE id = @post_id) AND blocked_user_id = @user_id AND status = 1
-        )
-        BEGIN
-            RAISERROR('User is blocked from commenting on this post.', 16, 1);
-            RETURN;
-        END
-
-        -- Kiểm tra parent_comment_id
-        IF @parent_comment_id IS NOT NULL
-        BEGIN
-            IF NOT EXISTS (SELECT 1 FROM tblComment WHERE id = @parent_comment_id AND status = 1)
-            BEGIN
-                RAISERROR('Invalid or inactive parent_comment_id.', 16, 1);
-                RETURN;
-            END
-
-            -- Lấy user_id của parent_comment
-            SELECT @parent_comment_owner_id = user_id FROM tblComment WHERE id = @parent_comment_id;
-
-            -- Kiểm tra xem user_id có bị chặn bởi user_id của parent_comment không
-            IF EXISTS (
-                SELECT 1 FROM tblBlock
-                WHERE user_id = @parent_comment_owner_id AND blocked_user_id = @user_id AND status = 1
-            )
-            BEGIN
-                RAISERROR('User is blocked from replying to this comment.', 16, 1);
-                RETURN;
-            END
-        END
-
-        -- Kiểm tra content
-        IF @content IS NULL OR LTRIM(RTRIM(@content)) = ''
-        BEGIN
-            RAISERROR('Content cannot be empty.', 16, 1);
-            RETURN;
-        END
-
-        -- Kiểm tra từ khóa bị cấm
-        IF EXISTS (
-            SELECT 1 FROM tblBannedKeyword bk
-            WHERE @content LIKE '%' + bk.keyword + '%' AND bk.status = 1
-        )
-        BEGIN
-            RAISERROR('Content contains banned keywords.', 16, 1);
-            RETURN;
-        END
-
-        -- Kiểm tra chính sách nội dung
-        DECLARE @policy_valid BIT;
-        EXEC sp_CheckContentPolicy @content, @policy_valid OUTPUT;
-        IF @policy_valid = 0
-        BEGIN
-            RAISERROR('Content violates platform policies.', 16, 1);
-            RETURN;
-        END
-
-        -- Kiểm tra privacy_setting
-        IF @privacy_setting NOT IN ('public', 'friends', 'only_me', 'custom', 'default')
-        BEGIN
-            RAISERROR('Invalid privacy_setting value.', 16, 1);
-            RETURN;
-        END
-
-        -- Kiểm tra custom_list_id
-        IF @privacy_setting = 'custom' AND (@custom_list_id IS NULL OR NOT EXISTS (
-            SELECT 1 FROM tblCustomPrivacyLists
-            WHERE id = @custom_list_id AND user_id = @user_id AND status = 1)
-        )
-        BEGIN
-            RAISERROR('Invalid or missing custom_list_id for custom privacy.', 16, 1);
-            RETURN;
-        END
-
-        -- Thêm bình luận
-        INSERT INTO tblComment (
-			parent_comment_id, user_id, post_id, content, privacy_setting, created_at, updated_at, status
-		)
-		VALUES (
-			@parent_comment_id, @user_id, @post_id, @content, @privacy_setting, GETDATE(), GETDATE(), 1
-		);
-
-        -- Lấy ID bình luận
-        SET @new_comment_id = SCOPE_IDENTITY();
-
-        -- Lưu quyền riêng tư
-        IF @privacy_setting != 'default'
-        BEGIN
-            INSERT INTO tblContentPrivacy (content_id, content_type_id, privacy_setting, custom_list_id, updated_at, status)
-            VALUES (@new_comment_id, 2, @privacy_setting, @custom_list_id, GETDATE(), 1);
-        END
-
-        -- Ghi log hoạt động
-        DECLARE @action_type_id INT;
-        SELECT @action_type_id = id FROM tblActionType WHERE name = 'COMMENT_CREATE';
-
-        EXEC sp_LogActivity @user_id, @action_type_id, NULL, NULL, 1, @new_comment_id, 'COMMENT';
-    END;
-
-	
-		CREATE PROCEDURE sp_UpdateComment
-			@comment_id INT,
-			@user_id INT,
-			@new_content NVARCHAR(1000)
-		AS
-		BEGIN
-			SET NOCOUNT ON;
-
-			DECLARE @existing_user_id INT;
-
-			-- Kiểm tra comment tồn tại và đang hoạt động
-			IF NOT EXISTS (SELECT 1 FROM tblComment WHERE id = @comment_id AND status = 1)
-			BEGIN
-				RAISERROR('Comment not found or inactive.', 16, 1);
-				RETURN;
-			END
-
-			-- Lấy user_id của comment
-			SELECT @existing_user_id = user_id FROM tblComment WHERE id = @comment_id;
-
-			-- Kiểm tra quyền chỉnh sửa
-			IF @existing_user_id != @user_id
-			BEGIN
-				RAISERROR('You are not authorized to update this comment.', 16, 1);
-				RETURN;
-			END
-
-			-- Kiểm tra content mới
-			IF @new_content IS NULL OR LTRIM(RTRIM(@new_content)) = ''
-			BEGIN
-				RAISERROR('Content cannot be empty.', 16, 1);
-				RETURN;
-			END
-
-			-- Kiểm tra từ khóa bị cấm
-			IF EXISTS (
-				SELECT 1 FROM tblBannedKeyword bk
-				WHERE @new_content LIKE '%' + bk.keyword + '%' AND bk.status = 1
-			)
-			BEGIN
-				RAISERROR('Content contains banned keywords.', 16, 1);
-				RETURN;
-			END
-
-			-- Kiểm tra chính sách nội dung
-			DECLARE @policy_valid BIT;
-			EXEC sp_CheckContentPolicy @new_content, @policy_valid OUTPUT;
-			IF @policy_valid = 0
-			BEGIN
-				RAISERROR('Content violates platform policies.', 16, 1);
-				RETURN;
-			END
-
-			-- Cập nhật comment
-			UPDATE tblComment
-			SET content = @new_content,
-				updated_at = GETDATE()
-			WHERE id = @comment_id;
-		END;
-
-    ---------------------------------------------------------------------
-
-    --CHAT
-
-    CREATE TABLE tblChat (
-        id INT PRIMARY KEY IDENTITY(1, 1),
-        is_group BIT DEFAULT 0,
-        name NVARCHAR(100) NULL,
-        created_at DATETIME DEFAULT GETDATE(),
-        status BIT DEFAULT 1
-    );
-    --------------PROC VALIDATE AND CREATE POST--------------
+	    --------------PROC VALIDATE AND CREATE POST--------------
 
 	CREATE OR ALTER PROCEDURE sp_CreatePost 
 		@owner_id INT,
@@ -2022,6 +1811,219 @@ GO
     END;
     ------------------------------------------
 
+
+    -----------------------PROC FOR CREATE COMMENT----------------------------
+
+    CREATE PROCEDURE sp_CreateComment
+        @user_id INT,
+        @post_id INT,
+        @parent_comment_id INT = NULL,
+        @content NVARCHAR(1000),
+        @privacy_setting VARCHAR(20),
+        @custom_list_id INT = NULL,
+        @new_comment_id INT OUTPUT
+    AS
+    BEGIN
+        SET NOCOUNT ON;
+        DECLARE @has_access BIT;
+        DECLARE @parent_comment_owner_id INT;
+
+        -- Kiểm tra user_id và post_id
+        IF NOT EXISTS (SELECT 1 FROM tblUser WHERE id = @user_id AND status = 1)
+        BEGIN
+            RAISERROR('Invalid or inactive user_id.', 16, 1);
+            RETURN;
+        END
+
+        IF NOT EXISTS (SELECT 1 FROM tblPost WHERE id = @post_id AND status = 1)
+        BEGIN
+            RAISERROR('Invalid or inactive post_id.', 16, 1);
+            RETURN;
+        END
+
+        -- Kiểm tra quyền truy cập bài viết
+        EXEC sp_CheckContentAccess @user_id, @post_id, 1, @has_access OUTPUT;
+        IF @has_access = 0
+        BEGIN
+            RAISERROR('User does not have permission to comment on this post.', 16, 1);
+            RETURN;
+        END
+
+        -- Kiểm tra xem user_id có bị chặn bởi owner_id của bài viết không
+        IF EXISTS (
+            SELECT 1 FROM tblBlock
+            WHERE user_id = (SELECT owner_id FROM tblPost WHERE id = @post_id) AND blocked_user_id = @user_id AND status = 1
+        )
+        BEGIN
+            RAISERROR('User is blocked from commenting on this post.', 16, 1);
+            RETURN;
+        END
+
+        -- Kiểm tra parent_comment_id
+        IF @parent_comment_id IS NOT NULL
+        BEGIN
+            IF NOT EXISTS (SELECT 1 FROM tblComment WHERE id = @parent_comment_id AND status = 1)
+            BEGIN
+                RAISERROR('Invalid or inactive parent_comment_id.', 16, 1);
+                RETURN;
+            END
+
+            -- Lấy user_id của parent_comment
+            SELECT @parent_comment_owner_id = user_id FROM tblComment WHERE id = @parent_comment_id;
+
+            -- Kiểm tra xem user_id có bị chặn bởi user_id của parent_comment không
+            IF EXISTS (
+                SELECT 1 FROM tblBlock
+                WHERE user_id = @parent_comment_owner_id AND blocked_user_id = @user_id AND status = 1
+            )
+            BEGIN
+                RAISERROR('User is blocked from replying to this comment.', 16, 1);
+                RETURN;
+            END
+        END
+
+        -- Kiểm tra content
+        IF @content IS NULL OR LTRIM(RTRIM(@content)) = ''
+        BEGIN
+            RAISERROR('Content cannot be empty.', 16, 1);
+            RETURN;
+        END
+
+        -- Kiểm tra từ khóa bị cấm
+        IF EXISTS (
+            SELECT 1 FROM tblBannedKeyword bk
+            WHERE @content LIKE '%' + bk.keyword + '%' AND bk.status = 1
+        )
+        BEGIN
+            RAISERROR('Content contains banned keywords.', 16, 1);
+            RETURN;
+        END
+
+        -- Kiểm tra chính sách nội dung
+        DECLARE @policy_valid BIT;
+        EXEC sp_CheckContentPolicy @content, @policy_valid OUTPUT;
+        IF @policy_valid = 0
+        BEGIN
+            RAISERROR('Content violates platform policies.', 16, 1);
+            RETURN;
+        END
+
+        -- Kiểm tra privacy_setting
+        IF @privacy_setting NOT IN ('public', 'friends', 'only_me', 'custom', 'default')
+        BEGIN
+            RAISERROR('Invalid privacy_setting value.', 16, 1);
+            RETURN;
+        END
+
+        -- Kiểm tra custom_list_id
+        IF @privacy_setting = 'custom' AND (@custom_list_id IS NULL OR NOT EXISTS (
+            SELECT 1 FROM tblCustomPrivacyLists
+            WHERE id = @custom_list_id AND user_id = @user_id AND status = 1)
+        )
+        BEGIN
+            RAISERROR('Invalid or missing custom_list_id for custom privacy.', 16, 1);
+            RETURN;
+        END
+
+        -- Thêm bình luận
+        INSERT INTO tblComment (
+			parent_comment_id, user_id, post_id, content, privacy_setting, created_at, updated_at, status
+		)
+		VALUES (
+			@parent_comment_id, @user_id, @post_id, @content, @privacy_setting, GETDATE(), GETDATE(), 1
+		);
+
+        -- Lấy ID bình luận
+        SET @new_comment_id = SCOPE_IDENTITY();
+
+        -- Lưu quyền riêng tư
+        IF @privacy_setting != 'default'
+        BEGIN
+            INSERT INTO tblContentPrivacy (content_id, content_type_id, privacy_setting, custom_list_id, updated_at, status)
+            VALUES (@new_comment_id, 2, @privacy_setting, @custom_list_id, GETDATE(), 1);
+        END
+
+        -- Ghi log hoạt động
+        DECLARE @action_type_id INT;
+        SELECT @action_type_id = id FROM tblActionType WHERE name = 'COMMENT_CREATE';
+
+        EXEC sp_LogActivity @user_id, @action_type_id, NULL, NULL, 1, @new_comment_id, 'COMMENT';
+    END;
+
+	
+		CREATE PROCEDURE sp_UpdateComment
+			@comment_id INT,
+			@user_id INT,
+			@new_content NVARCHAR(1000)
+		AS
+		BEGIN
+			SET NOCOUNT ON;
+
+			DECLARE @existing_user_id INT;
+
+			-- Kiểm tra comment tồn tại và đang hoạt động
+			IF NOT EXISTS (SELECT 1 FROM tblComment WHERE id = @comment_id AND status = 1)
+			BEGIN
+				RAISERROR('Comment not found or inactive.', 16, 1);
+				RETURN;
+			END
+
+			-- Lấy user_id của comment
+			SELECT @existing_user_id = user_id FROM tblComment WHERE id = @comment_id;
+
+			-- Kiểm tra quyền chỉnh sửa
+			IF @existing_user_id != @user_id
+			BEGIN
+				RAISERROR('You are not authorized to update this comment.', 16, 1);
+				RETURN;
+			END
+
+			-- Kiểm tra content mới
+			IF @new_content IS NULL OR LTRIM(RTRIM(@new_content)) = ''
+			BEGIN
+				RAISERROR('Content cannot be empty.', 16, 1);
+				RETURN;
+			END
+
+			-- Kiểm tra từ khóa bị cấm
+			IF EXISTS (
+				SELECT 1 FROM tblBannedKeyword bk
+				WHERE @new_content LIKE '%' + bk.keyword + '%' AND bk.status = 1
+			)
+			BEGIN
+				RAISERROR('Content contains banned keywords.', 16, 1);
+				RETURN;
+			END
+
+			-- Kiểm tra chính sách nội dung
+			DECLARE @policy_valid BIT;
+			EXEC sp_CheckContentPolicy @new_content, @policy_valid OUTPUT;
+			IF @policy_valid = 0
+			BEGIN
+				RAISERROR('Content violates platform policies.', 16, 1);
+				RETURN;
+			END
+
+			-- Cập nhật comment
+			UPDATE tblComment
+			SET content = @new_content,
+				updated_at = GETDATE()
+			WHERE id = @comment_id;
+		END;
+
+    ---------------------------------------------------------------------
+
+    --CHAT
+
+    CREATE TABLE tblChat (
+        id INT PRIMARY KEY IDENTITY(1, 1),
+        is_group BIT DEFAULT 0,
+        name NVARCHAR(100) NULL,
+        created_at DATETIME DEFAULT GETDATE(),
+        status BIT DEFAULT 1
+    );
+
+
     --------------TRIGGER FOR CHECK NAME OF GROUP IS NULL?--------------
 
     CREATE TRIGGER trg_ValidateChatName
@@ -2128,6 +2130,273 @@ GO
         end_time DATETIME,
         status BIT DEFAULT 1
     );
+
+	CREATE OR ALTER PROCEDURE sp_MarkChatMemberAsSpam
+		@chat_id INT,
+		@user_id INT, -- Người thực hiện hành động đánh dấu
+		@target_user_id INT -- Người bị đánh dấu là spam
+	AS
+	BEGIN
+		SET NOCOUNT ON;
+
+		BEGIN TRY
+			BEGIN TRANSACTION;
+
+			-- Kiểm tra xem chat_id có tồn tại và đang hoạt động không
+			IF NOT EXISTS (SELECT 1 FROM tblChat WHERE id = @chat_id AND status = 1)
+			BEGIN
+				RAISERROR(N'Đoạn chat không tồn tại hoặc không hoạt động.', 16, 1);
+				RETURN;
+			END
+
+			-- Kiểm tra xem user_id có tồn tại, đang hoạt động và là thành viên của đoạn chat không
+			IF NOT EXISTS (
+				SELECT 1 FROM tblChatMember 
+				WHERE chat_id = @chat_id AND user_id = @user_id AND status = 1
+			)
+			BEGIN
+				RAISERROR(N'Người dùng không hợp lệ hoặc không phải thành viên của đoạn chat.', 16, 1);
+				RETURN;
+			END
+
+			-- Kiểm tra xem target_user_id có tồn tại, đang hoạt động và là thành viên của đoạn chat không
+			IF NOT EXISTS (
+				SELECT 1 FROM tblChatMember 
+				WHERE chat_id = @chat_id AND user_id = @target_user_id AND status = 1
+			)
+			BEGIN
+				RAISERROR(N'Người bị đánh dấu không hợp lệ hoặc không phải thành viên của đoạn chat.', 16, 1);
+				RETURN;
+			END
+
+			-- Kiểm tra xem user_id có bị chặn bởi target_user_id không
+			IF EXISTS (
+				SELECT 1 FROM tblBlock 
+				WHERE user_id = @target_user_id AND blocked_user_id = @user_id AND status = 1
+			)
+			BEGIN
+				RAISERROR(N'Không thể đánh dấu người dùng là spam vì bạn đã bị chặn.', 16, 1);
+				RETURN;
+			END
+
+			-- Kiểm tra xem target_user_id đã bị đánh dấu là spam chưa
+			IF EXISTS (
+				SELECT 1 FROM tblChatMember 
+				WHERE chat_id = @chat_id AND user_id = @target_user_id AND is_spam = 1
+			)
+			BEGIN
+				RAISERROR(N'Người dùng đã được đánh dấu là spam trong đoạn chat này.', 16, 1);
+				RETURN;
+			END
+
+			-- Cập nhật trạng thái is_spam
+			UPDATE tblChatMember
+			SET is_spam = 1
+			WHERE chat_id = @chat_id AND user_id = @target_user_id;
+
+			-- Ghi log hành động
+			DECLARE @action_type_id INT;
+			SELECT @action_type_id = id FROM tblActionType WHERE name = 'MARK_CHAT_SPAM';
+			IF @action_type_id IS NULL
+			BEGIN
+				INSERT INTO tblActionType (name, description)
+				VALUES ('MARK_CHAT_SPAM', N'User marked a chat member as spam');
+				SET @action_type_id = SCOPE_IDENTITY();
+			END
+
+			EXEC sp_LogActivity 
+				@user_id = @user_id,
+				@action_type_id = @action_type_id,
+				@ip_address = NULL,
+				@device = NULL,
+				@status = 1,
+				@target_id = @target_user_id,
+				@target_type = 'USER';
+
+			COMMIT TRANSACTION;
+		END TRY
+		BEGIN CATCH
+			IF @@TRANCOUNT > 0
+				ROLLBACK TRANSACTION;
+			DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+			INSERT INTO tblErrorLog (error_message, error_time)
+			VALUES (@ErrorMessage, GETDATE());
+			RAISERROR (@ErrorMessage, 16, 1);
+		END CATCH;
+	END;
+	GO
+
+
+
+
+	CREATE OR ALTER PROCEDURE sp_UnmarkChatMemberAsSpam
+		@chat_id INT,
+		@user_id INT, -- Người thực hiện hành động bỏ đánh dấu
+		@target_user_id INT -- Người được bỏ đánh dấu spam
+	AS
+	BEGIN
+		SET NOCOUNT ON;
+
+		BEGIN TRY
+			BEGIN TRANSACTION;
+
+			-- Kiểm tra xem chat_id có tồn tại và đang hoạt động không
+			IF NOT EXISTS (SELECT 1 FROM tblChat WHERE id = @chat_id AND status = 1)
+			BEGIN
+				RAISERROR(N'Đoạn chat không tồn tại hoặc không hoạt động.', 16, 1);
+				RETURN;
+			END
+
+			-- Kiểm tra xem user_id có tồn tại, đang hoạt động và là thành viên của đoạn chat không
+			IF NOT EXISTS (
+				SELECT 1 FROM tblChatMember 
+				WHERE chat_id = @chat_id AND user_id = @user_id AND status = 1
+			)
+			BEGIN
+				RAISERROR(N'Người dùng không hợp lệ hoặc không phải thành viên của đoạn chat.', 16, 1);
+				RETURN;
+			END
+
+			-- Kiểm tra xem target_user_id có tồn tại, đang hoạt động và là thành viên của đoạn chat không
+			IF NOT EXISTS (
+				SELECT 1 FROM tblChatMember 
+				WHERE chat_id = @chat_id AND user_id = @target_user_id AND status = 1
+			)
+			BEGIN
+				RAISERROR(N'Người được bỏ đánh dấu không hợp lệ hoặc không phải thành viên của đoạn chat.', 16, 1);
+				RETURN;
+			END
+
+			-- Kiểm tra xem target_user_id có đang bị đánh dấu là spam không
+			IF NOT EXISTS (
+				SELECT 1 FROM tblChatMember 
+				WHERE chat_id = @chat_id AND user_id = @target_user_id AND is_spam = 1
+			)
+			BEGIN
+				RAISERROR(N'Người dùng không bị đánh dấu là spam trong đoạn chat này.', 16, 1);
+				RETURN;
+			END
+
+			-- Cập nhật trạng thái is_spam
+			UPDATE tblChatMember
+			SET is_spam = 0
+			WHERE chat_id = @chat_id AND user_id = @target_user_id;
+
+			-- Ghi log hành động
+			DECLARE @action_type_id INT;
+			SELECT @action_type_id = id FROM tblActionType WHERE name = 'UNMARK_CHAT_SPAM';
+			IF @action_type_id IS NULL
+			BEGIN
+				INSERT INTO tblActionType (name, description)
+				VALUES ('UNMARK_CHAT_SPAM', N'User unmarked a chat member as spam');
+				SET @action_type_id = SCOPE_IDENTITY();
+			END
+
+			EXEC sp_LogActivity 
+				@user_id = @user_id,
+				@action_type_id = @action_type_id,
+				@ip_address = NULL,
+				@device = NULL,
+				@status = 1,
+				@target_id = @target_user_id,
+				@target_type = 'USER';
+
+			COMMIT TRANSACTION;
+		END TRY
+		BEGIN CATCH
+			IF @@TRANCOUNT > 0
+				ROLLBACK TRANSACTION;
+			DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+			INSERT INTO tblErrorLog (error_message, error_time)
+			VALUES (@ErrorMessage, GETDATE());
+			RAISERROR (@ErrorMessage, 16, 1);
+		END CATCH;
+	END;
+	GO
+
+	CREATE OR ALTER PROCEDURE sp_SendMessage
+		@chat_id INT,
+		@sender_id INT,
+		@content NVARCHAR(MAX),
+		@media_url NVARCHAR(512) = NULL,
+		@media_type NVARCHAR(10) = NULL,
+		@new_message_id INT OUTPUT
+	AS
+	BEGIN
+		SET NOCOUNT ON;
+		DECLARE @ErrorMessage NVARCHAR(4000);
+		DECLARE @new_created_at DATETIMEOFFSET;
+
+		BEGIN TRY
+			-- Kiểm tra chat_id
+			IF NOT EXISTS (SELECT 1 FROM tblChat WHERE id = @chat_id AND status = 1)
+			BEGIN
+				SET @ErrorMessage = N'Chat không tồn tại hoặc đã bị xóa.';
+				THROW 50001, @ErrorMessage, 1;
+			END
+
+			-- Kiểm tra sender_id
+			IF NOT EXISTS (SELECT 1 FROM tblUser WHERE id = @sender_id AND status = 1)
+			BEGIN
+				SET @ErrorMessage = N'Người gửi không tồn tại hoặc đã bị vô hiệu hóa.';
+				THROW 50002, @ErrorMessage, 1;
+			END
+
+			-- Kiểm tra quyền truy cập chat
+			IF NOT EXISTS (
+				SELECT 1 
+				FROM tblChatMember 
+				WHERE chat_id = @chat_id 
+				AND user_id = @sender_id 
+				AND status = 1
+			)
+			BEGIN
+				SET @ErrorMessage = N'Người dùng không có quyền truy cập vào chat này.';
+				THROW 50003, @ErrorMessage, 1;
+			END
+
+			-- Kiểm tra trạng thái chặn
+			IF EXISTS (
+				SELECT 1 
+				FROM tblBlock 
+				WHERE (user_id = @sender_id OR blocked_user_id = @sender_id)
+				AND status = 1
+			)
+			BEGIN
+				SET @ErrorMessage = N'Người dùng bị chặn hoặc đã chặn người khác trong chat này.';
+				THROW 50004, @ErrorMessage, 1;
+			END
+
+			-- Thêm tin nhắn vào tblMessage
+			INSERT INTO tblMessage (chat_id, sender_id, type_id, content, media_url, media_type, created_at, status)
+			VALUES (@chat_id, @sender_id, 1, @content, @media_url, @media_type, SYSDATETIMEOFFSET(), 1);
+
+			-- Lấy ID và created_at của tin nhắn vừa thêm
+			SET @new_message_id = SCOPE_IDENTITY();
+			SET @new_created_at = (SELECT created_at FROM tblMessage WHERE id = @new_message_id);
+
+			-- Thêm trạng thái tin nhắn cho các thành viên (trừ người gửi và những người đánh dấu người gửi là spam)
+			INSERT INTO tblMessageStatus (message_id, user_id, status, created_at)
+			SELECT @new_message_id, cm.user_id, 'unread', SYSDATETIMEOFFSET()
+			FROM tblChatMember cm
+			WHERE cm.chat_id = @chat_id 
+			AND cm.user_id != @sender_id 
+			AND cm.status = 1
+			AND cm.is_spam = 0;
+
+			-- Trả về new_message_id và created_at
+			SELECT @new_message_id AS new_message_id, @new_created_at AS created_at;
+		END TRY
+		BEGIN CATCH
+			SET @ErrorMessage = ERROR_MESSAGE();
+			THROW 50000, @ErrorMessage, 1;
+		END CATCH
+	END;
+	GO
+
+	CREATE NONCLUSTERED INDEX idx_chat_member_is_spam
+	ON tblChatMember (chat_id, user_id, is_spam)
+	INCLUDE (status);
 
     --ACTIVITY LOGS
 

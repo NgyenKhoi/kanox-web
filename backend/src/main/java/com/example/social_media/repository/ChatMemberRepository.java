@@ -31,4 +31,6 @@ public interface ChatMemberRepository extends JpaRepository<ChatMember, ChatMemb
             "SELECT cm2.chat.id FROM ChatMember cm2 WHERE cm2.user.id = :userId2 AND cm2.chat.isGroup = false) " +
             "AND cm.user.id = :userId1 AND cm.chat.isGroup = false")
     Optional<ChatMember> findChatBetweenUsers(@Param("userId1") Integer userId1, @Param("userId2") Integer userId2);
+    @Query("SELECT cm FROM ChatMember cm WHERE cm.chat.id = :chatId AND cm.isSpam = :isSpam")
+    List<ChatMember> findByChatIdAndIsSpam(@Param("chatId") Integer chatId, @Param("isSpam") boolean isSpam);
 }

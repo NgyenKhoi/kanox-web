@@ -8,6 +8,7 @@ import {
   Button,
   ListGroup,
   Spinner,
+  Nav,
 } from "react-bootstrap";
 import { FaSearch, FaPenSquare, FaTrash } from "react-icons/fa";
 import { ToastContainer, toast } from "react-toastify";
@@ -33,6 +34,8 @@ function MessengerPage() {
   const [messages, setMessages] = useState({});
   const subscriptionsRef = useRef({});
   const resendSentRef = useRef(new Set());
+  const [spamMessages, setSpamMessages] = useState({});
+  const [activeTab, setActiveTab] = useState("inbox");
 // Theo dõi các subscription
 
   const {
@@ -42,7 +45,7 @@ function MessengerPage() {
     isSearching,
     debouncedSearch,
   } = useUserSearch(token, navigate);
-  
+
 
   const handleMessageUpdate = useCallback((message) => {
     if (!message) return;
@@ -60,6 +63,11 @@ function MessengerPage() {
           const newMessages = { ...prev };
           delete newMessages[message.chatId];
           return newMessages;
+        });
+        setSpamMessages((prev) => {
+          const newSpamMessages = { ...prev };
+          delete newSpamMessages[message.chatId];
+          return newSpamMessages;
         });
         navigate("/messages");
       }
@@ -140,19 +148,40 @@ function MessengerPage() {
       }
     };
 
-    const subscription = subscribe(topic, callback, subId);
-    subscriptionsRef.current[chatId] = subscription;
-    console.log("✅ Subscribed to", topic);
+    const spamCallback = (newMessage) => {
+      try {
+        setSpamMessages((prev) => {
+          const currentSpamMessages = prev[chatId] || [];
+          const exists = currentSpamMessages.some((msg) => msg.id === newMessage.id);
+          if (exists) {
+            console.warn("🚫 Duplicate spam message ignored:", newMessage);
+            return prev;
+          }
+          return {
+            ...prev,
+            [chatId]: [...currentSpamMessages, newMessage],
+          };
+        });
+      } catch (err) {
+        console.error("Lỗi khi xử lý spam message:", err);
+      }
+    };
+
+    subscriptionsRef.current[chatId] = [
+      subscribe(topic, callback, subId),
+      subscribe(`/topic/spam-messages/${chatId}`, spamCallback, `spam-messages-${chatId}`)
+    ];
+    console.log("✅ Subscribed to", topic, "and /topic/spam-messages/", chatId);
   }, [subscribe, selectedChatId, user.id]);
 
   // Hủy subscribe khi không cần thiết
   const unsubscribeFromChatMessages = useCallback((chatId) => {
     if (unsubscribe && subscriptionsRef.current[chatId] && chatId) {
-      unsubscribe(`chat-${chatId}`);
+      subscriptionsRef.current[chatId].forEach((_, index) => unsubscribe(`chat-${chatId}-${index}`));
       delete subscriptionsRef.current[chatId];
     }
   }, [unsubscribe]);
-  
+
 
   useEffect(() => {
     if (!token || !user) {
@@ -216,7 +245,6 @@ function MessengerPage() {
     fetchChats();
 
     return () => {
-      // Unsubscribe với subId chính xác
       subscriptions.forEach((_, index) => unsubscribe(`subscription-${user.id}-${index}`));
       Object.keys(subscriptionsRef.current).forEach((chatId) => {
         unsubscribeFromChatMessages(Number(chatId));
@@ -245,7 +273,7 @@ function MessengerPage() {
       debouncedSearch(searchKeyword);
     }
   }, [searchKeyword, debouncedSearch]);
-  
+
   useEffect(() => {
     const chatId = searchParams.get("chatId");
     if (chatId && !resendSentRef.current.has(Number(chatId))) {
@@ -267,6 +295,15 @@ function MessengerPage() {
             newUnread.delete(Number(chatId));
             return newUnread;
           });
+
+          // Lấy tin nhắn spam
+          const spamResponse = await fetch(`${process.env.REACT_APP_API_URL}/chat/${chatId}/spam-messages`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (spamResponse.ok) {
+            const spamData = await spamResponse.json();
+            setSpamMessages((prev) => ({ ...prev, [chatId]: spamData }));
+          }
         } catch (err) {
           toast.error(err.message || "Lỗi khi tải tin nhắn.");
         }
@@ -375,6 +412,11 @@ function MessengerPage() {
           delete newMessages[chatId];
           return newMessages;
         });
+        setSpamMessages((prev) => {
+          const newSpamMessages = { ...prev };
+          delete newSpamMessages[chatId];
+          return newSpamMessages;
+        });
         navigate("/messages");
       }
       toast.success("Đã xóa chat.");
@@ -396,6 +438,14 @@ function MessengerPage() {
       }
       const data = await response.json();
       setMessages((prev) => ({ ...prev, [chatId]: data }));
+
+      const spamResponse = await fetch(`${process.env.REACT_APP_API_URL}/chat/${chatId}/spam-messages`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (spamResponse.ok) {
+        const spamData = await spamResponse.json();
+        setSpamMessages((prev) => ({ ...prev, [chatId]: spamData }));
+      }
 
       setUnreadChats((prev) => {
         const newUnread = new Set(prev);
@@ -421,48 +471,44 @@ function MessengerPage() {
           <Spinner animation="border" />
         </div>
     );
+  }
 
-}
-
-return (
-    <div className="flex h-screen bg-[var(--background-color)] text-[var(--text-color)]">
-      {/*<style>*/}
-      {/*  .list-group-item-action.active {*/}
-      {/*    background-color: #e9ecef !important;*/}
-      {/*  border-color: #e9ecef !important;*/}
-      {/*  color: #212529 !important;*/}
-      {/*}*/}
-      {/*  .list-group-item-action:hover {*/}
-      {/*    background-color: #f8f9fa !important;*/}
-      {/*}*/}
-      {/*</style>*/}
-      <div className="flex flex-col flex-grow h-full">
-        <div className="bg-[var(--card-bg)] border-b border-[var(--border-color)] p-4">
-        <h5 className="fw-bold mb-0">Tin nhắn</h5>
-          <div className="flex items-center gap-2 mt-3">
-            <div className="relative w-full">
-              <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    if (showUserSelectionModal) setSearchKeyword(e.target.value);
-                  }}
-                  placeholder="Tìm kiếm người dùng hoặc tin nhắn"
-                  className="w-full pl-10 pr-4 py-2 rounded-full border border-[var(--border-color)] bg-gray-100 dark:bg-gray-800 focus:outline-none text-sm"
-              />
+  return (
+      <div className="flex h-screen bg-[var(--background-color)] text-[var(--text-color)]">
+        <div className="flex flex-col flex-grow h-full">
+          <div className="bg-[var(--card-bg)] border-b border-[var(--border-color)] p-4">
+            <h5 className="fw-bold mb-0">Tin nhắn</h5>
+            <div className="flex items-center gap-2 mt-3">
+              <div className="relative w-full">
+                <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      if (showUserSelectionModal) setSearchKeyword(e.target.value);
+                    }}
+                    placeholder="Tìm kiếm người dùng hoặc tin nhắn"
+                    className="w-full pl-10 pr-4 py-2 rounded-full border border-[var(--border-color)] bg-gray-100 dark:bg-gray-800 focus:outline-none text-sm"
+                />
+              </div>
+              <button
+                  onClick={handleOpenUserSelectionModal}
+                  className="bg-blue-500 text-white px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-1 hover:bg-blue-600"
+              >
+                <FaPenSquare /> Tin nhắn mới
+              </button>
             </div>
-            <button
-                onClick={handleOpenUserSelectionModal}
-                className="bg-blue-500 text-white px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-1 hover:bg-blue-600"
-            >
-              <FaPenSquare /> Tin nhắn mới
-            </button>
+            <Nav variant="tabs" activeKey={activeTab} onSelect={(key) => setActiveTab(key)} className="mt-3">
+              <Nav.Item>
+                <Nav.Link eventKey="inbox">Hộp thư đến</Nav.Link>
+              </Nav.Item>
+              <Nav.Item>
+                <Nav.Link eventKey="spam">Tin nhắn spam</Nav.Link>
+              </Nav.Item>
+            </Nav>
           </div>
-
-        </div>
-        <div className="flex flex-grow h-full overflow-hidden min-h-0">
+          <div className="flex flex-grow h-full overflow-hidden min-h-0">
             <div className="w-1/3 border-r border-[var(--border-color)] bg-[var(--card-bg)] overflow-y-auto">
               {filteredChats.map(chat => {
                 const isUnread = unreadChats.has(chat.id) && selectedChatId !== chat.id;
@@ -502,64 +548,60 @@ return (
                     </div>
                 );
               })}
-
             </div>
-
-
-          <div className="w-2/3 bg-[var(--background-color)] h-full">
-          {selectedChatId ? (
-              <Chat
-                  chatId={selectedChatId}
-                  messages={messages[selectedChatId] || []}
-                  onMessageUpdate={(newMessage) => {
-                    setMessages((prev) => {
-                      const existing = prev[selectedChatId] || [];
-                      const isDuplicate = existing.some((msg) => msg.id === newMessage.id);
-                      if (isDuplicate) {
-                        console.warn("⚠️ Duplicate message ignored in MessengerPage:", newMessage);
-                        return prev;
-                      }
-                      return {
-                        ...prev,
-                        [selectedChatId]: [...existing, newMessage],
-                      };
-                    });
-                  }}
-                  onSendMessage={(message) => {
-                    if (publish) {
-                      publish("/app/sendMessage", {
-                        chatId: selectedChatId,
-                        userId: user.id,
-                        content: message,
-                      });
-                    }
-                  }}
-                  onEndCall={() => navigate(`/messages?chatId=${selectedChatId}`)}
-              />
-            ) : (
-              <div className="flex justify-center items-center h-full text-gray-400">
-                <p>Chọn một cuộc trò chuyện</p>
-              </div>
-          )}
+            <div className="w-2/3 bg-[var(--background-color)] h-full">
+              {selectedChatId ? (
+                  <Chat
+                      chatId={selectedChatId}
+                      messages={activeTab === "spam" ? (spamMessages[selectedChatId] || []) : (messages[selectedChatId] || [])}
+                      onMessageUpdate={(newMessage) => {
+                        setMessages((prev) => {
+                          const existing = prev[selectedChatId] || [];
+                          const isDuplicate = existing.some((msg) => msg.id === newMessage.id);
+                          if (isDuplicate) {
+                            console.warn("⚠️ Duplicate message ignored in MessengerPage:", newMessage);
+                            return prev;
+                          }
+                          return {
+                            ...prev,
+                            [selectedChatId]: [...existing, newMessage],
+                          };
+                        });
+                      }}
+                      onSendMessage={(message) => {
+                        if (publish) {
+                          publish("/app/sendMessage", {
+                            chatId: selectedChatId,
+                            userId: user.id,
+                            content: message,
+                          });
+                        }
+                      }}
+                      onEndCall={() => navigate(`/messages?chatId=${selectedChatId}`)}
+                  />
+              ) : (
+                  <div className="flex justify-center items-center h-full text-gray-400">
+                    <p>Chọn một cuộc trò chuyện</p>
+                  </div>
+              )}
+            </div>
           </div>
+          <UserSelectionModal
+              show={showUserSelectionModal}
+              handleClose={handleCloseUserSelectionModal}
+              searchKeyword={searchQuery}
+              setSearchKeyword={(value) => {
+                setSearchKeyword(value);
+                setSearchQuery(value);
+              }}
+              searchResults={searchResults}
+              isSearching={isSearching}
+              handleSelectUser={handleSelectUser}
+          />
+          <ToastContainer />
         </div>
       </div>
-        <UserSelectionModal
-            show={showUserSelectionModal}
-            handleClose={handleCloseUserSelectionModal}
-            searchKeyword={searchQuery}
-            setSearchKeyword={(value) => {
-              setSearchKeyword(value);
-              setSearchQuery(value);
-            }}
-            searchResults={searchResults}
-            isSearching={isSearching}
-            handleSelectUser={handleSelectUser}
-        />
-        <ToastContainer />
-      </div>
-
-);
+  );
 }
 
 export default MessengerPage;

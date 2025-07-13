@@ -47,6 +47,11 @@ public class URLConfig {
     public static final String GET_CHAT = "/{chatId}";
     public static final String CHAT_DELETE = "/{chatId}/delete";
     public static final String CHAT_PING = "/ping";
+    public static final String MARK_SPAM = "/mark-spam";
+    public static final String UNMARK_SPAM = "/unmark-spam";
+    public static final String GET_SPAM_MESSAGE = "/{chatId}/spam-messages";
+    public static final String GET_USER_CHAT = "/user/{userId}";
+    public static final String GET_CHAT_MEMBERS = "/{chatId}/members";
     // Reaction URLs
     public static final String REACTION_BASE = "/api/reactions";
     public static final String GET_TOP_REACTION = "/top3";
