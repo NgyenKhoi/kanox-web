@@ -33,7 +33,7 @@ function NotificationItem({ notification, handleMarkRead, handleMarkUnread }) {
     const renderAvatar = () => (
         <img
             src={notification.image || "https://placehold.co/40x40?text=Avatar"}
-            alt={`Avatar của ${notification.targetType === "GROUP" ? notification.groupName : notification.displayName}`}
+            alt={`Avatar của ${notification.displayName}`}
             className={`w-10 h-10 object-cover mr-3 ${notification.targetType === "GROUP" ? "rounded-none" : "rounded-full"}`}
         />
     );
@@ -58,7 +58,7 @@ function NotificationItem({ notification, handleMarkRead, handleMarkUnread }) {
                                 }
                             }}
                         >
-                            {notification.targetType === "GROUP" ? notification.groupName : notification.displayName}
+                            {notification.displayName}
                         </p>
                         <div className="flex items-center space-x-2">
                             {!isRead ? (
