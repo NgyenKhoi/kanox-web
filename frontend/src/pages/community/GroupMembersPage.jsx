@@ -90,7 +90,7 @@
                                                 onClick={() => navigate(`/profile/${member.username}`)}
                                             >
                                                 {member.displayName}
-                                                {member.onwer ? (
+                                                {member.owner ? (
                                                     <span title="Chủ nhóm">👑</span>
                                                 ) : member.admin ? (
                                                     <span title="Quản trị viên">🛡️</span>
@@ -104,7 +104,7 @@
                                         </div>
                                     </div>
 
-                                    {member.username !== user.username && (user.owner || user.admin) && (
+                                    {member.username !== user.username && (user.owner || user.admin) && !member.owner && (
                                         <Button
                                             variant="outline-danger"
                                             size="sm"
