@@ -286,14 +286,14 @@ function TweetInput({ onPostSuccess, groupId }) {
         if (mediaPreviews.length === 0) return null;
 
         const baseContainer = "grid gap-1 mb-3 overflow-hidden rounded-lg";
-        const mediaStyle = "object-contain rounded-lg";
+        const mediaStyle = "object-contain rounded-lg w-full h-full";
 
         const getMediaItem = (preview, index, customWrapper = "") => {
             const isVideo = preview.type.startsWith("video/");
             return (
                 <div key={index} className={`relative ${customWrapper}`}>
                     {isVideo ? (
-                        <video src={preview.url} controls className={`${mediaStyle} w-full h-full`} />
+                        <video src={preview.url} controls className={`${mediaStyle}`} />
                     ) : (
                         <img src={preview.url} alt="preview" className={`${mediaStyle}`} />
                     )}
@@ -310,45 +310,55 @@ function TweetInput({ onPostSuccess, groupId }) {
         const filesToShow = mediaPreviews.slice(0, 4);
         const extraCount = mediaPreviews.length - 4;
 
+        // Trường hợp 1 ảnh
         if (filesToShow.length === 1) {
             return (
                 <div className="mb-3 flex justify-start">
-                    <div className="relative w-full max-w-sm">
-                        {getMediaItem(filesToShow[0], 0, "w-full h-auto max-h-[300px]")}
+                    <div className="relative w-full max-w-[400px] h-[200px]">
+                        {getMediaItem(filesToShow[0], 0, "h-full")}
                     </div>
                 </div>
             );
         }
 
+        // Trường hợp 2 ảnh
         if (filesToShow.length === 2) {
             return (
-                <div className={`${baseContainer} grid-cols-2`}>
-                    {filesToShow.map((url, i) => getMediaItem(url, i))}
+                <div className={`${baseContainer} grid-cols-2 max-h-[200px]`}>
+                    {filesToShow.map((url, i) => getMediaItem(url, i, "h-[200px]"))}
                 </div>
             );
         }
 
+        // Trường hợp 3 ảnh
         if (filesToShow.length === 3) {
             return (
-                <div className={`${baseContainer} grid-rows-2 grid-cols-2`}>
-                    <div className="col-span-2 row-span-1">{getMediaItem(filesToShow[0], 0)}</div>
-                    <div>{getMediaItem(filesToShow[1], 1)}</div>
-                    <div>{getMediaItem(filesToShow[2], 2)}</div>
+                <div className={`${baseContainer} grid-rows-2 grid-cols-2 max-h-[400px]`}>
+                    <div className="col-span-2 row-span-1 h-[200px]">
+                        {getMediaItem(filesToShow[0], 0, "h-full")}
+                    </div>
+                    <div className="h-[200px]">{getMediaItem(filesToShow[1], 1, "h-full")}</div>
+                    <div className="h-[200px]">{getMediaItem(filesToShow[2], 2, "h-full")}</div>
                 </div>
             );
         }
 
-        // 4 ảnh hoặc nhiều hơn
+        // Trường hợp 4 ảnh hoặc nhiều hơn
         return (
-            <div className={`${baseContainer} grid-cols-2`}>
+            <div className={`${baseContainer} grid-cols-2 max-h-[400px]`}>
                 {filesToShow.map((url, i) => {
                     if (i === 3 && extraCount > 0) {
                         return (
-                            <div key={i}
-                                 className="relative w-full h-full cursor-pointer overflow-hidden"
-                                 onClick={() => handleOpenMediaModal(3)}
+                            <div
+                                key={i}
+                                className="relative w-full h-[200px] cursor-pointer overflow-hidden"
+                                onClick={() => handleOpenMediaModal(3)}
                             >
-                                <img src={url.url} alt="preview" className={`${mediaStyle} opacity-70 w-full h-full`} />
+                                <img
+                                    src={url.url}
+                                    alt="preview"
+                                    className={`${mediaStyle} opacity-70 h-full`}
+                                />
                                 <div className="absolute inset-0 flex items-center justify-center text-white text-xl font-bold bg-black/50">
                                     +{extraCount}
                                 </div>
@@ -364,7 +374,7 @@ function TweetInput({ onPostSuccess, groupId }) {
                             </div>
                         );
                     }
-                    return getMediaItem(url, i);
+                    return getMediaItem(url, i, "h-[200px]");
                 })}
             </div>
         );

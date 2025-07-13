@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useContext, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Button, Dropdown, Row, Col, Modal, ListGroup, Form } from "react-bootstrap"; // Thêm Modal, ListGroup, Form
+import { Button, Dropdown, Row, Col, Modal, ListGroup, Form } from "react-bootstrap";
 import { AuthContext } from "../../context/AuthContext";
 import TweetCard from "../../components/posts/TweetCard/TweetCard";
 import TweetInput from "../../components/posts/TweetInput/TweetInput";
@@ -15,17 +15,37 @@ export default function GroupCommunityPage() {
 
     const [groupInfo, setGroupInfo] = useState(null);
     const [posts, setPosts] = useState([]);
-    const savedPosts = useMemo(() => {
-        return posts.filter((p) => p.isSaved);
-    }, [posts]);
+    const [myPosts, setMyPosts] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [loadingPosts, setLoadingPosts] = useState(false);
     const [isMember, setIsMember] = useState(false);
     const [showInviteModal, setShowInviteModal] = useState(false);
     const [showJoinRequestsModal, setShowJoinRequestsModal] = useState(false);
     const [joinRequests, setJoinRequests] = useState([]);
     const [activeTab, setActiveTab] = useState("all");
-    const [myPosts, setMyPosts] = useState([]);
     const [showAssignModal, setShowAssignModal] = useState(false);
+
+    const savedPosts = useMemo(() => {
+        return posts.filter((p) => p.isSaved);
+    }, [posts]);
+
+    // Define fetchJoinRequests before useEffect
+    const fetchJoinRequests = async () => {
+        try {
+            const res = await fetch(
+                `${process.env.REACT_APP_API_URL}/groups/${groupId}/join-requests?adminUsername=${user.username}`,
+                {
+                    headers: { Authorization: `Bearer ${token}` },
+                }
+            );
+            if (!res.ok) throw new Error("Không thể lấy danh sách yêu cầu tham gia.");
+            const data = await res.json();
+            setJoinRequests(data);
+        } catch (err) {
+            console.error("Lỗi khi lấy danh sách yêu cầu tham gia:", err.message);
+            toast.error(err.message);
+        }
+    };
 
     useEffect(() => {
         if (!groupId || !token) return;
@@ -72,6 +92,7 @@ export default function GroupCommunityPage() {
     };
 
     const fetchPostsByGroup = async () => {
+        setLoadingPosts(true);
         try {
             const res = await fetch(`${process.env.REACT_APP_API_URL}/posts/group/${groupId}`, {
                 headers: { Authorization: `Bearer ${token}` },
@@ -81,10 +102,14 @@ export default function GroupCommunityPage() {
             setPosts(data.content || []);
         } catch (err) {
             console.error("Lỗi khi lấy bài đăng nhóm:", err.message);
+            toast.error(err.message);
+        } finally {
+            setLoadingPosts(false);
         }
     };
 
     const fetchMyPostsInGroup = async () => {
+        setLoadingPosts(true);
         try {
             const res = await fetch(`${process.env.REACT_APP_API_URL}/posts/group/${groupId}/user/${user.username}`, {
                 headers: { Authorization: `Bearer ${token}` },
@@ -94,22 +119,9 @@ export default function GroupCommunityPage() {
             setMyPosts(data.data || []);
         } catch (err) {
             console.error("Lỗi khi lấy bài đăng của bạn:", err.message);
-        }
-    };
-
-    const fetchJoinRequests = async () => {
-        try {
-            const res = await fetch(
-                `${process.env.REACT_APP_API_URL}/groups/${groupId}/join-requests?adminUsername=${user.username}`,
-                {
-                    headers: { Authorization: `Bearer ${token}` },
-                }
-            );
-            if (!res.ok) throw new Error("Không thể lấy danh sách yêu cầu tham gia.");
-            const data = await res.json();
-            setJoinRequests(data);
-        } catch (err) {
-            console.error("Lỗi khi lấy danh sách yêu cầu tham gia:", err.message);
+            toast.error(err.message);
+        } finally {
+            setLoadingPosts(false);
         }
     };
 
@@ -120,16 +132,12 @@ export default function GroupCommunityPage() {
             if (groupInfo.privacyLevel === "public") {
                 res = await fetch(`${process.env.REACT_APP_API_URL}/groups/${groupId}/join?username=${user.username}`, {
                     method: "POST",
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
+                    headers: { Authorization: `Bearer ${token}` },
                 });
             } else if (groupInfo.privacyLevel === "private") {
                 res = await fetch(`${process.env.REACT_APP_API_URL}/groups/${groupId}/request-join`, {
                     method: "POST",
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
+                    headers: { Authorization: `Bearer ${token}` },
                 });
             }
 
@@ -149,6 +157,7 @@ export default function GroupCommunityPage() {
             toast.error(err.message);
         }
     };
+
     const handleLeaveGroup = async () => {
         try {
             const res = await fetch(`${process.env.REACT_APP_API_URL}/groups/${groupId}/leave`, {
@@ -184,7 +193,6 @@ export default function GroupCommunityPage() {
         }
     };
 
-
     const handleRejectRequest = async (userId) => {
         try {
             const res = await fetch(
@@ -197,6 +205,23 @@ export default function GroupCommunityPage() {
             if (!res.ok) throw new Error("Không thể từ chối yêu cầu.");
             setJoinRequests(joinRequests.filter((req) => req.id !== userId));
             toast.success("Đã từ chối yêu cầu tham gia!");
+        } catch (err) {
+            toast.error(err.message);
+        }
+    };
+
+    const handleCancelJoinRequest = async () => {
+        try {
+            const res = await fetch(`${process.env.REACT_APP_API_URL}/groups/${groupId}/cancel-request`, {
+                method: "DELETE",
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.message || "Không thể hủy yêu cầu.");
+            }
+            setGroupInfo({ ...groupInfo, inviteStatus: null });
+            toast.success("Đã hủy yêu cầu tham gia nhóm.");
         } catch (err) {
             toast.error(err.message);
         }
@@ -318,23 +343,6 @@ export default function GroupCommunityPage() {
     if (!groupInfo) return <div className="text-center py-4">Không tìm thấy nhóm.</div>;
     const canViewContent = isMember || groupInfo.privacyLevel === "public";
 
-    const handleCancelJoinRequest = async () => {
-        try {
-            const res = await fetch(`${process.env.REACT_APP_API_URL}/groups/${groupId}/cancel-request`, {
-                method: "DELETE",
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            if (!res.ok) {
-                const errorData = await res.json();
-                throw new Error(errorData.message || "Không thể hủy yêu cầu.");
-            }
-            setGroupInfo({ ...groupInfo, inviteStatus: null });
-            toast.success("Đã hủy yêu cầu tham gia nhóm.");
-        } catch (err) {
-            toast.error(err.message);
-        }
-    };
-
     return (
         <Row className="m-0 h-100 w-100">
             {/* Nội dung chính */}
@@ -437,6 +445,8 @@ export default function GroupCommunityPage() {
                             </Dropdown.Menu>
                         </Dropdown>
                     </div>
+
+                    {/* Tabs */}
                     <div className="mt-4 border-bottom mb-3">
                         <ul className="nav nav-tabs">
                             <li className="nav-item">
@@ -457,6 +467,7 @@ export default function GroupCommunityPage() {
                             </li>
                         </ul>
                     </div>
+
                     {/* Nội dung bài đăng */}
                     {canViewContent ? (
                         <>
@@ -474,7 +485,11 @@ export default function GroupCommunityPage() {
                                 </div>
                             )}
                             <div className="space-y-4 mt-4">
-                                {activeTab === "all" ? (
+                                {loadingPosts ? (
+                                    <div className="text-center">
+                                        <span className="loader"></span>
+                                    </div>
+                                ) : activeTab === "all" ? (
                                     posts.length > 0 ? (
                                         posts.map((post) => (
                                             <TweetCard
