@@ -15,11 +15,14 @@ public class UserProfileDto {
     private String profileImageUrl;
     private int postCount;
 
+    private String profilePrivacySetting;
+
     // Constructors
     public UserProfileDto() {}
 
     public UserProfileDto(Integer id, String username, String displayName, String email, String bio, Short gender,
-                          LocalDate dateOfBirth, int followerCount, int followeeCount, String profileImageUrl, int postCount) {
+                          LocalDate dateOfBirth, int followerCount, int followeeCount, String profileImageUrl, int postCount,
+                          String profilePrivacySetting) {
         this.id = id;
         this.username = username;
         this.displayName = displayName;
@@ -31,6 +34,7 @@ public class UserProfileDto {
         this.followeeCount = followeeCount;
         this.profileImageUrl = profileImageUrl;
         this.postCount = postCount;
+        this.profilePrivacySetting = profilePrivacySetting;
     }
 
     // Getters và setters
@@ -71,4 +75,10 @@ public class UserProfileDto {
     public void setPostCount(int postCount) {
         this.postCount = postCount;
     }
+
+    public String getProfilePrivacySetting() { return profilePrivacySetting; }
+    public void setProfilePrivacySetting(String profilePrivacySetting) {
+        this.profilePrivacySetting = profilePrivacySetting;
+    }
+
 }

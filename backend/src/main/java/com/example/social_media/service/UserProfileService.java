@@ -1,6 +1,7 @@
 package com.example.social_media.service;
 
 import com.example.social_media.dto.media.MediaDto;
+import com.example.social_media.dto.privacy.ProfilePrivacySettingDto;
 import com.example.social_media.dto.user.UserProfileDto;
 import com.example.social_media.dto.user.UserTagDto;
 import com.example.social_media.dto.user.UserUpdateProfileDto;
@@ -47,17 +48,12 @@ public class UserProfileService {
         User targetUser = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("Người dùng không tìm thấy"));
 
-        // Lấy thông tin người dùng hiện tại (người xem hồ sơ)
+        // Lấy người đang đăng nhập
         String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
         User currentUser = userRepository.findByUsername(currentUsername)
                 .orElseThrow(() -> new UserNotFoundException("Người dùng hiện tại không tìm thấy"));
 
-        // Kiểm tra quyền truy cập vào hồ sơ
-        boolean hasAccess = privacyService.checkContentAccess(
-                currentUser.getId(),
-                targetUser.getId(),
-                "PROFILE"
-        );
+        boolean hasAccess = privacyService.checkContentAccess(currentUser.getId(), targetUser.getId(), "PROFILE");
 
         String profileImageUrl = null;
         List<MediaDto> profileMedia = mediaService.getMediaByTargetDto(targetUser.getId(), "PROFILE", "image", true);
@@ -67,24 +63,29 @@ public class UserProfileService {
 
         int postCount = postRepository.countByOwnerIdAndStatusTrue(targetUser.getId());
 
-        // Nếu không có quyền truy cập, trả về thông tin hạn chế
+        // 👉 Lấy thêm cài đặt quyền riêng tư hồ sơ
+        var profilePrivacy = privacyService.getProfilePrivacySetting(targetUser.getId()); // ví dụ
+        String profilePrivacySetting = profilePrivacy.getPrivacySetting();
+
+        // Nếu không có quyền xem
         if (!hasAccess) {
             return new UserProfileDto(
                     targetUser.getId(),
                     targetUser.getUsername(),
                     targetUser.getDisplayName(),
-                    null, // email
-                    null, // bio
-                    null, // gender
-                    null, // dateOfBirth
-                    0,    // followerCount
-                    0,    // followeeCount
+                    null,
+                    null,
+                    null,
+                    null,
+                    0,
+                    0,
                     profileImageUrl,
-                    0     // hoặc postCount nếu muốn công khai số bài viết
+                    0,
+                    profilePrivacySetting
             );
         }
 
-        // Nếu có quyền, trả về đầy đủ thông tin
+        // Nếu có quyền xem đầy đủ
         int followerCount = followRepository.countByFolloweeAndStatusTrue(targetUser);
         int followeeCount = followRepository.countByFollowerAndStatusTrue(targetUser);
 
@@ -99,7 +100,8 @@ public class UserProfileService {
                 followerCount,
                 followeeCount,
                 profileImageUrl,
-                postCount
+                postCount,
+                profilePrivacySetting
         );
     }
 
@@ -127,6 +129,8 @@ public class UserProfileService {
         int followeeCount = followRepository.countByFollowerAndStatusTrue(user);
         int postCount = postRepository.countByOwnerIdAndStatusTrue(user.getId());
 
+        ProfilePrivacySettingDto profilePrivacy = privacyService.getProfilePrivacySetting(user.getId());
+
         return new UserProfileDto(
                 user.getId(),
                 user.getUsername(),
@@ -138,7 +142,8 @@ public class UserProfileService {
                 followerCount,
                 followeeCount,
                 profileImageUrl,
-                postCount
+                postCount,
+                profilePrivacy.getPrivacySetting()
         );
     }
 

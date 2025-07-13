@@ -289,7 +289,6 @@ public class PostService {
         postRepository.save(post);
     }
 
-    @Cacheable(value = "newsfeed", key = "#username + (#lastCreatedAt != null ? #lastCreatedAt : '')")
     public List<PostResponseDto> getAllPosts(String username) {
         logger.info("Lấy newsfeed tối ưu cho người dùng: {}", username);
 

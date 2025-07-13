@@ -745,9 +745,10 @@ function TweetCard({ tweet, onPostUpdate }) {
                         "border-b border-[var(--border-color)]",
                       ].join(" ")}
                   >
-                    <div className="d-flex align-items-center gap-1">
-                      {topReactions.length > 0 ? (
-                          topReactions.map(({ name, emoji, count }) => (
+                    {/* Nếu có reaction thì hiển thị reactions */}
+                    {totalCount > 0 ? (
+                        <div className="d-flex align-items-center gap-1">
+                          {topReactions.map(({ name, emoji }) => (
                               <OverlayTrigger
                                   key={name}
                                   placement="top"
@@ -776,63 +777,52 @@ function TweetCard({ tweet, onPostUpdate }) {
                                     </Popover>
                                   }
                               >
-                    <span
-                        onMouseEnter={() => {
-                          if (!reactionUserMap[name]) {
-                            fetchUsersByReaction(name);
-                          }
-                        }}
-                        onClick={() => {
-                          setSelectedEmojiName(name);
-                          setShowReactionUserModal(true);
-                        }}
-                        style={{ fontSize: "1.2rem", cursor: "pointer", marginRight: "4px" }}
-                    >
-                        {emoji}
-                    </span>
+            <span
+                onMouseEnter={() => {
+                  if (!reactionUserMap[name]) fetchUsersByReaction(name);
+                }}
+                onClick={() => {
+                  setSelectedEmojiName(name);
+                  setShowReactionUserModal(true);
+                }}
+                style={{ fontSize: "1.2rem", cursor: "pointer", marginRight: "4px" }}
+            >
+              {emoji}
+            </span>
                               </OverlayTrigger>
-                          ))
-                      ) : (
-                          <span className="text-[var(--text-color-muted)]">Chưa có reaction</span>
-                      )}
-                      {totalCount > 0 && (
+                          ))}
                           <span className="text-[var(--text-color-muted)] ms-1">{totalCount}</span>
-                      )}
-                    </div>
-                    <div className="text-[var(--text-color-muted)] small text-end">
-                      <OverlayTrigger
-                          placement="top"
-                          overlay={
-                            <Popover id="popover-comment-users">
-                              <Popover.Header as="h3">Người bình luận</Popover.Header>
-                              <Popover.Body>
-                                {commentUserList.length === 0 ? (
-                                    <div>Chưa có ai bình luận</div>
-                                ) : (
-                                    commentUserList.slice(0, 5).map((u, idx) => (
-                                        <div key={idx}>{u.displayName || u.username}</div>
-                                    ))
-                                )}
-                                {commentUserList.length > 5 && (
-                                    <div className="text-muted small mt-1">
-                                      +{commentUserList.length - 5} người khác
-                                    </div>
-                                )}
-                              </Popover.Body>
-                            </Popover>
-                          }
-                      >
-                    <span
-                        className="text-[var(--text-color-muted)] small text-end cursor-pointer"
-                        onMouseEnter={() => {
-                          // Nếu sau này muốn fetch động, có thể làm ở đây
-                        }}
-                    >
-                      {commentCount} bình luận
-                    </span>
-                      </OverlayTrigger>
-                      {shareCount > 0 && ` · ${shareCount} lượt chia sẻ`}
-                    </div>
+                        </div>
+                    ) : (
+                        // Nếu không có reaction mà có commentCount thì chỉ hiển thị comment count
+                        <div className="text-[var(--text-color-muted)] small text-end">
+                          <OverlayTrigger
+                              placement="top"
+                              overlay={
+                                <Popover id="popover-comment-users">
+                                  <Popover.Header as="h3">Người bình luận</Popover.Header>
+                                  <Popover.Body>
+                                    {commentUserList.length === 0 ? (
+                                        <div>Chưa có ai bình luận</div>
+                                    ) : (
+                                        commentUserList.slice(0, 5).map((u, idx) => (
+                                            <div key={idx}>{u.displayName || u.username}</div>
+                                        ))
+                                    )}
+                                    {commentUserList.length > 5 && (
+                                        <div className="text-muted small mt-1">
+                                          +{commentUserList.length - 5} người khác
+                                        </div>
+                                    )}
+                                  </Popover.Body>
+                                </Popover>
+                              }
+                          >
+                            <span className="cursor-pointer">{commentCount} bình luận</span>
+                          </OverlayTrigger>
+                          {shareCount > 0 && ` · ${shareCount} lượt chia sẻ`}
+                        </div>
+                    )}
                   </div>
               )}
 
