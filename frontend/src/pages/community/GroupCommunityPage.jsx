@@ -486,8 +486,8 @@ export default function GroupCommunityPage() {
                             )}
                             <div className="space-y-4 mt-4">
                                 {loadingPosts ? (
-                                    <div className="text-center">
-                                        <span className="loader"></span>
+                                    <div className="text-center my-4">
+                                        <span className="loader text-muted dark:text-white" />
                                     </div>
                                 ) : activeTab === "all" ? (
                                     posts.length > 0 ? (

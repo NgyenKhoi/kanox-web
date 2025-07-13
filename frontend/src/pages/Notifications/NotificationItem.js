@@ -8,7 +8,7 @@ function NotificationItem({ notification, handleMarkRead, handleMarkUnread }) {
     const isRead = notification.status === "read";
 
     const renderMessageWithGroupNameLink = () => {
-        const groupName = notification.groupName;
+        const groupName = notification.displayName;
         const message = notification.message;
 
         if (notification.targetType === "GROUP" && groupName && message?.includes(groupName)) {
@@ -20,8 +20,8 @@ function NotificationItem({ notification, handleMarkRead, handleMarkUnread }) {
                         className="font-bold text-[var(--primary-color)] cursor-pointer hover:underline"
                         onClick={() => navigate(`/community/${notification.targetId}`)}
                     >
-            {groupName}
-          </span>
+                    {groupName}
+                </span>
                     {parts[1]}
                 </p>
             );

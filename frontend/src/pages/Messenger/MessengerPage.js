@@ -19,6 +19,8 @@ import { WebSocketContext } from "../../context/WebSocketContext";
 import UserSelectionModal from "../../components/messages/UserSelectionModal";
 import useUserSearch from "../../hooks/useUserSearch";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import useMedia from "../../hooks/useMedia";
+import { useMemo } from "react";
 
 function MessengerPage() {
   const { token, user } = useContext(AuthContext);
@@ -36,7 +38,10 @@ function MessengerPage() {
   const resendSentRef = useRef(new Set());
   const [spamMessages, setSpamMessages] = useState({});
   const [activeTab, setActiveTab] = useState("inbox");
+  const userIds = useMemo(() => chats.map((chat) => chat.otherUserId), [chats]);
+  const { mediaData } = useMedia(userIds, "PROFILE", "image");
 // Theo dõi các subscription
+
 
   const {
     searchKeyword,
@@ -511,6 +516,7 @@ function MessengerPage() {
           <div className="flex flex-grow h-full overflow-hidden min-h-0">
             <div className="w-1/3 border-r border-[var(--border-color)] bg-[var(--card-bg)] overflow-y-auto">
               {filteredChats.map(chat => {
+                const avatarUrl = mediaData?.[chat.otherUserId]?.[0]?.url;
                 const isUnread = unreadChats.has(chat.id) && selectedChatId !== chat.id;
                 const isFromOthers = chat.lastSenderId && chat.lastSenderId !== user.id;
 
@@ -522,10 +528,11 @@ function MessengerPage() {
                             selectedChatId === chat.id ? "bg-gray-200 dark:bg-gray-700" : ""
                         }`}
                     >
+
                       <img
-                          src="/assets/default-avatar.png"
+                          src={avatarUrl || "/assets/default-avatar.png"}
                           alt="Avatar"
-                          className="w-10 h-10 rounded-full mr-3"
+                          className="w-10 h-10 rounded-full mr-3 object-cover"
                       />
                       <div className="flex-1">
                         <p className={`text-sm ${isUnread ? "font-bold" : ""}`}>
@@ -555,18 +562,12 @@ function MessengerPage() {
                       chatId={selectedChatId}
                       messages={activeTab === "spam" ? (spamMessages[selectedChatId] || []) : (messages[selectedChatId] || [])}
                       onMessageUpdate={(newMessage) => {
-                        setMessages((prev) => {
-                          const existing = prev[selectedChatId] || [];
-                          const isDuplicate = existing.some((msg) => msg.id === newMessage.id);
-                          if (isDuplicate) {
-                            console.warn("⚠️ Duplicate message ignored in MessengerPage:", newMessage);
-                            return prev;
-                          }
-                          return {
-                            ...prev,
-                            [selectedChatId]: [...existing, newMessage],
-                          };
-                        });
+                        const existing = messages[selectedChatId] || [];
+                        if (existing.some((msg) => msg.id === newMessage.id)) return;
+                        setMessages((prev) => ({
+                          ...prev,
+                          [selectedChatId]: [...existing, newMessage],
+                        }));
                       }}
                       onSendMessage={(message) => {
                         if (publish) {
@@ -578,6 +579,10 @@ function MessengerPage() {
                         }
                       }}
                       onEndCall={() => navigate(`/messages?chatId=${selectedChatId}`)}
+                      recipientName={chats.find((chat) => chat.id === selectedChatId)?.name || ""}
+                      recipientAvatarUrl={
+                        mediaData?.[chats.find((chat) => chat.id === selectedChatId)?.otherUserId]?.[0]?.url
+                      }
                   />
               ) : (
                   <div className="flex justify-center items-center h-full text-gray-400">

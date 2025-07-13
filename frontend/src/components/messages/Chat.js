@@ -7,7 +7,15 @@ import { AuthContext } from "../../context/AuthContext";
 import { WebSocketContext } from "../../context/WebSocketContext";
 import { FaPaperclip, FaPaperPlane, FaPhone, FaCheckCircle, FaExclamationTriangle } from "react-icons/fa";
 
-const Chat = ({ chatId, messages, onMessageUpdate, onSendMessage }) => {
+const Chat = ({
+                  chatId,
+                  messages,
+                  onMessageUpdate,
+                  onSendMessage,
+                  onEndCall,
+                  recipientName,
+                  recipientAvatarUrl
+              }) => {
     const { user, token } = useContext(AuthContext);
     const { publish, subscribe, unsubscribe } = useContext(WebSocketContext) || {};
     const navigate = useNavigate(); // Khởi tạo useNavigate
@@ -16,7 +24,6 @@ const Chat = ({ chatId, messages, onMessageUpdate, onSendMessage }) => {
     // const [messages, setMessages] = useState([]);
     const [message, setMessage] = useState("");
     const [typingUsers, setTypingUsers] = useState([]);
-    const [recipientName, setRecipientName] = useState("");
     const [isSpam, setIsSpam] = useState(false);
     const chatContainerRef = useRef(null);
     const isConnectedRef = useRef(false);
@@ -111,8 +118,7 @@ const Chat = ({ chatId, messages, onMessageUpdate, onSendMessage }) => {
             .then(async (response) => {
                 const data = await response.json();
                 if (response.ok) {
-                    setRecipientName(data.name || "Unknown User");
-                    // Giả định API trả về danh sách thành viên với isSpam
+                        // Giả định API trả về danh sách thành viên với isSpam
                     const membersResponse = await fetch(`${process.env.REACT_APP_API_URL}/chat/${chatId}/members`, {
                         headers: { Authorization: `Bearer ${token}` },
                     });
@@ -235,7 +241,12 @@ const handleStartCall = () => {
 
     return (
         <div className="flex flex-col h-full bg-[var(--background-color)]">
-            <div className="p-3 border-b border-[var(--border-color)] bg-[var(--background-color)] shadow-sm flex items-center">
+            <div className="p-3 border-b border-[var(--border-color)] bg-[var(--background-color)] shadow-sm flex items-center gap-3">
+            <img
+                    src={recipientAvatarUrl || "/assets/default-avatar.png"}
+                    alt="Avatar"
+                    className="w-10 h-10 rounded-full object-cover"
+                />
                 <h5 className="mb-0 flex-grow text-[var(--text-color)]">{recipientName}</h5>
                 <OverlayTrigger placement="left" overlay={<Tooltip className="!bg-[var(--tooltip-bg-color)] !text-[var(--text-color)] dark:!bg-gray-800 dark:!text-white">
                     Gọi video
@@ -260,14 +271,25 @@ const handleStartCall = () => {
             <div className="flex-grow overflow-y-auto p-3 max-h-[calc(100vh-200px)]" ref={chatContainerRef}>
                 {messages.map((msg) => {
                     const isMissedCall = msg.typeId === 4;
+                    const isOwnMessage = msg.senderId === user?.id;
+
                     return (
-                        <div key={msg.id} className={`mb-2 flex ${msg.senderId === user?.id ? "justify-end" : "justify-start"}`}>
-                            <div className={`p-3 rounded-3xl shadow-md max-w-[70%] ${isMissedCall
-                                ? "bg-yellow-100 text-yellow-800 italic"
-                                : msg.senderId === user?.id
-                                    ? "bg-[var(--primary-color)] text-white"
-                                    : "bg-[var(--message-other-bg)] text-[var(--text-color)]"
-                            }`}>
+                        <div key={msg.id} className={`mb-2 flex ${isOwnMessage ? "justify-end" : "justify-start"} items-end`}>
+                            {!isOwnMessage && (
+                                <img
+                                    src={recipientAvatarUrl || "/assets/default-avatar.png"}
+                                    alt="avatar"
+                                    className="w-8 h-8 rounded-full mr-2 self-end"
+                                />
+                            )}
+                            <div
+                                className={`p-3 rounded-3xl shadow-md max-w-[70%] ${isMissedCall
+                                    ? "bg-yellow-100 text-yellow-800 italic"
+                                    : isOwnMessage
+                                        ? "bg-[var(--primary-color)] text-white"
+                                        : "bg-[var(--message-other-bg)] text-[var(--text-color)]"
+                                }`}
+                            >
                                 {isMissedCall ? (
                                     <div className="flex items-center justify-between gap-2">
                                         <span className="mr-2">{msg.content}</span>
@@ -282,7 +304,7 @@ const handleStartCall = () => {
                                     <>
                                         {msg.content}
                                         <div className="text-end mt-1">
-                                            <small className={`${msg.senderId === user?.id ? "text-[var(--light-text-color)]" : "text-[var(--text-color-muted)]"} text-xs`}>
+                                            <small className={`${isOwnMessage ? "text-[var(--light-text-color)]" : "text-[var(--text-color-muted)]"} text-xs`}>
                                                 {new Date(msg.createdAt).toLocaleTimeString()}
                                             </small>
                                         </div>
