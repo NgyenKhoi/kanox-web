@@ -10,6 +10,7 @@ import com.example.social_media.exception.UnauthorizedException;
 import com.example.social_media.jwt.JwtService;
 import com.example.social_media.repository.ChatMemberRepository;
 import com.example.social_media.repository.ChatRepository;
+import com.example.social_media.repository.MessageRepository;
 import com.example.social_media.repository.UserRepository;
 import com.example.social_media.service.CallSessionService;
 import com.example.social_media.service.ChatService;
@@ -19,6 +20,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.apache.commons.codec.binary.Hex;
 import org.springframework.data.elasticsearch.ResourceNotFoundException;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
@@ -57,6 +59,8 @@ public class ChatController {
     private final RedisTemplate<String, MessageDto> redisTemplate;
     private final ChatMemberRepository chatMemberRepository;
     private final ChatRepository chatRepository;
+    private final JdbcTemplate jdbcTemplate;
+    private final MessageRepository messageRepository;
 
     public ChatController(ChatService chatService,
                           MessageService messageService,
@@ -68,7 +72,9 @@ public class ChatController {
                           MessageQueueService messageQueueService,
                           RedisTemplate<String, MessageDto> redisTemplate,
                           ChatMemberRepository chatMemberRepository,
-                          ChatRepository chatRepository) {
+                          ChatRepository chatRepository,
+                          JdbcTemplate jdbcTemplate,
+                          MessageRepository messageRepository) {
         this.chatService = chatService;
         this.messageService = messageService;
         this.callSessionService = callSessionService;
@@ -80,6 +86,8 @@ public class ChatController {
         this.redisTemplate = redisTemplate;
         this.chatMemberRepository = chatMemberRepository;
         this.chatRepository = chatRepository;
+        this.jdbcTemplate = jdbcTemplate;
+        this.messageRepository = messageRepository;
     }
 //
 //    @MessageMapping(URLConfig.SEND_MESSAGES)
@@ -361,7 +369,7 @@ public class ChatController {
     }
 
 
-    @GetMapping("/{chatId}/members")
+    @GetMapping(URLConfig.GET_CHAT_MEMBERS)
     public List<Map<String, Object>> getChatMembers(@PathVariable Integer chatId) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         chatService.checkChatAccess(chatId, username);
@@ -373,12 +381,13 @@ public class ChatController {
                     memberMap.put("username", member.getUser().getUsername());
                     memberMap.put("stringeeUserId", member.getUser().getUsername());
                     memberMap.put("displayName", member.getUser().getDisplayName());
+                    memberMap.put("isSpam", member.getIsSpam()); // Thêm isSpam
                     return memberMap;
                 })
                 .collect(Collectors.toList());
     }
 
-    @GetMapping("/user/{userId}")
+    @GetMapping(URLConfig.GET_USER_CHAT)
     public List<Map<String, Object>> getUserChats(@PathVariable Integer userId) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByUsername(username)
@@ -395,4 +404,76 @@ public class ChatController {
                 })
                 .collect(Collectors.toList());
     }
+
+    @PostMapping(URLConfig.MARK_SPAM)
+    public void markChatMemberAsSpam(@RequestBody SpamRequest request) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        Integer chatId = request.getChatId();
+        Integer targetUserId = request.getTargetUserId();
+
+        // Kiểm tra quyền truy cập
+        chatService.checkChatAccess(chatId, username);
+
+        // Gọi stored procedure sp_MarkChatMemberAsSpam
+        try {
+            jdbcTemplate.update("EXEC sp_MarkChatMemberAsSpam @chat_id = ?, @user_id = ?, @target_user_id = ?",
+                    chatId, user.getId(), targetUserId);
+            System.out.println("Marked userId " + targetUserId + " as spam in chatId " + chatId);
+
+            // Gửi thông báo qua WebSocket
+            messagingTemplate.convertAndSend("/topic/spam-status/" + chatId,
+                    new SpamStatusDto(chatId, true));
+        } catch (Exception e) {
+            System.err.println("Error marking spam: " + e.getMessage());
+            throw new RuntimeException("Failed to mark user as spam: " + e.getMessage());
+        }
+    }
+
+    @PostMapping(URLConfig.UNMARK_SPAM)
+    public void unmarkChatMemberAsSpam(@RequestBody SpamRequest request) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        Integer chatId = request.getChatId();
+        Integer targetUserId = request.getTargetUserId();
+
+        // Kiểm tra quyền truy cập
+        chatService.checkChatAccess(chatId, username);
+
+        // Gọi stored procedure sp_UnmarkChatMemberAsSpam
+        try {
+            jdbcTemplate.update("EXEC sp_UnmarkChatMemberAsSpam @chat_id = ?, @user_id = ?, @target_user_id = ?",
+                    chatId, user.getId(), targetUserId);
+            System.out.println("Unmarked userId " + targetUserId + " as spam in chatId " + chatId);
+
+            // Gửi thông báo qua WebSocket
+            messagingTemplate.convertAndSend("/topic/spam-status/" + chatId,
+                    new SpamStatusDto(chatId, false));
+        } catch (Exception e) {
+            System.err.println("Error unmarking spam: " + e.getMessage());
+            throw new RuntimeException("Failed to unmark user as spam: " + e.getMessage());
+        }
+    }
+    @GetMapping(URLConfig.GET_SPAM_MESSAGE)
+    public List<MessageDto> getSpamMessages(@PathVariable Integer chatId) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        chatService.checkChatAccess(chatId, username);
+        List<ChatMember> spamMembers = chatMemberRepository.findByChatIdAndIsSpam(chatId, true);
+        List<Integer> spamUserIds = spamMembers.stream()
+                .map(cm -> cm.getUser().getId())
+                .collect(Collectors.toList());
+
+        return messageRepository.findByChatIdAndSenderIdIn(chatId, spamUserIds).stream()
+                .map(msg -> new MessageDto(
+                        msg.getId(),
+                        msg.getChat().getId(),
+                        msg.getSender().getId(),
+                        msg.getContent(),
+                        msg.getType().getId(),
+                        msg.getCreatedAt()))
+                .collect(Collectors.toList());
+    }
+
 }

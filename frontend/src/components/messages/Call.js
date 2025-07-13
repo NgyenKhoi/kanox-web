@@ -8,7 +8,7 @@
     import { WebSocketContext } from "../../context/WebSocketContext";
 
 
-    const Call = ({ onEndCall, onStartCall  }) => {
+    const Call = ({ onEndCall, onStartCall }) => {
         const { user, token } = useContext(AuthContext);
         const { chatId } = useParams();
         const navigate = useNavigate();
@@ -17,6 +17,7 @@
         const [callStarted, setCallStarted] = useState(false);
         const [recipientId, setRecipientId] = useState(null);
         const [callSessionId, setCallSessionId] = useState(null);
+        const [isSpam, setIsSpam] = useState(false); // Thêm trạng thái isSpam
         const stringeeClientRef = useRef(null);
         const stringeeCallRef = useRef(null);
         const localVideoRef = useRef(null);
@@ -45,7 +46,6 @@
 
         useEffect(() => {
             const subId = `call-fail-${chatId}`;
-
             const callback = (data) => {
                 if (data.content === "⚠️ Máy bận") {
                     toast.warning("Người kia đang bận. Quay lại chat.");
@@ -103,6 +103,7 @@
                         const recipient = members.find((member) => member.username !== user.username);
                         if (recipient) {
                             setRecipientId(recipient.stringeeUserId || recipient.username);
+                            setIsSpam(recipient.isSpam || false); // Lấy trạng thái isSpam
                         } else {
                             toast.error("Không tìm thấy người nhận trong cuộc trò chuyện.");
                         }
@@ -150,7 +151,7 @@
                     if (retryCount < 10) {
                         setTimeout(() => {
                             initializeStringee(accessToken, retryCount + 1);
-                        }, 200); // mỗi 200ms kiểm tra lại
+                        }, 200);
                     } else {
                         toast.error("Không thể tải Stringee SDK. Vui lòng tải lại trang.");
                     }
@@ -166,14 +167,13 @@
                         toast.error("Không thể truy cập camera/micro. Vui lòng cấp quyền.");
                     });
 
-
                 console.log("✅ Stringee SDK đã sẵn sàng:", window.Stringee);
                 stringeeClientRef.current = new window.Stringee.StringeeClient();
                 stringeeClientRef.current.connect(accessToken);
 
                 stringeeClientRef.current.on("connect", () => {
                     toast.success("Đã kết nối với Stringee.");
-                    setIsStringeeConnected(true); // đánh dấu đã kết nối
+                    setIsStringeeConnected(true);
                 });
 
 
@@ -201,9 +201,8 @@
                     if (callStarted || stringeeCallRef.current) {
                         console.warn("❌ Đang trong cuộc gọi khác, từ chối cuộc gọi mới.");
 
-                        // Gửi máy bận cho người gọi C, dùng đúng chatId mới
                         const busyMsg = {
-                            chatId: incomingCall.customData?.chatId || -1, // 👈 lấy chatId bên C gửi qua
+                            chatId: incomingCall.customData?.chatId || -1,
                             senderId: user.id,
                             content: "⚠️ Máy bận",
                             typeId: 4,
@@ -211,7 +210,6 @@
                         if (busyMsg.chatId !== -1) {
                             publish("/app/sendMessage", busyMsg);
                             console.log("📨 Gửi tin nhắn máy bận đến chatId:", busyMsg.chatId);
-                            // Gửi tín hiệu từ chối cuộc gọi
                             publish("/app/call/end", {
                                 chatId: busyMsg.chatId,
                                 callSessionId: incomingCall.callId,
@@ -232,7 +230,6 @@
                     }
 
                     incomingCallRef.current = incomingCall;
-                    // 👉 Lọc ra nếu mình là người gọi thì bỏ qua
                     if (incomingCall.fromNumber === user.username) {
                         console.log("⚠️ Bỏ qua cuộc gọi vì mình là người gọi");
                         return;
@@ -265,7 +262,7 @@
 
                     incomingCall.on("end", () => {
                         console.log("❌ Cuộc gọi đến kết thúc");
-                        endCall(); // Gọi endCall để dọn dẹp và điều hướng
+                        endCall();
                     });
 
                     // Chỉ trả lời cuộc gọi nếu không bị từ chối trước đó
@@ -274,7 +271,6 @@
                             setCallStarted(true);
                             console.log("📞 Cuộc gọi đã được trả lời");
                             stringeeCallRef.current = incomingCall;
-                            // Gửi tín hiệu trạng thái cuộc gọi
                             publish("/app/call/start", {
                                 chatId: Number(incomingCall.customData?.chatId) || -1,
                                 callSessionId: incomingCall.callId,
@@ -316,6 +312,10 @@
         }, [chatId, token, user, navigate, publish, subscribe, unsubscribe]);
 
         const startCall = async () => {
+            if (isSpam) {
+                toast.error("Không thể gọi video cho người dùng đã đánh dấu spam.");
+                return;
+            }
             let stream;
             try {
                 stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
@@ -612,15 +612,12 @@
 
         return (
             <div className="relative h-screen bg-black flex flex-col">
-                {/* Video của người nhận (khung lớn) */}
                 <video
                     ref={remoteVideoRef}
                     autoPlay
                     playsInline
                     className="w-full h-full object-cover bg-gray-900"
                 />
-
-                {/* Video của người gọi (khung nhỏ ở góc dưới bên phải) */}
                 {callStarted && (
                     <div className="absolute bottom-6 right-6 w-[25%] max-w-[240px] aspect-video rounded-xl overflow-hidden shadow-2xl border border-gray-700 bg-gray-900">
                         <video
@@ -632,13 +629,9 @@
                         />
                     </div>
                 )}
-
-                {/* Thông tin cuộc gọi (tên người nhận, trạng thái) */}
                 <div className="absolute top-4 left-4 text-white text-lg font-semibold">
                     {recipientId ? `Đang gọi ${recipientId}` : "Đang kết nối..."}
                 </div>
-
-                {/* Nút điều khiển */}
                 <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2">
                     {!callStarted ? (
                         <Button
@@ -678,7 +671,6 @@
                         </div>
                     )}
                 </div>
-
                 <ToastContainer
                     position="top-center"
                     autoClose={3000}
