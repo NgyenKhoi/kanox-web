@@ -17,6 +17,7 @@ import {
     FaLink,
     FaEllipsisH,
     FaUserSlash,
+    FaPhoneAlt,
 } from "react-icons/fa";
 import {Link, useParams, useNavigate} from "react-router-dom";
 import TweetCard from "../../components/posts/TweetCard/TweetCard";
@@ -530,19 +531,6 @@ function ProfilePage() {
                                             <FaMapMarkerAlt className="mr-2" /> {userProfile.location}
                                         </p>
                                     )}
-                                    {userProfile.website && (
-                                        <p className="text-sm flex items-center">
-                                            <FaLink className="mr-2" />
-                                            <a
-                                                href={userProfile.website}
-                                                className="text-blue-500"
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                            >
-                                                {userProfile.website}
-                                            </a>
-                                        </p>
-                                    )}
                                     <p className="text-sm flex items-center">
                                         <FaCalendarAlt className="mr-2" /> Ngày sinh:{" "}
                                         {new Date(userProfile.dateOfBirth).toLocaleDateString("vi-VN")}
@@ -556,6 +544,12 @@ function ProfilePage() {
                                                 ? "Nữ"
                                                 : "Khác"}
                                     </p>
+                                    {userProfile.phoneNumber && (
+                                        <p className="text-sm flex items-center">
+                                            <FaPhoneAlt className="mr-2" />
+                                            Liên hệ: {userProfile.phoneNumber}
+                                        </p>
+                                    )}
                                 </>
                             )}
                         </div>

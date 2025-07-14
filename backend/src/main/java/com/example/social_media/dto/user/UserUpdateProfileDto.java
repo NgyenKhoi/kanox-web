@@ -8,6 +8,7 @@ public class UserUpdateProfileDto {
     private Short gender;
     private LocalDate dateOfBirth;
     private String profileImageUrl; // Thêm trường profileImageUrl
+    private String phoneNumber;
 
     public UserUpdateProfileDto() {}
 
@@ -26,4 +27,12 @@ public class UserUpdateProfileDto {
 
     public String getProfileImageUrl() { return profileImageUrl; }
     public void setProfileImageUrl(String profileImageUrl) { this.profileImageUrl = profileImageUrl; }
+
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
+    }
 }

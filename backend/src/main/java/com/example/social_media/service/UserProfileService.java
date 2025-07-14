@@ -81,7 +81,8 @@ public class UserProfileService {
                     0,
                     profileImageUrl,
                     0,
-                    profilePrivacySetting
+                    profilePrivacySetting,
+                    null
             );
         }
 
@@ -101,7 +102,8 @@ public class UserProfileService {
                 followeeCount,
                 profileImageUrl,
                 postCount,
-                profilePrivacySetting
+                profilePrivacySetting,
+                targetUser.getPhoneNumber()
         );
     }
 
@@ -131,6 +133,7 @@ public class UserProfileService {
         int postCount = postRepository.countByOwnerAndStatusTrue(user); // ✅ fix: dùng cùng kiểu
 
         ProfilePrivacySettingDto profilePrivacy = privacyService.getProfilePrivacySetting(user.getId());
+        user.setPhoneNumber(updateDto.getPhoneNumber());
 
         return new UserProfileDto(
                 user.getId(),
@@ -144,7 +147,8 @@ public class UserProfileService {
                 followeeCount,
                 profileImageUrl,
                 postCount,
-                profilePrivacy.getPrivacySetting()
+                profilePrivacy.getPrivacySetting(),
+                user.getPhoneNumber()
         );
     }
 

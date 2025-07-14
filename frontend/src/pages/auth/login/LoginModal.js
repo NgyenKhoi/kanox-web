@@ -2,7 +2,7 @@ import React, { useState, useContext, useEffect, useCallback } from "react";
 import { Modal, Button, Form, Spinner } from "react-bootstrap";
 import { X as XCloseIcon } from "react-bootstrap-icons";
 import ForgotPasswordModal from "./ForgotPasswordModal";
-import CreateAccountModal from "./CreateAccountModal"; // Thay JoinXModal bằng CreateAccountModal
+import CreateAccountModal from "./CreateAccountModal";
 import { useNavigate } from "react-router-dom";
 import KLogoSvg from "../../../components/svgs/KSvg";
 import { ToastContainer, toast } from "react-toastify";

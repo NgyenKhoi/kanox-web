@@ -34,7 +34,6 @@ export const useCommentActions = ({
                 method: "POST",
                 headers: {
                     Authorization: `Bearer ${token}`,
-                    // ⚠️ KHÔNG set Content-Type manually — trình duyệt sẽ tự thêm boundary
                 },
                 body: formData,
             });

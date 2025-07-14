@@ -72,12 +72,25 @@ public class AuthController {
     // LOGIN
     @PostMapping(URLConfig.LOGIN)
     public ResponseEntity<?> login(@RequestBody @Valid LoginRequestDto loginRequest) {
-        Optional<User> userOpt = authService.loginFlexible(loginRequest.getIdentifier(), loginRequest.getPassword());
-        if (userOpt.isPresent()) {
+        try {
+            Optional<User> userOpt = authService.loginFlexible(loginRequest.getIdentifier(), loginRequest.getPassword());
+
+            if (userOpt.isEmpty()) {
+                logger.warn("Đăng nhập thất bại cho identifier: {}", loginRequest.getIdentifier());
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("message", "Thông tin đăng nhập không chính xác"));
+            }
+
             User user = userOpt.get();
+
+            if (user == null) {
+                logger.error("userOpt có giá trị nhưng user lại null");
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(Map.of("message", "Lỗi máy chủ: thông tin người dùng không hợp lệ"));
+            }
+
             String token = jwtService.generateToken(user.getUsername());
             String refreshToken = jwtService.generateRefreshToken(user.getUsername());
-
 
             Map<String, Object> result = new HashMap<>();
             result.put("token", token);
@@ -88,9 +101,13 @@ public class AuthController {
                     "email", user.getEmail(),
                     "isAdmin", user.getIsAdmin()
             ));
+
             return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            logger.error("Lỗi khi đăng nhập: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Lỗi khi đăng nhập: " + e.getMessage()));
         }
-        throw new IllegalArgumentException("Invalid credentials");
     }
 
     // LOGOUT

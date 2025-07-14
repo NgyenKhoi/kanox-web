@@ -183,6 +183,7 @@ public class AuthService {
         user.setPassword(verificationToken.getPassword());
         user.setPhoneNumber(verificationToken.getPhoneNumber());
         user.setStatus(true);
+        user.setIsAdmin(false);
 
         User savedUser = userRepository.save(user);
         dataSyncService.syncUserToElasticsearch(savedUser.getId());
@@ -229,7 +230,7 @@ public class AuthService {
         logger.info("Creating new user with email: {}", email);
         String baseUsername = email.split("@")[0].toLowerCase();
 
-// Giới hạn 30 ký tự
+        // Giới hạn 30 ký tự
         baseUsername = baseUsername.length() > 30 ? baseUsername.substring(0, 30) : baseUsername;
 
         String username = baseUsername;
