@@ -196,6 +196,7 @@ public class AuthService {
         user.setPhoneNumber(verificationToken.getPhoneNumber());
         user.setStatus(true);
         user.setIsAdmin(false);
+        user.setProfilePrivacySetting("public");
 
         User savedUser = userRepository.save(user);
         dataSyncService.syncUserToElasticsearch(savedUser.getId());

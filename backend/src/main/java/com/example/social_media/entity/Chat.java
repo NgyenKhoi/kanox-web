@@ -26,7 +26,6 @@ public class Chat {
     @Column(name = "name", length = 100)
     private String name;
 
-    @ColumnDefault("getdate()")
     @Column(name = "created_at")
     private Instant createdAt;
 
@@ -44,10 +43,6 @@ public class Chat {
     private Set<Message> tblMessages = new LinkedHashSet<>();
 
     public Chat() {
-    }
-
-    public Chat(Integer id) {
-        this.id = id;
     }
 
     public Integer getId() {
