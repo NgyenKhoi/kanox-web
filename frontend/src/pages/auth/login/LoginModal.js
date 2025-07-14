@@ -84,7 +84,7 @@ const LoginModal = ({ show, handleClose, onShowLogin }) => {
         : { message: await res.text() };
 
       if (res.ok) {
-        storeUserSession(data.user, data.token, rememberMe);
+        storeUserSession(data.user, data.token, data.refreshToken, rememberMe);
         toast.success("Đăng nhập thành công! Đang chuyển hướng...");
         handleClose();
         setTimeout(() => {
