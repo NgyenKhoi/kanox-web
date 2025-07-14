@@ -111,8 +111,7 @@ public class ChatService {
         Chat savedChat;
         try {
             savedChat = chatRepository.save(chat);
-            entityManager.flush();
-            savedChat = entityManager.find(Chat.class, savedChat.getId());
+            System.out.println("Saved Chat: ID = " + savedChat.getId());
             System.out.println("Saved Chat: " + savedChat + ", id: " + savedChat.getId());
             if (savedChat.getId() == null) {
                 throw new IllegalStateException("Chat ID is null after flush. Possible database issue.");
@@ -123,10 +122,6 @@ public class ChatService {
         }
 
         ChatMember member1 = new ChatMember();
-        ChatMemberId member1Id = new ChatMemberId();
-        member1Id.setChatId(savedChat.getId());
-        member1Id.setUserId(currentUser.getId());
-        member1.setId(member1Id);
         member1.setChat(savedChat);
         member1.setUser(currentUser);
         member1.setJoinedAt(Instant.now());
@@ -135,12 +130,8 @@ public class ChatService {
         member1.setIsSpam(false);
 
         ChatMember member2 = new ChatMember();
-        ChatMemberId member2Id = new ChatMemberId();
-        member2Id.setChatId(savedChat.getId());
-        member2Id.setUserId(targetUser.getId());
-        member2.setId(member2Id);
-        member2.setChat(savedChat);
-        member2.setUser(targetUser);
+        member2.setChat(savedChat);          // set trước để Hibernate lấy chatId
+        member2.setUser(targetUser);         // set trước để Hibernate lấy userId
         member2.setJoinedAt(Instant.now());
         member2.setStatus(true);
         member2.setIsAdmin(false);
