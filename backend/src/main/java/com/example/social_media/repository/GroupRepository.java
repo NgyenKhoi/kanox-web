@@ -10,4 +10,5 @@ import java.util.Optional;
 public interface GroupRepository extends JpaRepository<Group, Integer> {
     Optional<Group> findByIdAndStatusTrue(Integer id);
     long count();
+
 }
