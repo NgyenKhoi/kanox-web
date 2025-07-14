@@ -95,6 +95,14 @@ public class AuthService {
         return Optional.of(user);
     }
 
+    public void logout(User user) {
+        if (user == null) {
+            throw new UserNotFoundException("Người dùng không tồn tại");
+        }
+        user.setPersistentCookie(null);
+        userRepository.save(user);
+    }
+
 
     public boolean forgotPassword(String email) {
         logger.info("Processing forgot password for email: {}", email);

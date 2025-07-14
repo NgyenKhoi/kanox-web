@@ -1260,6 +1260,18 @@ GO
         status BIT DEFAULT 1,
         CONSTRAINT FK_Comment_Parent FOREIGN KEY (parent_comment_id) REFERENCES tblComment(id),
     );
+
+	    CREATE TABLE tblStory (
+        id INT PRIMARY KEY IDENTITY(1, 1),
+        user_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
+        created_at DATETIME DEFAULT GETDATE(),
+        expire_time AS DATEADD(HOUR, 24, created_at) PERSISTED,
+        caption NVARCHAR(255),
+        privacy_setting VARCHAR(20) CHECK (privacy_setting IN ('public', 'friends', 'only_me', 'custom', 'default')) DEFAULT 'default',
+        background_color VARCHAR(50),
+        status BIT DEFAULT 1
+    );
+
 	--THIS ALL INDEX IS RELATED TO OPTIMIZE POST--
 	CREATE NONCLUSTERED INDEX idx_post_status_created_at ON tblPost (status, created_at);
 	CREATE NONCLUSTERED INDEX idx_post_owner_status ON tblPost (owner_id, status);
