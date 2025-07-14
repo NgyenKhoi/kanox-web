@@ -35,12 +35,4 @@ public interface ChatMemberRepository extends JpaRepository<ChatMember, ChatMemb
     @Query("SELECT cm FROM ChatMember cm WHERE cm.chat.id = :chatId AND cm.isSpam = :isSpam")
     List<ChatMember> findByChatIdAndIsSpam(@Param("chatId") Integer chatId, @Param("isSpam") boolean isSpam);
 
-    List<ChatMember> findByChatIdAndStatusTrue(Integer chatId);
-
-    boolean existsByChatIdAndUserUsernameAndStatusTrue(Integer chatId, String username);
-
-    @Query("SELECT cm.chat FROM ChatMember cm WHERE cm.user.id = :userId1 " +
-            "AND EXISTS (SELECT cm2 FROM ChatMember cm2 WHERE cm2.chat = cm.chat AND cm2.user.id = :userId2) " +
-            "AND cm.chat.isGroup = false AND cm.status = true AND cm.chat.status = true")
-    Optional<Chat> findOneToOneChat(@Param("userId1") Integer userId1, @Param("userId2") Integer userId2);
 }
