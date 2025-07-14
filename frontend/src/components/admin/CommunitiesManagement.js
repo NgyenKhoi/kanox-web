@@ -25,7 +25,7 @@ const CommunitiesManagement = () => {
   const loadCommunities = async () => {
     try {
       const data = await fetchAllGroups();
-      console.log("📦 Dữ liệu nhóm:", data); // ✅ debug
+      console.log("Data từ API /groups:", data); // ✅ debug
       setCommunities(data);
     } catch (err) {
       setError(err.message);
@@ -39,6 +39,7 @@ const CommunitiesManagement = () => {
   }, []);
 
   const handleView = (id) => {
+    console.log("Xem chi tiết nhóm ID:", id); // <-- Dòng này giúp bạn debug
     navigate(`/admin/groups/${id}/view`);
   };
 
