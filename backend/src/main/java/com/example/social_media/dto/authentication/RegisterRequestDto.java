@@ -17,9 +17,6 @@ public class RegisterRequestDto {
             message = "Mật khẩu phải dài ít nhất 8 ký tự, chứa ít nhất 1 chữ cái in hoa và 1 ký tự đặc biệt (!@#$%^&*()_+=.)")
     private String password;
 
-    private int day;
-    private int month;
-    private int year;
 
     @Size(max = 50, message = "Display name không được quá 50 ký tự")
     private String displayName;
@@ -55,30 +52,6 @@ public class RegisterRequestDto {
 
     public void setPassword(String password) {
         this.password = password;
-    }
-
-    public int getDay() {
-        return day;
-    }
-
-    public void setDay(int day) {
-        this.day = day;
-    }
-
-    public int getMonth() {
-        return month;
-    }
-
-    public void setMonth(int month) {
-        this.month = month;
-    }
-
-    public int getYear() {
-        return year;
-    }
-
-    public void setYear(int year) {
-        this.year = year;
     }
 
     public String getDisplayName() {

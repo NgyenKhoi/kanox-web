@@ -142,14 +142,6 @@ public class AuthController {
     public ResponseEntity<?> register(@RequestBody @Valid RegisterRequestDto dto) {
         logger.info("Received registration request for username: {}", dto.getUsername());
         try {
-            try {
-                LocalDate.of(dto.getYear(), dto.getMonth(), dto.getDay());
-            } catch (DateTimeException e) {
-                return ResponseEntity.badRequest().body(Map.of(
-                        "message", "Ngày sinh không hợp lệ",
-                        "errors", Map.of("dob", "Ngày sinh không hợp lệ")));
-            }
-
             User createdUser = authService.register(dto);
             if (createdUser == null) {
                 return ResponseEntity.ok(Map.of(

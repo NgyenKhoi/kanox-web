@@ -61,13 +61,45 @@ public class PrivacyService {
         TargetType targetType = targetTypeRepository.findByCode(targetTypeCode)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid target type: " + targetTypeCode));
 
-        // Find ContentPrivacy for the specific content
+        // ✅ Nếu là PROFILE → xử lý riêng
+        if (targetTypeCode.equals("PROFILE")) {
+            if (Objects.equals(viewerId, contentId)) {
+                logger.debug("Viewer is profile owner, granting access");
+                return true;
+            }
+
+            User viewer = userRepository.findById(viewerId)
+                    .orElseThrow(() -> new UserNotFoundException("Viewer not found with id: " + viewerId));
+            User owner = userRepository.findById(contentId)
+                    .orElseThrow(() -> new UserNotFoundException("Owner not found with id: " + contentId));
+
+            PrivacySetting setting = privacySettingRepository.findById(owner.getId())
+                    .orElse(null);
+            String privacySetting = (setting != null && setting.getProfileViewer() != null)
+                    ? setting.getProfileViewer()
+                    : "public";
+
+            switch (privacySetting) {
+                case "public":
+                    return true;
+                case "friends":
+                    boolean isFriend = friendshipRepository.findByUserIdAndFriendIdAndFriendshipStatusAndStatus(
+                            viewer.getId(), owner.getId(), "accepted", true).isPresent()
+                            || friendshipRepository.findByUserIdAndFriendIdAndFriendshipStatusAndStatus(
+                            owner.getId(), viewer.getId(), "accepted", true).isPresent();
+                    return isFriend;
+                case "only_me":
+                    return false;
+                default:
+                    return true;
+            }
+        }
+
         ContentPrivacy contentPrivacy = contentPrivacyRepository.findByContentIdAndContentTypeId(contentId, targetType.getId())
                 .orElse(null);
 
         String privacySetting = contentPrivacy != null ? contentPrivacy.getPrivacySetting() : null;
 
-        // Get ownerId from tblPosts
         Integer ownerId = contentPrivacyRepository.findOwnerIdByContentId(contentId)
                 .orElse(null);
 
@@ -78,7 +110,7 @@ public class PrivacyService {
 
         if (Objects.equals(viewerId, ownerId)) {
             logger.debug("Viewer is owner, granting access");
-            return true; // Owner always has access
+            return true;
         }
 
         User viewer = userRepository.findById(viewerId)
@@ -87,7 +119,6 @@ public class PrivacyService {
                 .orElseThrow(() -> new UserNotFoundException("Owner not found with id: " + ownerId));
 
         if (privacySetting == null) {
-            // Fall back to global privacy settings
             PrivacySetting privacySettingEntity = privacySettingRepository.findById(owner.getId())
                     .orElse(null);
             privacySetting = privacySettingEntity != null ? privacySettingEntity.getPostViewer() : "public";
@@ -98,33 +129,28 @@ public class PrivacyService {
 
         switch (privacySetting) {
             case "public":
-                logger.debug("Public setting, granting access");
                 return true;
             case "friends":
                 boolean isFriend = friendshipRepository.findByUserIdAndFriendIdAndFriendshipStatusAndStatus(
                         viewer.getId(), owner.getId(), "accepted", true).isPresent() ||
                         friendshipRepository.findByUserIdAndFriendIdAndFriendshipStatusAndStatus(
                                 owner.getId(), viewer.getId(), "accepted", true).isPresent();
-                logger.debug("Friends setting, viewerId: {}, ownerId: {}, isFriend: {}", viewerId, ownerId, isFriend);
                 return isFriend;
             case "custom":
                 if (contentPrivacy != null && contentPrivacy.getCustomList() != null) {
                     boolean isInCustomList = customPrivacyListMemberRepository
                             .findByListIdAndMemberUser(contentPrivacy.getCustomList().getId(), viewer)
                             .isPresent();
-                    logger.debug("Custom setting, isInCustomList: {}", isInCustomList);
                     return isInCustomList;
                 }
-                logger.debug("Custom setting but no custom list, denying access");
                 return false;
             case "only_me":
-                logger.debug("Only_me setting, denying access");
                 return false;
             default:
-                logger.warn("Unknown privacy setting: {}, defaulting to public");
                 return true;
         }
     }
+
 
     @Transactional
     public Integer createCustomList(Integer userId, String listName) {
