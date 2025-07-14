@@ -729,6 +729,7 @@ function TweetCard({ tweet, onPostUpdate }) {
                         "border-b border-[var(--border-color)]",
                       ].join(" ")}
                   >
+                    {/* LEFT: Reaction count */}
                     <div className="d-flex align-items-center gap-1">
                       {totalCount > 0 && (
                           <>
@@ -761,24 +762,31 @@ function TweetCard({ tweet, onPostUpdate }) {
                                       </Popover>
                                     }
                                 >
-                            <span
-                                onMouseEnter={() => {
-                                  if (!reactionUserMap[name]) fetchUsersByReaction(name);
-                                }}
-                                onClick={() => {
-                                  setSelectedEmojiName(name);
-                                  setShowReactionUserModal(true);
-                                }}
-                                style={{ fontSize: "1.2rem", cursor: "pointer", marginRight: "4px" }}
-                            >
-                                {emoji}
-                            </span>
+            <span
+                onMouseEnter={() => {
+                  if (!reactionUserMap[name]) fetchUsersByReaction(name);
+                }}
+                onClick={() => {
+                  setSelectedEmojiName(name);
+                  setShowReactionUserModal(true);
+                }}
+                style={{
+                  fontSize: "1.2rem",
+                  cursor: "pointer",
+                  marginRight: "4px",
+                }}
+            >
+              {emoji}
+            </span>
                                 </OverlayTrigger>
                             ))}
                             <span className="text-[var(--text-color-muted)] ms-1">{totalCount}</span>
                           </>
                       )}
-                      {(totalCount > 0 && commentCount > 0) && <span className="text-[var(--text-color-muted)] ms-1">·</span>}
+                    </div>
+
+                    {/* RIGHT: Comment count + Share count */}
+                    <div className="d-flex align-items-center gap-2 text-[var(--text-color-muted)]">
                       {commentCount > 0 && (
                           <OverlayTrigger
                               placement="top"
@@ -802,15 +810,12 @@ function TweetCard({ tweet, onPostUpdate }) {
                                 </Popover>
                               }
                           >
-                    <span
-                        className="cursor-pointer"
-                        onClick={() => setShowCommentBox(true)}
-                    >
-                        {commentCount} bình luận
-                    </span>
+        <span className="cursor-pointer" onClick={() => setShowCommentBox(true)}>
+          {commentCount} bình luận
+        </span>
                           </OverlayTrigger>
                       )}
-                      {shareCount > 0 && ` · ${shareCount} lượt chia sẻ`}
+                      {shareCount > 0 && <span>· {shareCount} lượt chia sẻ</span>}
                     </div>
                   </div>
               )}
@@ -942,38 +947,6 @@ function TweetCard({ tweet, onPostUpdate }) {
                                   ]);
                                 }}
                             />
-
-                            {selectedMediaPreviews.length > 0 && (
-                                <div className="flex flex-wrap gap-3 my-2">
-                                  {selectedMediaPreviews.map((media, index) => {
-                                    if (media.type.startsWith("image/")) {
-                                      return (
-                                          <img
-                                              key={index}
-                                              src={media.url}
-                                              alt={`preview-${index}`}
-                                              className="w-24 h-24 object-cover rounded border"
-                                          />
-                                      );
-                                    } else if (media.type.startsWith("video/")) {
-                                      return (
-                                          <video
-                                              key={index}
-                                              controls
-                                              src={media.url}
-                                              className="w-24 h-24 object-cover rounded border"
-                                          />
-                                      );
-                                    } else if (media.type.startsWith("audio/")) {
-                                      return (
-                                          <audio key={index} controls src={media.url} className="w-full" />
-                                      );
-                                    } else {
-                                      return null;
-                                    }
-                                  })}
-                                </div>
-                            )}
                             {/* Send button */}
                             <Button
                                 type="submit"

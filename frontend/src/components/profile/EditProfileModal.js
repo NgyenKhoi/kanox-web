@@ -31,7 +31,7 @@ function EditProfileModal({
           ? new Date(userProfile.dateOfBirth).toISOString().split("T")[0]
           : "",
         gender: userProfile.gender != null ? String(userProfile.gender) : "",
-        avatar: userProfile.avatar || "",
+        avatar: userProfile.profileImageUrl || "",
       });
       setAvatarFile(null);
       setErrors({});
@@ -86,8 +86,11 @@ function EditProfileModal({
       };
 
       const form = new FormData();
-      form.append("data", JSON.stringify(payload));
-      
+      form.append(
+          "data",
+          new Blob([JSON.stringify(payload)], { type: "application/json" })
+      );
+
       if (avatarFile) {
         form.append("avatar", avatarFile);
       }

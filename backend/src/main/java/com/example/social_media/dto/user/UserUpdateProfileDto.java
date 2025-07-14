@@ -9,6 +9,8 @@ public class UserUpdateProfileDto {
     private LocalDate dateOfBirth;
     private String profileImageUrl; // Thêm trường profileImageUrl
 
+    public UserUpdateProfileDto() {}
+
     // Getters và setters
     public String getDisplayName() { return displayName; }
     public void setDisplayName(String displayName) { this.displayName = displayName; }

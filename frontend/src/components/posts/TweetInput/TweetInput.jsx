@@ -306,7 +306,7 @@ function TweetInput({ onPostSuccess, groupId }) {
                         <img src={preview.url} alt="preview" className={`${mediaStyle}`} />
                     )}
                     <button
-                        className="absolute top-2 right-2 text-white bg-black/70 rounded-full w-8 h-8 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                        className="absolute top-2 right-2 text-black bg-white/80 rounded-full w-8 h-8 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200"
                         onClick={(e) => {
                             e.stopPropagation();
                             handleRemoveMedia(index);
