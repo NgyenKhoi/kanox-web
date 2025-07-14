@@ -35,6 +35,10 @@ import AdminPage from "./pages/admin/adminpage";
 import Call from "./components/messages/Call";
 import GroupCommunityPage from "./pages/community/GroupCommunityPage";
 import GroupMembersPage from "./pages/community/GroupMembersPage";
+import GroupMembersManagementPage from "./pages/admin/GroupMembersManagementPage";
+import GroupAdminPage from "./pages/admin/GroupAdminPage";
+
+
 
 function AppContent() {
   const [isLoading, setIsLoading] = useState(true);
@@ -423,6 +427,23 @@ function AppContent() {
                       </PrivateRoute>
                     }
                 />
+                <Route
+                    path="/admin/groups/:groupId/members"
+                    element={
+                      <PrivateRoute>
+                        <MainLayout
+                            onShowCreatePost={() => setShowCreatePost(true)}
+                            onToggleDarkMode={toggleDarkMode}
+                            isDarkMode={isDarkMode}
+                        >
+                          <GroupMembersManagementPage />
+                        </MainLayout>
+                      </PrivateRoute>
+                    }
+                />
+                <Route path="/admin/groups/:groupId/view" element={<GroupAdminPage />} />
+
+
               </Routes>
 
               <Modal

@@ -699,4 +699,25 @@ public class GroupService {
 
         groupMemberRepository.delete(member);
     }
+
+    public boolean hasPermissionToViewMembers(Integer groupId, String username) {
+        Optional<User> userOpt = userRepository.findByUsernameAndStatusTrue(username);
+        if (userOpt.isEmpty()) return false;
+
+        User user = userOpt.get();
+
+        Group group = groupRepository.findById(groupId)
+                .orElseThrow(() -> new NotFoundException("Group không tồn tại"));
+
+        if ("public".equalsIgnoreCase(group.getPrivacyLevel())) return true;
+
+        if (group.getOwner().getId().equals(user.getId())) return true;
+
+        Boolean isAdmin = groupMemberRepository.isGroupAdmin(groupId, user.getId());
+        if (Boolean.TRUE.equals(isAdmin)) return true;
+
+        return groupMemberRepository.existsById_GroupIdAndId_UserIdAndInviteStatus(groupId, user.getId(), "ACCEPTED");
+    }
+
+
 }
