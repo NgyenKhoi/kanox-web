@@ -68,7 +68,7 @@ function TweetCard({ tweet, onPostUpdate }) {
     owner,
     content,
     createdAt,
-    commentCount,
+    commentCount: initialCommentCount,
     shareCount,
     likeCount,
     taggedUsers = [],
@@ -101,6 +101,7 @@ function TweetCard({ tweet, onPostUpdate }) {
   const [reasons, setReasons] = useState([]);
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
   const memoizedInitialReactionCountMap = useMemo(() => tweet.reactionCountMap || {}, [tweet.reactionCountMap]);
+  const [commentCount, setCommentCount] = useState(tweet.commentCount || 0);
 
   const currentUserId = user?.id;
   const ownerId = owner?.id || null;
@@ -357,6 +358,7 @@ function TweetCard({ tweet, onPostUpdate }) {
 
       const newCommentObj = data.data;
       setComments((prev) => [newCommentObj, ...prev]);
+      setCommentCount((prev) => prev + 1);
     } catch (err) {
       toast.error("Lỗi khi đăng bình luận: " + err.message);
     } finally {
@@ -492,24 +494,6 @@ function TweetCard({ tweet, onPostUpdate }) {
         return "Công khai";
     }
   };
-
-  useEffect(() => {
-    if (!selectedMediaFiles || selectedMediaFiles.length === 0) {
-      setSelectedMediaPreviews([]);
-      return;
-    }
-
-    const previews = selectedMediaFiles.map((file) => {
-      const url = URL.createObjectURL(file);
-      return { url, type: file.type };
-    });
-
-    setSelectedMediaPreviews(previews);
-
-    return () => {
-      previews.forEach((p) => URL.revokeObjectURL(p.url));
-    };
-  }, [selectedMediaFiles]);
 
   const renderComments = () => {
     if (isLoadingComments) return <div className="text-[var(--text-color-muted)]">Đang tải bình luận...</div>;
@@ -745,57 +729,57 @@ function TweetCard({ tweet, onPostUpdate }) {
                         "border-b border-[var(--border-color)]",
                       ].join(" ")}
                   >
-                    {/* Nếu có reaction thì hiển thị reactions */}
-                    {totalCount > 0 ? (
-                        <div className="d-flex align-items-center gap-1">
-                          {topReactions.map(({ name, emoji }) => (
-                              <OverlayTrigger
-                                  key={name}
-                                  placement="top"
-                                  delay={{ show: 250, hide: 200 }}
-                                  overlay={
-                                    <Popover id={`popover-${name}`}>
-                                      <Popover.Header as="h3">
-                                        {emoji} {name}
-                                      </Popover.Header>
-                                      <Popover.Body>
-                                        {!reactionUserMap[name] ? (
-                                            <div>Đang tải...</div>
-                                        ) : reactionUserMap[name]?.length > 0 ? (
-                                            reactionUserMap[name].slice(0, 5).map((u, idx) => (
-                                                <div key={idx}>{u.displayName || u.username}</div>
-                                            ))
-                                        ) : (
-                                            <div>Chưa có ai</div>
-                                        )}
-                                        {reactionUserMap[name]?.length > 5 && (
-                                            <div className="text-muted small mt-1">
-                                              +{reactionUserMap[name].length - 5} người khác
-                                            </div>
-                                        )}
-                                      </Popover.Body>
-                                    </Popover>
-                                  }
-                              >
-            <span
-                onMouseEnter={() => {
-                  if (!reactionUserMap[name]) fetchUsersByReaction(name);
-                }}
-                onClick={() => {
-                  setSelectedEmojiName(name);
-                  setShowReactionUserModal(true);
-                }}
-                style={{ fontSize: "1.2rem", cursor: "pointer", marginRight: "4px" }}
-            >
-              {emoji}
-            </span>
-                              </OverlayTrigger>
-                          ))}
-                          <span className="text-[var(--text-color-muted)] ms-1">{totalCount}</span>
-                        </div>
-                    ) : (
-                        // Nếu không có reaction mà có commentCount thì chỉ hiển thị comment count
-                        <div className="text-[var(--text-color-muted)] small text-end">
+                    <div className="d-flex align-items-center gap-1">
+                      {totalCount > 0 && (
+                          <>
+                            {topReactions.map(({ name, emoji }) => (
+                                <OverlayTrigger
+                                    key={name}
+                                    placement="top"
+                                    delay={{ show: 250, hide: 200 }}
+                                    overlay={
+                                      <Popover id={`popover-${name}`}>
+                                        <Popover.Header as="h3">
+                                          {emoji} {name}
+                                        </Popover.Header>
+                                        <Popover.Body>
+                                          {!reactionUserMap[name] ? (
+                                              <div>Đang tải...</div>
+                                          ) : reactionUserMap[name]?.length > 0 ? (
+                                              reactionUserMap[name].slice(0, 5).map((u, idx) => (
+                                                  <div key={idx}>{u.displayName || u.username}</div>
+                                              ))
+                                          ) : (
+                                              <div>Chưa có ai</div>
+                                          )}
+                                          {reactionUserMap[name]?.length > 5 && (
+                                              <div className="text-muted small mt-1">
+                                                +{reactionUserMap[name].length - 5} người khác
+                                              </div>
+                                          )}
+                                        </Popover.Body>
+                                      </Popover>
+                                    }
+                                >
+                            <span
+                                onMouseEnter={() => {
+                                  if (!reactionUserMap[name]) fetchUsersByReaction(name);
+                                }}
+                                onClick={() => {
+                                  setSelectedEmojiName(name);
+                                  setShowReactionUserModal(true);
+                                }}
+                                style={{ fontSize: "1.2rem", cursor: "pointer", marginRight: "4px" }}
+                            >
+                                {emoji}
+                            </span>
+                                </OverlayTrigger>
+                            ))}
+                            <span className="text-[var(--text-color-muted)] ms-1">{totalCount}</span>
+                          </>
+                      )}
+                      {(totalCount > 0 && commentCount > 0) && <span className="text-[var(--text-color-muted)] ms-1">·</span>}
+                      {commentCount > 0 && (
                           <OverlayTrigger
                               placement="top"
                               overlay={
@@ -818,11 +802,16 @@ function TweetCard({ tweet, onPostUpdate }) {
                                 </Popover>
                               }
                           >
-                            <span className="cursor-pointer">{commentCount} bình luận</span>
+                    <span
+                        className="cursor-pointer"
+                        onClick={() => setShowCommentBox(true)}
+                    >
+                        {commentCount} bình luận
+                    </span>
                           </OverlayTrigger>
-                          {shareCount > 0 && ` · ${shareCount} lượt chia sẻ`}
-                        </div>
-                    )}
+                      )}
+                      {shareCount > 0 && ` · ${shareCount} lượt chia sẻ`}
+                    </div>
                   </div>
               )}
 

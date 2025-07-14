@@ -1211,213 +1211,6 @@ GO
 	END;
 	GO
 
-
-    ------------------------------------------
-
-    --STORY
-
-    CREATE TABLE tblStory (
-        id INT PRIMARY KEY IDENTITY(1, 1),
-        user_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
-        created_at DATETIME DEFAULT GETDATE(),
-        expire_time AS DATEADD(HOUR, 24, created_at) PERSISTED,
-        caption NVARCHAR(255),
-        privacy_setting VARCHAR(20) CHECK (privacy_setting IN ('public', 'friends', 'only_me', 'custom', 'default')) DEFAULT 'default',
-        background_color VARCHAR(50),
-        status BIT DEFAULT 1
-    );
-
-    CREATE OR ALTER PROCEDURE sp_CleanExpiredStories
-    AS
-    BEGIN
-        SET NOCOUNT ON;
-
-        -- Cập nhật trạng thái của story hết hạn
-        UPDATE tblStory
-        SET status = 0
-        WHERE expire_time <= GETDATE() AND status = 1;
-
-        -- Cập nhật trạng thái của quyền riêng tư liên quan
-        UPDATE tblContentPrivacy
-        SET status = 0
-        WHERE content_type_id = 3
-          AND content_id IN (
-              SELECT id FROM tblStory WHERE expire_time <= GETDATE() AND status = 0
-          )
-          AND status = 1;
-
-        -- Cập nhật trạng thái của media liên quan
-        UPDATE tblMedia
-        SET status = 0
-        WHERE target_type_id = 3
-          AND target_id IN (
-              SELECT id FROM tblStory WHERE expire_time <= GETDATE() AND status = 0
-          )
-          AND status = 1;
-    END;
-
-
-    CREATE TABLE tblStoryViewer (
-        story_id INT NOT NULL FOREIGN KEY REFERENCES tblStory(id),
-        viewer_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
-        view_time DATETIME DEFAULT GETDATE(),
-        status BIT DEFAULT 1,
-        PRIMARY KEY (story_id, viewer_id)
-    );
-
-    CREATE TABLE tblStoryReply (
-        id INT PRIMARY KEY IDENTITY(1, 1),
-        story_id INT NOT NULL FOREIGN KEY REFERENCES tblStory(id),
-        sender_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
-        message VARCHAR(255),
-        sent_time DATETIME DEFAULT GETDATE(),
-        status BIT DEFAULT 1
-    );
-
-    ---------------------PROC FOR CREATE STORY---------------------------
-
-    CREATE OR ALTER PROCEDURE sp_CreateStory
-        @user_id INT,
-        @caption NVARCHAR(255),
-        @media_url VARCHAR(255),
-        @media_type VARCHAR(10),
-        @privacy_setting VARCHAR(20),
-        @background_color VARCHAR(20) = NULL,
-        @custom_list_id INT = NULL,
-        @new_story_id INT OUTPUT
-    AS
-    BEGIN
-        SET NOCOUNT ON;
-
-        BEGIN TRY
-            -- Kiểm tra user_id có tồn tại và active không
-            IF NOT EXISTS (SELECT 1 FROM tblUser WHERE id = @user_id AND status = 1)
-            BEGIN
-                THROW 50001, 'Người dùng không hợp lệ hoặc không hoạt động.', 1;
-                RETURN;
-            END
-
-            -- Kiểm tra media_url không rỗng
-            IF @media_url IS NULL OR LTRIM(RTRIM(@media_url)) = ''
-            BEGIN
-                THROW 50002, 'URL media không được để trống.', 1;
-                RETURN;
-            END
-
-            -- Kiểm tra media_type hợp lệ
-            IF @media_type NOT IN ('image', 'video', 'audio')
-            BEGIN
-                THROW 50003, 'Loại media không hợp lệ.', 1;
-                RETURN;
-            END
-
-            -- Kiểm tra từ khóa bị cấm trong caption
-            IF @caption IS NOT NULL AND EXISTS (
-                SELECT 1 FROM tblBannedKeyword bk
-                WHERE @caption LIKE '%' + bk.keyword + '%' AND bk.status = 1
-            )
-            BEGIN
-                THROW 50004, 'Mô tả chứa từ khóa bị cấm.', 1;
-                RETURN;
-            END
-
-            -- Kiểm tra chính sách nội dung trong caption
-            IF @caption IS NOT NULL
-            BEGIN
-                DECLARE @policy_valid BIT;
-                EXEC sp_CheckContentPolicy @caption, @policy_valid OUTPUT;
-                IF @policy_valid = 0
-                BEGIN
-                    THROW 50005, 'Mô tả vi phạm chính sách nền tảng.', 1;
-                    RETURN;
-                END
-            END
-
-            -- Kiểm tra privacy_setting hợp lệ
-            IF @privacy_setting NOT IN ('public', 'friends', 'only_me', 'custom', 'default')
-            BEGIN
-                THROW 50006, 'Cài đặt quyền riêng tư không hợp lệ.', 1;
-                RETURN;
-            END
-
-            -- Kiểm tra custom_list_id nếu privacy_setting là 'custom'
-            IF @privacy_setting = 'custom' AND (
-                @custom_list_id IS NULL OR
-                NOT EXISTS (
-                    SELECT 1 FROM tblCustomPrivacyLists
-                    WHERE id = @custom_list_id AND user_id = @user_id AND status = 1
-                )
-            )
-            BEGIN
-                THROW 50007, 'custom_list_id không hợp lệ hoặc thiếu cho quyền riêng tư tùy chỉnh.', 1;
-                RETURN;
-            END
-
-            -- Kiểm tra xem user_id có bị chặn bởi bất kỳ ai trong custom_list_id hoặc chủ danh sách không
-            IF @privacy_setting = 'custom' AND @custom_list_id IS NOT NULL
-            BEGIN
-                IF EXISTS (
-                    SELECT 1 FROM tblBlock b
-                    JOIN tblCustomPrivacyListMembers cplm ON b.blocked_user_id = cplm.member_user_id
-                    WHERE cplm.list_id = @custom_list_id AND b.user_id = @user_id AND b.status = 1
-                )
-                BEGIN
-                    THROW 50008, 'Người dùng bị chặn bởi một hoặc nhiều thành viên trong danh sách tùy chỉnh.', 1;
-                    RETURN;
-                END
-
-                IF EXISTS (
-                    SELECT 1 FROM tblBlock b
-                    JOIN tblCustomPrivacyLists cpl ON cpl.user_id = b.blocked_user_id
-                    WHERE cpl.id = @custom_list_id AND b.user_id = @user_id AND b.status = 1
-                )
-                BEGIN
-                    THROW 50009, 'Người dùng bị chặn bởi chủ danh sách tùy chỉnh.', 1;
-                    RETURN;
-                END
-            END
-
-            -- Thêm câu chuyện mới
-            INSERT INTO tblStory (user_id, caption, privacy_setting, background_color, created_at, status)
-            VALUES (@user_id, @caption, @privacy_setting, @background_color, GETDATE(), 1);
-
-            -- Lấy ID câu chuyện vừa thêm
-            SET @new_story_id = SCOPE_IDENTITY();
-
-            -- Thêm media vào tblMedia
-            DECLARE @media_type_id INT;
-            SELECT @media_type_id = id FROM tblMediaType WHERE name = @media_type AND status = 1;
-
-            IF @media_type_id IS NOT NULL
-            BEGIN
-                INSERT INTO tblMedia (target_id, target_type_id, media_type_id, media_url, caption, created_at, status)
-                VALUES (@new_story_id, 3, @media_type_id, @media_url, @caption, GETDATE(), 1);
-            END
-            ELSE
-            BEGIN
-                THROW 50010, 'Loại media không tồn tại trong tblMediaType.', 1;
-                RETURN;
-            END
-
-            -- Lưu quyền riêng tư vào tblContentPrivacy nếu không phải 'default'
-            IF @privacy_setting != 'default'
-            BEGIN
-                INSERT INTO tblContentPrivacy (content_id, content_type_id, privacy_setting, custom_list_id, updated_at, status)
-                VALUES (@new_story_id, 3, @privacy_setting, @custom_list_id, GETDATE(), 1);
-            END
-
-            -- Ghi log hoạt động
-            DECLARE @action_type_id INT;
-            SELECT @action_type_id = id FROM tblActionType WHERE name = 'STORY_CREATE';
-
-            EXEC sp_LogActivity @user_id, @action_type_id, NULL, NULL, 1, @new_story_id, 'STORY';
-        END TRY
-        BEGIN CATCH
-            THROW;
-        END CATCH
-    END;
-
-
     ---------------------------------------------------------------
 
     --POST
@@ -2405,7 +2198,7 @@ GO
         name VARCHAR(50),
         description NVARCHAR(255)
     );
-	select * from tblNotificationType
+
     CREATE TABLE tblActivityLog (
         id INT PRIMARY KEY IDENTITY(1, 1),
         user_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
@@ -2573,6 +2366,8 @@ GO
             @user_id, @type_id, @message, GETDATE(), 1, @target_id, @target_type_id
         );
     END;
+
+
 	SELECT OBJECT_NAME(object_id), definition
 FROM sys.sql_modules
 WHERE definition LIKE '%friendship%';
@@ -3249,7 +3044,7 @@ WHERE definition LIKE '%friendship%';
         )
             SET @has_access = 0;
     END;
-	select * from tblUser
+
     CREATE TABLE tblErrorLog (
         id INT PRIMARY KEY IDENTITY(1, 1),
         error_message NVARCHAR(4000),
@@ -3315,7 +3110,6 @@ WHERE definition LIKE '%friendship%';
 	('DEACTIVATE_BANNED_KEYWORD', 'Admin deactivated banned keyword'),
 	('REPORT_ABUSE_WARNING', 'User received warning for report abuse');
 
-	select * from tblTargetType
     -- tblNotificationType (Loại thông báo)
     INSERT INTO tblNotificationType (name, description, status) VALUES
     ('FRIEND_REQUEST', 'New friend request received', 1),
@@ -3427,34 +3221,7 @@ WHERE definition LIKE '%friendship%';
         updated_at = GETDATE()
     WHERE user_id = 2;
 
-    -- tblCustomPrivacyLists (Danh sách quyền riêng tư tùy chỉnh)
-    INSERT INTO tblCustomPrivacyLists (user_id, list_name, created_at, status) VALUES
-    (1, 'CloseFriends', GETDATE(), 1),
-    (9, 'Family', GETDATE(), 1);
 
-    -- tblCustomPrivacyListMembers (Thành viên trong danh sách tùy chỉnh)
-    INSERT INTO tblCustomPrivacyListMembers (list_id, member_user_id, added_at, status) VALUES
-    (1, 46, GETDATE(), 1), -- User 1 trong danh sách CloseFriends của User 4
-    (1, 47, GETDATE(), 1), -- User 2 trong danh sách CloseFriends của User 4
-    (2, 49, GETDATE(), 1); -- User 3 trong danh sách Family của User 4
-
-
-    -- tblContentPrivacy (Quyền riêng tư cho bài viết)
-    INSERT INTO tblContentPrivacy (content_id, content_type_id, privacy_setting, custom_list_id, updated_at, status) VALUES
-    (3, 1, 'custom', 1, GETDATE(), 1); -- Bài viết ID=3 của User 4 có quyền riêng tư tùy chỉnh
-
-
-    -- tblStory (Câu chuyện)
-
-    -- tblContentPrivacy (Quyền riêng tư cho câu chuyện)
-    INSERT INTO tblContentPrivacy (content_id, content_type_id, privacy_setting, custom_list_id, updated_at, status) VALUES
-    (2, 3, 'custom', 1, GETDATE(), 1); -- Câu chuyện ID=2 của User 4 có quyền riêng tư tùy chỉnh
-
-    ------the fifth----------
-    -- tblReaction (Phản hồi)
-    INSERT INTO tblReaction (user_id, reaction_type_id, target_id, target_type_id, created_at, status) VALUES
-    (2, 1, 1, 1, GETDATE(), 1), -- User 2 thích bài viết ID=1
-    (3, 2, 1, 3, GETDATE(), 1); -- User 3 yêu thích câu chuyện ID=1
 
     -- tblAnalytics (Phân tích)
     INSERT INTO tblAnalytics (field_name, field_value, update_time, status) VALUES

@@ -41,6 +41,26 @@ export default function useReaction({
         }
     };
 
+    const fetchUserReaction = async () => {
+        try {
+            const res = await fetch(
+                `${process.env.REACT_APP_API_URL}/reactions/by-user?targetId=${targetId}&targetTypeCode=${targetTypeCode}`,
+                {
+                    headers: { Authorization: `Bearer ${token}` },
+                }
+            );
+
+            if (!res.ok) throw new Error("Không thể lấy biểu cảm người dùng.");
+            const data = await res.json(); // { name: 'LIKE', emoji: '❤️' }
+
+            if (data?.name && emojiMap?.[data.name]) {
+                setCurrentEmoji(emojiMap[data.name]);
+            }
+        } catch (err) {
+            console.error("Lỗi khi fetch user reaction:", err.message);
+        }
+    };
+
     useEffect(() => {
         if (!user?.id || !targetId || !targetTypeCode || !token || hasFetchedSummary || !emojiMapReady) return;
 
@@ -62,6 +82,7 @@ export default function useReaction({
         }
 
         fetchSummary();
+        fetchUserReaction();
     }, [user?.id, targetId, targetTypeCode, token, hasFetchedSummary, initialReactionCountMap, emojiMapReady]);
 
     const fetchUsersByReaction = async (emojiName) => {

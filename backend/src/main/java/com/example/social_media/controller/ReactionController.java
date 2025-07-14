@@ -95,7 +95,7 @@ public class ReactionController {
         return ResponseEntity.ok(result);
     }
 
-    @PostMapping("/user")
+    @PostMapping("/by-user")
     public ResponseEntity<?> getUserReaction(@RequestBody ReactionRequestDto dto) {
         ReactionType reaction = reactionService.getReactionOfUser(
                 dto.getUserId(),

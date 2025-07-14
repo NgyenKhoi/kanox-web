@@ -86,10 +86,8 @@ function EditProfileModal({
       };
 
       const form = new FormData();
-      form.append(
-        "data",
-        new Blob([JSON.stringify(payload)], { type: "application/json" })
-      );
+      form.append("data", JSON.stringify(payload));
+      
       if (avatarFile) {
         form.append("avatar", avatarFile);
       }

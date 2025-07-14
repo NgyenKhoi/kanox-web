@@ -451,106 +451,117 @@ function ProfilePage() {
 
     return (
         <div className="flex flex-col min-h-screen bg-[var(--background-color)] text-[var(--text-color)]">
-            <ToastContainer/>
+            <ToastContainer />
 
+            {/* Top Navigation */}
             <div className="sticky top-0 bg-[var(--background-color)] border-b border-gray-300 py-2 z-50">
                 <div className="container mx-auto px-4 flex items-center justify-between">
                     <div className="flex items-center">
                         <Link to="/home" className="btn btn-light mr-3">
-                            <FaArrowLeft/>
+                            <FaArrowLeft />
                         </Link>
                         <div>
                             <h5 className="font-bold mb-0">{userProfile.displayName}</h5>
                             <span className="text-sm">
-        {hasAccess ? `${userProfile.postCount || 0} bài đăng` : "Hồ sơ bị hạn chế"}
-      </span>
+              {hasAccess ? `${userProfile.postCount || 0} bài đăng` : "Hồ sơ bị hạn chế"}
+            </span>
                         </div>
                     </div>
-                    {hasAccess && (
-                        <div className="text-sm text-muted">
-                            Tổng bài đăng: {userProfile.postCount || 0}
-                        </div>
-                    )}
                 </div>
             </div>
 
+            {/* Main Content */}
             <div className="flex flex-grow container mx-auto px-4 py-4">
+                {/* Left Content */}
                 <div className="w-full lg:w-2/3 pr-0 lg:pr-8">
-                  <div className="mb-6">
-                    <div className="flex justify-between items-center mb-4">
-                      <Image
-                          src={userProfile.profileImageUrl || "https://via.placeholder.com/150?text=Avatar"}
-                          roundedCircle
-                          className="border-4 border-white"
-                          style={{ width: 150, height: 150, objectFit: "cover" }}
-                      />
-                      {isOwnProfile ? (
-                          <Button variant="primary" onClick={() => setShowEditModal(true)}>
-                            Chỉnh sửa
-                          </Button>
-                      ) : (
-                          <div className="flex gap-2">
-                            <FollowActionButton
-                                targetId={userProfile.id}
-                                disabled={isBlocked}
-                                onFollowChange={(isFollowing) =>
-                                    setUserProfile((prev) => ({
-                                      ...prev,
-                                      followerCount: prev.followerCount + (isFollowing ? 1 : -1),
-                                    }))
-                                }
+                    {/* Profile Header */}
+                    <div className="mb-6">
+                        <div className="flex justify-between items-center mb-4">
+                            <Image
+                                src={userProfile.profileImageUrl || "https://via.placeholder.com/150?text=Avatar"}
+                                roundedCircle
+                                className="border-4 border-white"
+                                style={{ width: 150, height: 150, objectFit: "cover" }}
                             />
-                            {!isBlocked && <FriendshipButton targetId={userProfile.id} />}
-                            <Button
-                                variant={isBlocked ? "outline-secondary" : "outline-danger"}
-                                onClick={() => handleBlockToggle()}
-                            >
-                              <FaUserSlash className="mr-1" /> {isBlocked ? "Bỏ chặn" : "Chặn"}
-                            </Button>
-                            <Button
-                                variant="outline-warning"
-                                onClick={() => setShowReportModal(true)}
-                                disabled={isBlocked}
-                            >
-                              Báo cáo
-                            </Button>
-                          </div>
-                      )}
+                            {isOwnProfile ? (
+                                <Button variant="primary" onClick={() => setShowEditModal(true)}>
+                                    Chỉnh sửa
+                                </Button>
+                            ) : (
+                                <div className="flex gap-2">
+                                    <FollowActionButton
+                                        targetId={userProfile.id}
+                                        disabled={isBlocked}
+                                        onFollowChange={(isFollowing) =>
+                                            setUserProfile((prev) => ({
+                                                ...prev,
+                                                followerCount: prev.followerCount + (isFollowing ? 1 : -1),
+                                            }))
+                                        }
+                                    />
+                                    {!isBlocked && <FriendshipButton targetId={userProfile.id} />}
+                                    <Button
+                                        variant={isBlocked ? "outline-secondary" : "outline-danger"}
+                                        onClick={handleBlockToggle}
+                                    >
+                                        <FaUserSlash className="mr-1" /> {isBlocked ? "Bỏ chặn" : "Chặn"}
+                                    </Button>
+                                    <Button
+                                        variant="outline-warning"
+                                        onClick={() => setShowReportModal(true)}
+                                        disabled={isBlocked}
+                                    >
+                                        Báo cáo
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Profile Info */}
+                        <div className="profile-info">
+                            <h4 className="font-bold mb-1">{userProfile.displayName}</h4>
+                            <p className="text-sm mb-1">@{userProfile.username}</p>
+
+                            {hasAccess && (
+                                <>
+                                    {userProfile.bio && <p className="mb-2">{userProfile.bio}</p>}
+                                    {userProfile.location && (
+                                        <p className="text-sm flex items-center">
+                                            <FaMapMarkerAlt className="mr-2" /> {userProfile.location}
+                                        </p>
+                                    )}
+                                    {userProfile.website && (
+                                        <p className="text-sm flex items-center">
+                                            <FaLink className="mr-2" />
+                                            <a
+                                                href={userProfile.website}
+                                                className="text-blue-500"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                            >
+                                                {userProfile.website}
+                                            </a>
+                                        </p>
+                                    )}
+                                    <p className="text-sm flex items-center">
+                                        <FaCalendarAlt className="mr-2" /> Ngày sinh:{" "}
+                                        {new Date(userProfile.dateOfBirth).toLocaleDateString("vi-VN")}
+                                    </p>
+                                    <p className="text-sm flex items-center">
+                                        <FaEllipsisH className="mr-2" />
+                                        Giới tính:{" "}
+                                        {userProfile.gender === 0
+                                            ? "Nam"
+                                            : userProfile.gender === 1
+                                                ? "Nữ"
+                                                : "Khác"}
+                                    </p>
+                                </>
+                            )}
+                        </div>
                     </div>
 
-                    {/* Thêm div bọc các phần tử JSX liền kề */}
-                    <div className="profile-info">
-                      <h4 className="font-bold mb-1">{userProfile.displayName}</h4>
-                      <p className="text-sm mb-1">@{userProfile.username}</p>
-
-                      {hasAccess && (
-                          <>
-                            {userProfile.bio && <p className="mb-2">{userProfile.bio}</p>}
-                            {userProfile.location && (
-                                <p className="text-sm flex items-center">
-                                  <FaMapMarkerAlt className="mr-2" /> {userProfile.location}
-                                </p>
-                            )}
-                            {userProfile.website && (
-                                <p className="text-sm flex items-center">
-                                  <FaLink className="mr-2" />
-                                  <a href={userProfile.website} className="text-blue-500" target="_blank" rel="noopener noreferrer">
-                                    {userProfile.website}
-                                  </a>
-                                </p>
-                            )}
-                            <p className="text-sm flex items-center">
-                              <FaCalendarAlt className="mr-2" /> Ngày sinh: {new Date(userProfile.dateOfBirth).toLocaleDateString("vi-VN")}
-                            </p>
-                            <p className="text-sm flex items-center">
-                              <FaEllipsisH className="mr-2" />
-                              Giới tính: {userProfile.gender === 0 ? "Nam" : userProfile.gender === 1 ? "Nữ" : "Khác"}
-                            </p>
-                          </>
-                      )}
-                    </div>
-                  </div>
-
+                    {/* Tab Navigation */}
                     {hasAccess && (
                         <Nav variant="tabs" className="mb-4">
                             {["posts", "shares", ...(isOwnProfile ? ["savedArticles"] : [])].map((tab) => (
@@ -559,7 +570,9 @@ function ProfilePage() {
                                         active={activeTab === tab}
                                         onClick={() => setActiveTab(tab)}
                                         className={`text-center w-full font-semibold ${
-                                            activeTab === tab ? "border-b-2 border-blue-500 text-blue-500" : "text-gray-500"
+                                            activeTab === tab
+                                                ? "border-b-2 border-blue-500 text-blue-500"
+                                                : "text-gray-500"
                                         }`}
                                     >
                                         {tab === "posts" && "Bài đăng"}
@@ -571,117 +584,114 @@ function ProfilePage() {
                         </Nav>
                     )}
 
-                    <div>
-                        {renderTabContent()}
-                    </div>
+                    {/* Tab Content */}
+                    <div>{renderTabContent()}</div>
                 </div>
 
+                {/* Right Sidebar */}
                 <div className="hidden lg:block lg:w-1/3">
-                    <SidebarRight/>
+                    <SidebarRight />
                 </div>
             </div>
 
-            {
-                isOwnProfile && (
-                    <EditProfileModal
-                        show={showEditModal}
-                        handleClose={() => setShowEditModal(false)}
-                        userProfile={userProfile}
-                        onSave={handleEditProfile}
-                        username={username}
-                    />
-                )
-            }
-          {/* Modal báo cáo người dùng */}
-          {showReportModal && (
-              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                <div className="bg-[var(--background-color)] rounded-lg shadow-lg w-full max-w-md p-6 text-[var(--text-color)]">
-                  {/* Header */}
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-bold">Báo cáo người dùng</h3>
-                    <button
-                        className="text-[var(--text-color)] hover:text-[var(--primary-color)]"
-                        onClick={() => setShowReportModal(false)}
-                    >
-                      <svg
-                          className="w-6 h-6"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                          xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M6 18L18 6M6 6l12 12"
-                        />
-                      </svg>
-                    </button>
-                  </div>
+            {/* Edit Modal */}
+            {isOwnProfile && (
+                <EditProfileModal
+                    show={showEditModal}
+                    handleClose={() => setShowEditModal(false)}
+                    userProfile={userProfile}
+                    onSave={handleEditProfile}
+                    username={username}
+                />
+            )}
 
-                  {/* Body */}
-                  <div className="mb-4">
-                    <label htmlFor="reportReason" className="block text-sm font-medium mb-2">
-                      Lý do báo cáo
-                    </label>
-                    <select
-                        id="reportReason"
-                        value={reportReasonId}
-                        onChange={(e) => setReportReasonId(e.target.value)}
-                        className="w-full p-2 rounded-md bg-[var(--background-color)] border border-gray-300 dark:border-gray-600 text-[var(--text-color)] focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)]"
-                    >
-                      <option value="">Chọn lý do</option>
-                      {reasons.map((reason) => (
-                          <option key={reason.id} value={reason.id}>
-                            {reason.name}
-                          </option>
-                      ))}
-                    </select>
-                  </div>
+            {/* Report Modal */}
+            {showReportModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-[var(--background-color)] rounded-lg shadow-lg w-full max-w-md p-6 text-[var(--text-color)]">
+                        {/* Modal Header */}
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-lg font-bold">Báo cáo người dùng</h3>
+                            <button
+                                className="text-[var(--text-color)] hover:text-[var(--primary-color)]"
+                                onClick={() => setShowReportModal(false)}
+                            >
+                                <svg
+                                    className="w-6 h-6"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth="2"
+                                        d="M6 18L18 6M6 6l12 12"
+                                    />
+                                </svg>
+                            </button>
+                        </div>
 
-                  {/* Footer */}
-                  <div className="flex justify-end gap-2">
-                    <button
-                        className="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-[var(--text-color)] rounded-md hover:bg-gray-400 dark:hover:bg-gray-500"
-                        onClick={() => setShowReportModal(false)}
-                    >
-                      Hủy
-                    </button>
-                    <button
-                        className="px-4 py-2 bg-[var(--primary-color)] text-white rounded-md hover:bg-blue-600 disabled:opacity-50 flex items-center"
-                        onClick={handleReportSubmit}
-                        disabled={isSubmittingReport}
-                    >
-                      {isSubmittingReport ? (
-                          <svg
-                              className="animate-spin h-5 w-5 mr-2 text-white"
-                              viewBox="0 0 24 24"
-                          >
-                            <circle
-                                className="opacity-25"
-                                cx="12"
-                                cy="12"
-                                r="10"
-                                stroke="currentColor"
-                                strokeWidth="4"
-                            />
-                            <path
-                                className="opacity-75"
-                                fill="currentColor"
-                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                            />
-                          </svg>
-                      ) : (
-                          "Gửi báo cáo"
-                      )}
-                    </button>
-                  </div>
+                        {/* Modal Body */}
+                        <div className="mb-4">
+                            <label htmlFor="reportReason" className="block text-sm font-medium mb-2">
+                                Lý do báo cáo
+                            </label>
+                            <select
+                                id="reportReason"
+                                value={reportReasonId}
+                                onChange={(e) => setReportReasonId(e.target.value)}
+                                className="w-full p-2 rounded-md bg-[var(--background-color)] border border-gray-300 dark:border-gray-600 text-[var(--text-color)] focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)]"
+                            >
+                                <option value="">Chọn lý do</option>
+                                {reasons.map((reason) => (
+                                    <option key={reason.id} value={reason.id}>
+                                        {reason.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* Modal Footer */}
+                        <div className="flex justify-end gap-2">
+                            <button
+                                className="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-[var(--text-color)] rounded-md hover:bg-gray-400 dark:hover:bg-gray-500"
+                                onClick={() => setShowReportModal(false)}
+                            >
+                                Hủy
+                            </button>
+                            <button
+                                className="px-4 py-2 bg-[var(--primary-color)] text-white rounded-md hover:bg-blue-600 disabled:opacity-50 flex items-center"
+                                onClick={handleReportSubmit}
+                                disabled={isSubmittingReport}
+                            >
+                                {isSubmittingReport ? (
+                                    <svg className="animate-spin h-5 w-5 mr-2 text-white" viewBox="0 0 24 24">
+                                        <circle
+                                            className="opacity-25"
+                                            cx="12"
+                                            cy="12"
+                                            r="10"
+                                            stroke="currentColor"
+                                            strokeWidth="4"
+                                        />
+                                        <path
+                                            className="opacity-75"
+                                            fill="currentColor"
+                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                        />
+                                    </svg>
+                                ) : (
+                                    "Gửi báo cáo"
+                                )}
+                            </button>
+                        </div>
+                    </div>
                 </div>
-              </div>
-          )}
+            )}
         </div>
-);
+    );
 }
 
 export default ProfilePage;
