@@ -39,5 +39,8 @@ public interface ChatMemberRepository extends JpaRepository<ChatMember, ChatMemb
 
     boolean existsByChatIdAndUserUsernameAndStatusTrue(Integer chatId, String username);
 
-    Optional<Chat> findOneToOneChat(Integer id, Integer id1);
+    @Query("SELECT cm.chat FROM ChatMember cm WHERE cm.user.id = :userId1 " +
+            "AND EXISTS (SELECT cm2 FROM ChatMember cm2 WHERE cm2.chat = cm.chat AND cm2.user.id = :userId2) " +
+            "AND cm.chat.isGroup = false AND cm.status = true AND cm.chat.status = true")
+    Optional<Chat> findOneToOneChat(@Param("userId1") Integer userId1, @Param("userId2") Integer userId2);
 }
