@@ -1,4 +1,3 @@
-// src/pages/admin/CommunitiesManagement.jsx
 import React, { useState, useEffect } from "react";
 import {
   Container,
@@ -26,6 +25,7 @@ const CommunitiesManagement = () => {
   const loadCommunities = async () => {
     try {
       const data = await fetchAllGroups();
+      console.log("📦 Dữ liệu nhóm:", data); // ✅ debug
       setCommunities(data);
     } catch (err) {
       setError(err.message);
@@ -49,7 +49,7 @@ const CommunitiesManagement = () => {
   const handleDelete = async (id) => {
     try {
       await deleteGroupAsAdmin(id);
-      setCommunities((prev) => prev.filter((c) => c.id !== id));
+      setCommunities((prev) => prev.filter((c) => c.groupId !== id));
     } catch (err) {
       alert("Lỗi khi xóa nhóm: " + err.message);
     }
@@ -80,24 +80,48 @@ const CommunitiesManagement = () => {
                   </thead>
                   <tbody>
                   {communities.map((community) => (
-                      <tr key={community.id}>
+                      <tr key={community.groupId}>
                         <td>{community.name}</td>
                         <td>{community.members}</td>
                         <td>
-                          <Badge bg={community.status === "active" ? "success" : "danger"}>
+                          <Badge
+                              bg={community.status === "active" ? "success" : "danger"}
+                          >
                             {community.status === "active" ? "Hoạt động" : "Vô hiệu"}
                           </Badge>
                         </td>
                         <td>
-                          <Badge bg={community.type === "public" ? "primary" : "secondary"}>
+                          <Badge
+                              bg={community.type === "public" ? "primary" : "secondary"}
+                          >
                             {community.type === "public" ? "Công khai" : "Riêng tư"}
                           </Badge>
                         </td>
                         <td>{new Date(community.created).toLocaleDateString()}</td>
                         <td>
-                          <Button variant="primary" size="sm" onClick={() => handleView(community.id)}>Xem</Button>
-                          <Button variant="info" size="sm" className="ms-2" onClick={() => handleManageMembers(community.id)}>Thành viên</Button>
-                          <Button variant="danger" size="sm" className="ms-2" onClick={() => handleDelete(community.id)}>Xóa</Button>
+                          <Button
+                              variant="primary"
+                              size="sm"
+                              onClick={() => handleView(community.groupId)}
+                          >
+                            Xem
+                          </Button>
+                          <Button
+                              variant="info"
+                              size="sm"
+                              className="ms-2"
+                              onClick={() => handleManageMembers(community.groupId)}
+                          >
+                            Thành viên
+                          </Button>
+                          <Button
+                              variant="danger"
+                              size="sm"
+                              className="ms-2"
+                              onClick={() => handleDelete(community.groupId)}
+                          >
+                            Xóa
+                          </Button>
                         </td>
                       </tr>
                   ))}
