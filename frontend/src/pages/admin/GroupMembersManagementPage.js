@@ -1,20 +1,7 @@
+
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import {
-    Card,
-    Button,
-    Spinner,
-    Container,
-    Row,
-    Col,
-    Badge,
-} from "react-bootstrap";
-import {
-    FaUserShield,
-    FaTrashAlt,
-    FaCrown,
-    FaSpinner,
-} from "react-icons/fa";
+import { Card, Button, Spinner } from "react-bootstrap";
 
 const GroupMembersManagementPage = () => {
     const { groupId } = useParams();
@@ -26,7 +13,7 @@ const GroupMembersManagementPage = () => {
     const getUsernameFromToken = () => {
         try {
             const payload = JSON.parse(atob(token.split(".")[1]));
-            return payload.username || payload.sub || payload.email;
+            return payload.username || payload.sub || payload.email; // ⚠️ ưu tiên "username"
         } catch (e) {
             return null;
         }
@@ -95,7 +82,7 @@ const GroupMembersManagementPage = () => {
             );
             if (!response.ok) throw new Error("Không thể trao quyền admin");
             alert("Trao quyền admin thành công");
-            fetchMembers();
+            fetchMembers(); // Reload danh sách sau khi cập nhật
         } catch (error) {
             console.error("Trao quyền admin lỗi:", error.message);
         }
@@ -103,64 +90,56 @@ const GroupMembersManagementPage = () => {
 
     useEffect(() => {
         fetchMembers();
+        // eslint-disable-next-line
     }, [groupId]);
 
     return (
-        <Container className="mt-4">
-            <h3 className="mb-4">👥 Quản lý thành viên nhóm</h3>
-
+        <div className="container mt-4">
+            <h3>Quản lý thành viên nhóm</h3>
             {loading ? (
-                <div className="d-flex justify-content-center align-items-center" style={{ height: "50vh" }}>
-                    <FaSpinner className="fa-spin" size={36} />
-                </div>
+                <Spinner animation="border" />
             ) : members.length === 0 ? (
-                <p className="text-muted">Không có thành viên nào trong nhóm.</p>
+                <p>Không có thành viên nào trong nhóm.</p>
             ) : (
-                <Row xs={1} sm={2} md={2} lg={2} xl={2} className="g-4">
-                    {members.map((member) => (
-                        <Col key={member.id}>
-                            <Card className="shadow-sm h-100">
-                                <Card.Body>
-                                    <Card.Title className="fw-bold fs-5">{member.displayName || member.username}</Card.Title>
-                                    <Card.Subtitle className="mb-2 text-muted">@{member.username}</Card.Subtitle>
-                                    <Badge bg={
-                                        member.isOwner ? "danger" :
-                                            member.isAdmin ? "warning" :
-                                                "secondary"
-                                    }>
-                                        {member.isOwner ? "👑 Chủ nhóm" : member.isAdmin ? "🔧 Admin" : "Thành viên"}
-                                    </Badge>
+                members.map((member) => (
+                    <Card key={member.id} className="mb-3">
+                        <Card.Body>
+                            <Card.Title>{member.displayName || member.username}</Card.Title>
+                            <Card.Subtitle className="mb-2 text-muted">
+                                @{member.username}
+                            </Card.Subtitle>
+                            <Card.Text>
+                                {member.isOwner
+                                    ? "Chủ nhóm"
+                                    : member.isAdmin
+                                        ? "Admin"
+                                        : "Thành viên"}
+                            </Card.Text>
 
-                                    {!member.isOwner && member.username !== getUsernameFromToken() && (
-                                        <div className="mt-3 d-flex gap-2">
-                                            <Button
-                                                variant="outline-danger"
-                                                size="sm"
-                                                onClick={() => handleRemove(member.id)}
-                                            >
-                                                <FaTrashAlt className="me-1" />
-                                                Xoá
-                                            </Button>
-
-                                            {!member.isAdmin && (
-                                                <Button
-                                                    variant="outline-warning"
-                                                    size="sm"
-                                                    onClick={() => handlePromoteToAdmin(member.id)}
-                                                >
-                                                    <FaUserShield className="me-1" />
-                                                    Trao quyền Admin
-                                                </Button>
-                                            )}
-                                        </div>
+                            {!member.isOwner && member.username !== getUsernameFromToken() && (
+                                <>
+                                    <Button
+                                        variant="danger"
+                                        className="me-2"
+                                        onClick={() => handleRemove(member.id)}
+                                    >
+                                        Xoá
+                                    </Button>
+                                    {!member.isAdmin && (
+                                        <Button
+                                            variant="warning"
+                                            onClick={() => handlePromoteToAdmin(member.id)}
+                                        >
+                                            Trao quyền Admin
+                                        </Button>
                                     )}
-                                </Card.Body>
-                            </Card>
-                        </Col>
-                    ))}
-                </Row>
+                                </>
+                            )}
+                        </Card.Body>
+                    </Card>
+                ))
             )}
-        </Container>
+        </div>
     );
 };
 
