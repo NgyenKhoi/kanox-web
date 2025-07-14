@@ -441,7 +441,8 @@ function AppContent() {
                       </PrivateRoute>
                     }
                 />
-                <Route path="/admin/groups/:id/view" element={<GroupAdminPage />} />
+                <Route path="/admin/groups/:groupId/view" element={<GroupAdminPage />} />
+
 
               </Routes>
 

@@ -1,41 +1,27 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Spinner, Row, Col, Card, Badge, Button } from "react-bootstrap";
+import { fetchGroupDetailById } from "../../api/groupApi"; // ✅ Đảm bảo đúng path file
 
 const GroupAdminPage = () => {
-    const { groupId } = useParams();
+    const { id } = useParams(); // ✅ Khớp với <Route path="/admin/groups/:id/view" />
     const [groupInfo, setGroupInfo] = useState(null);
     const [loading, setLoading] = useState(true);
-    const token = sessionStorage.getItem("token") || localStorage.getItem("token");
-    const API_URL = process.env.REACT_APP_API_URL;
 
     useEffect(() => {
-        const fetchGroupDetail = async () => {
+        const loadGroup = async () => {
             try {
-                const res = await fetch(`${API_URL}/groups/${groupId}/detail`, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-
-                const text = await res.text(); // đọc toàn bộ body để debug
-
-                if (!res.ok) {
-                    console.error("Lỗi HTTP:", res.status);
-                    console.error("Thông báo từ server:", text);
-                    throw new Error("Lỗi khi lấy thông tin nhóm");
-                }
-
-                const data = JSON.parse(text);
+                const data = await fetchGroupDetailById(id);
                 setGroupInfo(data);
             } catch (error) {
-                console.error("Chi tiết lỗi:", error.message);
+                console.error("❌ Lỗi khi lấy thông tin nhóm:", error.message);
             } finally {
                 setLoading(false);
             }
         };
 
-
-        fetchGroupDetail();
-    }, [groupId]);
+        loadGroup();
+    }, [id]);
 
     if (loading) {
         return (
@@ -64,11 +50,12 @@ const GroupAdminPage = () => {
                         <Card.Body>
                             <Card.Title>{groupInfo.name}</Card.Title>
                             <Card.Subtitle className="mb-2 text-muted">
-                                Nhóm {groupInfo.privacyLevel === "private" ? (
-                                <Badge bg="secondary">Riêng tư</Badge>
-                            ) : (
-                                <Badge bg="primary">Công khai</Badge>
-                            )}
+                                Nhóm{" "}
+                                {groupInfo.privacyLevel === "private" ? (
+                                    <Badge bg="secondary">Riêng tư</Badge>
+                                ) : (
+                                    <Badge bg="primary">Công khai</Badge>
+                                )}
                             </Card.Subtitle>
                             <Card.Text>
                                 {groupInfo.description || "Không có mô tả"}
@@ -76,6 +63,7 @@ const GroupAdminPage = () => {
                         </Card.Body>
                     </Card>
                 </Col>
+
                 <Col md={8}>
                     <Card className="shadow mb-4">
                         <Card.Body>
