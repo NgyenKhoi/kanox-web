@@ -16,15 +16,23 @@ const GroupAdminPage = () => {
                     headers: { Authorization: `Bearer ${token}` },
                 });
 
-                if (!res.ok) throw new Error("Lỗi khi lấy thông tin nhóm");
-                const data = await res.json();
+                const text = await res.text(); // đọc toàn bộ body để debug
+
+                if (!res.ok) {
+                    console.error("Lỗi HTTP:", res.status);
+                    console.error("Thông báo từ server:", text);
+                    throw new Error("Lỗi khi lấy thông tin nhóm");
+                }
+
+                const data = JSON.parse(text);
                 setGroupInfo(data);
             } catch (error) {
-                console.error(error.message);
+                console.error("Chi tiết lỗi:", error.message);
             } finally {
                 setLoading(false);
             }
         };
+
 
         fetchGroupDetail();
     }, [groupId]);
