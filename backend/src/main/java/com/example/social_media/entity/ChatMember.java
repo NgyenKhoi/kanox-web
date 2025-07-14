@@ -37,6 +37,19 @@ public class ChatMember {
     @Column(name = "status")
     private Boolean status;
 
+    public ChatMember() {}
+
+    public ChatMember(ChatMemberId id, Chat chat, User user,
+                      Instant joinedAt, Boolean isAdmin, Boolean isSpam, Boolean status) {
+        this.id = id;
+        this.chat = chat;
+        this.user = user;
+        this.joinedAt = joinedAt;
+        this.isAdmin = isAdmin;
+        this.isSpam = isSpam;
+        this.status = status;
+    }
+
     public ChatMemberId getId() {
         return id;
     }
