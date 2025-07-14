@@ -136,7 +136,7 @@ public class GroupController {
         String token = authHeader.substring(7); // bỏ "Bearer "
         String username = jwtService.extractUsername(token);
 
-        if (!groupService.isMember(groupId, username)) {
+        if (!groupService.hasPermissionToViewMembers(groupId, username)) {
             return ResponseEntity.status(403).body(Map.of(
                     "status", "error",
                     "message", "Bạn không có quyền xem danh sách thành viên",
@@ -146,6 +146,7 @@ public class GroupController {
 
         return ResponseEntity.ok(groupService.getGroupMembers(groupId, page, size));
     }
+
 
     @PostMapping(URLConfig.INVITE_MEMBER)
     public ResponseEntity<Void> inviteMember(

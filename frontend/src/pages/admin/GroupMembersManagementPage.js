@@ -9,7 +9,21 @@ const GroupMembersManagementPage = () => {
     const API_URL = process.env.REACT_APP_API_URL;
     const token = sessionStorage.getItem("token") || localStorage.getItem("token");
 
+    const getUsernameFromToken = () => {
+        try {
+            const payload = JSON.parse(atob(token.split(".")[1]));
+            return payload.sub;
+        } catch (e) {
+            return null;
+        }
+    };
+
     const fetchMembers = async () => {
+        if (!token) {
+            alert("Vui lòng đăng nhập lại.");
+            return;
+        }
+
         try {
             const response = await fetch(
                 `${API_URL}/groups/${groupId}/members?page=0&size=100`,
@@ -21,21 +35,18 @@ const GroupMembersManagementPage = () => {
                 }
             );
             const result = await response.json();
-            if (!response.ok) throw new Error(result.message || "Failed to load members");
-            setMembers(result.data || []);
+            if (!response.ok) {
+                if (response.status === 403) {
+                    alert(result.message || "Bạn không có quyền xem danh sách thành viên.");
+                    return;
+                }
+                throw new Error(result.message || "Failed to load members");
+            }
+            setMembers(result.content || []);
         } catch (error) {
             console.error("Lỗi khi tải danh sách thành viên:", error.message);
         } finally {
             setLoading(false);
-        }
-    };
-
-    const getUsernameFromToken = () => {
-        try {
-            const payload = JSON.parse(atob(token.split(".")[1]));
-            return payload.sub;
-        } catch (e) {
-            return null;
         }
     };
 
@@ -60,7 +71,7 @@ const GroupMembersManagementPage = () => {
     const handlePromoteToAdmin = async (targetUserId) => {
         try {
             const response = await fetch(
-                `${API_URL}/groups/${groupId}/assign-role?targetUserId=${targetUserId}&role=admin`,
+                `${API_URL}/groups/${groupId}/assign-role?targetUserId=${targetUserId}&role=admin&requesterUsername=${getUsernameFromToken()}`,
                 {
                     method: "POST",
                     headers: {
@@ -70,6 +81,7 @@ const GroupMembersManagementPage = () => {
             );
             if (!response.ok) throw new Error("Không thể trao quyền admin");
             alert("Trao quyền admin thành công");
+            fetchMembers(); // Reload danh sách sau khi cập nhật
         } catch (error) {
             console.error("Trao quyền admin lỗi:", error.message);
         }
@@ -77,6 +89,7 @@ const GroupMembersManagementPage = () => {
 
     useEffect(() => {
         fetchMembers();
+        // eslint-disable-next-line
     }, [groupId]);
 
     return (
@@ -90,21 +103,37 @@ const GroupMembersManagementPage = () => {
                 members.map((member) => (
                     <Card key={member.id} className="mb-3">
                         <Card.Body>
-                            <Card.Title>{member.username}</Card.Title>
-                            <Card.Text>Email: {member.email}</Card.Text>
-                            <Button
-                                variant="danger"
-                                className="me-2"
-                                onClick={() => handleRemove(member.id)}
-                            >
-                                Xoá
-                            </Button>
-                            <Button
-                                variant="warning"
-                                onClick={() => handlePromoteToAdmin(member.id)}
-                            >
-                                Trao quyền Admin
-                            </Button>
+                            <Card.Title>{member.displayName || member.username}</Card.Title>
+                            <Card.Subtitle className="mb-2 text-muted">
+                                @{member.username}
+                            </Card.Subtitle>
+                            <Card.Text>
+                                {member.isOwner
+                                    ? "Chủ nhóm"
+                                    : member.isAdmin
+                                        ? "Admin"
+                                        : "Thành viên"}
+                            </Card.Text>
+
+                            {!member.isOwner && member.username !== getUsernameFromToken() && (
+                                <>
+                                    <Button
+                                        variant="danger"
+                                        className="me-2"
+                                        onClick={() => handleRemove(member.id)}
+                                    >
+                                        Xoá
+                                    </Button>
+                                    {!member.isAdmin && (
+                                        <Button
+                                            variant="warning"
+                                            onClick={() => handlePromoteToAdmin(member.id)}
+                                        >
+                                            Trao quyền Admin
+                                        </Button>
+                                    )}
+                                </>
+                            )}
                         </Card.Body>
                     </Card>
                 ))
