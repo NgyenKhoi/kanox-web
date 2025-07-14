@@ -51,7 +51,23 @@ public class AuthService {
         return userRepository.findByUsernameAndStatusTrue(username);
     }
 
+    public Optional<User> loginFlexible(String identifier, String rawPassword) {
+        if (identifier == null || rawPassword == null) {
+            logger.warn("Identifier or password is null");
+            throw new IllegalArgumentException("Thông tin đăng nhập không được để trống");
+        }
+        if (identifier.contains("@")) {
+            return loginByEmail(identifier, rawPassword);
+        } else {
+            return loginByUsername(identifier, rawPassword);
+        }
+    }
+
     public Optional<User> loginByEmail(String email, String rawPassword) {
+        if (email == null || rawPassword == null) {
+            logger.warn("Email or password is null");
+            throw new IllegalArgumentException("Email hoặc mật khẩu không được để trống");
+        }
         Optional<User> userOpt = userRepository.findByEmailAndStatusTrue(email);
         if (userOpt.isEmpty()) {
             throw new UserNotFoundException("Người dùng không tồn tại hoặc bị vô hiệu hóa");
@@ -64,6 +80,10 @@ public class AuthService {
     }
 
     public Optional<User> loginByUsername(String username, String rawPassword) {
+        if (username == null || rawPassword == null) {
+            logger.warn("Username or password is null");
+            throw new IllegalArgumentException("Tên người dùng hoặc mật khẩu không được để trống");
+        }
         Optional<User> userOpt = userRepository.findByUsernameAndStatusTrue(username);
         if (userOpt.isEmpty()) {
             throw new UserNotFoundException("Người dùng không tồn tại hoặc bị vô hiệu hóa");
@@ -73,22 +93,6 @@ public class AuthService {
             throw new InvalidPasswordException("Mật khẩu không đúng");
         }
         return Optional.of(user);
-    }
-
-    public Optional<User> loginFlexible(String identifier, String rawPassword) {
-        if (identifier.contains("@")) {
-            return loginByEmail(identifier, rawPassword);
-        } else {
-            return loginByUsername(identifier, rawPassword);
-        }
-    }
-
-    public void logout(User user) {
-        if (user == null) {
-            throw new UserNotFoundException("Người dùng không tồn tại");
-        }
-        user.setPersistentCookie(null);
-        userRepository.save(user);
     }
 
 

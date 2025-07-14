@@ -4,9 +4,7 @@ import com.example.social_media.config.URLConfig;
 import com.example.social_media.dto.authentication.*;
 import com.example.social_media.dto.user.UserDto;
 import com.example.social_media.entity.User;
-import com.example.social_media.exception.EmailAlreadyExistsException;
-import com.example.social_media.exception.InvalidTokenException;
-import com.example.social_media.exception.TokenExpiredException;
+import com.example.social_media.exception.*;
 import com.example.social_media.jwt.JwtService;
 import com.example.social_media.service.AuthService;
 import com.example.social_media.service.MailService;
@@ -103,10 +101,18 @@ public class AuthController {
             ));
 
             return ResponseEntity.ok(result);
+        } catch (UserNotFoundException e) {
+            logger.warn("User not found for identifier: {}", loginRequest.getIdentifier());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("message", "Người dùng không tồn tại hoặc bị vô hiệu hóa"));
+        } catch (InvalidPasswordException e) {
+            logger.warn("Invalid password for identifier: {}", loginRequest.getIdentifier());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("message", "Mật khẩu không đúng"));
         } catch (Exception e) {
-            logger.error("Lỗi khi đăng nhập: {}", e.getMessage(), e);
+            logger.error("Lỗi khi đăng nhập cho identifier {}: {}", loginRequest.getIdentifier(), e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("message", "Lỗi khi đăng nhập: " + e.getMessage()));
+                    .body(Map.of("message", "Lỗi máy chủ khi đăng nhập: " + e.getMessage()));
         }
     }
 
