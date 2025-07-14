@@ -1,6 +1,7 @@
 package com.example.social_media.repository.post_repository;
 
 import com.example.social_media.entity.Post;
+import com.example.social_media.entity.User;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -72,7 +73,7 @@ public interface PostRepository extends JpaRepository<Post, Integer> {
     @Query("SELECT p FROM Post p WHERE p.owner.username = :username AND p.status = true ORDER BY p.createdAt DESC")
     List<Post> findActivePostsByUsername(String username);
 
-    int countByOwnerIdAndStatusTrue(Integer ownerId);
+    int countByOwnerAndStatusTrue(User owner);
 
     @Query("SELECT p FROM Post p WHERE p.status = true AND p.group IS NOT NULL AND p.group.status = true ORDER BY p.createdAt DESC")
     List<Post> findPostsFromPublicGroups();

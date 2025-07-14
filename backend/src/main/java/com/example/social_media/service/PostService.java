@@ -288,7 +288,7 @@ public class PostService {
         post.setStatus(false);
         postRepository.save(post);
     }
-
+    @Cacheable(value = "newsfeed", key = "#username")
     public List<PostResponseDto> getAllPosts(String username) {
         logger.info("Lấy newsfeed tối ưu cho người dùng: {}", username);
 
@@ -333,7 +333,7 @@ public class PostService {
                 .toList();
     }
 
-//    @Cacheable(value = "postsByUsername", key = "#targetUsername + ':' + #currentUsername")
+    @Cacheable(value = "postsByUsername", key = "#targetUsername + ':' + #currentUsername")
     public List<PostResponseDto> getPostsByUsername(String targetUsername, String currentUsername) {
         logger.info("Lấy bài viết cho username: {} bởi người dùng: {}", targetUsername, currentUsername);
 
