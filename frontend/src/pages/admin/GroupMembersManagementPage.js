@@ -1,9 +1,10 @@
+
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Card, Button, Spinner } from "react-bootstrap";
 
 const GroupMembersManagementPage = () => {
-    const { id: groupId } = useParams();
+    const { groupId } = useParams();
     const [members, setMembers] = useState([]);
     const [loading, setLoading] = useState(true);
     const API_URL = process.env.REACT_APP_API_URL;
