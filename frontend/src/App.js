@@ -36,6 +36,8 @@ import Call from "./components/messages/Call";
 import GroupCommunityPage from "./pages/community/GroupCommunityPage";
 import GroupMembersPage from "./pages/community/GroupMembersPage";
 import GroupMembersManagementPage from "./pages/admin/GroupMembersManagementPage";
+import GroupAdminPage from "./pages/admin/GroupAdminPage";
+
 
 
 function AppContent() {
@@ -439,6 +441,8 @@ function AppContent() {
                       </PrivateRoute>
                     }
                 />
+                <Route path="/admin/groups/:id/view" element={<GroupAdminPage />} />
+
               </Routes>
 
               <Modal
