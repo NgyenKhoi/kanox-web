@@ -90,15 +90,16 @@ public class AuthController {
             String token = jwtService.generateToken(user.getUsername());
             String refreshToken = jwtService.generateRefreshToken(user.getUsername());
 
+            Map<String, Object> userMap = new HashMap<>();
+            userMap.put("id", user.getId());
+            userMap.put("username", user.getUsername());
+            userMap.put("email", user.getEmail()); // email có thể null
+            userMap.put("isAdmin", user.getIsAdmin());
+
             Map<String, Object> result = new HashMap<>();
             result.put("token", token);
             result.put("refreshToken", refreshToken);
-            result.put("user", Map.of(
-                    "id", user.getId(),
-                    "username", user.getUsername(),
-                    "email", user.getEmail(),
-                    "isAdmin", user.getIsAdmin()
-            ));
+            result.put("user", userMap);
 
             return ResponseEntity.ok(result);
         } catch (UserNotFoundException e) {
