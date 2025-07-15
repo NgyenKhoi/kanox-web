@@ -62,11 +62,12 @@ function MessengerPage() {
 
   const groupedMediaData = useMemo(() => {
     const grouped = {};
-    mediaData?.forEach((item) => {
-      const key = Number(item.targetId);
-      if (!grouped[key]) grouped[key] = [];
-      grouped[key].push(item);
-    });
+    if (mediaData && typeof mediaData === "object") {
+      Object.entries(mediaData).forEach(([key, items]) => {
+        const numericKey = Number(key);
+        grouped[numericKey] = items;
+      });
+    }
     return grouped;
   }, [mediaData]);
 

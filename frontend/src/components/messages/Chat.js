@@ -41,7 +41,7 @@ const Chat = ({ chatId, messages, onMessageUpdate, onSendMessage }) => {
         "image"
     );
 
-    const avatarUrl = mediaData?.[0]?.url || "/assets/default-avatar.png";
+    const avatarUrl = mediaData?.[resolvedTargetId]?.[0]?.url || "/assets/default-avatar.png";
 
     useEffect(() => {
         if (messages?.length > 0) {
