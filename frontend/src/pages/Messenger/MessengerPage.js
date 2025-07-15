@@ -37,6 +37,7 @@ function MessengerPage() {
   const resendSentRef = useRef(new Set());
   const [spamMessages, setSpamMessages] = useState({});
   const [activeTab, setActiveTab] = useState("inbox");
+  const [chatTargetUserMap, setChatTargetUserMap] = useState({});
 
   const {
     searchKeyword,
@@ -48,10 +49,8 @@ function MessengerPage() {
 
   // Extract targetUserIds from chats
   const targetUserIds = useMemo(() => {
-    return chats
-        .map((chat) => chat.targetUserId || chat.lastSenderId)
-        .filter((id) => id && id !== user.id); // Exclude null/undefined and current user's ID
-  }, [chats, user.id]);
+    return Object.values(chatTargetUserMap).filter((id) => id && id !== user.id);
+  }, [chatTargetUserMap, user.id]);
 
   // Use useMedia to fetch avatars for all chat participants
   const { mediaData, loading: mediaLoading, error: mediaError } = useMedia(
@@ -59,6 +58,31 @@ function MessengerPage() {
       "PROFILE",
       "image"
   );
+
+  useEffect(() => {
+    const fetchAllTargetUserIds = async () => {
+      const newMap = {};
+      for (const chat of chats) {
+        try {
+          const res = await fetch(`${process.env.REACT_APP_API_URL}/chat/${chat.id}/members`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (res.ok) {
+            const members = await res.json();
+            const other = members.find((m) => m.userId !== user.id);
+            if (other) newMap[chat.id] = other.userId;
+          }
+        } catch (err) {
+          console.error("Error fetching members for chat", chat.id, err);
+        }
+      }
+      setChatTargetUserMap(newMap);
+    };
+
+    if (chats.length > 0) {
+      fetchAllTargetUserIds();
+    }
+  }, [chats, token, user.id]);
 
   const groupedMediaData = useMemo(() => {
     const grouped = {};
@@ -544,7 +568,7 @@ function MessengerPage() {
               {filteredChats.map((chat) => {
                 const isUnread = unreadChats.has(chat.id) && selectedChatId !== chat.id;
                 const isFromOthers = chat.lastSenderId && chat.lastSenderId !== user.id;
-                const avatarUrl = getAvatarUrl(chat.targetUserId || chat.lastSenderId);
+                const avatarUrl = getAvatarUrl(chatTargetUserMap[chat.id]);
 
                 return (
                     <div
