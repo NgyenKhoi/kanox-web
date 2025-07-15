@@ -6,6 +6,7 @@ import "react-toastify/dist/ReactToastify.css";
 import { AuthContext } from "../../context/AuthContext";
 import { WebSocketContext } from "../../context/WebSocketContext";
 import { FaPaperclip, FaPaperPlane, FaPhone, FaCheckCircle, FaExclamationTriangle } from "react-icons/fa";
+import useMedia from "../../hooks/useMedia";
 
 const Chat = ({ chatId, messages, onMessageUpdate, onSendMessage }) => {
     const { user, token } = useContext(AuthContext);
@@ -22,11 +23,41 @@ const Chat = ({ chatId, messages, onMessageUpdate, onSendMessage }) => {
     const isConnectedRef = useRef(false);
     const lastMessageIdRef = useRef(null);
     const typingTimeoutRef = useRef(null);
+    const targetUserId = useRef(null);
+    const [resolvedTargetId, setResolvedTargetId] = useState(null);
     const messagesRef = useRef(messages);
 
     useEffect(() => {
         messagesRef.current = messages;
     }, [messages]);
+
+    const {
+        mediaData,
+        loading: mediaLoading,
+        error: mediaError,
+    } = useMedia(
+        resolvedTargetId ? [resolvedTargetId] : [],
+        "PROFILE",
+        "image"
+    );
+
+    const avatarUrl = mediaData?.[0]?.url || "/assets/default-avatar.png";
+
+    useEffect(() => {
+        if (messages?.length > 0) {
+            const firstSenderId = messages[0].senderId;
+            if (firstSenderId !== user.id) {
+                targetUserId.current = firstSenderId;
+            } else {
+                const recipient = messages.find(m => m.senderId !== user.id);
+                if (recipient) targetUserId.current = recipient.senderId;
+            }
+
+            if (targetUserId.current) {
+                setResolvedTargetId(targetUserId.current);
+            }
+        }
+    }, [messages, user.id]);
 
     const fetchUnreadMessageCount = async () => {
         try {
@@ -236,7 +267,15 @@ const Chat = ({ chatId, messages, onMessageUpdate, onSendMessage }) => {
     return (
         <div className="flex flex-col h-full bg-[var(--background-color)]">
             <div className="p-3 border-b border-[var(--border-color)] bg-[var(--background-color)] shadow-sm flex items-center">
-                <h5 className="mb-0 flex-grow text-[var(--text-color)]">{recipientName}</h5>
+                <div className="flex items-center gap-2 flex-grow">
+                    <img
+                        src={avatarUrl}
+                        alt="Avatar"
+                        className="w-8 h-8 rounded-full object-cover"
+                    />
+                    <h5 className="mb-0 text-[var(--text-color)]">{recipientName}</h5>
+                </div>
+
                 <OverlayTrigger placement="left" overlay={<Tooltip className="!bg-[var(--tooltip-bg-color)] !text-[var(--text-color)] dark:!bg-gray-800 dark:!text-white">
                     Gọi video
                 </Tooltip>}>

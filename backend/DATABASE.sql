@@ -2204,7 +2204,6 @@ GO
 	CREATE NONCLUSTERED INDEX idx_chat_member_is_spam
 	ON tblChatMember (chat_id, user_id, is_spam)
 	INCLUDE (status);
-
     --ACTIVITY LOGS
 
     CREATE TABLE tblActionType (

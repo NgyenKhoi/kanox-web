@@ -60,11 +60,22 @@ function MessengerPage() {
       "image"
   );
 
+  const groupedMediaData = useMemo(() => {
+    const grouped = {};
+    mediaData?.forEach((item) => {
+      const key = Number(item.targetId);
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(item);
+    });
+    return grouped;
+  }, [mediaData]);
+
   const getAvatarUrl = (targetUserId) => {
     if (!targetUserId || targetUserId === user.id) {
       return "/assets/default-avatar.png";
     }
-    return mediaData?.[targetUserId]?.[0]?.url || "/assets/default-avatar.png";
+    const key = Number(targetUserId);
+    return groupedMediaData?.[key]?.[0]?.url || "/assets/default-avatar.png";
   };
 
   const handleMessageUpdate = useCallback((message) => {
