@@ -19,8 +19,6 @@ import { WebSocketContext } from "../../context/WebSocketContext";
 import UserSelectionModal from "../../components/messages/UserSelectionModal";
 import useUserSearch from "../../hooks/useUserSearch";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import useMedia from "../../hooks/useMedia";
-import { useMemo } from "react";
 
 function MessengerPage() {
   const { token, user } = useContext(AuthContext);
@@ -38,8 +36,7 @@ function MessengerPage() {
   const resendSentRef = useRef(new Set());
   const [spamMessages, setSpamMessages] = useState({});
   const [activeTab, setActiveTab] = useState("inbox");
-  const userIds = useMemo(() => chats.map((chat) => chat.otherUserId), [chats]);
-  const { mediaData, loading: mediaLoading, error: mediaError } = useMedia(userIds, "PROFILE", "image");
+// Theo dõi các subscription
 
   const {
     searchKeyword,
@@ -49,147 +46,142 @@ function MessengerPage() {
     debouncedSearch,
   } = useUserSearch(token, navigate);
 
-  const handleMessageUpdate = useCallback(
-      (message) => {
-        if (!message) return;
 
-        if (message.action === "delete") {
-          setChats((prev) => prev.filter((chat) => chat.id !== message.chatId));
-          setUnreadChats((prev) => {
-            const newUnread = new Set(prev);
-            newUnread.delete(message.chatId);
-            return newUnread;
-          });
-          if (selectedChatId === message.chatId) {
-            setSelectedChatId(null);
-            setMessages((prev) => {
-              const newMessages = { ...prev };
-              delete newMessages[message.chatId];
-              return newMessages;
-            });
-            setSpamMessages((prev) => {
-              const newSpamMessages = { ...prev };
-              delete newSpamMessages[message.chatId];
-              return newSpamMessages;
-            });
-            navigate("/messages");
-          }
-          toast.success("Chat đã được xóa.");
-        } else if (message.id) {
-          setChats((prev) => {
-            const existingChat = prev.find((chat) => chat.id === message.id);
-            if (existingChat && JSON.stringify(existingChat) === JSON.stringify(message)) {
-              return prev;
-            }
-            const updatedChat = {
-              ...message,
-              name: message.name || "Unknown User",
-            };
-            if (existingChat) {
-              return prev.map((chat) =>
-                  chat.id === message.id ? { ...chat, ...updatedChat } : chat
-              );
-            }
-            return [...prev, updatedChat];
-          });
-          setUnreadChats((prev) => {
-            const newUnread = new Set(prev);
-            if (message.unreadMessagesCount > 0 && selectedChatId !== message.id) {
-              newUnread.add(message.id);
-            } else {
-              newUnread.delete(message.id);
-            }
-            return newUnread;
-          });
+  const handleMessageUpdate = useCallback((message) => {
+    if (!message) return;
+
+    if (message.action === "delete") {
+      setChats((prev) => prev.filter((chat) => chat.id !== message.chatId));
+      setUnreadChats((prev) => {
+        const newUnread = new Set(prev);
+        newUnread.delete(message.chatId);
+        return newUnread;
+      });
+      if (selectedChatId === message.chatId) {
+        setSelectedChatId(null);
+        setMessages((prev) => {
+          const newMessages = { ...prev };
+          delete newMessages[message.chatId];
+          return newMessages;
+        });
+        setSpamMessages((prev) => {
+          const newSpamMessages = { ...prev };
+          delete newSpamMessages[message.chatId];
+          return newSpamMessages;
+        });
+        navigate("/messages");
+      }
+      toast.success("Chat đã được xóa.");
+    } else if (message.id) {
+      setChats((prev) => {
+        const existingChat = prev.find((chat) => chat.id === message.id);
+        if (existingChat && JSON.stringify(existingChat) === JSON.stringify(message)) {
+          return prev;
         }
-      },
-      [selectedChatId, navigate]
-  );
-
-  const subscribeToChatMessages = useCallback(
-      (chatId) => {
-        if (!subscribe || !chatId) return;
-
-        if (subscriptionsRef.current[chatId]) {
-          console.warn("Đã subscribe rồi:", chatId);
-          return;
-        }
-
-        const topic = `/topic/chat/${chatId}`;
-        const subId = `chat-${chatId}`;
-
-        const callback = (newMessage) => {
-          try {
-            setMessages((prev) => {
-              const currentMessages = prev[chatId] || [];
-              const exists = currentMessages.some((msg) => msg.id === newMessage.id);
-              if (exists) {
-                console.warn("🚫 Duplicate message (callback ignored):", newMessage);
-                return prev;
-              }
-              return {
-                ...prev,
-                [chatId]: [...currentMessages, newMessage],
-              };
-            });
-
-            setChats((prevChats) => {
-              const existingChat = prevChats.find((chat) => chat.id === chatId);
-              if (!existingChat) return prevChats;
-              const updatedChat = {
-                ...existingChat,
-                lastMessage: newMessage.content,
-                lastSenderId: newMessage.senderId,
-              };
-              if (JSON.stringify(existingChat) === JSON.stringify(updatedChat)) {
-                return prevChats;
-              }
-              return prevChats.map((chat) =>
-                  chat.id === chatId ? updatedChat : chat
-              );
-            });
-          } catch (err) {
-            console.error("Lỗi khi xử lý message:", err);
-          }
+        const updatedChat = {
+          ...message,
+          name: message.name || "Unknown User",
         };
-
-        const spamCallback = (newMessage) => {
-          try {
-            setSpamMessages((prev) => {
-              const currentSpamMessages = prev[chatId] || [];
-              const exists = currentSpamMessages.some((msg) => msg.id === newMessage.id);
-              if (exists) {
-                console.warn("🚫 Duplicate spam message ignored:", newMessage);
-                return prev;
-              }
-              return {
-                ...prev,
-                [chatId]: [...currentSpamMessages, newMessage],
-              };
-            });
-          } catch (err) {
-            console.error("Lỗi khi xử lý spam message:", err);
-          }
-        };
-
-        subscriptionsRef.current[chatId] = [
-          subscribe(topic, callback, subId),
-          subscribe(`/topic/spam-messages/${chatId}`, spamCallback, `spam-messages-${chatId}`),
-        ];
-        console.log("✅ Subscribed to", topic, "and /topic/spam-messages/", chatId);
-      },
-      [subscribe, selectedChatId, user.id]
-  );
-
-  const unsubscribeFromChatMessages = useCallback(
-      (chatId) => {
-        if (unsubscribe && subscriptionsRef.current[chatId] && chatId) {
-          subscriptionsRef.current[chatId].forEach((_, index) => unsubscribe(`chat-${chatId}-${index}`));
-          delete subscriptionsRef.current[chatId];
+        if (existingChat) {
+          return prev.map((chat) =>
+              chat.id === message.id ? { ...chat, ...updatedChat } : chat
+          );
         }
-      },
-      [unsubscribe]
-  );
+        return [...prev, updatedChat];
+      });
+      setUnreadChats((prev) => {
+        const newUnread = new Set(prev);
+        if (message.unreadMessagesCount > 0 && selectedChatId !== message.id) {
+          newUnread.add(message.id);
+        } else {
+          newUnread.delete(message.id);
+        }
+        return newUnread;
+      });
+    }
+  }, [selectedChatId, navigate]);
+
+
+  const subscribeToChatMessages = useCallback((chatId) => {
+    if (!subscribe || !chatId) return;
+
+    if (subscriptionsRef.current[chatId]) {
+      console.warn("Đã subscribe rồi:", chatId);
+      return;
+    }
+
+    const topic = `/topic/chat/${chatId}`;
+    const subId = `chat-${chatId}`;
+
+    const callback = (newMessage) => {
+      try {
+        setMessages((prev) => {
+          const currentMessages = prev[chatId] || [];
+          const exists = currentMessages.some((msg) => msg.id === newMessage.id);
+          if (exists) {
+            console.warn("🚫 Duplicate message (callback ignored):", newMessage);
+            return prev;
+          }
+          return {
+            ...prev,
+            [chatId]: [...currentMessages, newMessage],
+          };
+        });
+
+        setChats((prevChats) => {
+          const existingChat = prevChats.find((chat) => chat.id === chatId);
+          if (!existingChat) return prevChats;
+          const updatedChat = {
+            ...existingChat,
+            lastMessage: newMessage.content,
+            lastSenderId: newMessage.senderId,
+          };
+          if (JSON.stringify(existingChat) === JSON.stringify(updatedChat)) {
+            return prevChats;
+          }
+          return prevChats.map((chat) =>
+              chat.id === chatId ? updatedChat : chat
+          );
+        });
+      } catch (err) {
+        console.error("Lỗi khi xử lý message:", err);
+      }
+    };
+
+    const spamCallback = (newMessage) => {
+      try {
+        setSpamMessages((prev) => {
+          const currentSpamMessages = prev[chatId] || [];
+          const exists = currentSpamMessages.some((msg) => msg.id === newMessage.id);
+          if (exists) {
+            console.warn("🚫 Duplicate spam message ignored:", newMessage);
+            return prev;
+          }
+          return {
+            ...prev,
+            [chatId]: [...currentSpamMessages, newMessage],
+          };
+        });
+      } catch (err) {
+        console.error("Lỗi khi xử lý spam message:", err);
+      }
+    };
+
+    subscriptionsRef.current[chatId] = [
+      subscribe(topic, callback, subId),
+      subscribe(`/topic/spam-messages/${chatId}`, spamCallback, `spam-messages-${chatId}`)
+    ];
+    console.log("✅ Subscribed to", topic, "and /topic/spam-messages/", chatId);
+  }, [subscribe, selectedChatId, user.id]);
+
+  // Hủy subscribe khi không cần thiết
+  const unsubscribeFromChatMessages = useCallback((chatId) => {
+    if (unsubscribe && subscriptionsRef.current[chatId] && chatId) {
+      subscriptionsRef.current[chatId].forEach((_, index) => unsubscribe(`chat-${chatId}-${index}`));
+      delete subscriptionsRef.current[chatId];
+    }
+  }, [unsubscribe]);
+
 
   useEffect(() => {
     if (!token || !user) {
@@ -207,24 +199,16 @@ function MessengerPage() {
     }
 
     const subscriptions = [];
-    subscriptions.push(
-        subscribe(`/topic/chats/${user.id}`, handleMessageUpdate, `chats-${user.id}`)
-    );
-    subscriptions.push(
-        subscribe(
-            `/topic/unread-count/${user.id}`,
-            (data) => {
-              const count = data.unreadCount ?? 0;
-              console.log(`Received unread chat count for user ${user.id}:`, count);
-              window.dispatchEvent(
-                  new CustomEvent("updateUnreadCount", {
-                    detail: { unreadCount: count },
-                  })
-              );
-            },
-            `unread-count-${user.id}`
-        )
-    );
+    subscriptions.push(subscribe(`/topic/chats/${user.id}`, handleMessageUpdate, `chats-${user.id}`));
+    subscriptions.push(subscribe(`/topic/unread-count/${user.id}`, (data) => {
+      const count = data.unreadCount ?? 0;
+      console.log(`Received unread chat count for user ${user.id}:`, count);
+      window.dispatchEvent(
+          new CustomEvent("updateUnreadCount", {
+            detail: { unreadCount: count },
+          })
+      );
+    }, `unread-count-${user.id}`));
 
     const fetchChats = async () => {
       try {
@@ -241,7 +225,7 @@ function MessengerPage() {
         }
 
         const data = await response.json();
-        setChats(data.map((chat) => ({ ...chat, name: chat.name || "Unknown User" })));
+        setChats(data.map(chat => ({ ...chat, name: chat.name || "Unknown User" })));
         const unread = new Set(
             data.filter((chat) => chat.unreadMessagesCount > 0).map((chat) => chat.id)
         );
@@ -268,6 +252,7 @@ function MessengerPage() {
       subscriptionsRef.current = {};
     };
   }, [token, user, subscribe, unsubscribe, publish, handleMessageUpdate, unsubscribeFromChatMessages]);
+
 
   useEffect(() => {
     const activeChatIds = new Set(chats.map((chat) => chat.id));
@@ -312,12 +297,9 @@ function MessengerPage() {
           });
 
           // Lấy tin nhắn spam
-          const spamResponse = await fetch(
-              `${process.env.REACT_APP_API_URL}/chat/${chatId}/spam-messages`,
-              {
-                headers: { Authorization: `Bearer ${token}` },
-              }
-          );
+          const spamResponse = await fetch(`${process.env.REACT_APP_API_URL}/chat/${chatId}/spam-messages`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
           if (spamResponse.ok) {
             const spamData = await spamResponse.json();
             setSpamMessages((prev) => ({ ...prev, [chatId]: spamData }));
@@ -457,12 +439,9 @@ function MessengerPage() {
       const data = await response.json();
       setMessages((prev) => ({ ...prev, [chatId]: data }));
 
-      const spamResponse = await fetch(
-          `${process.env.REACT_APP_API_URL}/chat/${chatId}/spam-messages`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-      );
+      const spamResponse = await fetch(`${process.env.REACT_APP_API_URL}/chat/${chatId}/spam-messages`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (spamResponse.ok) {
         const spamData = await spamResponse.json();
         setSpamMessages((prev) => ({ ...prev, [chatId]: spamData }));
@@ -510,12 +489,12 @@ function MessengerPage() {
                       if (showUserSelectionModal) setSearchKeyword(e.target.value);
                     }}
                     placeholder="Tìm kiếm người dùng hoặc tin nhắn"
-                    className="w-full pl-10 pr-4 py-2 rounded-full border border-[var(--border-color)] bg-gray-100 dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-sm transition-all duration-200"
+                    className="w-full pl-10 pr-4 py-2 rounded-full border border-[var(--border-color)] bg-gray-100 dark:bg-gray-800 focus:outline-none text-sm"
                 />
               </div>
               <button
                   onClick={handleOpenUserSelectionModal}
-                  className="bg-blue-500 text-white px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-1 hover:bg-blue-600 transition-colors duration-200"
+                  className="bg-blue-500 text-white px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-1 hover:bg-blue-600"
               >
                 <FaPenSquare /> Tin nhắn mới
               </button>
@@ -531,65 +510,44 @@ function MessengerPage() {
           </div>
           <div className="flex flex-grow h-full overflow-hidden min-h-0">
             <div className="w-1/3 border-r border-[var(--border-color)] bg-[var(--card-bg)] overflow-y-auto">
-              {filteredChats.length === 0 ? (
-                  <div className="p-4 text-center text-gray-500 dark:text-gray-400">
-                    Không có cuộc trò chuyện nào.
-                  </div>
-              ) : (
-                  filteredChats.map((chat) => {
-                    const avatarUrl = mediaData?.[chat.otherUserId]?.[0]?.url || "https://via.placeholder.com/40?text=Avatar";
-                    const isUnread = unreadChats.has(chat.id) && selectedChatId !== chat.id;
-                    const isFromOthers = chat.lastSenderId && chat.lastSenderId !== user.id;
+              {filteredChats.map(chat => {
+                const isUnread = unreadChats.has(chat.id) && selectedChatId !== chat.id;
+                const isFromOthers = chat.lastSenderId && chat.lastSenderId !== user.id;
 
-                    return (
-                        <div
-                            key={chat.id}
-                            onClick={() => handleSelectChat(chat.id)}
-                            className={`flex items-center justify-between p-3 border-b border-[var(--border-color)] hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer transition-colors duration-200 ${
-                                selectedChatId === chat.id ? "bg-gray-200 dark:bg-gray-700" : ""
-                            }`}
-                        >
-                          <div className="flex items-center gap-3 flex-1">
-                            {mediaLoading ? (
-                                <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-600 animate-pulse" />
-                            ) : (
-                                <img
-                                    src={avatarUrl}
-                                    alt={chat.name || "User avatar"}
-                                    className="w-10 h-10 rounded-full object-cover border border-gray-200 dark:border-gray-600"
-                                    onError={(e) => {
-                                      e.target.src = "https://via.placeholder.com/40?text=Avatar";
-                                    }}
-                                />
-                            )}
-                            <div className="flex-1 min-w-0">
-                              <p
-                                  className={`text-sm truncate ${
-                                      isUnread ? "font-bold text-[var(--text-color)]" : "text-[var(--text-color)]"
-                                  }`}
-                              >
-                                {chat.name || "Unknown User"}
-                              </p>
-                              <p className={`text-xs truncate ${isUnread ? "font-semibold text-[var(--text-color)]" : "text-gray-500 dark:text-gray-400"}`}>
-                                {isFromOthers && <span className="text-blue-500">Họ: </span>}
-                                {chat.lastMessage || "Không có tin nhắn"}
-                              </p>
-                            </div>
-                          </div>
-                          <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteChat(chat.id);
-                              }}
-                              className="text-red-500 hover:text-red-700 transition-colors duration-200"
-                              title="Xóa chat"
-                          >
-                            <FaTrash size={14} />
-                          </button>
-                        </div>
-                    );
-                  })
-              )}
+                return (
+                    <div
+                        key={chat.id}
+                        onClick={() => handleSelectChat(chat.id)}
+                        className={`flex items-center justify-between p-4 border-b border-[var(--border-color)] hover:bg-[var(--hover-bg-color)] cursor-pointer ${
+                            selectedChatId === chat.id ? "bg-gray-200 dark:bg-gray-700" : ""
+                        }`}
+                    >
+                      <img
+                          src="/assets/default-avatar.png"
+                          alt="Avatar"
+                          className="w-10 h-10 rounded-full mr-3"
+                      />
+                      <div className="flex-1">
+                        <p className={`text-sm ${isUnread ? "font-bold" : ""}`}>
+                          {chat.name || "Unknown User"}
+                        </p>
+                        <p className={`text-xs truncate ${isUnread ? "font-semibold" : "text-gray-500"}`}>
+                          {isFromOthers ? <span className="text-blue-500">Họ:</span> : null} {chat.lastMessage}
+                        </p>
+                      </div>
+                      <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteChat(chat.id);
+                          }}
+                          className="text-red-500 hover:text-red-700"
+                          title="Xóa chat"
+                      >
+                        <FaTrash />
+                      </button>
+                    </div>
+                );
+              })}
             </div>
             <div className="w-2/3 bg-[var(--background-color)] h-full">
               {selectedChatId ? (
@@ -597,12 +555,18 @@ function MessengerPage() {
                       chatId={selectedChatId}
                       messages={activeTab === "spam" ? (spamMessages[selectedChatId] || []) : (messages[selectedChatId] || [])}
                       onMessageUpdate={(newMessage) => {
-                        const existing = messages[selectedChatId] || [];
-                        if (existing.some((msg) => msg.id === newMessage.id)) return;
-                        setMessages((prev) => ({
-                          ...prev,
-                          [selectedChatId]: [...existing, newMessage],
-                        }));
+                        setMessages((prev) => {
+                          const existing = prev[selectedChatId] || [];
+                          const isDuplicate = existing.some((msg) => msg.id === newMessage.id);
+                          if (isDuplicate) {
+                            console.warn("⚠️ Duplicate message ignored in MessengerPage:", newMessage);
+                            return prev;
+                          }
+                          return {
+                            ...prev,
+                            [selectedChatId]: [...existing, newMessage],
+                          };
+                        });
                       }}
                       onSendMessage={(message) => {
                         if (publish) {
@@ -614,14 +578,9 @@ function MessengerPage() {
                         }
                       }}
                       onEndCall={() => navigate(`/messages?chatId=${selectedChatId}`)}
-                      recipientName={chats.find((chat) => chat.id === selectedChatId)?.name || ""}
-                      recipientAvatarUrl={
-                          mediaData?.[chats.find((chat) => chat.id === selectedChatId)?.otherUserId]?.[0]?.url ||
-                          "https://via.placeholder.com/40?text=Avatar"
-                      }
                   />
               ) : (
-                  <div className="flex justify-center items-center h-full text-gray-400 dark:text-gray-500">
+                  <div className="flex justify-center items-center h-full text-gray-400">
                     <p>Chọn một cuộc trò chuyện</p>
                   </div>
               )}

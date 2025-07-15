@@ -152,6 +152,7 @@
       <workItem from="1752308111379" duration="7056000" />
       <workItem from="1752333143324" duration="5738000" />
       <workItem from="1752411726482" duration="39000" />
+      <workItem from="1752501658138" duration="13543000" />
     </task>
     <servers />
   </component>
@@ -168,17 +169,6 @@
         </entry>
       </map>
     </option>
-  </component>
-  <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" type="javascript">
-          <url>file://$PROJECT_DIR$/src/hooks/useCommentAction.js</url>
-          <line>1</line>
-          <option name="timeStamp" value="1" />
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />
