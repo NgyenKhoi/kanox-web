@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useCallback, useRef } from "react";
+import React, { useState, useEffect, useContext, useCallback, useRef, useMemo } from "react";
 import {
   Container,
   Row,
@@ -18,6 +18,7 @@ import { AuthContext } from "../../context/AuthContext";
 import { WebSocketContext } from "../../context/WebSocketContext";
 import UserSelectionModal from "../../components/messages/UserSelectionModal";
 import useUserSearch from "../../hooks/useUserSearch";
+import useMedia from "../../hooks/useMedia";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 function MessengerPage() {
@@ -36,7 +37,6 @@ function MessengerPage() {
   const resendSentRef = useRef(new Set());
   const [spamMessages, setSpamMessages] = useState({});
   const [activeTab, setActiveTab] = useState("inbox");
-// Theo dõi các subscription
 
   const {
     searchKeyword,
@@ -46,6 +46,26 @@ function MessengerPage() {
     debouncedSearch,
   } = useUserSearch(token, navigate);
 
+  // Extract targetUserIds from chats
+  const targetUserIds = useMemo(() => {
+    return chats
+        .map((chat) => chat.targetUserId || chat.lastSenderId)
+        .filter((id) => id && id !== user.id); // Exclude null/undefined and current user's ID
+  }, [chats, user.id]);
+
+  // Use useMedia to fetch avatars for all chat participants
+  const { mediaData, loading: mediaLoading, error: mediaError } = useMedia(
+      targetUserIds,
+      "PROFILE",
+      "image"
+  );
+
+  const getAvatarUrl = (targetUserId) => {
+    if (!targetUserId || targetUserId === user.id) {
+      return "/assets/default-avatar.png";
+    }
+    return mediaData?.[targetUserId]?.[0]?.url || "/assets/default-avatar.png";
+  };
 
   const handleMessageUpdate = useCallback((message) => {
     if (!message) return;
@@ -100,7 +120,6 @@ function MessengerPage() {
       });
     }
   }, [selectedChatId, navigate]);
-
 
   const subscribeToChatMessages = useCallback((chatId) => {
     if (!subscribe || !chatId) return;
@@ -174,14 +193,12 @@ function MessengerPage() {
     console.log("✅ Subscribed to", topic, "and /topic/spam-messages/", chatId);
   }, [subscribe, selectedChatId, user.id]);
 
-  // Hủy subscribe khi không cần thiết
   const unsubscribeFromChatMessages = useCallback((chatId) => {
     if (unsubscribe && subscriptionsRef.current[chatId] && chatId) {
       subscriptionsRef.current[chatId].forEach((_, index) => unsubscribe(`chat-${chatId}-${index}`));
       delete subscriptionsRef.current[chatId];
     }
   }, [unsubscribe]);
-
 
   useEffect(() => {
     if (!token || !user) {
@@ -253,7 +270,6 @@ function MessengerPage() {
     };
   }, [token, user, subscribe, unsubscribe, publish, handleMessageUpdate, unsubscribeFromChatMessages]);
 
-
   useEffect(() => {
     const activeChatIds = new Set(chats.map((chat) => chat.id));
     chats.forEach((chat) => {
@@ -296,7 +312,6 @@ function MessengerPage() {
             return newUnread;
           });
 
-          // Lấy tin nhắn spam
           const spamResponse = await fetch(`${process.env.REACT_APP_API_URL}/chat/${chatId}/spam-messages`, {
             headers: { Authorization: `Bearer ${token}` },
           });
@@ -465,12 +480,16 @@ function MessengerPage() {
       (chat.name || "").toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  if (loading) {
+  if (loading || mediaLoading) {
     return (
         <div className="d-flex justify-content-center align-items-center h-100">
           <Spinner animation="border" />
         </div>
     );
+  }
+
+  if (mediaError) {
+    toast.error(mediaError);
   }
 
   return (
@@ -510,9 +529,10 @@ function MessengerPage() {
           </div>
           <div className="flex flex-grow h-full overflow-hidden min-h-0">
             <div className="w-1/3 border-r border-[var(--border-color)] bg-[var(--card-bg)] overflow-y-auto">
-              {filteredChats.map(chat => {
+              {filteredChats.map((chat) => {
                 const isUnread = unreadChats.has(chat.id) && selectedChatId !== chat.id;
                 const isFromOthers = chat.lastSenderId && chat.lastSenderId !== user.id;
+                const avatarUrl = getAvatarUrl(chat.targetUserId || chat.lastSenderId);
 
                 return (
                     <div
@@ -523,9 +543,9 @@ function MessengerPage() {
                         }`}
                     >
                       <img
-                          src="/assets/default-avatar.png"
+                          src={avatarUrl}
                           alt="Avatar"
-                          className="w-10 h-10 rounded-full mr-3"
+                          className="w-10 h-10 rounded-full object-cover mr-3"
                       />
                       <div className="flex-1">
                         <p className={`text-sm ${isUnread ? "font-bold" : ""}`}>

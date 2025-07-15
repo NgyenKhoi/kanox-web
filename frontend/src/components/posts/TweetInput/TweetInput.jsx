@@ -8,6 +8,9 @@ import {
     OverlayTrigger,
     Tooltip,
     Modal,
+    Row,
+    Col,
+    Image as BootstrapImage,
 } from "react-bootstrap";
 import {
     FaPollH,
@@ -284,113 +287,159 @@ function TweetInput({ onPostSuccess, groupId }) {
     const renderMediaPreview = () => {
         if (mediaPreviews.length === 0) return null;
 
-        const baseContainer = "grid gap-2 mb-4 rounded-2xl overflow-hidden";
-        const mediaStyle = "object-cover w-full h-full rounded-lg transition-transform duration-200 hover:scale-105";
+        const handleClick = (index) => {
+            setCurrentMediaIndex(index);
+            setShowMediaModal(true);
+        };
 
-        const getMediaItem = (preview, index, customWrapper = "") => {
-            const isVideo = preview.type.startsWith("video/");
+        const imageCount = mediaPreviews.length;
+        const filesToShow = mediaPreviews.slice(0, 4);
+        const extraCount = mediaPreviews.length - 4;
+
+        // Single media
+        if (imageCount === 1) {
             return (
-                <div
-                    key={index}
-                    className={`relative ${customWrapper} cursor-pointer group`}
-                    onClick={() => handleOpenMediaModal(index)}
-                >
-                    {isVideo ? (
-                        <video
-                            src={preview.url}
-                            className={`${mediaStyle}`}
-                            muted
-                            playsInline
-                        />
-                    ) : (
-                        <img src={preview.url} alt="preview" className={`${mediaStyle}`} />
-                    )}
+                <div className="overflow-hidden rounded-2xl mb-4 relative">
+                    <BootstrapImage
+                        src={mediaPreviews[0].url}
+                        className="w-full h-auto max-h-[500px] object-cover block cursor-pointer rounded-2xl"
+                        fluid
+                        onClick={() => handleClick(0)}
+                    />
                     <button
-                        className="absolute top-2 right-2 text-black bg-white/80 rounded-full w-8 h-8 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                        className="absolute top-2 right-2 text-black bg-white/80 rounded-full w-8 h-8 flex items-center justify-center transition-opacity duration-200 hover:bg-white"
                         onClick={(e) => {
                             e.stopPropagation();
-                            handleRemoveMedia(index);
+                            handleRemoveMedia(0);
                         }}
                     >
                         <AiOutlineClose size={18} />
                     </button>
                 </div>
             );
-        };
-
-        const filesToShow = mediaPreviews.slice(0, 5);
-        const extraCount = mediaPreviews.length - 5;
-
-        // Single media
-        if (filesToShow.length === 1) {
-            return (
-                <div className="mb-4">
-                    <div className="relative w-full aspect-[16/9] max-h-[450px] rounded-2xl overflow-hidden">
-                        {getMediaItem(filesToShow[0], 0, "h-full")}
-                    </div>
-                </div>
-            );
         }
 
         // Two media
-        if (filesToShow.length === 2) {
+        if (imageCount === 2) {
             return (
-                <div className={`${baseContainer} grid-cols-2 max-h-[300px]`}>
-                    {filesToShow.map((preview, i) => getMediaItem(preview, i, "aspect-square"))}
-                </div>
+                <Row className="overflow-hidden rounded-2xl g-2 mb-4">
+                    {filesToShow.map((preview, idx) => (
+                        <Col key={idx} xs={6} className="relative">
+                            <BootstrapImage
+                                src={preview.url}
+                                className="w-full h-[300px] object-cover rounded-2xl cursor-pointer"
+                                fluid
+                                onClick={() => handleClick(idx)}
+                            />
+                            <button
+                                className="absolute top-2 right-2 text-black bg-white/80 rounded-full w-8 h-8 flex items-center justify-center transition-opacity duration-200 hover:bg-white"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleRemoveMedia(idx);
+                                }}
+                            >
+                                <AiOutlineClose size={18} />
+                            </button>
+                        </Col>
+                    ))}
+                </Row>
             );
         }
 
         // Three media
-        if (filesToShow.length === 3) {
+        if (imageCount === 3) {
             return (
-                <div className={`${baseContainer} grid-cols-2 grid-rows-2 max-h-[450px]`}>
-                    <div className="row-span-2">
-                        {getMediaItem(filesToShow[0], 0, "h-full")}
-                    </div>
-                    <div className="aspect-square">
-                        {getMediaItem(filesToShow[1], 1, "h-full")}
-                    </div>
-                    <div className="aspect-square">
-                        {getMediaItem(filesToShow[2], 2, "h-full")}
-                    </div>
-                </div>
-            );
-        }
-
-        // Four media
-        if (filesToShow.length === 4) {
-            return (
-                <div className={`${baseContainer} grid-cols-2 max-h-[300px]`}>
-                    {filesToShow.map((preview, i) => getMediaItem(preview, i, "aspect-square"))}
-                </div>
-            );
-        }
-
-        // Five or more media
-        return (
-            <div className={`${baseContainer} grid-cols-2 grid-rows-2 max-h-[450px]`}>
-                <div className="row-span-2">
-                    {getMediaItem(filesToShow[0], 0, "h-full")}
-                </div>
-                <div className="aspect-square">
-                    {getMediaItem(filesToShow[1], 1, "h-full")}
-                </div>
-                <div className="aspect-square">
-                    {getMediaItem(filesToShow[2], 2, "h-full")}
-                </div>
-                <div className="row-span-1 col-span-1 relative aspect-square">
-                    {getMediaItem(filesToShow[3], 3, "h-full")}
-                    {extraCount > 0 && (
-                        <div
-                            className="absolute inset-0 flex items-center justify-center bg-black/40 text-white text-2xl font-semibold rounded-lg cursor-pointer"
-                            onClick={() => handleOpenMediaModal(3)}
+                <Row className="overflow-hidden rounded-2xl g-2 mb-4">
+                    <Col xs={6} className="relative">
+                        <BootstrapImage
+                            src={filesToShow[0].url}
+                            className="w-full h-[400px] object-cover rounded-2xl cursor-pointer"
+                            fluid
+                            onClick={() => handleClick(0)}
+                        />
+                        <button
+                            className="absolute top-2 right-2 text-black bg-white/80 rounded-full w-8 h-8 flex items-center justify-center transition-opacity duration-200 hover:bg-white"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleRemoveMedia(0);
+                            }}
                         >
-                            +{extraCount}
+                            <AiOutlineClose size={18} />
+                        </button>
+                    </Col>
+                    <Col xs={6}>
+                        <div className="flex flex-col h-full g-1">
+                            <div className="relative mb-1">
+                                <BootstrapImage
+                                    src={filesToShow[1].url}
+                                    className="w-full h-[198px] object-cover rounded-2xl cursor-pointer"
+                                    fluid
+                                    onClick={() => handleClick(1)}
+                                />
+                                <button
+                                    className="absolute top-2 right-2 text-black bg-white/80 rounded-full w-8 h-8 flex items-center justify-center transition-opacity duration-200 hover:bg-white"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleRemoveMedia(1);
+                                    }}
+                                >
+                                    <AiOutlineClose size={18} />
+                                </button>
+                            </div>
+                            <div className="relative">
+                                <BootstrapImage
+                                    src={filesToShow[2].url}
+                                    className="w-full h-[198px] object-cover rounded-2xl cursor-pointer"
+                                    fluid
+                                    onClick={() => handleClick(2)}
+                                />
+                                <button
+                                    className="absolute top-2 right-2 text-black bg-white/80 rounded-full w-8 h-8 flex items-center justify-center transition-opacity duration-200 hover:bg-white"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleRemoveMedia(2);
+                                    }}
+                                >
+                                    <AiOutlineClose size={18} />
+                                </button>
+                            </div>
                         </div>
-                    )}
-                </div>
-            </div>
+                    </Col>
+                </Row>
+            );
+        }
+
+        // Four or more media
+        return (
+            <Row className="overflow-hidden rounded-2xl g-2 mb-4">
+                {filesToShow.map((preview, idx) => (
+                    <Col key={idx} xs={6} className="relative">
+                        <BootstrapImage
+                            src={preview.url}
+                            className="w-full h-[200px] object-cover rounded-2xl cursor-pointer"
+                            fluid
+                            onClick={() => handleClick(idx)}
+                        />
+                        <button
+                            className="absolute top-2 right-2 text-black bg-white/80 rounded-full w-8 h-8 flex items-center justify-center transition-opacity duration-200 hover:bg-white"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleRemoveMedia(idx);
+                            }}
+                        >
+                            <AiOutlineClose size={18} />
+                        </button>
+                        {idx === 3 && extraCount > 0 && (
+                            <div
+                                className="absolute top-0 left-0 w-full h-full bg-[rgba(0,0,0,0.5)] flex items-center justify-center text-white text-2xl font-bold rounded-2xl cursor-pointer"
+                                onClick={() => handleClick(3)}
+                            >
+                                +{extraCount}
+                            </div>
+                        )}
+                    </Col>
+                ))}
+            </Row>
         );
     };
 
@@ -398,14 +447,14 @@ function TweetInput({ onPostSuccess, groupId }) {
         <>
             <div className="mb-3 rounded-2xl shadow-sm border border-[var(--border-color)] bg-[var(--background-color)] text-[var(--text-color)]">
                 <div className="p-3">
-          <textarea
-              rows={3}
-              placeholder="Bạn đang nghĩ gì?"
-              className="w-full bg-transparent border-0 focus:ring-0 focus:outline-none mb-2 text-[var(--text-color)]"
-              style={{ resize: "none" }}
-              value={tweetContent}
-              onChange={(e) => setTweetContent(e.target.value)}
-          />
+                    <textarea
+                        rows={3}
+                        placeholder="Bạn đang nghĩ gì?"
+                        className="w-full bg-transparent border-0 focus:ring-0 focus:outline-none mb-2 text-[var(--text-color)]"
+                        style={{ resize: "none" }}
+                        value={tweetContent}
+                        onChange={(e) => setTweetContent(e.target.value)}
+                    />
                     <div className="mb-3">{renderMediaPreview()}</div>
 
                     {taggedUserIds.length > 0 && (
@@ -415,15 +464,15 @@ function TweetInput({ onPostSuccess, groupId }) {
                                     key={index}
                                     className="bg-[var(--primary-color)] text-white px-2 py-1 rounded mr-2 mb-1 text-sm"
                                 >
-                  @User_{tagId}
+                                    @User_{tagId}
                                     <Button
                                         variant="link"
                                         className="text-white p-0 ml-1"
                                         onClick={() => handleRemoveTag(tagId)}
                                     >
-                    x
-                  </Button>
-                </span>
+                                        x
+                                    </Button>
+                                </span>
                             ))}
                         </div>
                     )}
@@ -633,37 +682,38 @@ function TweetInput({ onPostSuccess, groupId }) {
             </div>
 
             {showMediaModal && (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-                    <div className="bg-[var(--background-color)] relative w-full max-w-4xl max-h-[80vh] overflow-hidden rounded-lg">
+                <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center">
+                    <div className="relative w-full max-w-4xl max-h-[80vh] overflow-hidden rounded-2xl">
                         <button
                             onClick={handleCloseMediaModal}
-                            className="absolute top-2 right-2 text-white text-xl"
+                            className="absolute top-4 right-4 text-black bg-white/80 rounded-full w-10 h-10 flex items-center justify-center transition-opacity duration-200 hover:bg-white z-50"
                         >
-                            ×
+                            <AiOutlineClose size={20} />
                         </button>
                         <button
                             onClick={handlePrevMedia}
-                            className="absolute left-2 top-1/2 transform -translate-y-1/2 text-white text-2xl"
+                            className="absolute left-4 top-1/2 transform -translate-y-1/2 text-black bg-white/80 rounded-full w-10 h-10 flex items-center justify-center transition-opacity duration-200 hover:bg-white z-50"
                         >
-                            <FaChevronLeft />
+                            <FaChevronLeft size={20} />
                         </button>
                         <button
                             onClick={handleNextMedia}
-                            className="absolute right-2 top-1/2 transform -translate-y-1/2 text-white text-2xl"
+                            className="absolute right-4 top-1/2 transform -translate-y-1/2 text-black bg-white/80 rounded-full w-10 h-10 flex items-center justify-center transition-opacity duration-200 hover:bg-white z-50"
                         >
-                            <FaChevronRight />
+                            <FaChevronRight size={20} />
                         </button>
                         {mediaPreviews[currentMediaIndex]?.type.startsWith("video/") ? (
                             <video
                                 src={mediaPreviews[currentMediaIndex].url}
                                 controls
-                                style={{ width: "100%", maxHeight: "60vh", objectFit: "contain" }}
+                                className="w-full max-h-[80vh] object-contain rounded-2xl"
                             />
                         ) : (
-                            <img
+                            <BootstrapImage
                                 src={mediaPreviews[currentMediaIndex].url}
                                 alt="media"
-                                style={{ width: "100%", maxHeight: "60vh", objectFit: "contain" }}
+                                className="w-full max-h-[80vh] object-contain rounded-2xl"
+                                fluid
                             />
                         )}
                     </div>

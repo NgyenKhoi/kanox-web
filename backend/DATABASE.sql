@@ -1830,6 +1830,8 @@ GO
 
 
     --------------TRIGGER FOR CHECK NAME OF GROUP IS NULL?--------------
+	
+	drop trigger trg_ValidateChatName
 
     CREATE TRIGGER trg_ValidateChatName
     ON tblChat
@@ -2130,7 +2132,7 @@ GO
 	BEGIN
 		SET NOCOUNT ON;
 		DECLARE @ErrorMessage NVARCHAR(4000);
-		DECLARE @new_created_at DATETIMEOFFSET;
+		DECLARE @new_created_at DATETIME;
 
 		BEGIN TRY
 			-- Kiểm tra chat_id
