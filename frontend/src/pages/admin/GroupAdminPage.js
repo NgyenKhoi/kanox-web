@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { Spinner, Row, Col, Card, Badge, Button } from "react-bootstrap";
-import { fetchGroupDetailById } from "../../api/groupApi"; // ✅ Đảm bảo đúng path file
+import { Spinner, Row, Col, Card, Badge, Button, ListGroup } from "react-bootstrap";
+import { fetchGroupDetailById } from "../../api/groupApi";
 
 const GroupAdminPage = () => {
-    const { id } = useParams(); // ✅ Khớp với <Route path="/admin/groups/:id/view" />
+    const { groupId: id } = useParams();
     const [groupInfo, setGroupInfo] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -27,37 +27,36 @@ const GroupAdminPage = () => {
         return (
             <div className="text-center mt-5">
                 <Spinner animation="border" />
-                <p>Đang tải thông tin nhóm...</p>
+                <p className="mt-2">Đang tải thông tin nhóm...</p>
             </div>
         );
     }
 
     if (!groupInfo) {
-        return <p className="text-center text-danger">Không thể tải dữ liệu nhóm.</p>;
+        return <p className="text-center text-danger mt-4">Không thể tải dữ liệu nhóm.</p>;
     }
 
     return (
         <div className="container mt-4">
-            <h2 className="mb-4">Chi tiết Quản trị Nhóm</h2>
+            <h2 className="mb-4 fw-bold text-primary">Quản trị Nhóm</h2>
             <Row>
                 <Col md={4}>
-                    <Card className="shadow">
+                    <Card className="shadow-lg border-0">
                         <Card.Img
                             variant="top"
                             src={groupInfo.avatarUrl || "https://via.placeholder.com/400x200.png?text=No+Avatar"}
-                            style={{ height: "200px", objectFit: "cover" }}
+                            style={{ height: "220px", objectFit: "cover", borderTopLeftRadius: "1rem", borderTopRightRadius: "1rem" }}
                         />
                         <Card.Body>
-                            <Card.Title>{groupInfo.name}</Card.Title>
+                            <Card.Title className="fw-semibold fs-5">{groupInfo.name}</Card.Title>
                             <Card.Subtitle className="mb-2 text-muted">
-                                Nhóm{" "}
                                 {groupInfo.privacyLevel === "private" ? (
                                     <Badge bg="secondary">Riêng tư</Badge>
                                 ) : (
                                     <Badge bg="primary">Công khai</Badge>
                                 )}
                             </Card.Subtitle>
-                            <Card.Text>
+                            <Card.Text className="mt-3 text-secondary" style={{ minHeight: "80px" }}>
                                 {groupInfo.description || "Không có mô tả"}
                             </Card.Text>
                         </Card.Body>
@@ -65,24 +64,29 @@ const GroupAdminPage = () => {
                 </Col>
 
                 <Col md={8}>
-                    <Card className="shadow mb-4">
+                    <Card className="shadow-lg border-0 mb-4">
                         <Card.Body>
-                            <h5>Thông tin khác</h5>
-                            <p><strong>ID nhóm:</strong> {groupInfo.id}</p>
-                            <p><strong>Ngày tạo:</strong> {new Date(groupInfo.createdAt).toLocaleDateString()}</p>
-                            <p><strong>Số thành viên:</strong> {groupInfo.totalMembers}</p>
-                            <p><strong>Trạng thái:</strong> {groupInfo.status ? (
-                                <Badge bg="success">Hoạt động</Badge>
-                            ) : (
-                                <Badge bg="danger">Vô hiệu</Badge>
-                            )}</p>
+                            <h5 className="fw-bold mb-3">Thông tin chi tiết</h5>
+                            <ListGroup variant="flush">
+                                <ListGroup.Item><strong>ID nhóm:</strong> {groupInfo.id}</ListGroup.Item>
+                                <ListGroup.Item><strong>Ngày tạo:</strong> {new Date(groupInfo.createdAt).toLocaleDateString()}</ListGroup.Item>
+                                <ListGroup.Item><strong>Số thành viên:</strong> {groupInfo.totalMembers}</ListGroup.Item>
+                                <ListGroup.Item>
+                                    <strong>Trạng thái:</strong>{" "}
+                                    {groupInfo.status ? (
+                                        <Badge bg="success">Hoạt động</Badge>
+                                    ) : (
+                                        <Badge bg="danger">Vô hiệu</Badge>
+                                    )}
+                                </ListGroup.Item>
+                            </ListGroup>
                         </Card.Body>
                     </Card>
 
-                    <div className="d-flex gap-3">
-                        <Button variant="outline-primary">Quản lý thành viên</Button>
-                        <Button variant="outline-warning">Cập nhật nhóm</Button>
-                        <Button variant="outline-danger">Xoá nhóm</Button>
+                    <div className="d-flex flex-wrap gap-2 justify-content-end">
+                        <Button variant="outline-primary" className="px-4">Quản lý thành viên</Button>
+                        <Button variant="outline-warning" className="px-4">Cập nhật nhóm</Button>
+                        <Button variant="outline-danger" className="px-4">Xoá nhóm</Button>
                     </div>
                 </Col>
             </Row>
