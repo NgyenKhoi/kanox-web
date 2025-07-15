@@ -4,7 +4,7 @@ import { Spinner, Row, Col, Card, Badge, Button } from "react-bootstrap";
 import { fetchGroupDetailById } from "../../api/groupApi"; // ✅ Đảm bảo đúng path file
 
 const GroupAdminPage = () => {
-    const { id } = useParams(); // ✅ Khớp với <Route path="/admin/groups/:id/view" />
+    const { groupId: id } = useParams();
     const [groupInfo, setGroupInfo] = useState(null);
     const [loading, setLoading] = useState(true);
 
