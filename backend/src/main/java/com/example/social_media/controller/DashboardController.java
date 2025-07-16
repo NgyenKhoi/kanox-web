@@ -67,8 +67,10 @@ public class DashboardController {
     }
 
     @GetMapping(URLConfig.RECENT_ACTIVITIES)
-    public ResponseEntity<List<ActivityLogDto>> getRecentActivities() {
-        List<ActivityLogDto> activities = activityLogService.getRecentActivities(5); // Lấy 5 hoạt động gần nhất
+    public ResponseEntity<List<ActivityLogDto>> getRecentActivities(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size) {
+        List<ActivityLogDto> activities = activityLogService.getRecentActivities(page, size);
         return ResponseEntity.ok(activities);
     }
 }

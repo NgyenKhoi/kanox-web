@@ -43,6 +43,39 @@ const DashboardOverview = () => {
   });
 
   const [activities, setActivities] = useState([]);
+  const [activityPage, setActivityPage] = useState(0);
+  const [hasMoreActivities, setHasMoreActivities] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchRecentActivities = async (page = 0) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(
+          `${process.env.REACT_APP_API_URL}/admin/dashboard/recent-activities?page=${page}&size=5`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+      );
+
+      if (!response.ok) throw new Error("Lỗi khi lấy dữ liệu hoạt động");
+
+      const data = await response.json();
+      if (data.length < 5) {
+        setHasMoreActivities(false);
+      }
+      setActivities((prev) => (page === 0 ? data : [...prev, ...data]));
+    } catch (error) {
+      console.error("Lỗi khi load dữ liệu hoạt động:", error);
+      setError("Không thể tải dữ liệu hoạt động");
+    }
+  };
+
+  const loadMoreActivities = () => {
+    setActivityPage((prev) => prev + 1);
+    fetchRecentActivities(activityPage + 1);
+  };
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -69,6 +102,7 @@ const DashboardOverview = () => {
         ]);
       } catch (error) {
         console.error("Lỗi khi load thống kê dashboard:", error);
+        setError("Không thể tải dữ liệu thống kê");
       }
     };
 
@@ -112,33 +146,13 @@ const DashboardOverview = () => {
         });
       } catch (error) {
         console.error("Lỗi khi load dữ liệu đăng ký:", error);
-      }
-    };
-
-    const fetchRecentActivities = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        const response = await fetch(
-            `${process.env.REACT_APP_API_URL}/admin/dashboard/recent-activities`,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            }
-        );
-
-        if (!response.ok) throw new Error("Lỗi khi lấy dữ liệu hoạt động");
-
-        const data = await response.json();
-        setActivities(data);
-      } catch (error) {
-        console.error("Lỗi khi load dữ liệu hoạt động:", error);
+        setError("Không thể tải dữ liệu biểu đồ");
       }
     };
 
     fetchStats();
     fetchRegistrationData();
-    fetchRecentActivities();
+    fetchRecentActivities(0);
   }, []);
 
   const monthlyStats = [
@@ -257,6 +271,7 @@ const DashboardOverview = () => {
   return (
       <Container fluid className="p-4 bg-white rounded shadow-sm">
         <h2 className="text-3xl fw-bold mb-4 text-dark">Tổng quan Dashboard</h2>
+        {error && <p className="text-danger mb-4">{error}</p>}
         <Row className="g-4 mb-5">
           {stats.map((stat, index) => (
               <Col xs={12} md={6} lg={3} key={index}>
@@ -328,7 +343,16 @@ const DashboardOverview = () => {
                       </ListGroup.Item>
                   ))}
                 </ListGroup>
-                <Button variant="outline-primary" className="w-100 mt-3">Xem thêm</Button>
+                {hasMoreActivities && (
+                    <Button
+                        variant="outline-primary"
+                        className="w-100 mt-3"
+                        onClick={loadMoreActivities}
+                        disabled={!hasMoreActivities}
+                    >
+                      Xem thêm
+                    </Button>
+                )}
               </Card.Body>
             </Card>
           </Col>

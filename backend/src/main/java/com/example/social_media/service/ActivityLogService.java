@@ -8,6 +8,9 @@ import com.example.social_media.exception.UserNotFoundException;
 import com.example.social_media.repository.UserRepository;
 import com.example.social_media.repository.ActivityLogRepository;
 import com.example.social_media.repository.ActionTypeRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -72,15 +75,15 @@ public class ActivityLogService {
     }
 
     @Transactional(readOnly = true)
-    public List<ActivityLogDto> getRecentActivities(int limit) {
-        List<ActivityLog> activities = activityLogRepository.findRecentActivities();
+    public List<ActivityLogDto> getRecentActivities(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<ActivityLog> activities = activityLogRepository.findRecentActivities(pageable);
         return activities.stream()
-                .limit(limit)
-                .map(this::convertToDTO)
+                .map(this::convertToDto)
                 .collect(Collectors.toList());
     }
 
-    private ActivityLogDto convertToDTO(ActivityLog activity) {
+    private ActivityLogDto convertToDto(ActivityLog activity) {
         String title = formatTitle(activity);
         String time = formatTime(activity.getActionTime());
         return new ActivityLogDto(title, time);
