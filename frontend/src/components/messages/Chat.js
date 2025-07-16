@@ -229,7 +229,7 @@ const Chat = ({ chatId, messages, onMessageUpdate, onSendMessage }) => {
         if (!message.trim() && selectedMediaPreviews.length === 0) return;
 
         const mediaList = selectedMediaPreviews.map((media) => ({
-            url: media.uploadedUrl,      
+            url: media.uploadedUrl,
             type: media.mediaType
         }));
 
@@ -390,10 +390,10 @@ const Chat = ({ chatId, messages, onMessageUpdate, onSendMessage }) => {
                                             <div className="grid grid-cols-3 gap-1 mt-2">
                                                 {msg.mediaList.map((media, idx) => (
                                                     <div key={idx} className="relative w-full aspect-square">
-                                                        {media.mediaType.startsWith("image") ? (
-                                                            <img src={media.mediaUrl} className="w-full h-full object-cover rounded" alt="media" />
+                                                        {media.type.startsWith("image") ? (
+                                                            <img src={media.url} className="w-full h-full object-cover rounded" alt="media" />
                                                         ) : (
-                                                            <video src={media.mediaUrl} className="w-full h-full object-cover rounded" controls />
+                                                            <video src={media.url} className="w-full h-full object-cover rounded" controls />
                                                         )}
                                                     </div>
                                                 ))}
