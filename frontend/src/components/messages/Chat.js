@@ -217,24 +217,41 @@ const Chat = ({ chatId, messages, onMessageUpdate, onSendMessage }) => {
             chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
         }
     }, [messages, typingUsers]);
+    const chunkMedia = (mediaList, size = 3) => {
+        const chunks = [];
+        for (let i = 0; i < mediaList.length; i += size) {
+            chunks.push(mediaList.slice(i, i + size));
+        }
+        return chunks;
+    };
 
     const sendMessage = () => {
-        if (!message.trim()) return;
+        if (!message.trim() && selectedMediaPreviews.length === 0) return;
+
+        const mediaList = selectedMediaPreviews.map((media) => ({
+            mediaUrl: media.uploadedUrl,
+            mediaType: media.mediaType,
+        }));
+
         const msg = {
             chatId: Number(chatId),
             senderId: user.id,
-            content: message,
-            typeId: 1,
+            content: message.trim(),
+            mediaList, // Gửi nhiều media
+            typeId: mediaList.length > 0 ? 2 : 1,
         };
+
         publish("/app/sendMessage", msg);
         setMessage("");
+        setSelectedMediaPreviews([]);
+        setSelectedMediaFiles([]);
+
         publish("/app/typing", {
             chatId: Number(chatId),
             userId: user.id,
             username: user.username,
             isTyping: false,
         });
-        console.log("Sent message:", msg);
     };
 
     const handleKeyPress = (e) => {
@@ -269,43 +286,47 @@ const Chat = ({ chatId, messages, onMessageUpdate, onSendMessage }) => {
     };
 
     const handleFileSelect = async (files) => {
-        for (const file of files) {
-            const formData = new FormData();
-            formData.append("userId", user.id);
-            formData.append("targetId", chatId);
-            formData.append("targetTypeCode", "MESSAGE");
+        const previews = [];
 
+        for (const file of files) {
             const mediaType = file.type.startsWith("image/")
                 ? (file.type === "image/gif" ? "gif" : "image")
                 : file.type.startsWith("video/") ? "video" : "other";
 
+            const formData = new FormData();
+            formData.append("userId", user.id);
+            formData.append("targetId", chatId);
+            formData.append("targetTypeCode", "MESSAGE");
             formData.append("mediaTypeName", mediaType);
             formData.append("file", file);
 
             try {
                 const res = await fetch(`${process.env.REACT_APP_API_URL}/media/upload`, {
                     method: "POST",
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
+                    headers: { Authorization: `Bearer ${token}` },
                     body: formData,
                 });
 
                 if (!res.ok) throw new Error("Upload thất bại");
                 const data = await res.json();
 
-                publish("/app/sendMessage", {
-                    chatId: Number(chatId),
-                    senderId: user.id,
-                    content: "",
-                    mediaUrl: data.url,
+                if (selectedMediaPreviews.length + files.length > 15) {
+                    toast.error("Chỉ gửi tối đa 15 ảnh/video mỗi tin nhắn");
+                    return;
+                }
+
+                previews.push({
+                    url: URL.createObjectURL(file),
+                    type: file.type,
+                    uploadedUrl: data.url,
                     mediaType: data.mediaTypeName,
-                    typeId: 2,
                 });
             } catch (err) {
                 toast.error("Không thể gửi file: " + err.message);
             }
         }
+
+        setSelectedMediaPreviews((prev) => [...prev, ...previews]);
     };
 
     return (
@@ -364,6 +385,20 @@ const Chat = ({ chatId, messages, onMessageUpdate, onSendMessage }) => {
                                 ) : (
                                     <>
                                         {msg.content}
+                                        {/* ✅ Hiển thị media nếu có */}
+                                        {msg.mediaList && msg.mediaList.length > 0 && (
+                                            <div className="grid grid-cols-3 gap-1 mt-2">
+                                                {msg.mediaList.map((media, idx) => (
+                                                    <div key={idx} className="relative w-full aspect-square">
+                                                        {media.mediaType.startsWith("image") ? (
+                                                            <img src={media.mediaUrl} className="w-full h-full object-cover rounded" alt="media" />
+                                                        ) : (
+                                                            <video src={media.mediaUrl} className="w-full h-full object-cover rounded" controls />
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
                                         <div className="text-end mt-1">
                                             <small className={`${msg.senderId === user?.id ? "text-[var(--light-text-color)]" : "text-[var(--text-color-muted)]"} text-xs`}>
                                                 {new Date(msg.createdAt).toLocaleTimeString()}
