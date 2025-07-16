@@ -131,36 +131,48 @@ public class MessageService {
     public List<MessageDto> getChatMessages(Integer chatId, String username) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
         ChatMember chatMember = chatMemberRepository.findByChatIdAndUserId(chatId, user.getId())
                 .orElseThrow(() -> new UnauthorizedException("You are not a member of this chat."));
+
         if (!chatMember.getStatus()) {
             return List.of();
         }
 
-        // Lấy joinedAt để lọc tin nhắn
         Instant joinedAt = chatMember.getJoinedAt();
 
-        // Đánh dấu tất cả tin nhắn chưa đọc là đã đọc
+        // Đánh dấu đã đọc
         messageStatusRepository.markAllAsReadByChatIdAndUserId(chatId, user.getId());
-        System.out.println("Marked all messages as read for chatId " + chatId + " and userId " + user.getId());
-
-        // Gửi thông báo cập nhật unread count
         int updatedUnreadCount = messageStatusRepository.countUnreadChatsByUserId(user.getId());
         messagingTemplate.convertAndSend("/topic/unread-count/" + user.getId(), Map.of("unreadCount", updatedUnreadCount));
-        System.out.println("Sent unread chat count to /topic/unread-count/" + user.getId() + ": " + updatedUnreadCount);
 
-        // Trả về tin nhắn sau joinedAt
-        return messageRepository.findByChatId(chatId).stream()
+        // Lấy tất cả message sau thời điểm joinedAt
+        List<Message> messages = messageRepository.findByChatId(chatId).stream()
                 .filter(msg -> msg.getCreatedAt().isAfter(joinedAt))
+                .collect(Collectors.toList());
+
+        // Lấy danh sách messageId
+        List<Integer> messageIds = messages.stream()
+                .map(Message::getId)
+                .collect(Collectors.toList());
+
+        // Map messageId -> List<MediaDto>
+        Map<Integer, List<MediaDto>> mediaMap = mediaService.getMediaByTargetIds(messageIds, "MESSAGE", null, true);
+
+        // Gộp vào MessageDto
+        return messages.stream()
                 .map(msg -> new MessageDto(
                         msg.getId(),
                         msg.getChat().getId(),
                         msg.getSender().getId(),
                         msg.getContent(),
                         msg.getType().getId(),
-                        msg.getCreatedAt()))
+                        msg.getCreatedAt(),
+                        mediaMap.getOrDefault(msg.getId(), List.of())
+                ))
                 .collect(Collectors.toList());
     }
+
 
     @Transactional
     public void deleteMessage(Integer chatId, Integer messageId, String username) {
