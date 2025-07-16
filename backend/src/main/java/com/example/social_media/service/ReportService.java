@@ -229,49 +229,26 @@ public class ReportService {
                     
                     if (totalApprovedReports >= 3) {
                         System.out.println("[DEBUG] User has 3+ approved reports, proceeding with auto-block");
-                        // Thực sự khóa tài khoản user
+                        // Thực sự khóa tài khoản user bằng stored procedure
                         try {
                             User targetUser = userRepository.findById(targetUserId)
                                 .orElseThrow(() -> new UserNotFoundException("Target user not found with id: " + targetUserId));
                             
                             // Chỉ khóa nếu user chưa bị khóa
                             if (targetUser.getStatus()) {
-                                targetUser.setStatus(false);
-                                userRepository.save(targetUser);
+                                // Gọi stored procedure để auto-block user
+                                reportRepository.autoBlockUser(targetUserId, admin.getId());
                                 
                                 System.out.println("=== AUTO-BLOCK USER ====");
                                 System.out.println("User ID: " + targetUserId + " has been automatically blocked due to 3+ approved reports");
+                                
+                                // Refresh entity từ database
+                                targetUser = userRepository.findById(targetUserId).orElse(targetUser);
                             }
                         } catch (Exception e) {
-                            System.err.println("Error blocking user: " + e.getMessage());
+                            System.err.println("Error auto-blocking user: " + e.getMessage());
                             e.printStackTrace();
                         }
-                        
-                        // Gửi thông báo cho target user về việc bị block
-                        String blockMessage = "Tài khoản của bạn đã bị khóa tự động do có 3 báo cáo được duyệt. Vui lòng liên hệ admin để được hỗ trợ.";
-                        
-                        notificationService.sendNotification(
-                            targetUserId,
-                            "AUTO_BLOCK_USER",
-                            blockMessage,
-                            admin.getId(),
-                            "SYSTEM"
-                        );
-                        
-                        messagingTemplate.convertAndSend(
-                            "/topic/notifications/" + targetUserId,
-                            Map.of(
-                                "id", reportId,
-                                "message", blockMessage,
-                                "type", "AUTO_BLOCK_USER",
-                                "targetId", admin.getId(),
-                                "targetType", "SYSTEM",
-                                "adminId", admin.getId(),
-                                "adminDisplayName", "Hệ thống",
-                                "createdAt", System.currentTimeMillis() / 1000,
-                                "status", "unread"
-                            )
-                        );
                     }
                 }
             }

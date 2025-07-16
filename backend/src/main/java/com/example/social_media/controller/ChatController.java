@@ -27,6 +27,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -136,6 +137,20 @@ public class ChatController {
             }
         }
     }
+
+    @PostMapping(URLConfig.SEND_MESSAGES_WITH_MEDIA)
+    public MessageDto sendMessageWithMedia(
+            @PathVariable Integer chatId,
+            @RequestParam("content") String content,
+            @RequestPart(value = "media", required = false) List<MultipartFile> files
+    ) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        Integer senderId = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found")).getId();
+
+        return messageService.sendMessageWithMedia(chatId, senderId, content, files);
+    }
+
     @MessageMapping(URLConfig.TYPING)
     public void handleTyping(@Payload Map<String, Object> typingData) {
         Integer chatId = (Integer) typingData.get("chatId");

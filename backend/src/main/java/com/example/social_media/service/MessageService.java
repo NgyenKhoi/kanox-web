@@ -197,14 +197,14 @@ public class MessageService {
         messageStatusRepository.markAllAsReadByChatIdAndUserId(chatId, userId);
     }
 
+    @Transactional
     public MessageDto sendMessageWithMedia(Integer chatId, Integer senderId, String content, List<MultipartFile> files) {
+        // ✅ Validate user
         User sender = userRepository.findById(senderId)
                 .orElseThrow(() -> new IllegalArgumentException("Người gửi không tồn tại"));
 
-        List<MediaDto> mediaList = new ArrayList<>();
-        List<String> mediaUrls = new ArrayList<>();
-        List<String> mediaTypes = new ArrayList<>();
-
+        // ✅ Upload và phân loại media
+        List<MediaDto> uploadedMediaList = new ArrayList<>();
         if (files != null && !files.isEmpty()) {
             for (MultipartFile file : files) {
                 mediaService.validateFileTypeByTarget("MESSAGE", file);
@@ -219,29 +219,40 @@ public class MessageService {
                     else if (contentType.startsWith("audio/")) type = "audio";
                     else throw new IllegalArgumentException("Media không hợp lệ: " + contentType);
 
-                    mediaList.add(new MediaDto(null, url, type, null, "MESSAGE", true));
-                    mediaUrls.add(url);
-                    mediaTypes.add(type);
+                    uploadedMediaList.add(new MediaDto(null, url, type, null, "MESSAGE", true));
                 } catch (IOException e) {
                     throw new RuntimeException("Lỗi khi upload media", e);
                 }
             }
         }
 
+        // ✅ Tạo message
         Integer messageId = jdbcMessageRepository.sendMessage(chatId, senderId, content);
 
-        for (int i = 0; i < mediaList.size(); i++) {
-            mediaService.saveMediaWithUrl(senderId, messageId, "MESSAGE", mediaTypes.get(i), mediaUrls.get(i), null);
+        // ✅ Lưu media sau khi đã tạo message
+        for (MediaDto media : uploadedMediaList) {
+            mediaService.saveMediaWithUrl(
+                    senderId,
+                    messageId,
+                    "MESSAGE",
+                    media.getType(),
+                    media.getUrl(),
+                    null
+            );
         }
 
-        MessageDto dto = new MessageDto(messageId, chatId, senderId, content, null, Instant.now(), mediaList);
+        // ✅ Tạo MessageDto để gửi realtime
+        MessageDto dto = new MessageDto(messageId, chatId, senderId, content, null, Instant.now(), uploadedMediaList);
+
+        // ✅ Đưa vào hàng đợi gửi + gửi WebSocket nếu cần
         messageQueueService.queueAndSendMessage(dto);
 
-        // Gửi realtime đến các thành viên khác
+        // ✅ Gửi WebSocket đến các thành viên khác
         List<ChatMember> members = chatMemberRepository.findByChatId(chatId);
         for (ChatMember member : members) {
             if (!member.getUser().getId().equals(senderId)) {
                 messagingTemplate.convertAndSend("/topic/messages/" + member.getUser().getId(), dto);
+
                 int unreadCount = messageStatusRepository.countUnreadChatsByUserId(member.getUser().getId());
                 messagingTemplate.convertAndSend("/topic/unread-count/" + member.getUser().getId(), Map.of("unreadCount", unreadCount));
             }
