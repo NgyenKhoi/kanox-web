@@ -229,8 +229,8 @@ const Chat = ({ chatId, messages, onMessageUpdate, onSendMessage }) => {
         if (!message.trim() && selectedMediaPreviews.length === 0) return;
 
         const mediaList = selectedMediaPreviews.map((media) => ({
-            mediaUrl: media.uploadedUrl,
-            mediaType: media.mediaType,
+            url: media.uploadedUrl,      
+            type: media.mediaType
         }));
 
         const msg = {
@@ -310,7 +310,7 @@ const Chat = ({ chatId, messages, onMessageUpdate, onSendMessage }) => {
                 if (!res.ok) throw new Error("Upload thất bại");
                 const data = await res.json();
 
-                if (selectedMediaPreviews.length + files.length > 15) {
+                if (selectedMediaPreviews.length + previews.length >= 15) {
                     toast.error("Chỉ gửi tối đa 15 ảnh/video mỗi tin nhắn");
                     return;
                 }
