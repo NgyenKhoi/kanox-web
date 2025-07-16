@@ -94,7 +94,7 @@ function ExplorePage() {
     return (
         <div
             onClick={() => navigate(`/profile/${item.username}`)}
-            className="flex items-center gap-3 px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
+            className="flex items-center gap-3 px-4 py-3 bg-white dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
         >
           <img
               src={mediaUrl || "https://via.placeholder.com/30?text=Avatar"}

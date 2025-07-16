@@ -44,9 +44,11 @@ export default function useReaction({
     const fetchUserReaction = async () => {
         try {
             const res = await fetch(
-                `${process.env.REACT_APP_API_URL}/reactions/by-user?targetId=${targetId}&targetTypeCode=${targetTypeCode}`,
+                `${process.env.REACT_APP_API_URL}/reactions/by-user?userId=${user.id}&targetId=${targetId}&targetTypeCode=${targetTypeCode}`,
                 {
-                    headers: { Authorization: `Bearer ${token}` },
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
                 }
             );
 

@@ -7,6 +7,7 @@ import { AuthContext } from "../../context/AuthContext";
 import { WebSocketContext } from "../../context/WebSocketContext";
 import { FaPaperclip, FaPaperPlane, FaPhone, FaCheckCircle, FaExclamationTriangle } from "react-icons/fa";
 import useMedia from "../../hooks/useMedia";
+import MediaActionBar from "../../components/utils/MediaActionBar";
 
 const Chat = ({ chatId, messages, onMessageUpdate, onSendMessage }) => {
     const { user, token } = useContext(AuthContext);
@@ -264,6 +265,46 @@ const Chat = ({ chatId, messages, onMessageUpdate, onSendMessage }) => {
         navigate(`/call/${chatId}`);
     };
 
+    const handleFileSelect = async (files) => {
+        for (const file of files) {
+            const formData = new FormData();
+            formData.append("userId", user.id);
+            formData.append("targetId", chatId);
+            formData.append("targetTypeCode", "MESSAGE");
+
+            const mediaType = file.type.startsWith("image/")
+                ? (file.type === "image/gif" ? "gif" : "image")
+                : file.type.startsWith("video/") ? "video" : "other";
+
+            formData.append("mediaTypeName", mediaType);
+            formData.append("file", file);
+
+            try {
+                const res = await fetch(`${process.env.REACT_APP_API_URL}/media/upload`, {
+                    method: "POST",
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                    body: formData,
+                });
+
+                if (!res.ok) throw new Error("Upload thất bại");
+                const data = await res.json();
+
+                publish("/app/sendMessage", {
+                    chatId: Number(chatId),
+                    senderId: user.id,
+                    content: "",
+                    mediaUrl: data.url,
+                    mediaType: data.mediaTypeName,
+                    typeId: 2,
+                });
+            } catch (err) {
+                toast.error("Không thể gửi file: " + err.message);
+            }
+        }
+    };
+
     return (
         <div className="flex flex-col h-full bg-[var(--background-color)]">
             <div className="p-3 border-b border-[var(--border-color)] bg-[var(--background-color)] shadow-sm flex items-center">
@@ -334,8 +375,9 @@ const Chat = ({ chatId, messages, onMessageUpdate, onSendMessage }) => {
                 {typingUsers.length > 0 && <div className="text-[var(--text-color-muted)]">{typingUsers.join(", ")} đang nhập...</div>}
             </div>
             <div className="p-3 border-t border-[var(--border-color)] bg-[var(--background-color)]">
-                <div className="flex items-center bg-[var(--input-bg-color)] rounded-xl shadow-sm overflow-hidden">
-                    <button className="p-2 text-[var(--text-color)] hover:opacity-80"><FaPaperclip /></button>
+                <div className="flex items-center bg-[var(--input-bg-color)] rounded-xl shadow-sm overflow-hidden px-2">
+                    <MediaActionBar onEmojiClick={() => {}} onFileSelect={handleFileSelect} />
+
                     <input
                         type="text"
                         placeholder="Nhập tin nhắn..."

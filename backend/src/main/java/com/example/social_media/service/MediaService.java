@@ -218,7 +218,7 @@ public class MediaService {
         return savedMediaList.stream().map(this::toDto).collect(Collectors.toList());
     }
 
-    private void validateFileTypeByTarget(String targetTypeCode, MultipartFile file) {
+    public void validateFileTypeByTarget(String targetTypeCode, MultipartFile file) {
         String contentType = file.getContentType();
         if (contentType == null) {
             throw new IllegalArgumentException("Không xác định được loại file.");

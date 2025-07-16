@@ -10,14 +10,13 @@ import com.example.social_media.exception.UnauthorizedException;
 import com.example.social_media.jwt.JwtService;
 import com.example.social_media.repository.ChatMemberRepository;
 import com.example.social_media.repository.ChatRepository;
-import com.example.social_media.repository.MessageRepository;
+import com.example.social_media.repository.message.MessageRepository;
 import com.example.social_media.repository.UserRepository;
 import com.example.social_media.service.CallSessionService;
 import com.example.social_media.service.ChatService;
 import com.example.social_media.service.MessageQueueService;
 import com.example.social_media.service.MessageService;
 import org.springframework.beans.factory.annotation.Value;
-import org.apache.commons.codec.binary.Hex;
 import org.springframework.data.elasticsearch.ResourceNotFoundException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -475,5 +474,4 @@ public class ChatController {
                         msg.getCreatedAt()))
                 .collect(Collectors.toList());
     }
-
 }

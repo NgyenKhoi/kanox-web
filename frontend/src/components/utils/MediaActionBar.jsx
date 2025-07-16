@@ -1,16 +1,12 @@
-// components/MediaActionBar.jsx
 import React, { useRef } from "react";
-import { Button, OverlayTrigger, Tooltip } from "react-bootstrap";
+import { OverlayTrigger, Tooltip } from "react-bootstrap";
 import { FaImage, FaSmile } from "react-icons/fa";
-import { FaVideo } from "react-icons/fa6";
 
 const MediaActionBar = ({ onEmojiClick, onFileSelect }) => {
     const fileInputRef = useRef(null);
 
     const handleClickFileInput = () => {
-        if (fileInputRef.current) {
-            fileInputRef.current.click();
-        }
+        fileInputRef.current?.click();
     };
 
     const handleFileChange = (e) => {
@@ -21,30 +17,24 @@ const MediaActionBar = ({ onEmojiClick, onFileSelect }) => {
     };
 
     return (
-        <div className="d-flex gap-2">
+        <div className="flex gap-3 items-center px-2">
             {/* Emoji */}
             <OverlayTrigger placement="top" overlay={<Tooltip>Biểu cảm</Tooltip>}>
-                <Button
-                    variant="light"
-                    size="sm"
-                    className="rounded-circle p-2"
+                <span
                     onClick={onEmojiClick}
+                    className="text-xl cursor-pointer text-[var(--text-color-muted)] hover:text-[var(--text-color)]"
                 >
                     <FaSmile />
-                </Button>
+                </span>
             </OverlayTrigger>
 
-            {/* Image / Video */}
+            {/* Image/Video */}
             <OverlayTrigger placement="top" overlay={<Tooltip>Hình ảnh / Video</Tooltip>}>
-                <div className="position-relative">
-                    <Button
-                        variant="light"
-                        size="sm"
-                        className="rounded-circle p-2"
-                        onClick={handleClickFileInput}
-                    >
-                        <FaImage />
-                    </Button>
+                <span
+                    onClick={handleClickFileInput}
+                    className="text-xl cursor-pointer text-[var(--text-color-muted)] hover:text-[var(--text-color)]"
+                >
+                    <FaImage />
                     <input
                         type="file"
                         accept="image/*,video/*"
@@ -53,7 +43,7 @@ const MediaActionBar = ({ onEmojiClick, onFileSelect }) => {
                         ref={fileInputRef}
                         onChange={handleFileChange}
                     />
-                </div>
+                </span>
             </OverlayTrigger>
         </div>
     );

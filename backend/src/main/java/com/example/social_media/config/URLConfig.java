@@ -57,10 +57,11 @@ public class URLConfig {
     public static final String GET_TOP_REACTION = "/top3";
     public static final String COUNT_REACTION = "/count";
     public static final String GET_REACTION_FOR_MESSAGE = "/messaging";
-    public static final String GET_MAIN_REACTION = "/main";
     public static final String ADD_REACTION_BY_NAME = "/by-name";
     public static final String REMOVE_REACTION_BY_NAME = "/by-name";
     public static final String LIST_REACTION_BY_TYPE = "/list-by-type";
+    public static final String EMOJI_MAIN_LIST = "/emoji-main-list";
+    public static final String GET_REACTION_BY_USER = "/by-user";
     // Frontend URLs
     public static final String FRONTEND_RESET_PASSWORD_URL = "https://kanox-web.netlify.app/reset-password?token=";
 
