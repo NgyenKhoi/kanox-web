@@ -217,6 +217,78 @@ const Chat = ({ chatId, messages, onMessageUpdate, onSendMessage }) => {
             chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
         }
     }, [messages, typingUsers]);
+
+    const handleFileSelect = useCallback(async (files) => {
+        const previews = [];
+
+        for (const file of files) {
+            const mediaType = file.type.startsWith("image/")
+                ? (file.type === "image/gif" ? "gif" : "image")
+                : file.type.startsWith("video/") ? "video" : "other";
+
+            const formData = new FormData();
+            formData.append("userId", user.id);
+            formData.append("targetId", chatId);
+            formData.append("targetTypeCode", "MESSAGE");
+            formData.append("mediaTypeName", mediaType);
+            formData.append("file", file);
+
+            try {
+                const res = await fetch(`${process.env.REACT_APP_API_URL}/media/upload`, {
+                    method: "POST",
+                    headers: { Authorization: `Bearer ${token}` },
+                    body: formData,
+                });
+
+                if (!res.ok) throw new Error("Upload thất bại");
+                const data = await res.json();
+
+                if (selectedMediaPreviews.length + previews.length >= 15) {
+                    toast.error("Chỉ gửi tối đa 15 ảnh/video mỗi tin nhắn");
+                    return;
+                }
+
+                previews.push({
+                    url: data.url,
+                    type: file.type,
+                    uploadedUrl: data.url,
+                    mediaType: data.mediaTypeName,
+                });
+            } catch (err) {
+                toast.error("Không thể gửi file: " + err.message);
+            }
+        }
+
+        setSelectedMediaPreviews((prev) => [...prev, ...previews]);
+    }, [user.id, chatId, token, selectedMediaPreviews.length]);
+
+    useEffect(() => {
+        const handlePaste = async (e) => {
+            const items = e.clipboardData?.items;
+            if (!items) return;
+
+            for (const item of items) {
+                if (item.type.indexOf("image") !== -1) {
+                    const file = item.getAsFile();
+                    if (file) {
+                        await handleFileSelect([file]); // dùng lại hàm upload của bạn
+                    }
+                }
+            }
+        };
+
+        const input = inputRef.current;
+        if (input) {
+            input.addEventListener("paste", handlePaste);
+        }
+
+        return () => {
+            if (input) {
+                input.removeEventListener("paste", handlePaste);
+            }
+        };
+    }, [handleFileSelect]);
+
     const chunkMedia = (mediaList, size = 3) => {
         const chunks = [];
         for (let i = 0; i < mediaList.length; i += size) {
@@ -285,49 +357,7 @@ const Chat = ({ chatId, messages, onMessageUpdate, onSendMessage }) => {
         navigate(`/call/${chatId}`);
     };
 
-    const handleFileSelect = async (files) => {
-        const previews = [];
 
-        for (const file of files) {
-            const mediaType = file.type.startsWith("image/")
-                ? (file.type === "image/gif" ? "gif" : "image")
-                : file.type.startsWith("video/") ? "video" : "other";
-
-            const formData = new FormData();
-            formData.append("userId", user.id);
-            formData.append("targetId", chatId);
-            formData.append("targetTypeCode", "MESSAGE");
-            formData.append("mediaTypeName", mediaType);
-            formData.append("file", file);
-
-            try {
-                const res = await fetch(`${process.env.REACT_APP_API_URL}/media/upload`, {
-                    method: "POST",
-                    headers: { Authorization: `Bearer ${token}` },
-                    body: formData,
-                });
-
-                if (!res.ok) throw new Error("Upload thất bại");
-                const data = await res.json();
-
-                if (selectedMediaPreviews.length + previews.length >= 15) {
-                    toast.error("Chỉ gửi tối đa 15 ảnh/video mỗi tin nhắn");
-                    return;
-                }
-
-                previews.push({
-                    url: URL.createObjectURL(file),
-                    type: file.type,
-                    uploadedUrl: data.url,
-                    mediaType: data.mediaTypeName,
-                });
-            } catch (err) {
-                toast.error("Không thể gửi file: " + err.message);
-            }
-        }
-
-        setSelectedMediaPreviews((prev) => [...prev, ...previews]);
-    };
 
     return (
         <div className="flex flex-col h-full bg-[var(--background-color)]">
@@ -441,15 +471,6 @@ const Chat = ({ chatId, messages, onMessageUpdate, onSendMessage }) => {
                 <div className="flex items-center bg-[var(--input-bg-color)] rounded-xl shadow-sm overflow-hidden px-2">
                     <MediaActionBar
                         onFileSelect={(files) => {
-                            // Preview
-                            setSelectedMediaFiles((prev) => [...prev, ...files]);
-                            setSelectedMediaPreviews((prev) => [
-                                ...prev,
-                                ...files.map((f) => ({
-                                    url: URL.createObjectURL(f),
-                                    type: f.type,
-                                })),
-                            ]);
                             handleFileSelect(files); // Upload
                         }}
                         onSelectEmoji={(emoji) => {
