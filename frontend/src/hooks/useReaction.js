@@ -53,8 +53,11 @@ export default function useReaction({
             );
 
             if (!res.ok) throw new Error("Không thể lấy biểu cảm người dùng.");
-            const data = await res.json(); // { name: 'LIKE', emoji: '❤️' }
 
+            const text = await res.text();
+            if (!text) return;
+
+            const data = JSON.parse(text); 
             if (data?.name && emojiMap?.[data.name]) {
                 setCurrentEmoji(emojiMap[data.name]);
             }

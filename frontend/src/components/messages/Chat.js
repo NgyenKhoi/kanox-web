@@ -19,6 +19,9 @@ const Chat = ({ chatId, messages, onMessageUpdate, onSendMessage }) => {
     const [message, setMessage] = useState("");
     const [typingUsers, setTypingUsers] = useState([]);
     const [recipientName, setRecipientName] = useState("");
+    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+    const [selectedMediaFiles, setSelectedMediaFiles] = useState([]);
+    const [selectedMediaPreviews, setSelectedMediaPreviews] = useState([]);
     const [isSpam, setIsSpam] = useState(false);
     const chatContainerRef = useRef(null);
     const isConnectedRef = useRef(false);
@@ -27,6 +30,7 @@ const Chat = ({ chatId, messages, onMessageUpdate, onSendMessage }) => {
     const targetUserId = useRef(null);
     const [resolvedTargetId, setResolvedTargetId] = useState(null);
     const messagesRef = useRef(messages);
+    const inputRef = useRef(null);
 
     useEffect(() => {
         messagesRef.current = messages;
@@ -374,19 +378,95 @@ const Chat = ({ chatId, messages, onMessageUpdate, onSendMessage }) => {
                 })}
                 {typingUsers.length > 0 && <div className="text-[var(--text-color-muted)]">{typingUsers.join(", ")} đang nhập...</div>}
             </div>
-            <div className="p-3 border-t border-[var(--border-color)] bg-[var(--background-color)]">
+            <div className="p-3 border-t border-[var(--border-color)] bg-[var(--background-color)] relative">
+                {/* Emoji picker UI */}
+                {showEmojiPicker && (
+                    <div className="absolute bottom-[60px] left-3 z-50">
+                        <EmojiPicker
+                            theme="light"
+                            onEmojiClick={(emojiData) => {
+                                const input = inputRef.current;
+                                if (!input) return;
+
+                                const start = input.selectionStart;
+                                const end = input.selectionEnd;
+
+                                const newText =
+                                    message.substring(0, start) +
+                                    emojiData.emoji +
+                                    message.substring(end);
+
+                                setMessage(newText);
+
+                                // Đặt lại vị trí con trỏ sau emoji
+                                setTimeout(() => {
+                                    input.focus();
+                                    const cursorPosition = start + emojiData.emoji.length;
+                                    input.setSelectionRange(cursorPosition, cursorPosition);
+                                }, 0);
+
+                                setShowEmojiPicker(false);
+                            }}
+                        />
+                    </div>
+                )}
+
+                {/* Media preview */}
+                {selectedMediaPreviews.length > 0 && (
+                    <div className="flex gap-2 overflow-x-auto mb-2">
+                        {selectedMediaPreviews.map((media, idx) => (
+                            <div key={idx} className="relative w-20 h-20 border rounded overflow-hidden">
+                                {media.type.startsWith("image/") ? (
+                                    <img src={media.url} className="w-full h-full object-cover" alt="preview" />
+                                ) : (
+                                    <video src={media.url} className="w-full h-full object-cover" controls />
+                                )}
+                                <button
+                                    onClick={() => {
+                                        setSelectedMediaPreviews((prev) => prev.filter((_, i) => i !== idx));
+                                        setSelectedMediaFiles((prev) => prev.filter((_, i) => i !== idx));
+                                    }}
+                                    className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                                >
+                                    ×
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* Input + Action Bar */}
                 <div className="flex items-center bg-[var(--input-bg-color)] rounded-xl shadow-sm overflow-hidden px-2">
-                    <MediaActionBar onEmojiClick={() => {}} onFileSelect={handleFileSelect} />
+                    <MediaActionBar
+                        onEmojiClick={() => setShowEmojiPicker((prev) => !prev)}
+                        onFileSelect={(files) => {
+                            setSelectedMediaFiles((prev) => [...prev, ...files]);
+                            setSelectedMediaPreviews((prev) => [
+                                ...prev,
+                                ...files.map((f) => ({
+                                    url: URL.createObjectURL(f),
+                                    type: f.type,
+                                })),
+                            ]);
+                            handleFileSelect(files); // Upload logic
+                        }}
+                    />
 
                     <input
+                        ref={inputRef}
                         type="text"
                         placeholder="Nhập tin nhắn..."
                         value={message}
-                        onChange={(e) => { setMessage(e.target.value); sendTyping(); }}
+                        onChange={(e) => {
+                            setMessage(e.target.value);
+                            sendTyping();
+                        }}
                         onKeyPress={handleKeyPress}
                         className="flex-grow bg-transparent border-none px-2 py-2 text-[var(--text-color)] placeholder:text-[var(--text-color-muted)] outline-none"
                     />
-                    <button onClick={sendMessage} className="p-2 text-[var(--text-color)] hover:opacity-80"><FaPaperPlane /></button>
+                    <button onClick={sendMessage} className="p-2 text-[var(--text-color)] hover:opacity-80">
+                        <FaPaperPlane />
+                    </button>
                 </div>
             </div>
             <ToastContainer />
