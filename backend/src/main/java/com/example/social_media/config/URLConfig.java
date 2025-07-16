@@ -144,6 +144,7 @@ public class URLConfig {
     // Dashboard URLs
     public static final String DASHBOARD_BASE = ADMIN_BASE + "/dashboard";
     public static final String DASHBOARD_STATS = "/stats";
+    public static final String REGISTRATIONS_BY_WEEK = "/registrations-by-week";
 
 
     //Admin report urls
