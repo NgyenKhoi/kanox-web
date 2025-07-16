@@ -188,6 +188,24 @@ public class ReportService {
                 );
                 
                 if (approvedReportsCount >= 3) {
+                    // Thực sự khóa tài khoản user
+                    try {
+                        User targetUser = userRepository.findById(report.getTargetId())
+                            .orElseThrow(() -> new UserNotFoundException("Target user not found with id: " + report.getTargetId()));
+                        
+                        // Chỉ khóa nếu user chưa bị khóa
+                        if (targetUser.getStatus()) {
+                            targetUser.setStatus(false);
+                            userRepository.save(targetUser);
+                            
+                            System.out.println("=== AUTO-BLOCK USER ====");
+                            System.out.println("User ID: " + report.getTargetId() + " has been automatically blocked due to 3 approved reports");
+                        }
+                    } catch (Exception e) {
+                        System.err.println("Error blocking user: " + e.getMessage());
+                        e.printStackTrace();
+                    }
+                    
                     // Gửi thông báo cho target user về việc bị block
                     String blockMessage = "Tài khoản của bạn đã bị khóa tự động do có 3 báo cáo được duyệt. Vui lòng liên hệ admin để được hỗ trợ.";
                     
