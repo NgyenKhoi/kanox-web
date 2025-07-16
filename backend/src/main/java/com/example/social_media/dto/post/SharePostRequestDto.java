@@ -5,7 +5,6 @@ public class SharePostRequestDto {
     private Integer originalPostId;
     private String content; // Nội dung người dùng viết thêm khi chia sẻ
 
-    // Getters and Setters
     public Integer getOriginalPostId() {
         return originalPostId;
     }

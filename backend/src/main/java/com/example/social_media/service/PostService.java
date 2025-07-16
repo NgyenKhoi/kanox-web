@@ -9,10 +9,7 @@ import com.example.social_media.exception.RegistrationException;
 import com.example.social_media.exception.UserNotFoundException;
 import com.example.social_media.exception.UnauthorizedException;
 import com.example.social_media.repository.*;
-import com.example.social_media.repository.post_repository.HiddenPostRepository;
-import com.example.social_media.repository.post_repository.PostRepository;
-import com.example.social_media.repository.post_repository.PostTagRepository;
-import com.example.social_media.repository.post_repository.SavedPostRepository;
+import com.example.social_media.repository.post_repository.*;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

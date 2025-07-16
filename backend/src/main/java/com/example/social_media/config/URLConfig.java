@@ -32,7 +32,7 @@ public class URLConfig {
     // Chat URLs
     public static final String CHAT_BASE = "/api/chat";
     public static final String SEND_MESSAGES = "/sendMessage";
-    public static final String SEND_MESSAGES_WITH_MEDIA ="/chat/{chatId}/send-message-with-media";
+    public static final String SEND_MESSAGES_WITH_MEDIA ="/{chatId}/send-message-with-media";
     public static final String GET_CHAT_MESSAGES = "/{chatId}/messages";
     public static final String CHATS = "/chats";
     public static final String CHAT_CREATE = "/create";
