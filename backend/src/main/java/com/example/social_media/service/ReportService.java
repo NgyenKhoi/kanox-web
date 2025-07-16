@@ -188,7 +188,7 @@ public class ReportService {
 
             // Kiểm tra và thông báo nếu user bị tự động block (cho báo cáo được duyệt)
             if (request.getProcessingStatusId() == 3 && report.getTargetType() != null) {
-                Integer targetUserId = null;
+                final Integer targetUserId;
                 
                 // Xác định user ID cần kiểm tra dựa trên loại báo cáo
                 if (report.getTargetType().getId() == 4) {
@@ -206,6 +206,8 @@ public class ReportService {
                         System.err.println("Error getting post owner: " + e.getMessage());
                         return; // Không thể lấy owner, bỏ qua auto-block
                     }
+                } else {
+                    targetUserId = null;
                 }
                 
                 if (targetUserId != null) {
