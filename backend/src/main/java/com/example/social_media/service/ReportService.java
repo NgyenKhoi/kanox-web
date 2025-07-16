@@ -7,6 +7,7 @@ import com.example.social_media.dto.report.ReportReasonDto;
 import com.example.social_media.entity.*;
 import com.example.social_media.exception.UserNotFoundException;
 import com.example.social_media.repository.*;
+import com.example.social_media.repository.post_repository.PostRepository;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -32,6 +33,7 @@ public class ReportService {
     private final ReportStatusRepository reportStatusRepository;
     private final ReportHistoryRepository reportHistoryRepository;
     private final ReportLimitRepository reportLimitRepository;
+    private final PostRepository postRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final NotificationService notificationService;
     private static final int MAX_REPORTS_PER_DAY = 3;
@@ -43,6 +45,7 @@ public class ReportService {
             ReportStatusRepository reportStatusRepository,
             ReportHistoryRepository reportHistoryRepository,
             ReportLimitRepository reportLimitRepository,
+            PostRepository postRepository,
             SimpMessagingTemplate messagingTemplate,
             NotificationService notificationService
     ) {
@@ -52,6 +55,7 @@ public class ReportService {
         this.reportStatusRepository = reportStatusRepository;
         this.reportHistoryRepository = reportHistoryRepository;
         this.reportLimitRepository = reportLimitRepository;
+        this.postRepository = postRepository;
         this.messagingTemplate = messagingTemplate;
         this.notificationService = notificationService;
     }
@@ -159,6 +163,8 @@ public class ReportService {
             System.out.println("reportId = " + reportId);
             System.out.println("adminId = " + admin.getId());
             System.out.println("statusId = " + request.getProcessingStatusId());
+            System.out.println("report.getTargetType() = " + (report.getTargetType() != null ? report.getTargetType().getId() : "null"));
+            System.out.println("report.getTargetId() = " + report.getTargetId());
 
             reportRepository.updateReportStatus(reportId, admin.getId(), request.getProcessingStatusId());
 
@@ -180,62 +186,91 @@ public class ReportService {
                     message = "Báo cáo của bạn (ID: " + reportId + ") đã được cập nhật bởi " + admin.getDisplayName();
             }
 
-            // Kiểm tra và thông báo nếu user bị tự động block (chỉ cho báo cáo được duyệt về user)
-            if (request.getProcessingStatusId() == 3 && report.getTargetType() != null && report.getTargetType().getId() == 4) {
-                System.out.println("=== [DEBUG] Checking auto-block for user ID: " + report.getTargetId() + " ===");
+            // Kiểm tra và thông báo nếu user bị tự động block (cho báo cáo được duyệt)
+            if (request.getProcessingStatusId() == 3 && report.getTargetType() != null) {
+                Integer targetUserId = null;
                 
-                // Đếm số báo cáo được duyệt cho target user
-                long approvedReportsCount = reportRepository.countByTargetIdAndTargetTypeIdAndProcessingStatusIdAndStatus(
-                    report.getTargetId(), 4, 3, true
-                );
-                
-                System.out.println("[DEBUG] Approved reports count: " + approvedReportsCount);
-                
-                if (approvedReportsCount >= 3) {
-                    System.out.println("[DEBUG] User has 3+ approved reports, proceeding with auto-block");
-                    // Thực sự khóa tài khoản user
+                // Xác định user ID cần kiểm tra dựa trên loại báo cáo
+                if (report.getTargetType().getId() == 4) {
+                    // Báo cáo user - dùng trực tiếp targetId
+                    targetUserId = report.getTargetId();
+                    System.out.println("=== [DEBUG] User report - Target User ID: " + targetUserId + " ===");
+                } else if (report.getTargetType().getId() == 1) {
+                    // Báo cáo post - lấy owner ID từ post
                     try {
-                        User targetUser = userRepository.findById(report.getTargetId())
-                            .orElseThrow(() -> new UserNotFoundException("Target user not found with id: " + report.getTargetId()));
-                        
-                        // Chỉ khóa nếu user chưa bị khóa
-                        if (targetUser.getStatus()) {
-                            targetUser.setStatus(false);
-                            userRepository.save(targetUser);
-                            
-                            System.out.println("=== AUTO-BLOCK USER ====");
-                            System.out.println("User ID: " + report.getTargetId() + " has been automatically blocked due to 3 approved reports");
-                        }
+                        Post post = postRepository.findById(report.getTargetId())
+                            .orElseThrow(() -> new IllegalArgumentException("Post not found with id: " + report.getTargetId()));
+                        targetUserId = post.getOwner().getId();
+                        System.out.println("=== [DEBUG] Post report - Post ID: " + report.getTargetId() + ", Owner ID: " + targetUserId + " ===");
                     } catch (Exception e) {
-                        System.err.println("Error blocking user: " + e.getMessage());
-                        e.printStackTrace();
+                        System.err.println("Error getting post owner: " + e.getMessage());
+                        return; // Không thể lấy owner, bỏ qua auto-block
                     }
+                }
+                
+                if (targetUserId != null) {
+                    System.out.println("=== [DEBUG] Checking auto-block for user ID: " + targetUserId + " ===");
                     
-                    // Gửi thông báo cho target user về việc bị block
-                    String blockMessage = "Tài khoản của bạn đã bị khóa tự động do có 3 báo cáo được duyệt. Vui lòng liên hệ admin để được hỗ trợ.";
-                    
-                    notificationService.sendNotification(
-                        report.getTargetId(),
-                        "AUTO_BLOCK_USER",
-                        blockMessage,
-                        admin.getId(),
-                        "SYSTEM"
+                    // Đếm số báo cáo được duyệt cho target user (bao gồm cả báo cáo user và post)
+                    long userReportsCount = reportRepository.countByTargetIdAndTargetTypeIdAndProcessingStatusIdAndStatus(
+                        targetUserId, 4, 3, true
                     );
                     
-                    messagingTemplate.convertAndSend(
-                        "/topic/notifications/" + report.getTargetId(),
-                        Map.of(
-                            "id", reportId,
-                            "message", blockMessage,
-                            "type", "AUTO_BLOCK_USER",
-                            "targetId", admin.getId(),
-                            "targetType", "SYSTEM",
-                            "adminId", admin.getId(),
-                            "adminDisplayName", "Hệ thống",
-                            "createdAt", System.currentTimeMillis() / 1000,
-                            "status", "unread"
-                        )
-                    );
+                    // Đếm số báo cáo post được duyệt của user này
+                    long postReportsCount = reportRepository.countApprovedPostReportsByUserId(targetUserId);
+                    
+                    long totalApprovedReports = userReportsCount + postReportsCount;
+                    
+                    System.out.println("[DEBUG] User reports count: " + userReportsCount);
+                    System.out.println("[DEBUG] Post reports count: " + postReportsCount);
+                    System.out.println("[DEBUG] Total approved reports count: " + totalApprovedReports);
+                    
+                    if (totalApprovedReports >= 3) {
+                        System.out.println("[DEBUG] User has 3+ approved reports, proceeding with auto-block");
+                        // Thực sự khóa tài khoản user
+                        try {
+                            User targetUser = userRepository.findById(targetUserId)
+                                .orElseThrow(() -> new UserNotFoundException("Target user not found with id: " + targetUserId));
+                            
+                            // Chỉ khóa nếu user chưa bị khóa
+                            if (targetUser.getStatus()) {
+                                targetUser.setStatus(false);
+                                userRepository.save(targetUser);
+                                
+                                System.out.println("=== AUTO-BLOCK USER ====");
+                                System.out.println("User ID: " + targetUserId + " has been automatically blocked due to 3+ approved reports");
+                            }
+                        } catch (Exception e) {
+                            System.err.println("Error blocking user: " + e.getMessage());
+                            e.printStackTrace();
+                        }
+                        
+                        // Gửi thông báo cho target user về việc bị block
+                        String blockMessage = "Tài khoản của bạn đã bị khóa tự động do có 3 báo cáo được duyệt. Vui lòng liên hệ admin để được hỗ trợ.";
+                        
+                        notificationService.sendNotification(
+                            targetUserId,
+                            "AUTO_BLOCK_USER",
+                            blockMessage,
+                            admin.getId(),
+                            "SYSTEM"
+                        );
+                        
+                        messagingTemplate.convertAndSend(
+                            "/topic/notifications/" + targetUserId,
+                            Map.of(
+                                "id", reportId,
+                                "message", blockMessage,
+                                "type", "AUTO_BLOCK_USER",
+                                "targetId", admin.getId(),
+                                "targetType", "SYSTEM",
+                                "adminId", admin.getId(),
+                                "adminDisplayName", "Hệ thống",
+                                "createdAt", System.currentTimeMillis() / 1000,
+                                "status", "unread"
+                            )
+                        );
+                    }
                 }
             }
 

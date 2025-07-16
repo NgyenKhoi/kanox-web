@@ -79,4 +79,8 @@ public interface ReportRepository extends JpaRepository<Report, Integer> {
             @Param("processingStatusId") Integer processingStatusId,
             @Param("status") Boolean status
     );
+
+    @Query("SELECT COUNT(r) FROM Report r JOIN Post p ON r.targetId = p.id " +
+           "WHERE p.owner.id = :userId AND r.targetType.id = 1 AND r.processingStatus.id = 3 AND r.status = true")
+    long countApprovedPostReportsByUserId(@Param("userId") Integer userId);
 }
