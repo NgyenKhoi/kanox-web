@@ -13,6 +13,7 @@ import com.example.social_media.repository.post_repository.HiddenPostRepository;
 import com.example.social_media.repository.post_repository.PostRepository;
 import com.example.social_media.repository.post_repository.PostTagRepository;
 import com.example.social_media.repository.post_repository.SavedPostRepository;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.CacheEvict;
@@ -27,8 +28,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.example.social_media.dto.post.SharePostRequestDto;
+
 @Service
 public class PostService {
+
     private static final Logger logger = LoggerFactory.getLogger(PostService.class);
 
     private final PostRepository postRepository;
@@ -47,13 +51,13 @@ public class PostService {
     private final TargetTypeRepository targetTypeRepository;
 
     public PostService(PostRepository postRepository, PostTagRepository postTagRepository,
-                       UserRepository userRepository, ContentPrivacyRepository contentPrivacyRepository,
-                       CustomPrivacyListRepository customPrivacyListRepository, PrivacyService privacyService,
-                       MediaService mediaService, CommentRepository commentRepository,
-                       SavedPostRepository savedPostRepository, HiddenPostRepository hiddenPostRepository,
-                       GroupRepository groupRepository, GroupMemberRepository groupMemberRepository,
-                       ReactionService reactionService,
-                       TargetTypeRepository targetTypeRepository) {
+            UserRepository userRepository, ContentPrivacyRepository contentPrivacyRepository,
+            CustomPrivacyListRepository customPrivacyListRepository, PrivacyService privacyService,
+            MediaService mediaService, CommentRepository commentRepository,
+            SavedPostRepository savedPostRepository, HiddenPostRepository hiddenPostRepository,
+            GroupRepository groupRepository, GroupMemberRepository groupMemberRepository,
+            ReactionService reactionService,
+            TargetTypeRepository targetTypeRepository) {
         this.postRepository = postRepository;
         this.postTagRepository = postTagRepository;
         this.userRepository = userRepository;
@@ -69,6 +73,7 @@ public class PostService {
         this.reactionService = reactionService;
         this.targetTypeRepository = targetTypeRepository;
     }
+
     @CacheEvict(value = {"newsfeed", "postsByUsername", "communityFeed", "postsByGroup", "postsByUserInGroup", "savedPosts"}, allEntries = true)
     @Transactional
     public PostResponseDto createPost(PostRequestDto dto, String username, List<MultipartFile> mediaFiles) {
@@ -173,6 +178,7 @@ public class PostService {
 
         return convertToDto(latestPost, user.getId(), savedPostIds, Map.of(newPostId, postTags), mediaMap, reactionCountMap);
     }
+
     @CacheEvict(value = {"newsfeed", "postsByUsername", "communityFeed", "postsByGroup", "postsByUserInGroup", "savedPosts"}, allEntries = true)
     @Transactional
     public PostResponseDto updatePost(Integer postId, PostRequestDto dto, String username) {
@@ -260,6 +266,7 @@ public class PostService {
 
         return convertToDto(post, user.getId(), savedPostIds, Map.of(postId, postTags), mediaMap, reactionCountMap);
     }
+
     @CacheEvict(value = {"newsfeed", "postsByUsername", "communityFeed", "postsByGroup", "postsByUserInGroup", "savedPosts"}, allEntries = true)
     @Transactional
     public void deletePost(Integer postId, String username) {
@@ -288,6 +295,7 @@ public class PostService {
         post.setStatus(false);
         postRepository.save(post);
     }
+
     @Cacheable(value = "newsfeed", key = "#username")
     public List<PostResponseDto> getAllPosts(String username) {
         logger.info("Lấy newsfeed tối ưu cho người dùng: {}", username);
@@ -297,7 +305,9 @@ public class PostService {
 
         // 1. Lấy tất cả bài viết newsfeed (tối đa 10–20 bản ghi như bạn nói)
         List<Post> posts = postRepository.findNewsfeedPosts(user.getId());
-        if (posts.isEmpty()) return List.of();
+        if (posts.isEmpty()) {
+            return List.of();
+        }
 
         // 2. Các ID cần thiết
         List<Integer> postIds = posts.stream().map(Post::getId).toList();
@@ -325,8 +335,12 @@ public class PostService {
                 .filter(post -> {
                     boolean access = accessMap.getOrDefault(post.getId(), false);
                     Group group = post.getGroup();
-                    if (group == null) return access;
-                    if ("public".equalsIgnoreCase(group.getPrivacyLevel())) return true;
+                    if (group == null) {
+                        return access;
+                    }
+                    if ("public".equalsIgnoreCase(group.getPrivacyLevel())) {
+                        return true;
+                    }
                     return joinedGroupIds.contains(group.getId()) && access;
                 })
                 .map(post -> convertToDto(post, user.getId(), savedPostIds, postTagsMap, mediaMap, reactionCountMap))
@@ -392,9 +406,9 @@ public class PostService {
                 .map(sp -> sp.getPost().getId())
                 .collect(Collectors.toList());
 
-        List<Post> posts = joinedGroupIds.isEmpty() ?
-                postRepository.findPostsFromPublicGroups() :
-                postRepository.findByGroupIdInAndStatusTrueOrderByCreatedAtDesc(joinedGroupIds);
+        List<Post> posts = joinedGroupIds.isEmpty()
+                ? postRepository.findPostsFromPublicGroups()
+                : postRepository.findByGroupIdInAndStatusTrueOrderByCreatedAtDesc(joinedGroupIds);
 
         List<Integer> postIds = posts.stream().map(Post::getId).collect(Collectors.toList());
         Map<Integer, Boolean> accessMap = privacyService.checkContentAccessBatch(user.getId(), postIds, "post");
@@ -530,6 +544,7 @@ public class PostService {
                 .map(post -> convertToDto(post, currentUser.getId(), savedPostIds, postTagsMap, mediaMap, reactionCountMap))
                 .collect(Collectors.toList());
     }
+
     @CacheEvict(value = {"savedPosts", "newsfeed"}, allEntries = true)
     @Transactional
     public void savePost(Integer postId, String username) {
@@ -554,6 +569,7 @@ public class PostService {
             throw new RuntimeException("Không thể lưu bài viết: " + e.getMessage(), e);
         }
     }
+
     @CacheEvict(value = {"savedPosts", "newsfeed"}, allEntries = true)
     @Transactional
     public void hidePost(Integer postId, String username) {
@@ -573,6 +589,7 @@ public class PostService {
             throw new RuntimeException("Không thể ẩn bài viết: " + e.getMessage(), e);
         }
     }
+
     @CacheEvict(value = {"savedPosts", "newsfeed"}, allEntries = true)
     @Transactional
     public void unsavePost(Integer postId, String username) {
@@ -636,9 +653,69 @@ public class PostService {
         return postRepository.count();
     }
 
+    @Transactional
+    @CacheEvict(value = {"newsfeed", "postsByUsername", "communityFeed", "postsByGroup", "postsByUserInGroup"}, allEntries = true)
+    public PostResponseDto sharePost(SharePostRequestDto dto, String username) {
+        logger.info("Người dùng {} đang chia sẻ bài viết ID: {}", username, dto.getOriginalPostId());
+
+        User sharer = userRepository.findByUsernameAndStatusTrue(username)
+                .orElseThrow(() -> new UserNotFoundException("Không tìm thấy người dùng hoặc người dùng không hoạt động"));
+
+        Post originalPost = postRepository.findById(dto.getOriginalPostId())
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy bài viết gốc để chia sẻ"));
+
+        // Không cho phép chia sẻ lại một bài đã là bài chia sẻ
+        if (originalPost.getSharedPost() != null) {
+            throw new IllegalArgumentException("Không thể chia sẻ một bài viết đã được chia sẻ.");
+        }
+
+        // Tạo bài viết chia sẻ mới
+        Post newSharePost = new Post();
+        newSharePost.setOwner(sharer);
+        // Lấy nội dung từ DTO, đây là bình luận của người chia sẻ
+        newSharePost.setContent(dto.getContent());
+        newSharePost.setSharedPost(originalPost); // Liên kết tới bài viết gốc
+        newSharePost.setCreatedAt(Instant.now());
+        newSharePost.setStatus(true);
+        // Bài viết mới tạo luôn có shareCount = 0
+        newSharePost.setShareCount(0);
+        // Mặc định bài chia sẻ là công khai
+        newSharePost.setPrivacySetting("public");
+
+        // Tăng đếm lượt chia sẻ của BÀI VIẾT GỐC
+        originalPost.setShareCount(originalPost.getShareCount() + 1);
+        postRepository.save(originalPost);
+
+        // Lưu bài viết chia sẻ mới vào DB
+        Post savedSharePost = postRepository.save(newSharePost);
+
+        // Lấy dữ liệu cần thiết để chuyển đổi sang DTO
+        List<Integer> savedPostIds = savedPostRepository.findByUserIdAndStatusTrue(sharer.getId())
+                .stream().map(sp -> sp.getPost().getId()).collect(Collectors.toList());
+
+        // Chuyển đổi và trả về
+        return convertToDto(savedSharePost, sharer.getId(), savedPostIds,
+                new HashMap<>(), new HashMap<>(), new HashMap<>());
+    }
+
     private PostResponseDto convertToDto(Post post, Integer currentUserId,
-                                         List<Integer> savedPostIds, Map<Integer, List<PostTag>> postTagsMap,
-                                         Map<Integer, List<MediaDto>> mediaMap, Map<Integer, Map<ReactionType, Long>> reactionCountMap) {
+            List<Integer> savedPostIds, Map<Integer, List<PostTag>> postTagsMap,
+            Map<Integer, List<MediaDto>> mediaMap, Map<Integer, Map<ReactionType, Long>> reactionCountMap) {
+        Post originalPost = post.getSharedPost();
+        if (originalPost != null) {
+            // Nếu map media chưa có dữ liệu cho bài viết gốc, hãy tải nó
+            if (!mediaMap.containsKey(originalPost.getId())) {
+                mediaMap.putAll(mediaService.getMediaByTargetIds(List.of(originalPost.getId()), "POST", null, true));
+            }
+            // Tương tự cho reaction, nếu cần hiển thị đầy đủ
+            if (!reactionCountMap.containsKey(originalPost.getId())) {
+                reactionCountMap.put(originalPost.getId(), reactionService.countAllReactions(originalPost.getId(), "POST"));
+            }
+            // Tương tự cho tags
+            if (!postTagsMap.containsKey(originalPost.getId())) {
+                postTagsMap.put(originalPost.getId(), postTagRepository.findByPostIdAndStatusTrue(originalPost.getId()));
+            }
+        }
         PostResponseDto dto = new PostResponseDto();
         dto.setId(post.getId());
         User owner = post.getOwner();
@@ -646,6 +723,7 @@ public class PostService {
         dto.setContent(post.getContent());
         dto.setPrivacySetting(post.getPrivacySetting());
         dto.setCreatedAt(post.getCreatedAt());
+        dto.setShareCount(post.getShareCount() != null ? post.getShareCount() : 0);
 
         List<PostTag> postTags = postTagsMap.getOrDefault(post.getId(), List.of());
         dto.setTaggedUsers(postTags.stream()
@@ -677,6 +755,17 @@ public class PostService {
             dto.setGroupName(post.getGroup().getName());
             dto.setGroupAvatarUrl(mediaService.getFirstMediaUrlByTarget(post.getGroup().getId(), "GROUP"));
             dto.setGroupPrivacyLevel(post.getGroup().getPrivacyLevel());
+        }
+        if (originalPost != null) {
+            PostResponseDto sharedPostDto = convertToDto(originalPost, currentUserId, savedPostIds,
+                    postTagsMap, mediaMap, reactionCountMap);
+            dto.setSharedPost(sharedPostDto);
+            // Một bài viết chia sẻ không có media của riêng nó, nó chỉ hiển thị media của bài gốc
+            dto.setMedia(List.of());
+        } else {
+            // Chỉ set media nếu đây là bài viết gốc
+            dto.setMedia(mediaMap.getOrDefault(post.getId(), List.of()));
+            dto.setSharedPost(null);
         }
 
         return dto;
