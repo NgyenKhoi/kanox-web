@@ -34,7 +34,7 @@ public class ReportService {
     private final ReportLimitRepository reportLimitRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final NotificationService notificationService;
-    private static final int MAX_REPORTS_PER_DAY = 5;
+    private static final int MAX_REPORTS_PER_DAY = 3;
 
     public ReportService(
             ReportRepository reportRepository,
@@ -180,6 +180,42 @@ public class ReportService {
                     message = "Báo cáo của bạn (ID: " + reportId + ") đã được cập nhật bởi " + admin.getDisplayName();
             }
 
+            // Kiểm tra và thông báo nếu user bị tự động block (chỉ cho báo cáo được duyệt về user)
+            if (request.getProcessingStatusId() == 3 && report.getTargetType() != null && report.getTargetType().getId() == 4) {
+                // Đếm số báo cáo được duyệt cho target user
+                long approvedReportsCount = reportRepository.countByTargetIdAndTargetTypeIdAndProcessingStatusIdAndStatus(
+                    report.getTargetId(), 4, 3, true
+                );
+                
+                if (approvedReportsCount >= 3) {
+                    // Gửi thông báo cho target user về việc bị block
+                    String blockMessage = "Tài khoản của bạn đã bị khóa tự động do có 3 báo cáo được duyệt. Vui lòng liên hệ admin để được hỗ trợ.";
+                    
+                    notificationService.sendNotification(
+                        report.getTargetId(),
+                        "AUTO_BLOCK_USER",
+                        blockMessage,
+                        admin.getId(),
+                        "SYSTEM"
+                    );
+                    
+                    messagingTemplate.convertAndSend(
+                        "/topic/notifications/" + report.getTargetId(),
+                        Map.of(
+                            "id", reportId,
+                            "message", blockMessage,
+                            "type", "AUTO_BLOCK_USER",
+                            "targetId", admin.getId(),
+                            "targetType", "SYSTEM",
+                            "adminId", admin.getId(),
+                            "adminDisplayName", "Hệ thống",
+                            "createdAt", System.currentTimeMillis() / 1000,
+                            "status", "unread"
+                        )
+                    );
+                }
+            }
+
             // Gửi thông báo WebSocket duy nhất
             messagingTemplate.convertAndSend(
                     "/topic/notifications/" + report.getReporter().getId(),
@@ -213,7 +249,7 @@ public class ReportService {
                 long rejectedCount = reportRepository.countByReporterIdAndProcessingStatusIdAndReportTime(
                         report.getReporter().getId(), 4, startOfToday
                 );
-                if (rejectedCount >= 5) {
+                if (rejectedCount >= 3) {
                     String abuseMessage = "Bạn đã gửi quá nhiều báo cáo không hợp lệ hôm nay. Vui lòng kiểm tra lại hành vi báo cáo của bạn.";
                     notificationService.sendNotification(
                             report.getReporter().getId(),
