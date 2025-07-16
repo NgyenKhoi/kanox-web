@@ -73,7 +73,7 @@ export default function useReaction({
     };
 
     useEffect(() => {
-        if (!user?.id || !targetId || !targetTypeCode || !token || hasFetchedSummary || !emojiMapReady) return;
+        if (!user?.id || !targetId || !targetTypeCode || !token || hasFetchedSummary) return;
 
         if (initialReactionCountMap && Object.keys(initialReactionCountMap).length > 0) {
             console.debug("[useReaction] Bỏ qua gọi API summary vì đã có initialReactionCountMap");
@@ -93,8 +93,26 @@ export default function useReaction({
         }
 
         fetchSummary();
+    }, [
+        user?.id,
+        targetId,
+        targetTypeCode,
+        token,
+        hasFetchedSummary,
+        initialReactionCountMap,
+        emojiMap, // vẫn cần vì dùng để render emoji cho `topReactions`
+    ]);
+
+    useEffect(() => {
+        if (!user?.id || !targetId || !targetTypeCode || !token || !emojiMapReady) return;
         fetchUserReaction();
-    }, [user?.id, targetId, targetTypeCode, token, hasFetchedSummary, initialReactionCountMap, emojiMapReady]);
+    }, [
+        user?.id,
+        targetId,
+        targetTypeCode,
+        token,
+        emojiMapReady,
+    ]);
 
     const fetchUsersByReaction = async (emojiName) => {
         if (reactionUserMap[emojiName]) return;
