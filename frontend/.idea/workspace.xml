@@ -4,7 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c6c17ae2-c6cb-4c94-a6b8-91c54839fa5e" name="Changes" comment="Merge branch 'main' of https://github.com/NgyenKhoi/kanox-web&#10;&#10;# Conflicts:&#10;#&#9;frontend/.idea/workspace.xml" />
+    <list default="true" id="c6c17ae2-c6cb-4c94-a6b8-91c54839fa5e" name="Changes" comment="Merge branch 'main' of https://github.com/NgyenKhoi/kanox-web&#10;&#10;# Conflicts:&#10;#&#9;frontend/.idea/workspace.xml">
+      <change beforePath="$PROJECT_DIR$/../backend/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../backend/DATABASE.sql" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/DATABASE.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/controller/ChatController.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/example/social_media/controller/ChatController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -151,6 +156,8 @@
       <workItem from="1752117629151" duration="1233000" />
       <workItem from="1752308111379" duration="7056000" />
       <workItem from="1752333143324" duration="675000" />
+      <workItem from="1752407563764" duration="2788000" />
+      <workItem from="1752559249770" duration="1259000" />
     </task>
     <servers />
   </component>
