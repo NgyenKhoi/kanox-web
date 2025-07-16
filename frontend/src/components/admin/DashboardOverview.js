@@ -8,14 +8,39 @@ import {
   Button,
   Table,
 } from "react-bootstrap";
+import { Bar } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+} from "chart.js";
+
+// Đăng ký các thành phần cần thiết cho Chart.js
+ChartJS.register(
+    CategoryScale,
+    LinearScale,
+    BarElement,
+    Title,
+    Tooltip,
+    Legend
+);
 
 const DashboardOverview = () => {
   const [stats, setStats] = useState([
     { label: "Tổng số người dùng", value: "Đang tải...", icon: "👥" },
     { label: "Tổng số bài viết", value: "Đang tải...", icon: "📋" },
     { label: "Tổng số cộng đồng", value: "Đang tải...", icon: "🏘️" },
-    { label: "Báo cáo mới", value: "45", icon: "⚠️" }, // placeholder
+    { label: "Báo cáo mới", value: "45", icon: "⚠️" },
   ]);
+
+  const [registrationData, setRegistrationData] = useState({
+    labels: [],
+    datasets: [],
+  });
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -45,7 +70,41 @@ const DashboardOverview = () => {
       }
     };
 
+    const fetchRegistrationData = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch(
+            `${process.env.REACT_APP_API_URL}/admin/dashboard/registrations-by-week?startYear=2025&endYear=2025`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+        );
+
+        if (!response.ok) throw new Error("Lỗi khi lấy dữ liệu đăng ký");
+
+        const data = await response.json();
+
+        setRegistrationData({
+          labels: data.map((item) => item.yearWeek),
+          datasets: [
+            {
+              label: "Số lượng người dùng đăng ký",
+              data: data.map((item) => item.userCount),
+              backgroundColor: "rgba(54, 162, 235, 0.6)",
+              borderColor: "rgba(54, 162, 235, 1)",
+              borderWidth: 1,
+            },
+          ],
+        });
+      } catch (error) {
+        console.error("Lỗi khi load dữ liệu đăng ký:", error);
+      }
+    };
+
     fetchStats();
+    fetchRegistrationData();
   }, []);
 
   const monthlyStats = [
@@ -72,126 +131,153 @@ const DashboardOverview = () => {
     },
   ];
 
-  return (
-    <Container fluid className="p-4 bg-white rounded shadow-sm">
-      <h2 className="text-3xl fw-bold mb-4 text-dark">Tổng quan Dashboard</h2>
-      <Row className="g-4 mb-5">
-        {stats.map((stat, index) => (
-          <Col xs={12} md={6} lg={3} key={index}>
-            <Card className="h-100 p-4 bg-light border-0 rounded shadow-sm d-flex flex-row align-items-center">
-              <div className="fs-1 text-primary me-3">{stat.icon}</div>
-              <div>
-                <Card.Text className="text-muted mb-1 fs-6">
-                  {stat.label}
-                </Card.Text>
-                <Card.Title className="fs-3 fw-bold text-dark">
-                  {stat.value}
-                </Card.Title>
-              </div>
-            </Card>
-          </Col>
-        ))}
-      </Row>
+  const chartOptions = {
+    scales: {
+      y: {
+        beginAtZero: true,
+        title: {
+          display: true,
+          text: "Số lượng người dùng",
+        },
+      },
+      x: {
+        title: {
+          display: true,
+          text: "Tuần",
+        },
+      },
+    },
+    plugins: {
+      legend: {
+        display: true,
+        position: "top",
+      },
+      title: {
+        display: true,
+        text: "Số lượng người dùng đăng ký theo tuần",
+      },
+    },
+    maintainAspectRatio: false,
+  };
 
-      {/* Phần mới cho Thống kê hoạt động hàng tháng sử dụng Bootstrap Table */}
-      <Row className="mb-5">
-        <Col xs={12}>
-          <Card className="shadow-sm">
-            <Card.Header className="d-flex justify-content-between align-items-center">
-              <h3 className="mb-0 fs-4 fw-bold text-dark">
-                Thống kê hoạt động hàng tháng
-              </h3>
-              <Button variant="outline-primary" size="sm">
-                <span className="me-1">⬇️</span> Xuất báo cáo{" "}
-                {/* Thay thế icon Font Awesome bằng emoji */}
-              </Button>
-            </Card.Header>
-            <Card.Body>
-              <div
-                className="table-responsive"
-                style={{ height: 400, overflowY: "auto" }}
-              >
-                <Table striped bordered hover className="mb-0">
-                  <thead>
+  return (
+      <Container fluid className="p-4 bg-white rounded shadow-sm">
+        <h2 className="text-3xl fw-bold mb-4 text-dark">Tổng quan Dashboard</h2>
+        <Row className="g-4 mb-5">
+          {stats.map((stat, index) => (
+              <Col xs={12} md={6} lg={3} key={index}>
+                <Card className="h-100 p-4 bg-light border-0 rounded shadow-sm d-flex flex-row align-items-center">
+                  <div className="fs-1 text-primary me-3">{stat.icon}</div>
+                  <div>
+                    <Card.Text className="text-muted mb-1 fs-6">
+                      {stat.label}
+                    </Card.Text>
+                    <Card.Title className="fs-3 fw-bold text-dark">
+                      {stat.value}
+                    </Card.Title>
+                  </div>
+                </Card>
+              </Col>
+          ))}
+        </Row>
+
+        <Row className="mb-5">
+          <Col xs={12}>
+            <Card className="shadow-sm">
+              <Card.Header className="d-flex justify-content-between align-items-center">
+                <h3 className="mb-0 fs-4 fw-bold text-dark">
+                  Thống kê hoạt động hàng tháng
+                </h3>
+                <Button variant="outline-primary" size="sm">
+                  <span className="me-1">⬇️</span> Xuất báo cáo
+                </Button>
+              </Card.Header>
+              <Card.Body>
+                <div
+                    className="table-responsive"
+                    style={{ height: 400, overflowY: "auto" }}
+                >
+                  <Table striped bordered hover className="mb-0">
+                    <thead>
                     <tr>
                       <th>Tháng</th>
                       <th>Người dùng mới</th>
                       <th>Bài viết mới</th>
                       <th>Cộng đồng mới</th>
                     </tr>
-                  </thead>
-                  <tbody>
+                    </thead>
+                    <tbody>
                     {monthlyStats.map((row) => (
-                      <tr key={row.id}>
-                        <td>{row.month}</td>
-                        <td>{row.users} người</td>
-                        <td>{row.posts} bài</td>
-                        <td>{row.communities} cộng đồng</td>
-                      </tr>
+                        <tr key={row.id}>
+                          <td>{row.month}</td>
+                          <td>{row.users} người</td>
+                          <td>{row.posts} bài</td>
+                          <td>{row.communities} cộng đồng</td>
+                        </tr>
                     ))}
-                  </tbody>
-                </Table>
-              </div>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
+                    </tbody>
+                  </Table>
+                </div>
+              </Card.Body>
+            </Card>
+          </Col>
+        </Row>
 
-      {/* Phần Hoạt động gần đây */}
-      <Row className="mb-5">
-        <Col xs={12}>
-          <Card className="shadow-sm">
-            <Card.Header>
-              <h3 className="mb-0 fs-4 fw-bold text-dark">Hoạt động gần đây</h3>
-            </Card.Header>
-            <Card.Body>
-              <ListGroup className="rounded shadow-sm">
-                {activities.map((activity, index) => (
-                  <ListGroup.Item
-                    key={index}
-                    className="bg-light text-dark py-3 my-2 rounded d-flex justify-content-between align-items-center"
-                  >
-                    <div>
-                      <span className="fw-semibold">{activity.title}</span>
-                      <small className="text-muted d-block">
-                        {activity.time}
-                      </small>
+        <Row className="mb-5">
+          <Col xs={12}>
+            <Card className="shadow-sm">
+              <Card.Header>
+                <h3 className="mb-0 fs-4 fw-bold text-dark">Hoạt động gần đây</h3>
+              </Card.Header>
+              <Card.Body>
+                <ListGroup className="rounded shadow-sm">
+                  {activities.map((activity, index) => (
+                      <ListGroup.Item
+                          key={index}
+                          className="bg-light text-dark py-3 my-2 rounded d-flex justify-content-between align-items-center"
+                      >
+                        <div>
+                          <span className="fw-semibold">{activity.title}</span>
+                          <small className="text-muted d-block">
+                            {activity.time}
+                          </small>
+                        </div>
+                      </ListGroup.Item>
+                  ))}
+                </ListGroup>
+                <Button variant="outline-primary" className="w-100 mt-3">
+                  Xem thêm
+                </Button>
+              </Card.Body>
+            </Card>
+          </Col>
+        </Row>
+
+        <Row>
+          <Col xs={12}>
+            <Card className="shadow-sm">
+              <Card.Header>
+                <h3 className="mb-0 fs-4 fw-bold text-dark">Biểu đồ thống kê</h3>
+              </Card.Header>
+              <Card.Body>
+                {registrationData.labels.length > 0 ? (
+                    <div style={{ height: "400px" }}>
+                      <Bar data={registrationData} options={chartOptions} />
                     </div>
-                    {/* <Badge bg="secondary">Mới</Badge> // Đã loại bỏ Badge nếu không cần thiết */}
-                  </ListGroup.Item>
-                ))}
-              </ListGroup>
-              <Button variant="outline-primary" className="w-100 mt-3">
-                Xem thêm
-              </Button>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
-
-      {/* Phần Biểu đồ thống kê (placeholder) */}
-      <Row>
-        <Col xs={12}>
-          <Card className="shadow-sm">
-            <Card.Header>
-              <h3 className="mb-0 fs-4 fw-bold text-dark">Biểu đồ thống kê</h3>
-            </Card.Header>
-            <Card.Body>
-              <div
-                className="bg-light p-5 rounded shadow-sm d-flex align-items-center justify-content-center text-muted"
-                style={{ minHeight: "16rem" }}
-              >
-                <span className="fs-1 text-secondary me-3">📈</span>{" "}
-                <p className="mb-0">
-                  Biểu đồ hiển thị lượt đăng ký người dùng hàng tháng (dữ liệu
-                  giả)
-                </p>
-              </div>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
-    </Container>
+                ) : (
+                    <div
+                        className="bg-light p-5 rounded shadow-sm d-flex align-items-center justify-content-center text-muted"
+                        style={{ minHeight: "16rem" }}
+                    >
+                      <span className="fs-1 text-secondary me-3">📈</span>
+                      <p className="mb-0">Đang tải dữ liệu biểu đồ...</p>
+                    </div>
+                )}
+              </Card.Body>
+            </Card>
+          </Col>
+        </Row>
+      </Container>
   );
 };
 

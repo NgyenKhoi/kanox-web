@@ -42,17 +42,28 @@ export default function useReaction({
     };
 
     const fetchUserReaction = async () => {
+        if (!user?.id || !targetId || !targetTypeCode || !token) return;
+
         try {
             const res = await fetch(
-                `${process.env.REACT_APP_API_URL}/reactions/by-user?targetId=${targetId}&targetTypeCode=${targetTypeCode}`,
+                `${process.env.REACT_APP_API_URL}/reactions/by-user?userId=${user.id}&targetId=${targetId}&targetTypeCode=${targetTypeCode}`,
                 {
-                    headers: { Authorization: `Bearer ${token}` },
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
                 }
             );
 
-            if (!res.ok) throw new Error("Không thể lấy biểu cảm người dùng.");
-            const data = await res.json(); // { name: 'LIKE', emoji: '❤️' }
+            if (res.status === 204) {
+                console.debug("[useReaction] Không có reaction của user");
+                return;
+            }
 
+            if (!res.ok) {
+                throw new Error(`Lỗi fetch reaction của user: ${res.status}`);
+            }
+
+            const data = await res.json();
             if (data?.name && emojiMap?.[data.name]) {
                 setCurrentEmoji(emojiMap[data.name]);
             }
@@ -62,7 +73,7 @@ export default function useReaction({
     };
 
     useEffect(() => {
-        if (!user?.id || !targetId || !targetTypeCode || !token || hasFetchedSummary || !emojiMapReady) return;
+        if (!user?.id || !targetId || !targetTypeCode || !token || hasFetchedSummary) return;
 
         if (initialReactionCountMap && Object.keys(initialReactionCountMap).length > 0) {
             console.debug("[useReaction] Bỏ qua gọi API summary vì đã có initialReactionCountMap");
@@ -82,8 +93,26 @@ export default function useReaction({
         }
 
         fetchSummary();
+    }, [
+        user?.id,
+        targetId,
+        targetTypeCode,
+        token,
+        hasFetchedSummary,
+        initialReactionCountMap,
+        emojiMap, // vẫn cần vì dùng để render emoji cho `topReactions`
+    ]);
+
+    useEffect(() => {
+        if (!user?.id || !targetId || !targetTypeCode || !token || !emojiMapReady) return;
         fetchUserReaction();
-    }, [user?.id, targetId, targetTypeCode, token, hasFetchedSummary, initialReactionCountMap, emojiMapReady]);
+    }, [
+        user?.id,
+        targetId,
+        targetTypeCode,
+        token,
+        emojiMapReady,
+    ]);
 
     const fetchUsersByReaction = async (emojiName) => {
         if (reactionUserMap[emojiName]) return;

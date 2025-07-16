@@ -10,14 +10,13 @@ import com.example.social_media.exception.UnauthorizedException;
 import com.example.social_media.jwt.JwtService;
 import com.example.social_media.repository.ChatMemberRepository;
 import com.example.social_media.repository.ChatRepository;
-import com.example.social_media.repository.MessageRepository;
+import com.example.social_media.repository.message.MessageRepository;
 import com.example.social_media.repository.UserRepository;
 import com.example.social_media.service.CallSessionService;
 import com.example.social_media.service.ChatService;
 import com.example.social_media.service.MessageQueueService;
 import com.example.social_media.service.MessageService;
 import org.springframework.beans.factory.annotation.Value;
-import org.apache.commons.codec.binary.Hex;
 import org.springframework.data.elasticsearch.ResourceNotFoundException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -89,36 +88,11 @@ public class ChatController {
         this.jdbcTemplate = jdbcTemplate;
         this.messageRepository = messageRepository;
     }
-//
-//    @MessageMapping(URLConfig.SEND_MESSAGES)
-//    public void sendMessage(@Payload MessageDto messageDto, @Header("simpSessionId") String sessionId) {
-//        System.out.println("Processing message: " + messageDto.getContent() + " for chatId: " + messageDto.getChatId());
-//        String username = null;
-//        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-//        if (authentication != null && authentication.isAuthenticated()) {
-//            username = authentication.getName();
-//        }
-//        if (username == null) {
-//            String authToken = webSocketConfig.sessionTokenMap.get(sessionId);
-//            System.out.println("Extracted token from session " + sessionId + ": " + authToken);
-//            if (authToken != null && authToken.startsWith("Bearer ")) {
-//                username = jwtService.extractUsername(authToken.substring(7));
-//            } else {
-//                System.err.println("No token found in sessionTokenMap for session " + sessionId);
-//            }
-//        }
-//        if (username == null) {
-//            throw new UnauthorizedException("Không thể xác thực người dùng.");
-//        }
-//        MessageDto savedMessage = messageService.sendMessage(messageDto, username);
-//        redisTemplate.opsForList().rightPush("chat:" + messageDto.getChatId() + ":messages", savedMessage);
-//        redisTemplate.convertAndSend("chat-messages", savedMessage);
-//        System.out.println("Message published to Redis channel chat-messages for chatId: " + messageDto.getChatId());
-//    }
+
 
     @MessageMapping(URLConfig.SEND_MESSAGES)
     public void sendMessage(@Payload MessageDto messageDto, @Header("simpSessionId") String sessionId) {
-        System.out.println("Processing message: " + messageDto.getContent() + " for chatId: " + messageDto.getChatId());
+        System.out.println("Received message: " + messageDto.toString());
         String username = null;
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.isAuthenticated()) {
@@ -317,6 +291,7 @@ public class ChatController {
         System.out.println("Resend requested for chatId: " + chatId);
         messageQueueService.resendQueuedMessages(chatId, sessionId);
     }
+
     @PutMapping(URLConfig.MARK_READ)
     public void markMessagesAsRead(@PathVariable Integer chatId) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -475,5 +450,4 @@ public class ChatController {
                         msg.getCreatedAt()))
                 .collect(Collectors.toList());
     }
-
 }

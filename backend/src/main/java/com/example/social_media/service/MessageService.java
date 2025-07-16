@@ -1,21 +1,25 @@
 package com.example.social_media.service;
 
+import com.example.social_media.dto.media.MediaDto;
 import com.example.social_media.dto.message.ChatDto;
 import com.example.social_media.dto.message.MessageDto;
 import com.example.social_media.entity.*;
 import com.example.social_media.exception.UnauthorizedException;
 import com.example.social_media.repository.ChatMemberRepository;
 import com.example.social_media.repository.ChatRepository;
-import com.example.social_media.repository.MessageRepository;
-import com.example.social_media.repository.MessageTypeRepository;
+import com.example.social_media.repository.message.JdbcMessageRepository;
+import com.example.social_media.repository.message.MessageRepository;
 import com.example.social_media.repository.UserRepository;
-import com.example.social_media.repository.MessageStatusRepository;
+import com.example.social_media.repository.message.MessageStatusRepository;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -24,7 +28,6 @@ import java.util.stream.Collectors;
 public class MessageService {
 
     private final MessageRepository messageRepository;
-    private final MessageTypeRepository messageTypeRepository;
     private final ChatRepository chatRepository;
     private final UserRepository userRepository;
     private final SimpMessagingTemplate messagingTemplate;
@@ -33,14 +36,17 @@ public class MessageService {
     private final MessageStatusRepository messageStatusRepository;
     private final MessageQueueService messageQueueService;
     private final JdbcTemplate jdbcTemplate;
+    private final MediaService mediaService;
+    private final GcsService gcsService;
+    private final JdbcMessageRepository jdbcMessageRepository;
 
-    public MessageService(MessageRepository messageRepository, MessageTypeRepository messageTypeRepository,
+    public MessageService(MessageRepository messageRepository,
                           ChatRepository chatRepository, UserRepository userRepository,
                           SimpMessagingTemplate messagingTemplate, ChatService chatService,
                           ChatMemberRepository chatMemberRepository, MessageStatusRepository messageStatusRepository,
-                          MessageQueueService messageQueueService, JdbcTemplate jdbcTemplate) {
+                          MessageQueueService messageQueueService, JdbcTemplate jdbcTemplate,
+                          MediaService mediaService,  GcsService gcsService, JdbcMessageRepository jdbcMessageRepository) {
         this.messageRepository = messageRepository;
-        this.messageTypeRepository = messageTypeRepository;
         this.chatRepository = chatRepository;
         this.userRepository = userRepository;
         this.messagingTemplate = messagingTemplate;
@@ -49,92 +55,42 @@ public class MessageService {
         this.messageStatusRepository = messageStatusRepository;
         this.messageQueueService = messageQueueService;
         this.jdbcTemplate = jdbcTemplate;
+        this.mediaService = mediaService;
+        this.gcsService = gcsService;
+        this.jdbcMessageRepository = jdbcMessageRepository;
     }
-
-//    @Transactional
-//    public MessageDto sendMessage(MessageDto messageDto, String username) {
-//        chatService.checkChatAccess(messageDto.getChatId().intValue(), username);
-//
-//        MessageType messageType = messageTypeRepository.findById(messageDto.getTypeId())
-//                .orElseThrow(() -> new IllegalArgumentException("Invalid message type"));
-//
-//        Chat chat = chatRepository.findById(messageDto.getChatId().intValue())
-//                .orElseThrow(() -> new IllegalArgumentException("Chat not found"));
-//
-//        User sender = userRepository.findById(messageDto.getSenderId().intValue())
-//                .orElseThrow(() -> new IllegalArgumentException("Sender not found"));
-//
-//        // Khôi phục ChatMember.status của người nhận nếu status=false
-//        List<ChatMember> members = chatMemberRepository.findByChatId(messageDto.getChatId().intValue());
-//        for (ChatMember member : members) {
-//            if (!member.getUser().getId().equals(sender.getId()) && !member.getStatus()) {
-//                member.setStatus(true);
-//                member.setJoinedAt(Instant.now());
-//                chatMemberRepository.save(member);
-//                ChatDto chatDto = chatService.convertToDto(chat, member.getUser().getId());
-//                messagingTemplate.convertAndSend("/topic/chats/" + member.getUser().getId(), chatDto);
-//            }
-//        }
-//
-//        Message message = new Message();
-//        message.setChat(chat);
-//        message.setSender(sender);
-//        message.setContent(messageDto.getContent());
-//        message.setType(messageType);
-//        message.setCreatedAt(Instant.now());
-//        message = messageRepository.save(message);
-//
-//        messageDto.setId(message.getId());
-//        messageDto.setCreatedAt(message.getCreatedAt());
-//        messageQueueService.queueAndSendMessage(messageDto);
-//
-//        for (ChatMember member : members) {
-//            if (!member.getUser().getId().equals(sender.getId())) {
-//                MessageStatus status = new MessageStatus();
-//                status.setId(new MessageStatusId(message.getId(), member.getUser().getId()));
-//                status.setMessage(message);
-//                status.setUser(member.getUser());
-//                status.setStatus("unread");
-//                status.setCreatedAt(Instant.now());
-//                messageStatusRepository.save(status);
-//                int updatedUnreadCount = messageStatusRepository.countUnreadChatsByUserId(member.getUser().getId());
-//                messagingTemplate.convertAndSend("/topic/unread-count/" + member.getUser().getId(), Map.of("unreadCount", updatedUnreadCount));
-//                System.out.println("Sent unread chat count to /topic/unread-count/" + member.getUser().getId() + ": " + updatedUnreadCount);
-//            }
-//        }
-//
-//        for (ChatMember member : members) {
-//            if (!member.getUser().getId().equals(sender.getId())) {
-//                messagingTemplate.convertAndSend("/topic/messages/" + member.getUser().getId(), messageDto);
-//            }
-//        }
-//
-//        return messageDto;
-//    }
 
     @Transactional
     public MessageDto sendMessage(MessageDto messageDto, String username) {
-        chatService.checkChatAccess(messageDto.getChatId().intValue(), username);
+        chatService.checkChatAccess(messageDto.getChatId(), username);
 
         User sender = userRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("Sender not found"));
 
         try {
-            Map<String, Object> result = jdbcTemplate.queryForMap(
-                    "DECLARE @new_message_id INT; " +
-                            "EXEC sp_SendMessage @chat_id = ?, @sender_id = ?, @content = ?, @media_url = ?, @media_type = ?, @new_message_id = @new_message_id OUTPUT; " +
-                            "SELECT @new_message_id AS new_message_id, created_at FROM tblMessage WHERE id = @new_message_id;",
-                    new Object[]{messageDto.getChatId(), sender.getId(), messageDto.getContent(), null, null});
-
-            Integer newMessageId = (Integer) result.get("new_message_id");
-            Instant createdAt = ((java.sql.Timestamp) result.get("created_at")).toInstant();
-            messageDto.setId(newMessageId);
+            Integer messageId = jdbcMessageRepository.sendMessage(
+                    messageDto.getChatId(), sender.getId(), messageDto.getContent()
+            );
+            messageDto.setId(messageId);
+            if (messageDto.getMediaList() != null && !messageDto.getMediaList().isEmpty()) {
+                for (MediaDto media : messageDto.getMediaList()) {
+                    if (media.getUrl() == null || media.getType() == null) continue;
+                    mediaService.saveMediaWithUrl(
+                            sender.getId(),
+                            messageId,
+                            "MESSAGE",
+                            media.getType(),
+                            media.getUrl(),
+                            null // metadata
+                    );
+                }
+            }
             messageDto.setSenderId(sender.getId());
-            messageDto.setCreatedAt(createdAt);
+            messageDto.setCreatedAt(Instant.now());
 
             messageQueueService.queueAndSendMessage(messageDto);
 
-            List<ChatMember> members = chatMemberRepository.findByChatId(messageDto.getChatId().intValue());
+            List<ChatMember> members = chatMemberRepository.findByChatId(messageDto.getChatId());
             for (ChatMember member : members) {
                 if (!member.getUser().getId().equals(sender.getId()) && !member.getStatus()) {
                     member.setStatus(true);
@@ -175,36 +131,48 @@ public class MessageService {
     public List<MessageDto> getChatMessages(Integer chatId, String username) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
         ChatMember chatMember = chatMemberRepository.findByChatIdAndUserId(chatId, user.getId())
                 .orElseThrow(() -> new UnauthorizedException("You are not a member of this chat."));
+
         if (!chatMember.getStatus()) {
             return List.of();
         }
 
-        // Lấy joinedAt để lọc tin nhắn
         Instant joinedAt = chatMember.getJoinedAt();
 
-        // Đánh dấu tất cả tin nhắn chưa đọc là đã đọc
+        // Đánh dấu đã đọc
         messageStatusRepository.markAllAsReadByChatIdAndUserId(chatId, user.getId());
-        System.out.println("Marked all messages as read for chatId " + chatId + " and userId " + user.getId());
-
-        // Gửi thông báo cập nhật unread count
         int updatedUnreadCount = messageStatusRepository.countUnreadChatsByUserId(user.getId());
         messagingTemplate.convertAndSend("/topic/unread-count/" + user.getId(), Map.of("unreadCount", updatedUnreadCount));
-        System.out.println("Sent unread chat count to /topic/unread-count/" + user.getId() + ": " + updatedUnreadCount);
 
-        // Trả về tin nhắn sau joinedAt
-        return messageRepository.findByChatId(chatId).stream()
+        // Lấy tất cả message sau thời điểm joinedAt
+        List<Message> messages = messageRepository.findByChatId(chatId).stream()
                 .filter(msg -> msg.getCreatedAt().isAfter(joinedAt))
+                .collect(Collectors.toList());
+
+        // Lấy danh sách messageId
+        List<Integer> messageIds = messages.stream()
+                .map(Message::getId)
+                .collect(Collectors.toList());
+
+        // Map messageId -> List<MediaDto>
+        Map<Integer, List<MediaDto>> mediaMap = mediaService.getMediaByTargetIds(messageIds, "MESSAGE", null, true);
+
+        // Gộp vào MessageDto
+        return messages.stream()
                 .map(msg -> new MessageDto(
                         msg.getId(),
                         msg.getChat().getId(),
                         msg.getSender().getId(),
                         msg.getContent(),
                         msg.getType().getId(),
-                        msg.getCreatedAt()))
+                        msg.getCreatedAt(),
+                        mediaMap.getOrDefault(msg.getId(), List.of())
+                ))
                 .collect(Collectors.toList());
     }
+
 
     @Transactional
     public void deleteMessage(Integer chatId, Integer messageId, String username) {
@@ -227,5 +195,58 @@ public class MessageService {
 
     public void markMessagesAsRead(Integer chatId, Integer userId) {
         messageStatusRepository.markAllAsReadByChatIdAndUserId(chatId, userId);
+    }
+
+    public MessageDto sendMessageWithMedia(Integer chatId, Integer senderId, String content, List<MultipartFile> files) {
+        User sender = userRepository.findById(senderId)
+                .orElseThrow(() -> new IllegalArgumentException("Người gửi không tồn tại"));
+
+        List<MediaDto> mediaList = new ArrayList<>();
+        List<String> mediaUrls = new ArrayList<>();
+        List<String> mediaTypes = new ArrayList<>();
+
+        if (files != null && !files.isEmpty()) {
+            for (MultipartFile file : files) {
+                mediaService.validateFileTypeByTarget("MESSAGE", file);
+                try {
+                    String url = gcsService.uploadFile(file);
+                    String contentType = file.getContentType();
+                    if (contentType == null) throw new IllegalArgumentException("Không xác định loại media");
+
+                    String type;
+                    if (contentType.startsWith("image/")) type = "image";
+                    else if (contentType.startsWith("video/")) type = "video";
+                    else if (contentType.startsWith("audio/")) type = "audio";
+                    else throw new IllegalArgumentException("Media không hợp lệ: " + contentType);
+
+                    mediaList.add(new MediaDto(null, url, type, null, "MESSAGE", true));
+                    mediaUrls.add(url);
+                    mediaTypes.add(type);
+                } catch (IOException e) {
+                    throw new RuntimeException("Lỗi khi upload media", e);
+                }
+            }
+        }
+
+        Integer messageId = jdbcMessageRepository.sendMessage(chatId, senderId, content);
+
+        for (int i = 0; i < mediaList.size(); i++) {
+            mediaService.saveMediaWithUrl(senderId, messageId, "MESSAGE", mediaTypes.get(i), mediaUrls.get(i), null);
+        }
+
+        MessageDto dto = new MessageDto(messageId, chatId, senderId, content, null, Instant.now(), mediaList);
+        messageQueueService.queueAndSendMessage(dto);
+
+        // Gửi realtime đến các thành viên khác
+        List<ChatMember> members = chatMemberRepository.findByChatId(chatId);
+        for (ChatMember member : members) {
+            if (!member.getUser().getId().equals(senderId)) {
+                messagingTemplate.convertAndSend("/topic/messages/" + member.getUser().getId(), dto);
+                int unreadCount = messageStatusRepository.countUnreadChatsByUserId(member.getUser().getId());
+                messagingTemplate.convertAndSend("/topic/unread-count/" + member.getUser().getId(), Map.of("unreadCount", unreadCount));
+            }
+        }
+
+        return dto;
     }
 }

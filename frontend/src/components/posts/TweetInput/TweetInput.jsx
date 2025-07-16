@@ -283,80 +283,65 @@ function TweetInput({ onPostSuccess, groupId }) {
             prev === 0 ? mediaPreviews.length - 1 : prev - 1
         );
     };
+    const renderMedia = (media, index, height = 200) => {
+        const isVideo = media.type.startsWith("video/");
+        return isVideo ? (
+            <video
+                key={index}
+                src={media.url}
+                className={`w-full h-[${height}px] object-cover rounded-2xl cursor-pointer`}
+                controls
+                onClick={() => {
+                    setCurrentMediaIndex(index);
+                    setShowMediaModal(true);
+                }}
+            />
+        ) : (
+            <BootstrapImage
+                key={index}
+                src={media.url}
+                className={`w-full h-[${height}px] object-cover rounded-2xl cursor-pointer`}
+                fluid
+                onClick={() => {
+                    setCurrentMediaIndex(index);
+                    setShowMediaModal(true);
+                }}
+            />
+        );
+    };
 
-    const renderMediaPreview = () => {
-        if (mediaPreviews.length === 0) return null;
+        const renderMediaPreview = () => {
+            if (mediaPreviews.length === 0) return null;
 
-        const handleClick = (index) => {
-            setCurrentMediaIndex(index);
-            setShowMediaModal(true);
-        };
+            const handleClick = (index) => {
+                setCurrentMediaIndex(index);
+                setShowMediaModal(true);
+            };
 
-        const imageCount = mediaPreviews.length;
-        const filesToShow = mediaPreviews.slice(0, 4);
-        const extraCount = mediaPreviews.length - 4;
+            const imageCount = mediaPreviews.length;
+            const filesToShow = mediaPreviews.slice(0, 4);
+            const extraCount = mediaPreviews.length - 4;
+            const isVideo = mediaPreviews[0].type.startsWith("video/");
 
-        // Single media
-        if (imageCount === 1) {
-            return (
-                <div className="overflow-hidden rounded-2xl mb-4 relative">
-                    <BootstrapImage
-                        src={mediaPreviews[0].url}
-                        className="w-full h-auto max-h-[500px] object-cover block cursor-pointer rounded-2xl"
-                        fluid
-                        onClick={() => handleClick(0)}
-                    />
-                    <button
-                        className="absolute top-2 right-2 text-black bg-white/80 rounded-full w-8 h-8 flex items-center justify-center transition-opacity duration-200 hover:bg-white"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            handleRemoveMedia(0);
-                        }}
-                    >
-                        <AiOutlineClose size={18} />
-                    </button>
-                </div>
-            );
-        }
-
-        // Two media
-        if (imageCount === 2) {
-            return (
-                <Row className="overflow-hidden rounded-2xl g-2 mb-4">
-                    {filesToShow.map((preview, idx) => (
-                        <Col key={idx} xs={6} className="relative">
-                            <BootstrapImage
-                                src={preview.url}
-                                className="w-full h-[300px] object-cover rounded-2xl cursor-pointer"
-                                fluid
-                                onClick={() => handleClick(idx)}
+            // Single media
+            if (imageCount === 1) {
+                return (
+                    <div className="overflow-hidden rounded-2xl mb-4 relative">
+                        {isVideo ? (
+                            <video
+                                src={mediaPreviews[0].url}
+                                className="w-full h-auto max-h-[500px] object-cover block cursor-pointer rounded-2xl"
+                                controls
+                                onClick={() => handleClick(0)}
                             />
-                            <button
-                                className="absolute top-2 right-2 text-black bg-white/80 rounded-full w-8 h-8 flex items-center justify-center transition-opacity duration-200 hover:bg-white"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleRemoveMedia(idx);
-                                }}
-                            >
-                                <AiOutlineClose size={18} />
-                            </button>
-                        </Col>
-                    ))}
-                </Row>
-            );
-        }
-
-        // Three media
-        if (imageCount === 3) {
-            return (
-                <Row className="overflow-hidden rounded-2xl g-2 mb-4">
-                    <Col xs={6} className="relative">
-                        <BootstrapImage
-                            src={filesToShow[0].url}
-                            className="w-full h-[400px] object-cover rounded-2xl cursor-pointer"
-                            fluid
-                            onClick={() => handleClick(0)}
-                        />
+                        ) : (
+                            <BootstrapImage
+                                src={mediaPreviews[0].url}
+                                className="w-full h-auto max-h-[500px] object-cover block cursor-pointer rounded-2xl"
+                                fluid
+                                onClick={() => handleClick(0)}
+                            />
+                        )}
                         <button
                             className="absolute top-2 right-2 text-black bg-white/80 rounded-full w-8 h-8 flex items-center justify-center transition-opacity duration-200 hover:bg-white"
                             onClick={(e) => {
@@ -364,84 +349,127 @@ function TweetInput({ onPostSuccess, groupId }) {
                                 handleRemoveMedia(0);
                             }}
                         >
-                            <AiOutlineClose size={18} />
+                            <AiOutlineClose size={18}/>
                         </button>
-                    </Col>
-                    <Col xs={6}>
-                        <div className="flex flex-col h-full g-1">
-                            <div className="relative mb-1">
-                                <BootstrapImage
-                                    src={filesToShow[1].url}
-                                    className="w-full h-[198px] object-cover rounded-2xl cursor-pointer"
-                                    fluid
-                                    onClick={() => handleClick(1)}
-                                />
-                                <button
-                                    className="absolute top-2 right-2 text-black bg-white/80 rounded-full w-8 h-8 flex items-center justify-center transition-opacity duration-200 hover:bg-white"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleRemoveMedia(1);
-                                    }}
-                                >
-                                    <AiOutlineClose size={18} />
-                                </button>
+                    </div>
+                );
+            }
+
+            // Two media
+            if (imageCount === 2) {
+                return (
+                    <Row className="overflow-hidden rounded-2xl g-2 mb-4">
+                        {filesToShow.map((preview, idx) => {
+                            const isVideo = preview.type.startsWith("video/");
+                            return (
+                                <Col key={idx} xs={6} className="relative">
+                                    {isVideo ? (
+                                        <video
+                                            src={preview.url}
+                                            className="w-full h-[300px] object-cover rounded-2xl cursor-pointer"
+                                            controls
+                                            onClick={() => handleClick(idx)}
+                                        />
+                                    ) : (
+                                        <BootstrapImage
+                                            src={preview.url}
+                                            className="w-full h-[300px] object-cover rounded-2xl cursor-pointer"
+                                            fluid
+                                            onClick={() => handleClick(idx)}
+                                        />
+                                    )}
+                                    <button
+                                        className="absolute top-2 right-2 text-black bg-white/80 rounded-full w-8 h-8 flex items-center justify-center transition-opacity duration-200 hover:bg-white"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleRemoveMedia(idx);
+                                        }}
+                                    >
+                                        <AiOutlineClose size={18}/>
+                                    </button>
+                                </Col>
+                            );
+                        })}
+                    </Row>
+                );
+            }
+
+            // Three media
+            if (imageCount === 3) {
+                return (
+                    <Row className="overflow-hidden rounded-2xl g-2 mb-4">
+                        <Col xs={6} className="relative">
+                            {renderMedia(filesToShow[0], 0, 400)}
+                            <button
+                                className="absolute top-2 right-2 text-black bg-white/80 rounded-full w-8 h-8 flex items-center justify-center transition-opacity duration-200 hover:bg-white"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleRemoveMedia(0);
+                                }}
+                            >
+                                <AiOutlineClose size={18}/>
+                            </button>
+                        </Col>
+                        <Col xs={6}>
+                            <div className="flex flex-col h-full g-1">
+                                <div className="relative mb-1">
+                                    {renderMedia(filesToShow[1], 1, 198)}
+                                    <button
+                                        className="absolute top-2 right-2 text-black bg-white/80 rounded-full w-8 h-8 flex items-center justify-center transition-opacity duration-200 hover:bg-white"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleRemoveMedia(1);
+                                        }}
+                                    >
+                                        <AiOutlineClose size={18}/>
+                                    </button>
+                                </div>
+                                <div className="relative">
+                                    {renderMedia(filesToShow[2], 2, 198)}
+                                    <button
+                                        className="absolute top-2 right-2 text-black bg-white/80 rounded-full w-8 h-8 flex items-center justify-center transition-opacity duration-200 hover:bg-white"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleRemoveMedia(2);
+                                        }}
+                                    >
+                                        <AiOutlineClose size={18}/>
+                                    </button>
+                                </div>
                             </div>
-                            <div className="relative">
-                                <BootstrapImage
-                                    src={filesToShow[2].url}
-                                    className="w-full h-[198px] object-cover rounded-2xl cursor-pointer"
-                                    fluid
-                                    onClick={() => handleClick(2)}
-                                />
-                                <button
-                                    className="absolute top-2 right-2 text-black bg-white/80 rounded-full w-8 h-8 flex items-center justify-center transition-opacity duration-200 hover:bg-white"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleRemoveMedia(2);
-                                    }}
+                        </Col>
+                    </Row>
+                );
+            }
+
+            // Four or more media
+            return (
+                <Row className="overflow-hidden rounded-2xl g-2 mb-4">
+                    {filesToShow.map((preview, idx) => (
+                        <Col key={idx} xs={6} className="relative">
+                            {renderMedia(preview, idx, 200)}
+                            <button
+                                className="absolute top-2 right-2 text-black bg-white/80 rounded-full w-8 h-8 flex items-center justify-center transition-opacity duration-200 hover:bg-white"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleRemoveMedia(idx);
+                                }}
+                            >
+                                <AiOutlineClose size={18}/>
+                            </button>
+                            {idx === 3 && extraCount > 0 && (
+                                <div
+                                    className="absolute top-0 left-0 w-full h-full bg-[rgba(0,0,0,0.5)] flex items-center justify-center text-white text-2xl font-bold rounded-2xl cursor-pointer"
+                                    onClick={() => handleClick(3)}
                                 >
-                                    <AiOutlineClose size={18} />
-                                </button>
-                            </div>
-                        </div>
-                    </Col>
+                                    +{extraCount}
+                                </div>
+                            )}
+                        </Col>
+                    ))}
                 </Row>
             );
         }
-
-        // Four or more media
-        return (
-            <Row className="overflow-hidden rounded-2xl g-2 mb-4">
-                {filesToShow.map((preview, idx) => (
-                    <Col key={idx} xs={6} className="relative">
-                        <BootstrapImage
-                            src={preview.url}
-                            className="w-full h-[200px] object-cover rounded-2xl cursor-pointer"
-                            fluid
-                            onClick={() => handleClick(idx)}
-                        />
-                        <button
-                            className="absolute top-2 right-2 text-black bg-white/80 rounded-full w-8 h-8 flex items-center justify-center transition-opacity duration-200 hover:bg-white"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                handleRemoveMedia(idx);
-                            }}
-                        >
-                            <AiOutlineClose size={18} />
-                        </button>
-                        {idx === 3 && extraCount > 0 && (
-                            <div
-                                className="absolute top-0 left-0 w-full h-full bg-[rgba(0,0,0,0.5)] flex items-center justify-center text-white text-2xl font-bold rounded-2xl cursor-pointer"
-                                onClick={() => handleClick(3)}
-                            >
-                                +{extraCount}
-                            </div>
-                        )}
-                    </Col>
-                ))}
-            </Row>
-        );
-    };
 
     return (
         <>

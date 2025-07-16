@@ -5,9 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="c6c17ae2-c6cb-4c94-a6b8-91c54839fa5e" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/messages/Chat.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/messages/Chat.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/posts/TweetInput/EditPostModal.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/posts/TweetInput/EditPostModal.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -157,7 +156,10 @@
       <workItem from="1752333143324" duration="5738000" />
       <workItem from="1752411726482" duration="39000" />
       <workItem from="1752501658138" duration="13543000" />
-      <workItem from="1752559424096" duration="4665000" />
+      <workItem from="1752559424096" duration="11583000" />
+      <workItem from="1752603916805" duration="3034000" />
+      <workItem from="1752634736624" duration="1832000" />
+      <workItem from="1752645039670" duration="6735000" />
     </task>
     <servers />
   </component>
