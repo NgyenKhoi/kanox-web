@@ -98,7 +98,7 @@ public class UserService {
             if (e.getMessage() != null && e.getMessage().contains("tblStoryViewer")) {
                 try {
                     // Tạm thời disable trigger
-                    entityManager.createNativeQuery("ALTER TABLE tblUser DISABLE TRIGGER trg_SoftDelete_User").executeUpdate();
+                    entityManager.createNativeQuery("DISABLE TRIGGER trg_SoftDelete_User ON tblUser").executeUpdate();
                     
                     // Cập nhật trực tiếp bằng native query
                     entityManager.createNativeQuery("UPDATE tblUser SET status = ? WHERE id = ?")
@@ -107,7 +107,7 @@ public class UserService {
                         .executeUpdate();
                     
                     // Enable lại trigger
-                    entityManager.createNativeQuery("ALTER TABLE tblUser ENABLE TRIGGER trg_SoftDelete_User").executeUpdate();
+                    entityManager.createNativeQuery("ENABLE TRIGGER trg_SoftDelete_User ON tblUser").executeUpdate();
                     
                     // Refresh entity
                     entityManager.refresh(user);
