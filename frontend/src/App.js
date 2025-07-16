@@ -1,5 +1,13 @@
 import React, { useState, useEffect, useContext } from "react";
-import { Container, Row, Col, Spinner, Modal, Button, Image } from "react-bootstrap";
+import {
+  Container,
+  Row,
+  Col,
+  Spinner,
+  Modal,
+  Button,
+  Image,
+} from "react-bootstrap";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "./App.css";
@@ -10,9 +18,18 @@ import { EmojiProvider } from "./context/EmojiContext";
 import SidebarLeft from "./components/layout/SidebarLeft/SidebarLeft";
 import { ThemeContext, ThemeProvider } from "./context/ThemeContext";
 import { AuthContext, AuthProvider } from "./context/AuthContext";
-import { WebSocketContext, WebSocketProvider } from "./context/WebSocketContext";
-import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from "react-router-dom";
-import CommunityLayout from "./components/layout/Layout/CommunityLayout"
+import {
+  WebSocketContext,
+  WebSocketProvider,
+} from "./context/WebSocketContext";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  useNavigate,
+  useLocation,
+} from "react-router-dom";
+import CommunityLayout from "./components/layout/Layout/CommunityLayout";
 import MainLayout from "./components/layout/Layout/MainLayout";
 import CommunityWrapper from "./pages/community/CommunityWrapper";
 import GroupCommunityWrapper from "./pages/community/GroupCommunityWrapper";
@@ -37,8 +54,8 @@ import GroupCommunityPage from "./pages/community/GroupCommunityPage";
 import GroupMembersPage from "./pages/community/GroupMembersPage";
 import GroupMembersManagementPage from "./pages/admin/GroupMembersManagementPage";
 import GroupAdminPage from "./pages/admin/GroupAdminPage";
-
-
+import PremiumPage from "./pages/premium/premiumPage";
+import CreateStoryPage from "./pages/story/CreateStoryPage";
 
 function AppContent() {
   const [isLoading, setIsLoading] = useState(true);
@@ -47,9 +64,10 @@ function AppContent() {
   const [chatIds, setChatIds] = useState([]);
   const [userMap, setUserMap] = useState({});
   const [isInCall, setIsInCall] = useState(false);
-  const {user, token} = useContext(AuthContext);
-  const {subscribe, unsubscribe, publish} = useContext(WebSocketContext) || {};
-  const {isDarkMode, toggleDarkMode} = useContext(ThemeContext);
+  const { user, token } = useContext(AuthContext);
+  const { subscribe, unsubscribe, publish } =
+    useContext(WebSocketContext) || {};
+  const { isDarkMode, toggleDarkMode } = useContext(ThemeContext);
   const navigate = useNavigate();
   const [showCreatePost, setShowCreatePost] = useState(false);
   const location = useLocation();
@@ -67,9 +85,12 @@ function AppContent() {
 
     const fetchChatIdsAndMembers = async () => {
       try {
-        const chatResponse = await fetch(`${process.env.REACT_APP_API_URL}/chat/user/${user.id}`, {
-          headers: {Authorization: `Bearer ${token}`},
-        });
+        const chatResponse = await fetch(
+          `${process.env.REACT_APP_API_URL}/chat/user/${user.id}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
         if (!chatResponse.ok) {
           console.error("Error fetching chat IDs");
           return;
@@ -79,9 +100,12 @@ function AppContent() {
 
         const userMapTemp = {};
         for (const chat of chats) {
-          const membersResponse = await fetch(`${process.env.REACT_APP_API_URL}/chat/${chat.id}/members`, {
-            headers: {Authorization: `Bearer ${token}`},
-          });
+          const membersResponse = await fetch(
+            `${process.env.REACT_APP_API_URL}/chat/${chat.id}/members`,
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            }
+          );
           if (membersResponse.ok) {
             const members = await membersResponse.json();
             members.forEach((member) => {
@@ -101,17 +125,20 @@ function AppContent() {
     fetchChatIdsAndMembers();
   }, [user, token]);
 
-
   useEffect(() => {
     if (!subscribe || !unsubscribe || !publish || !user || !token) {
-      console.log("Skipping subscriptions: Missing WebSocket context or user data");
+      console.log(
+        "Skipping subscriptions: Missing WebSocket context or user data"
+      );
       return;
     }
 
     const subscriptions = [];
     chatIds.forEach((chatId) => {
       subscriptions.push(
-          subscribe(`/topic/call/${chatId}`, (message) => {
+        subscribe(
+          `/topic/call/${chatId}`,
+          (message) => {
             console.log("Received call signal:", message);
             if (message.type === "start" && message.userId !== user.id) {
               if (isInCall) {
@@ -142,25 +169,34 @@ function AppContent() {
               });
               setShowCallModal(true);
             }
-          }, `call-${chatId}`)
+          },
+          `call-${chatId}`
+        )
       );
     });
 
     if (user.isAdmin) {
       subscriptions.push(
-          subscribe("/topic/admin/reports", (message) => {
+        subscribe(
+          "/topic/admin/reports",
+          (message) => {
             console.log("Received new report notification:", message);
-            toast.info(`Báo cáo mới từ ${message.reporterUsername}: ${message.reason}`, {
-              onClick: () => {
-                navigate("/admin", { state: { newReport: message } });
-              },
-            });
-          }, "admin-reports")
+            toast.info(
+              `Báo cáo mới từ ${message.reporterUsername}: ${message.reason}`,
+              {
+                onClick: () => {
+                  navigate("/admin", { state: { newReport: message } });
+                },
+              }
+            );
+          },
+          "admin-reports"
+        )
       );
     }
 
     const handleIncomingCall = (event) => {
-      const {chatId, sessionId, from, to} = event.detail;
+      const { chatId, sessionId, from, to } = event.detail;
       if (to !== user.username) {
         console.log("⛔ Mình là người gọi, không hiển thị modal.");
         return;
@@ -196,10 +232,22 @@ function AppContent() {
     window.addEventListener("incomingCall", handleIncomingCall);
 
     return () => {
-      subscriptions.forEach((_, index) => unsubscribe(`call-${chatIds[index]}`));
+      subscriptions.forEach((_, index) =>
+        unsubscribe(`call-${chatIds[index]}`)
+      );
       window.removeEventListener("incomingCall", handleIncomingCall);
     };
-  }, [chatIds, subscribe, unsubscribe, user, navigate, token, userMap, isInCall, publish]);
+  }, [
+    chatIds,
+    subscribe,
+    unsubscribe,
+    user,
+    navigate,
+    token,
+    userMap,
+    isInCall,
+    publish,
+  ]);
 
   const acceptCall = () => {
     setShowCallModal(false);
@@ -219,295 +267,322 @@ function AppContent() {
     setIncomingCall(null);
   };
 
-
-
-
   return (
-      <>
-        {isLoading ? (
-            <LoadingPage/>
-        ) : (
-            <>
-              <Routes>
-                {/* Public Routes */}
-                <Route path="/" element={<SignupPage/>}/>
-                <Route path="/reset-password" element={<ResetPasswordPage/>}/>
-                <Route path="/verify-email" element={<VerifyEmailPage/>}/>
+    <>
+      {isLoading ? (
+        <LoadingPage />
+      ) : (
+        <>
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<SignupPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/verify-email" element={<VerifyEmailPage />} />
 
-                {/* Private Routes */}
-                <Route
-                    path="/home"
-                    element={
-                      <PrivateRoute>
-                        <MainLayout
-                            onShowCreatePost={() => setShowCreatePost(true)}
-                            onToggleDarkMode={toggleDarkMode}
-                            isDarkMode={isDarkMode}
-                        >
-                          <HomePage
-                              onShowCreatePost={() => setShowCreatePost(true)}
-                              onToggleDarkMode={toggleDarkMode}
-                              isDarkMode={isDarkMode}
-                          />
-                        </MainLayout>
-                      </PrivateRoute>
-                    }
-                />
-                <Route
-                    path="/profile/:username"
-                    element={
-                      <PrivateRoute>
-                        <MainLayout
-                            onShowCreatePost={() => setShowCreatePost(true)}
-                            onToggleDarkMode={toggleDarkMode}
-                            isDarkMode={isDarkMode}
-                        >
-                          <ProfilePage/>
-                        </MainLayout>
-                      </PrivateRoute>
-                    }
-                />
-                <Route
-                    path="/profile/me"
-                    element={
-                      <PrivateRoute>
-                        <MainLayout
-                            onShowCreatePost={() => setShowCreatePost(true)}
-                            onToggleDarkMode={toggleDarkMode}
-                            isDarkMode={isDarkMode}
-                        >
-                          <ProfilePage/>
-                        </MainLayout>
-                      </PrivateRoute>
-                    }
-                />
-                <Route
-                    path="/explore"
-                    element={
-                      <PrivateRoute>
-                        <MainLayout
-                            onShowCreatePost={() => setShowCreatePost(true)}
-                            onToggleDarkMode={toggleDarkMode}
-                            isDarkMode={isDarkMode}
-                        >
-                          <ExplorePage/>
-                        </MainLayout>
-                      </PrivateRoute>
-                    }
-                />
-                <Route
-                    path="/notifications"
-                    element={
-                      <PrivateRoute>
-                        <MainLayout
-                            onShowCreatePost={() => setShowCreatePost(true)}
-                            onToggleDarkMode={toggleDarkMode}
-                            isDarkMode={isDarkMode}
-                        >
-                          <NotificationPage/>
-                        </MainLayout>
-                      </PrivateRoute>
-                    }
-                />
-                <Route
-                    path="/messages"
-                    element={
-                      <PrivateRoute>
-                        <MainLayout
-                            onShowCreatePost={() => setShowCreatePost(true)}
-                            onToggleDarkMode={toggleDarkMode}
-                            isDarkMode={isDarkMode}
-                        >
-                          <MessengerPage/>
-                        </MainLayout>
-                      </PrivateRoute>
-                    }
-                />
-                <Route
-                    path="/communities"
-                    element={
-                      <PrivateRoute>
-                        <CommunityWrapper />
-                      </PrivateRoute>
-                    }
-                />
-                <Route
-                    path="/privacy/lists"
-                    element={
-                      <PrivateRoute>
-                        <MainLayout
-                            onShowCreatePost={() => setShowCreatePost(true)}
-                            onToggleDarkMode={toggleDarkMode}
-                            isDarkMode={isDarkMode}
-                        >
-                          <CustomPrivacyListPage/>
-                        </MainLayout>
-                      </PrivateRoute>
-                    }
-                />
-                <Route
-                    path="/blocks"
-                    element={
-                      <PrivateRoute>
-                        <MainLayout
-                            onShowCreatePost={() => setShowCreatePost(true)}
-                            onToggleDarkMode={toggleDarkMode}
-                            isDarkMode={isDarkMode}
-                        >
-                          <BlockedUsersPage/>
-                        </MainLayout>
-                      </PrivateRoute>
-                    }
-                />
-                <Route
-                    path="/settings"
-                    element={
-                      <PrivateRoute>
-                        <MainLayout
-                            onShowCreatePost={() => setShowCreatePost(true)}
-                            onToggleDarkMode={toggleDarkMode}
-                            isDarkMode={isDarkMode}
-                        >
-                          <SettingsPage/>
-                        </MainLayout>
-                      </PrivateRoute>
-                    }
-                />
-                <Route
-                    path="/friends"
-                    element={
-                      <PrivateRoute>
-                        <MainLayout
-                            onShowCreatePost={() => setShowCreatePost(true)}
-                            onToggleDarkMode={toggleDarkMode}
-                            isDarkMode={isDarkMode}
-                        >
-                          <FriendsPage/>
-                        </MainLayout>
-                      </PrivateRoute>
-                    }
-                />
-                <Route
-                    path="/admin"
-                    element={
-                      <PrivateRoute>
-                        <MainLayout
-                            onShowCreatePost={() => setShowCreatePost(true)}
-                            onToggleDarkMode={toggleDarkMode}
-                            isDarkMode={isDarkMode}
-                        >
-                          <AdminPage/>
-                        </MainLayout>
-                      </PrivateRoute>
-                    }
-                />
-                <Route
-                    path="/groups/:groupId/members"
-                    element={
-                      <PrivateRoute>
-                        <GroupMembersWrapper>
-                          <GroupMembersPage />
-                        </GroupMembersWrapper>
-                      </PrivateRoute>
-                    }
-                />
-                <Route
-                    path="/call/:chatId"
-                    element={
-                      <PrivateRoute>
-                        <Call onEndCall={() => setIsInCall(false)}/> {/* Cập nhật trạng thái khi kết thúc cuộc gọi */}
-                      </PrivateRoute>
-                    }
-                />
-                <Route
-                    path="/community/:groupId"
-                    element={
-                      <PrivateRoute>
-                        <GroupCommunityWrapper />
-                      </PrivateRoute>
-                    }
-                />
-                <Route
-                    path="/admin/groups/:groupId/members"
-                    element={
-                      <PrivateRoute>
-                        <MainLayout
-                            onShowCreatePost={() => setShowCreatePost(true)}
-                            onToggleDarkMode={toggleDarkMode}
-                            isDarkMode={isDarkMode}
-                        >
-                          <GroupMembersManagementPage />
-                        </MainLayout>
-                      </PrivateRoute>
-                    }
-                />
-                <Route path="/admin/groups/:groupId/view" element={<GroupAdminPage />} />
+            {/* Private Routes */}
+            <Route
+              path="/home"
+              element={
+                <PrivateRoute>
+                  <MainLayout
+                    onShowCreatePost={() => setShowCreatePost(true)}
+                    onToggleDarkMode={toggleDarkMode}
+                    isDarkMode={isDarkMode}
+                  >
+                    <HomePage
+                      onShowCreatePost={() => setShowCreatePost(true)}
+                      onToggleDarkMode={toggleDarkMode}
+                      isDarkMode={isDarkMode}
+                    />
+                  </MainLayout>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/premium"
+              element={
+                <PrivateRoute>
+                  <MainLayout
+                    onShowCreatePost={() => setShowCreatePost(true)}
+                    onToggleDarkMode={toggleDarkMode}
+                    isDarkMode={isDarkMode}
+                  >
+                    <PremiumPage />
+                  </MainLayout>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/profile/:username"
+              element={
+                <PrivateRoute>
+                  <MainLayout
+                    onShowCreatePost={() => setShowCreatePost(true)}
+                    onToggleDarkMode={toggleDarkMode}
+                    isDarkMode={isDarkMode}
+                  >
+                    <ProfilePage />
+                  </MainLayout>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/profile/me"
+              element={
+                <PrivateRoute>
+                  <MainLayout
+                    onShowCreatePost={() => setShowCreatePost(true)}
+                    onToggleDarkMode={toggleDarkMode}
+                    isDarkMode={isDarkMode}
+                  >
+                    <ProfilePage />
+                  </MainLayout>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/explore"
+              element={
+                <PrivateRoute>
+                  <MainLayout
+                    onShowCreatePost={() => setShowCreatePost(true)}
+                    onToggleDarkMode={toggleDarkMode}
+                    isDarkMode={isDarkMode}
+                  >
+                    <ExplorePage />
+                  </MainLayout>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/notifications"
+              element={
+                <PrivateRoute>
+                  <MainLayout
+                    onShowCreatePost={() => setShowCreatePost(true)}
+                    onToggleDarkMode={toggleDarkMode}
+                    isDarkMode={isDarkMode}
+                  >
+                    <NotificationPage />
+                  </MainLayout>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/messages"
+              element={
+                <PrivateRoute>
+                  <MainLayout
+                    onShowCreatePost={() => setShowCreatePost(true)}
+                    onToggleDarkMode={toggleDarkMode}
+                    isDarkMode={isDarkMode}
+                  >
+                    <MessengerPage />
+                  </MainLayout>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/communities"
+              element={
+                <PrivateRoute>
+                  <CommunityWrapper />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/privacy/lists"
+              element={
+                <PrivateRoute>
+                  <MainLayout
+                    onShowCreatePost={() => setShowCreatePost(true)}
+                    onToggleDarkMode={toggleDarkMode}
+                    isDarkMode={isDarkMode}
+                  >
+                    <CustomPrivacyListPage />
+                  </MainLayout>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/blocks"
+              element={
+                <PrivateRoute>
+                  <MainLayout
+                    onShowCreatePost={() => setShowCreatePost(true)}
+                    onToggleDarkMode={toggleDarkMode}
+                    isDarkMode={isDarkMode}
+                  >
+                    <BlockedUsersPage />
+                  </MainLayout>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <PrivateRoute>
+                  <MainLayout
+                    onShowCreatePost={() => setShowCreatePost(true)}
+                    onToggleDarkMode={toggleDarkMode}
+                    isDarkMode={isDarkMode}
+                  >
+                    <SettingsPage />
+                  </MainLayout>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/friends"
+              element={
+                <PrivateRoute>
+                  <MainLayout
+                    onShowCreatePost={() => setShowCreatePost(true)}
+                    onToggleDarkMode={toggleDarkMode}
+                    isDarkMode={isDarkMode}
+                  >
+                    <FriendsPage />
+                  </MainLayout>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin"
+              element={
+                <PrivateRoute>
+                  <MainLayout
+                    onShowCreatePost={() => setShowCreatePost(true)}
+                    onToggleDarkMode={toggleDarkMode}
+                    isDarkMode={isDarkMode}
+                  >
+                    <AdminPage />
+                  </MainLayout>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/groups/:groupId/members"
+              element={
+                <PrivateRoute>
+                  <GroupMembersWrapper>
+                    <GroupMembersPage />
+                  </GroupMembersWrapper>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/call/:chatId"
+              element={
+                <PrivateRoute>
+                  <Call onEndCall={() => setIsInCall(false)} />{" "}
+                  {/* Cập nhật trạng thái khi kết thúc cuộc gọi */}
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/community/:groupId"
+              element={
+                <PrivateRoute>
+                  <GroupCommunityWrapper />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/groups/:groupId/members"
+              element={
+                <PrivateRoute>
+                  <MainLayout
+                    onShowCreatePost={() => setShowCreatePost(true)}
+                    onToggleDarkMode={toggleDarkMode}
+                    isDarkMode={isDarkMode}
+                  >
+                    <GroupMembersManagementPage />
+                  </MainLayout>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/create-story"
+              element={
+                <PrivateRoute>
+                  <MainLayout
+                    onShowCreatePost={() => setShowCreatePost(true)}
+                    onToggleDarkMode={toggleDarkMode}
+                    isDarkMode={isDarkMode}
+                  >
+                    <CreateStoryPage />
+                  </MainLayout>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/groups/:groupId/view"
+              element={<GroupAdminPage />}
+            />
+          </Routes>
 
-
-              </Routes>
-
-              <Modal
-                  show={showCallModal}
-                  centered
-                  onHide={rejectCall}
-                  className="bg-[var(--background-color)] text-[var(--text-color)]"
-              >
-                <Modal.Header closeButton>
-                  <Modal.Title>Cuộc gọi đến</Modal.Title>
-                </Modal.Header>
-                <Modal.Body className="d-flex align-items-center">
-                  <Image
-                      src="https://via.placeholder.com/50"
-                      roundedCircle
-                      width={50}
-                      height={50}
-                      className="me-3"
-                  />
-                  <div>
-                    <h5>{incomingCall?.from || "Người gọi không xác định"}</h5>
-                    <p>Đang gọi video...</p>
-                  </div>
-                </Modal.Body>
-                <Modal.Footer>
-                  <Button variant="secondary" onClick={rejectCall}>
-                    Từ chối
-                  </Button>
-                  <Button variant="primary" onClick={acceptCall}>
-                    Chấp nhận
-                  </Button>
-                </Modal.Footer>
-              </Modal>
-            </>
-        )}
-      </>
+          <Modal
+            show={showCallModal}
+            centered
+            onHide={rejectCall}
+            className="bg-[var(--background-color)] text-[var(--text-color)]"
+          >
+            <Modal.Header closeButton>
+              <Modal.Title>Cuộc gọi đến</Modal.Title>
+            </Modal.Header>
+            <Modal.Body className="d-flex align-items-center">
+              <Image
+                src="https://via.placeholder.com/50"
+                roundedCircle
+                width={50}
+                height={50}
+                className="me-3"
+              />
+              <div>
+                <h5>{incomingCall?.from || "Người gọi không xác định"}</h5>
+                <p>Đang gọi video...</p>
+              </div>
+            </Modal.Body>
+            <Modal.Footer>
+              <Button variant="secondary" onClick={rejectCall}>
+                Từ chối
+              </Button>
+              <Button variant="primary" onClick={acceptCall}>
+                Chấp nhận
+              </Button>
+            </Modal.Footer>
+          </Modal>
+        </>
+      )}
+    </>
   );
 }
 
 function App() {
   return (
-      <Router>
-        <AuthProvider>
-          <WebSocketProvider>
-            <EmojiProvider>
-              <ThemeProvider>
-                <AppContent />
-                <ToastContainer
-                    position="top-right"
-                    autoClose={3000}
-                    hideProgressBar={false}
-                    newestOnTop={false}
-                    closeOnClick
-                    rtl={false}
-                    pauseOnFocusLoss
-                    draggable
-                    pauseOnHover
-                    theme="light"
-                />
-              </ThemeProvider>
-            </EmojiProvider>
-          </WebSocketProvider>
-        </AuthProvider>
-      </Router>
+    <Router>
+      <AuthProvider>
+        <WebSocketProvider>
+          <EmojiProvider>
+            <ThemeProvider>
+              <AppContent />
+              <ToastContainer
+                position="top-right"
+                autoClose={3000}
+                hideProgressBar={false}
+                newestOnTop={false}
+                closeOnClick
+                rtl={false}
+                pauseOnFocusLoss
+                draggable
+                pauseOnHover
+                theme="light"
+              />
+            </ThemeProvider>
+          </EmojiProvider>
+        </WebSocketProvider>
+      </AuthProvider>
+    </Router>
   );
 }
 

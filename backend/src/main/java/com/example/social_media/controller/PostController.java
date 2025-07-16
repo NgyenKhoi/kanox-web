@@ -7,7 +7,9 @@ import com.example.social_media.exception.UnauthorizedException;
 import com.example.social_media.exception.UserNotFoundException;
 import com.example.social_media.jwt.JwtService;
 import com.example.social_media.service.PostService;
+
 import jakarta.validation.Valid;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -21,9 +23,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.example.social_media.dto.post.SharePostRequestDto;
+
 @RestController
 @RequestMapping(URLConfig.POST_BASE)
 public class PostController {
+
     private static final Logger logger = LoggerFactory.getLogger(PostController.class);
     private final PostService postService;
     private final JwtService jwtService;
@@ -33,7 +38,7 @@ public class PostController {
         this.jwtService = jwtService;
     }
 
-    @PostMapping(consumes = { "multipart/form-data", "application/json" })
+    @PostMapping(consumes = {"multipart/form-data", "application/json"})
     public ResponseEntity<Map<String, Object>> createPost(
             @RequestPart(value = "post", required = false) @Valid PostRequestDto dto,
             @RequestBody(required = false) @Valid PostRequestDto jsonDto,
@@ -316,6 +321,35 @@ public class PostController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
         } catch (Exception e) {
             logger.error("Error fetching saved posts: {}", e.getMessage(), e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("status", "error");
+            errorResponse.put("message", "Lỗi hệ thống: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+    @PostMapping("/share")
+    public ResponseEntity<Map<String, Object>> sharePost(
+            @RequestBody @Valid SharePostRequestDto dto, // Sử dụng DTO mới
+            @RequestHeader("Authorization") String authHeader) {
+        try {
+            String token = authHeader.substring(7);
+            String username = jwtService.extractUsername(token);
+
+            PostResponseDto responseDto = postService.sharePost(dto, username); // Gọi service mới
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Chia sẻ bài viết thành công");
+            response.put("data", responseDto);
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (IllegalArgumentException e) {
+            logger.error("Lỗi khi chia sẻ bài viết: {}", e.getMessage());
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("status", "error");
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+        } catch (Exception e) {
+            logger.error("Lỗi hệ thống khi chia sẻ: {}", e.getMessage(), e);
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("status", "error");
             errorResponse.put("message", "Lỗi hệ thống: " + e.getMessage());
