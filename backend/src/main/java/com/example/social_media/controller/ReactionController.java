@@ -91,18 +91,14 @@ public class ReactionController {
     }
 
     @GetMapping(URLConfig.GET_REACTION_BY_USER)
-    public ResponseEntity<?> getUserReaction(
-            @RequestParam Integer userId,
-            @RequestParam Integer targetId,
-            @RequestParam String targetTypeCode
-    ) {
+    public ResponseEntity<?> getUserReaction(@RequestParam Integer userId,
+                                             @RequestParam Integer targetId,
+                                             @RequestParam String targetTypeCode) {
         ReactionType reaction = reactionService.getReactionOfUser(userId, targetId, targetTypeCode);
-
         if (reaction == null) {
-            return ResponseEntity.ok().body(null); // chưa thả cảm xúc
+            return ResponseEntity.noContent().build(); // Trả status 204
         }
-
-        return ResponseEntity.ok(new ReactionResponseDto(reaction));
+        return ResponseEntity.ok().body(new ReactionResponseDto(reaction));
     }
 
     @GetMapping(URLConfig.LIST_REACTION_BY_TYPE)

@@ -19,7 +19,6 @@ const Chat = ({ chatId, messages, onMessageUpdate, onSendMessage }) => {
     const [message, setMessage] = useState("");
     const [typingUsers, setTypingUsers] = useState([]);
     const [recipientName, setRecipientName] = useState("");
-    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [selectedMediaFiles, setSelectedMediaFiles] = useState([]);
     const [selectedMediaPreviews, setSelectedMediaPreviews] = useState([]);
     const [isSpam, setIsSpam] = useState(false);
@@ -379,38 +378,6 @@ const Chat = ({ chatId, messages, onMessageUpdate, onSendMessage }) => {
                 {typingUsers.length > 0 && <div className="text-[var(--text-color-muted)]">{typingUsers.join(", ")} đang nhập...</div>}
             </div>
             <div className="p-3 border-t border-[var(--border-color)] bg-[var(--background-color)] relative">
-                {/* Emoji picker UI */}
-                {showEmojiPicker && (
-                    <div className="absolute bottom-[60px] left-3 z-50">
-                        <EmojiPicker
-                            theme="light"
-                            onEmojiClick={(emojiData) => {
-                                const input = inputRef.current;
-                                if (!input) return;
-
-                                const start = input.selectionStart;
-                                const end = input.selectionEnd;
-
-                                const newText =
-                                    message.substring(0, start) +
-                                    emojiData.emoji +
-                                    message.substring(end);
-
-                                setMessage(newText);
-
-                                // Đặt lại vị trí con trỏ sau emoji
-                                setTimeout(() => {
-                                    input.focus();
-                                    const cursorPosition = start + emojiData.emoji.length;
-                                    input.setSelectionRange(cursorPosition, cursorPosition);
-                                }, 0);
-
-                                setShowEmojiPicker(false);
-                            }}
-                        />
-                    </div>
-                )}
-
                 {/* Media preview */}
                 {selectedMediaPreviews.length > 0 && (
                     <div className="flex gap-2 overflow-x-auto mb-2">
@@ -438,8 +405,8 @@ const Chat = ({ chatId, messages, onMessageUpdate, onSendMessage }) => {
                 {/* Input + Action Bar */}
                 <div className="flex items-center bg-[var(--input-bg-color)] rounded-xl shadow-sm overflow-hidden px-2">
                     <MediaActionBar
-                        onEmojiClick={() => setShowEmojiPicker((prev) => !prev)}
                         onFileSelect={(files) => {
+                            // Preview
                             setSelectedMediaFiles((prev) => [...prev, ...files]);
                             setSelectedMediaPreviews((prev) => [
                                 ...prev,
@@ -448,7 +415,24 @@ const Chat = ({ chatId, messages, onMessageUpdate, onSendMessage }) => {
                                     type: f.type,
                                 })),
                             ]);
-                            handleFileSelect(files); // Upload logic
+                            handleFileSelect(files); // Upload
+                        }}
+                        onSelectEmoji={(emoji) => {
+                            const input = inputRef.current;
+                            if (!input) return;
+
+                            const start = input.selectionStart;
+                            const end = input.selectionEnd;
+
+                            const newText =
+                                message.substring(0, start) + emoji.emoji + message.substring(end);
+                            setMessage(newText);
+
+                            setTimeout(() => {
+                                input.focus();
+                                const cursorPosition = start + emoji.emoji.length;
+                                input.setSelectionRange(cursorPosition, cursorPosition);
+                            }, 0);
                         }}
                     />
 

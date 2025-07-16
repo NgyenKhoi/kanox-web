@@ -42,6 +42,8 @@ export default function useReaction({
     };
 
     const fetchUserReaction = async () => {
+        if (!user?.id || !targetId || !targetTypeCode || !token) return;
+
         try {
             const res = await fetch(
                 `${process.env.REACT_APP_API_URL}/reactions/by-user?userId=${user.id}&targetId=${targetId}&targetTypeCode=${targetTypeCode}`,
@@ -52,12 +54,16 @@ export default function useReaction({
                 }
             );
 
-            if (!res.ok) throw new Error("Không thể lấy biểu cảm người dùng.");
+            if (res.status === 204) {
+                console.debug("[useReaction] Không có reaction của user");
+                return;
+            }
 
-            const text = await res.text();
-            if (!text) return;
+            if (!res.ok) {
+                throw new Error(`Lỗi fetch reaction của user: ${res.status}`);
+            }
 
-            const data = JSON.parse(text); 
+            const data = await res.json();
             if (data?.name && emojiMap?.[data.name]) {
                 setCurrentEmoji(emojiMap[data.name]);
             }
