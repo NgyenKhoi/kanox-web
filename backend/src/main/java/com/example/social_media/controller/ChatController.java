@@ -92,7 +92,7 @@ public class ChatController {
 
     @MessageMapping(URLConfig.SEND_MESSAGES)
     public void sendMessage(@Payload MessageDto messageDto, @Header("simpSessionId") String sessionId) {
-        System.out.println("Processing message: " + messageDto.getContent() + " for chatId: " + messageDto.getChatId());
+        System.out.println("Received message: " + messageDto.toString());
         String username = null;
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.isAuthenticated()) {

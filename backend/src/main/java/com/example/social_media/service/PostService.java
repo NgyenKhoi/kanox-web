@@ -23,9 +23,11 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Instant;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import com.example.social_media.dto.post.SharePostRequestDto;
@@ -49,6 +51,7 @@ public class PostService {
     private final GroupMemberRepository groupMemberRepository;
     private final ReactionService reactionService;
     private final TargetTypeRepository targetTypeRepository;
+    private final PostShareRepository postShareRepository;
 
     public PostService(PostRepository postRepository, PostTagRepository postTagRepository,
             UserRepository userRepository, ContentPrivacyRepository contentPrivacyRepository,
@@ -57,7 +60,7 @@ public class PostService {
             SavedPostRepository savedPostRepository, HiddenPostRepository hiddenPostRepository,
             GroupRepository groupRepository, GroupMemberRepository groupMemberRepository,
             ReactionService reactionService,
-            TargetTypeRepository targetTypeRepository) {
+            TargetTypeRepository targetTypeRepository, PostShareRepository postShareRepository) {
         this.postRepository = postRepository;
         this.postTagRepository = postTagRepository;
         this.userRepository = userRepository;
@@ -72,6 +75,7 @@ public class PostService {
         this.groupMemberRepository = groupMemberRepository;
         this.reactionService = reactionService;
         this.targetTypeRepository = targetTypeRepository;
+        this.postShareRepository = postShareRepository;
     }
 
     @CacheEvict(value = {"newsfeed", "postsByUsername", "communityFeed", "postsByGroup", "postsByUserInGroup", "savedPosts"}, allEntries = true)
@@ -665,88 +669,64 @@ public class PostService {
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy bài viết gốc để chia sẻ"));
 
         // Không cho phép chia sẻ lại một bài đã là bài chia sẻ
-        if (originalPost.getSharedPost() != null) {
-            throw new IllegalArgumentException("Không thể chia sẻ một bài viết đã được chia sẻ.");
+        if (postShareRepository.findBySharedPostAndStatusTrue(originalPost).isPresent()) {
+            throw new IllegalArgumentException("Cannot share a post that is already a share.");
         }
 
         // Tạo bài viết chia sẻ mới
-        Post newSharePost = new Post();
-        newSharePost.setOwner(sharer);
-        // Lấy nội dung từ DTO, đây là bình luận của người chia sẻ
-        newSharePost.setContent(dto.getContent());
-        newSharePost.setSharedPost(originalPost); // Liên kết tới bài viết gốc
-        newSharePost.setCreatedAt(Instant.now());
-        newSharePost.setStatus(true);
-        // Bài viết mới tạo luôn có shareCount = 0
-        newSharePost.setShareCount(0);
-        // Mặc định bài chia sẻ là công khai
-        newSharePost.setPrivacySetting("public");
+        Post newSharePostEntity = new Post();
+        newSharePostEntity.setOwner(sharer);
+        newSharePostEntity.setContent(dto.getContent());
+        newSharePostEntity.setPrivacySetting("public"); // Bài chia sẻ thường là công khai
+        newSharePostEntity.setCreatedAt(Instant.now());
+        newSharePostEntity.setStatus(true);
+        // Lưu bài viết mới vào DB để lấy ID
+        Post savedSharePostEntity = postRepository.save(newSharePostEntity);
 
-        // Tăng đếm lượt chia sẻ của BÀI VIẾT GỐC
-        originalPost.setShareCount(originalPost.getShareCount() + 1);
-        postRepository.save(originalPost);
+        // 2. Tạo một bản ghi trong tblPostShare để liên kết bài viết mới và bài viết gốc
+        PostShare shareRecord = new PostShare();
+        shareRecord.setOriginalPost(originalPost);
+        shareRecord.setSharedPost(savedSharePostEntity);
+        shareRecord.setUser(sharer);
+        shareRecord.setSharedAt(Instant.now());
+        shareRecord.setStatus(true);
+        postShareRepository.save(shareRecord);
 
-        // Lưu bài viết chia sẻ mới vào DB
-        Post savedSharePost = postRepository.save(newSharePost);
-
-        // Lấy dữ liệu cần thiết để chuyển đổi sang DTO
+        // 3. Chuyển đổi bài viết vừa tạo thành DTO để trả về cho client
         List<Integer> savedPostIds = savedPostRepository.findByUserIdAndStatusTrue(sharer.getId())
                 .stream().map(sp -> sp.getPost().getId()).collect(Collectors.toList());
 
-        // Chuyển đổi và trả về
-        return convertToDto(savedSharePost, sharer.getId(), savedPostIds,
-                new HashMap<>(), new HashMap<>(), new HashMap<>());
+        // Truyền các map rỗng vì đây là một bài viết hoàn toàn mới, chưa có reaction hay tag
+        return convertToDto(savedSharePostEntity, sharer.getId(), savedPostIds,
+                Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap());
     }
 
     private PostResponseDto convertToDto(Post post, Integer currentUserId,
             List<Integer> savedPostIds, Map<Integer, List<PostTag>> postTagsMap,
             Map<Integer, List<MediaDto>> mediaMap, Map<Integer, Map<ReactionType, Long>> reactionCountMap) {
-        Post originalPost = post.getSharedPost();
-        if (originalPost != null) {
-            // Nếu map media chưa có dữ liệu cho bài viết gốc, hãy tải nó
-            if (!mediaMap.containsKey(originalPost.getId())) {
-                mediaMap.putAll(mediaService.getMediaByTargetIds(List.of(originalPost.getId()), "POST", null, true));
-            }
-            // Tương tự cho reaction, nếu cần hiển thị đầy đủ
-            if (!reactionCountMap.containsKey(originalPost.getId())) {
-                reactionCountMap.put(originalPost.getId(), reactionService.countAllReactions(originalPost.getId(), "POST"));
-            }
-            // Tương tự cho tags
-            if (!postTagsMap.containsKey(originalPost.getId())) {
-                postTagsMap.put(originalPost.getId(), postTagRepository.findByPostIdAndStatusTrue(originalPost.getId()));
-            }
-        }
+
         PostResponseDto dto = new PostResponseDto();
         dto.setId(post.getId());
-        User owner = post.getOwner();
-        dto.setOwner(new UserTagDto(owner.getId(), owner.getUsername(), owner.getDisplayName()));
+        dto.setOwner(new UserTagDto(post.getOwner().getId(), post.getOwner().getUsername(), post.getOwner().getDisplayName()));
         dto.setContent(post.getContent());
         dto.setPrivacySetting(post.getPrivacySetting());
         dto.setCreatedAt(post.getCreatedAt());
-        dto.setShareCount(post.getShareCount() != null ? post.getShareCount() : 0);
+
+        // Lấy shareCount từ bảng tblPostShare thay vì từ tblPost
+        dto.setShareCount((int) postShareRepository.countByOriginalPostAndStatusTrue(post));
+
+        dto.setCommentCount(commentRepository.countByPostIdAndStatusTrue(post.getId()));
 
         List<PostTag> postTags = postTagsMap.getOrDefault(post.getId(), List.of());
         dto.setTaggedUsers(postTags.stream()
-                .map(postTag -> {
-                    User tagged = postTag.getTaggedUser();
-                    return new UserTagDto(tagged.getId(), tagged.getUsername(), tagged.getDisplayName());
-                })
+                .map(postTag -> new UserTagDto(postTag.getTaggedUser().getId(), postTag.getTaggedUser().getUsername(), postTag.getTaggedUser().getDisplayName()))
                 .collect(Collectors.toList()));
-
-        dto.setCommentCount(post.getTblComments().size());
 
         Map<ReactionType, Long> reactions = reactionCountMap.getOrDefault(post.getId(), Map.of());
         dto.setReactionCountMap(reactions.entrySet().stream()
-                .collect(Collectors.toMap(
-                        entry -> entry.getKey().getName(),
-                        Map.Entry::getValue
-                )));
+                .collect(Collectors.toMap(entry -> entry.getKey().getName(), Map.Entry::getValue)));
         dto.setLikeCount(reactions.getOrDefault(
-                reactionService.getMainReactions().stream()
-                        .filter(rt -> "like".equalsIgnoreCase(rt.getName()))
-                        .findFirst().orElse(null), 0L).intValue());
-
-        dto.setMedia(mediaMap.getOrDefault(post.getId(), List.of()));
+                reactionService.getMainReactions().stream().filter(rt -> "like".equalsIgnoreCase(rt.getName())).findFirst().orElse(null), 0L).intValue());
 
         dto.setSaved(savedPostIds.contains(post.getId()));
 
@@ -756,14 +736,26 @@ public class PostService {
             dto.setGroupAvatarUrl(mediaService.getFirstMediaUrlByTarget(post.getGroup().getId(), "GROUP"));
             dto.setGroupPrivacyLevel(post.getGroup().getPrivacyLevel());
         }
-        if (originalPost != null) {
-            PostResponseDto sharedPostDto = convertToDto(originalPost, currentUserId, savedPostIds,
-                    postTagsMap, mediaMap, reactionCountMap);
-            dto.setSharedPost(sharedPostDto);
-            // Một bài viết chia sẻ không có media của riêng nó, nó chỉ hiển thị media của bài gốc
-            dto.setMedia(List.of());
+
+        // Logic quan trọng: Kiểm tra xem `post` này có phải là một bài chia sẻ không
+        Optional<PostShare> shareRecordOpt = postShareRepository.findBySharedPostAndStatusTrue(post);
+
+        if (shareRecordOpt.isPresent()) {
+            // Nếu ĐÚNG, thì `post` là bài viết chứa bình luận, và chúng ta cần lấy bài gốc
+            Post originalPost = shareRecordOpt.get().getOriginalPost();
+
+            // Tải dữ liệu cần thiết cho bài viết gốc để hiển thị
+            Map<Integer, List<MediaDto>> originalMediaMap = mediaService.getMediaByTargetIds(List.of(originalPost.getId()), "POST", null, true);
+            Map<Integer, Map<ReactionType, Long>> originalReactionMap = reactionService.countAllReactionsBatch(List.of(originalPost.getId()), "POST");
+            Map<Integer, List<PostTag>> originalTagsMap = postTagRepository.findByPost_IdInAndStatusTrue(List.of(originalPost.getId()))
+                    .stream().collect(Collectors.groupingBy(pt -> pt.getPost().getId()));
+
+            // Gọi đệ quy convertToDto để tạo DTO cho bài viết gốc
+            PostResponseDto sharedPostDto = convertToDto(originalPost, currentUserId, savedPostIds, originalTagsMap, originalMediaMap, originalReactionMap);
+            dto.setSharedPost(sharedPostDto); // Gán bài viết gốc vào trường sharedPost của DTO
+            dto.setMedia(List.of()); // Bài viết chia sẻ không có media của riêng nó
         } else {
-            // Chỉ set media nếu đây là bài viết gốc
+            // Nếu KHÔNG, thì `post` là một bài viết bình thường
             dto.setMedia(mediaMap.getOrDefault(post.getId(), List.of()));
             dto.setSharedPost(null);
         }
