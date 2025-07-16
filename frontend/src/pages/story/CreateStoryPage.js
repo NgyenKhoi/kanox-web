@@ -6,10 +6,17 @@ import {
   ProgressBar,
   Alert,
   Card,
+  Dropdown,
 } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
-import { FaUpload } from "react-icons/fa";
 import { AuthContext } from "../../context/AuthContext";
+import {
+  FaUpload,
+  FaGlobeAmericas,
+  FaUserFriends,
+  FaLock,
+} from "react-icons/fa";
+import { toast } from "react-toastify";
 
 const CreateStoryPage = () => {
   const [videoFile, setVideoFile] = useState(null);
@@ -19,12 +26,13 @@ const CreateStoryPage = () => {
   const [error, setError] = useState("");
   const { token } = useContext(AuthContext);
   const navigate = useNavigate();
+  // State để lưu quyền riêng tư, mặc định là 'public'
+  const [privacy, setPrivacy] = useState("public");
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file && file.type.startsWith("video/")) {
       setVideoFile(file);
-      // Tạo URL xem trước cho video
       const previewUrl = URL.createObjectURL(file);
       setVideoPreview(previewUrl);
       setError("");
@@ -47,13 +55,15 @@ const CreateStoryPage = () => {
 
     const formData = new FormData();
     formData.append("file", videoFile);
+    // **Thêm dữ liệu quyền riêng tư vào request**
+    formData.append("privacy", privacy);
 
     try {
-      // Sử dụng XMLHttpRequest để theo dõi tiến trình upload
       const xhr = new XMLHttpRequest();
       xhr.open(
         "POST",
-        `${process.env.REACT_APP_API_URL}/api/stories/create`,
+        // Đảm bảo endpoint của bạn có thể xử lý multipart/form-data
+        `${process.env.REACT_APP_API_URL}/api/stories`,
         true
       );
       xhr.setRequestHeader("Authorization", `Bearer ${token}`);
@@ -70,11 +80,17 @@ const CreateStoryPage = () => {
       xhr.onload = () => {
         setIsLoading(false);
         if (xhr.status === 200 || xhr.status === 201) {
-          // Upload thành công, chuyển hướng về trang chủ
-          navigate("/home", { state: { message: "Đăng story thành công!" } });
+          toast.success("Đăng story thành công!");
+          navigate("/home");
         } else {
-          const errorResponse = JSON.parse(xhr.responseText);
-          setError(errorResponse.message || "Đã có lỗi xảy ra khi đăng story.");
+          try {
+            const errorResponse = JSON.parse(xhr.responseText);
+            setError(
+              errorResponse.message || "Đã có lỗi xảy ra khi đăng story."
+            );
+          } catch (parseError) {
+            setError("Đã có lỗi xảy ra khi đăng story.");
+          }
         }
       };
 
@@ -133,6 +149,73 @@ const CreateStoryPage = () => {
                 </video>
               </div>
             )}
+
+            {/* GIAO DIỆN CHỌN QUYỀN RIÊNG TƯ */}
+            <Form.Group className="mb-3">
+              <Form.Label className="text-[var(--text-color-muted)]">
+                Quyền riêng tư
+              </Form.Label>
+              <Dropdown onSelect={(eventKey) => setPrivacy(eventKey)}>
+                <Dropdown.Toggle
+                  variant="outline-secondary"
+                  id="dropdown-privacy"
+                  className="w-100 d-flex justify-content-between align-items-center"
+                >
+                  <span>
+                    {privacy === "public" && (
+                      <>
+                        <FaGlobeAmericas className="me-2" /> Công khai
+                      </>
+                    )}
+                    {privacy === "friends" && (
+                      <>
+                        <FaUserFriends className="me-2" /> Bạn bè
+                      </>
+                    )}
+                    {privacy === "only_me" && (
+                      <>
+                        <FaLock className="me-2" /> Chỉ mình tôi
+                      </>
+                    )}
+                  </span>
+                </Dropdown.Toggle>
+                <Dropdown.Menu className="w-100">
+                  <Dropdown.Item eventKey="public">
+                    <div className="d-flex align-items-center">
+                      <FaGlobeAmericas className="me-3" size={20} />
+                      <div>
+                        <div className="fw-bold">Công khai</div>
+                        <p className="small text-muted mb-0">
+                          Mọi người đều có thể xem story của bạn.
+                        </p>
+                      </div>
+                    </div>
+                  </Dropdown.Item>
+                  <Dropdown.Item eventKey="friends">
+                    <div className="d-flex align-items-center">
+                      <FaUserFriends className="me-3" size={20} />
+                      <div>
+                        <div className="fw-bold">Bạn bè</div>
+                        <p className="small text-muted mb-0">
+                          Chỉ những người bạn đã kết bạn mới thấy.
+                        </p>
+                      </div>
+                    </div>
+                  </Dropdown.Item>
+                  <Dropdown.Item eventKey="only_me">
+                    <div className="d-flex align-items-center">
+                      <FaLock className="me-3" size={20} />
+                      <div>
+                        <div className="fw-bold">Chỉ mình tôi</div>
+                        <p className="small text-muted mb-0">
+                          Chỉ một mình bạn có thể xem story này.
+                        </p>
+                      </div>
+                    </div>
+                  </Dropdown.Item>
+                </Dropdown.Menu>
+              </Dropdown>
+            </Form.Group>
 
             {isLoading && (
               <ProgressBar

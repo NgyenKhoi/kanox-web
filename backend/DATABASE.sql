@@ -3276,6 +3276,41 @@ WHERE definition LIKE '%friendship%';
         status BIT DEFAULT 1
     );
 
+    -- TẠO BẢNG MỚI ĐỂ QUẢN LÝ CÁC LƯỢT CHIA SẺ
+CREATE TABLE dbo.tblPostShare (
+    id INT PRIMARY KEY IDENTITY(1, 1),
+
+    -- ID của bài viết gốc (bài bị người khác chia sẻ)
+    original_post_id INT NOT NULL,
+
+    -- ID của bài viết mới được tạo ra khi chia sẻ
+    -- Bài viết này chứa nội dung bình luận của người chia sẻ
+    shared_post_id INT NOT NULL,
+
+    -- ID của người thực hiện hành động chia sẻ
+    user_id INT NOT NULL,
+
+    -- Thời gian chia sẻ
+    shared_at DATETIME NOT NULL DEFAULT GETDATE(),
+
+    -- Trạng thái để có thể "xóa mềm" một lượt chia sẻ
+    status BIT NOT NULL DEFAULT 1,
+
+    -- Ràng buộc khóa ngoại
+    CONSTRAINT FK_PostShare_OriginalPost FOREIGN KEY (original_post_id) REFERENCES dbo.tblPost(id),
+    CONSTRAINT FK_PostShare_SharedPost FOREIGN KEY (shared_post_id) REFERENCES dbo.tblPost(id),
+    CONSTRAINT FK_PostShare_User FOREIGN KEY (user_id) REFERENCES dbo.tblUser(id),
+
+    -- Đảm bảo một bài viết chỉ có thể là một bài chia sẻ duy nhất
+    CONSTRAINT UQ_PostShare_SharedPostId UNIQUE (shared_post_id)
+);
+GO
+
+-- (Quan trọng cho hiệu suất) Tạo các Index cần thiết
+CREATE NONCLUSTERED INDEX IX_PostShare_OriginalPostId ON dbo.tblPostShare(original_post_id) WHERE status = 1;
+CREATE NONCLUSTERED INDEX IX_PostShare_UserId ON dbo.tblPostShare(user_id) WHERE status = 1;
+GO
+
     -- Chèn dữ liệu mẫu cho tblMediaType
     INSERT INTO tblMediaType (name, description, status) VALUES
     ('image', N'Hình ảnh', 1),

@@ -71,4 +71,12 @@ public interface ReportRepository extends JpaRepository<Report, Integer> {
             @Param("targetTypeId") Integer targetTypeId,
             @Param("status") Boolean status
     );
+
+    @Query("SELECT COUNT(r) FROM Report r WHERE r.targetId = :targetId AND r.targetType.id = :targetTypeId AND r.processingStatus.id = :processingStatusId AND r.status = :status")
+    long countByTargetIdAndTargetTypeIdAndProcessingStatusIdAndStatus(
+            @Param("targetId") Integer targetId,
+            @Param("targetTypeId") Integer targetTypeId,
+            @Param("processingStatusId") Integer processingStatusId,
+            @Param("status") Boolean status
+    );
 }

@@ -137,6 +137,17 @@ const ReportsManagement = () => {
             console.error("Invalid reportId:", reportId);
             return;
         }
+        
+        // Cảnh báo khi duyệt báo cáo về người dùng
+        if (parseInt(statusId) === 3 && selectedReport?.targetTypeId === 4) {
+            const confirmApprove = window.confirm(
+                "⚠️ LƯU Ý: Khi duyệt báo cáo về người dùng, nếu người dùng này có 3 báo cáo được duyệt, tài khoản sẽ tự động bị khóa.\n\nBạn có chắc chắn muốn duyệt báo cáo này?"
+            );
+            if (!confirmApprove) {
+                return;
+            }
+        }
+        
         try {
             const response = await fetch(`${process.env.REACT_APP_API_URL}/admin/${parseInt(reportId)}/status`, {
                 method: "PUT",
@@ -152,7 +163,13 @@ const ReportsManagement = () => {
                 const data = await response.json();
                 throw new Error(data.message || "Lỗi khi cập nhật trạng thái");
             }
-            toast.success("Đã cập nhật trạng thái báo cáo!");
+            
+            let successMessage = "Đã cập nhật trạng thái báo cáo!";
+            if (parseInt(statusId) === 3 && selectedReport?.targetTypeId === 4) {
+                successMessage += " Hệ thống sẽ tự động kiểm tra và khóa tài khoản nếu đạt 3 báo cáo được duyệt.";
+            }
+            
+            toast.success(successMessage);
             setShowDetailModal(false);
             loadReports();
         } catch (error) {
@@ -205,6 +222,26 @@ const ReportsManagement = () => {
     return (
         <div className="bg-background text-text p-6 min-h-screen">
             <h2 className="text-2xl font-bold mb-6 dark:text-white">Quản lý Báo cáo</h2>
+            
+            {/* Thông báo về tính năng tự động block */}
+            <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg">
+                <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0">
+                        <svg className="w-5 h-5 text-blue-500 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-1">
+                            Tính năng tự động khóa tài khoản
+                        </h3>
+                        <p className="text-sm text-blue-700 dark:text-blue-300">
+                            Khi một tài khoản người dùng bị báo cáo và được duyệt <strong>3 lần</strong>, hệ thống sẽ tự động khóa tài khoản đó. 
+                            Admin có thể mở khóa tài khoản trong phần <strong>Quản lý Người dùng</strong>.
+                        </p>
+                    </div>
+                </div>
+            </div>
             <div className="mb-6 flex flex-col gap-4">
                 <div className="flex gap-2">
                     <button
