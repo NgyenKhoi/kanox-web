@@ -86,15 +86,26 @@ const DashboardOverview = () => {
 
         const data = await response.json();
 
+        // Tạo gradient cho màu nền cột
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, "rgba(54, 162, 235, 0.8)");
+        gradient.addColorStop(1, "rgba(54, 162, 235, 0.4)");
+
         setRegistrationData({
           labels: data.map((item) => item.yearWeek),
           datasets: [
             {
               label: "Số lượng người dùng đăng ký",
               data: data.map((item) => item.userCount),
-              backgroundColor: "rgba(54, 162, 235, 0.6)",
+              backgroundColor: gradient,
               borderColor: "rgba(54, 162, 235, 1)",
-              borderWidth: 1,
+              borderWidth: 2,
+              hoverBackgroundColor: "rgba(54, 162, 235, 1)",
+              hoverBorderColor: "rgba(54, 162, 235, 1.2)",
+              borderRadius: 8, // Bo góc cột
+              barPercentage: 0.7, // Giảm độ rộng cột
             },
           ],
         });
@@ -132,18 +143,53 @@ const DashboardOverview = () => {
   ];
 
   const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
     scales: {
       y: {
         beginAtZero: true,
         title: {
           display: true,
           text: "Số lượng người dùng",
+          font: {
+            size: 16,
+            family: "'Roboto', sans-serif",
+            weight: "bold",
+          },
+          color: "#333",
+        },
+        grid: {
+          color: "rgba(0, 0, 0, 0.1)", // Grid lines nhẹ
+        },
+        ticks: {
+          font: {
+            size: 14,
+            family: "'Roboto', sans-serif",
+          },
+          color: "#555",
+          stepSize: 1, // Bước nhảy là 1 vì userCount nhỏ
         },
       },
       x: {
         title: {
           display: true,
           text: "Tuần",
+          font: {
+            size: 16,
+            family: "'Roboto', sans-serif",
+            weight: "bold",
+          },
+          color: "#333",
+        },
+        grid: {
+          display: false, // Tắt grid lines trục x để gọn gàng
+        },
+        ticks: {
+          font: {
+            size: 14,
+            family: "'Roboto', sans-serif",
+          },
+          color: "#555",
         },
       },
     },
@@ -151,13 +197,53 @@ const DashboardOverview = () => {
       legend: {
         display: true,
         position: "top",
+        labels: {
+          font: {
+            size: 14,
+            family: "'Roboto', sans-serif",
+          },
+          color: "#333",
+          padding: 20,
+        },
       },
       title: {
         display: true,
-        text: "Số lượng người dùng đăng ký theo tuần",
+        text: "Số lượng người dùng đăng ký theo tuần (2025)",
+        font: {
+          size: 20,
+          family: "'Roboto', sans-serif",
+          weight: "bold",
+        },
+        color: "#333",
+        padding: {
+          top: 10,
+          bottom: 20,
+        },
+      },
+      tooltip: {
+        backgroundColor: "rgba(0, 0, 0, 0.8)",
+        titleFont: {
+          size: 14,
+          family: "'Roboto', sans-serif",
+        },
+        bodyFont: {
+          size: 12,
+          family: "'Roboto', sans-serif",
+        },
+        callbacks: {
+          label: (context) => {
+            return `${context.dataset.label}: ${context.raw} người dùng`;
+          },
+        },
       },
     },
-    maintainAspectRatio: false,
+    animation: {
+      duration: 1000, // Animation mượt mà
+      easing: "easeOutQuart",
+    },
+    hover: {
+      animationDuration: 400,
+    },
   };
 
   return (
@@ -169,12 +255,8 @@ const DashboardOverview = () => {
                 <Card className="h-100 p-4 bg-light border-0 rounded shadow-sm d-flex flex-row align-items-center">
                   <div className="fs-1 text-primary me-3">{stat.icon}</div>
                   <div>
-                    <Card.Text className="text-muted mb-1 fs-6">
-                      {stat.label}
-                    </Card.Text>
-                    <Card.Title className="fs-3 fw-bold text-dark">
-                      {stat.value}
-                    </Card.Title>
+                    <Card.Text className="text-muted mb-1 fs-6">{stat.label}</Card.Text>
+                    <Card.Title className="fs-3 fw-bold text-dark">{stat.value}</Card.Title>
                   </div>
                 </Card>
               </Col>
@@ -185,18 +267,13 @@ const DashboardOverview = () => {
           <Col xs={12}>
             <Card className="shadow-sm">
               <Card.Header className="d-flex justify-content-between align-items-center">
-                <h3 className="mb-0 fs-4 fw-bold text-dark">
-                  Thống kê hoạt động hàng tháng
-                </h3>
+                <h3 className="mb-0 fs-4 fw-bold text-dark">Thống kê hoạt động hàng tháng</h3>
                 <Button variant="outline-primary" size="sm">
                   <span className="me-1">⬇️</span> Xuất báo cáo
                 </Button>
               </Card.Header>
               <Card.Body>
-                <div
-                    className="table-responsive"
-                    style={{ height: 400, overflowY: "auto" }}
-                >
+                <div className="table-responsive" style={{ height: 400, overflowY: "auto" }}>
                   <Table striped bordered hover className="mb-0">
                     <thead>
                     <tr>
@@ -238,16 +315,12 @@ const DashboardOverview = () => {
                       >
                         <div>
                           <span className="fw-semibold">{activity.title}</span>
-                          <small className="text-muted d-block">
-                            {activity.time}
-                          </small>
+                          <small className="text-muted d-block">{activity.time}</small>
                         </div>
                       </ListGroup.Item>
                   ))}
                 </ListGroup>
-                <Button variant="outline-primary" className="w-100 mt-3">
-                  Xem thêm
-                </Button>
+                <Button variant="outline-primary" className="w-100 mt-3">Xem thêm</Button>
               </Card.Body>
             </Card>
           </Col>
