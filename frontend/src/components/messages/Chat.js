@@ -259,6 +259,7 @@ const Chat = ({ chatId, messages, onMessageUpdate, onSendMessage }) => {
             }
         }
 
+        setSelectedMediaFiles((prev) => [...prev, ...files]);
         setSelectedMediaPreviews((prev) => [...prev, ...previews]);
     }, [user.id, chatId, token, selectedMediaPreviews.length]);
 
@@ -297,26 +298,57 @@ const Chat = ({ chatId, messages, onMessageUpdate, onSendMessage }) => {
         return chunks;
     };
 
-    const sendMessage = () => {
+    const sendMessage = async () => {
         if (!message.trim() && selectedMediaPreviews.length === 0) return;
 
-        const mediaList = selectedMediaPreviews.map((media) => ({
-            url: media.uploadedUrl,
-            type: media.mediaType
-        }));
+        if (selectedMediaPreviews.length > 0) {
+            // Gửi bằng REST API nếu có media
+            const formData = new FormData();
+            formData.append("content", message.trim());
 
-        const msg = {
-            chatId: Number(chatId),
-            senderId: user.id,
-            content: message.trim(),
-            mediaList, // Gửi nhiều media
-            typeId: mediaList.length > 0 ? 2 : 1,
-        };
+            // Chỉ gửi file đã chọn (gốc)
+            selectedMediaFiles.forEach(file => {
+                formData.append("media", file);
+            });
 
-        publish("/app/sendMessage", msg);
-        setMessage("");
-        setSelectedMediaPreviews([]);
-        setSelectedMediaFiles([]);
+            try {
+                const response = await fetch(`${process.env.REACT_APP_API_URL}/chat/${chatId}/send-message-with-media`, {
+                    method: "POST",
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                    body: formData,
+                });
+
+                if (!response.ok) {
+                    const text = await response.text();
+                    throw new Error(text);
+                }
+
+                const data = await response.json();
+                console.log("📤 Sent via REST API:", data);
+
+                setMessage("");
+                setSelectedMediaPreviews([]);
+                setSelectedMediaFiles([]);
+
+            } catch (err) {
+                toast.error("Không thể gửi tin nhắn với media: " + err.message);
+            }
+        } else {
+            // Gửi bằng WebSocket nếu chỉ có text
+            const msg = {
+                chatId: Number(chatId),
+                senderId: user.id,
+                content: message.trim(),
+                mediaList: [],
+                typeId: 1, // text
+            };
+
+            publish("/app/sendMessage", msg);
+            console.log("📤 Sent via WebSocket:", msg);
+            setMessage("");
+        }
 
         publish("/app/typing", {
             chatId: Number(chatId),
