@@ -182,12 +182,17 @@ public class ReportService {
 
             // Kiểm tra và thông báo nếu user bị tự động block (chỉ cho báo cáo được duyệt về user)
             if (request.getProcessingStatusId() == 3 && report.getTargetType() != null && report.getTargetType().getId() == 4) {
+                System.out.println("=== [DEBUG] Checking auto-block for user ID: " + report.getTargetId() + " ===");
+                
                 // Đếm số báo cáo được duyệt cho target user
                 long approvedReportsCount = reportRepository.countByTargetIdAndTargetTypeIdAndProcessingStatusIdAndStatus(
                     report.getTargetId(), 4, 3, true
                 );
                 
+                System.out.println("[DEBUG] Approved reports count: " + approvedReportsCount);
+                
                 if (approvedReportsCount >= 3) {
+                    System.out.println("[DEBUG] User has 3+ approved reports, proceeding with auto-block");
                     // Thực sự khóa tài khoản user
                     try {
                         User targetUser = userRepository.findById(report.getTargetId())
