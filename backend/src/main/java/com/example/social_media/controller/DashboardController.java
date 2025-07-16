@@ -1,6 +1,7 @@
 package com.example.social_media.controller;
 
 import com.example.social_media.config.URLConfig;
+import com.example.social_media.dto.activity.ActivityLogDto;
 import com.example.social_media.dto.user.UserRegistrationStatsDTO;
 import com.example.social_media.service.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +24,7 @@ public class DashboardController {
     private final PostService postService;
     private final ReportService reportService;
     private final UserRegistrationService userRegistrationService;
+    private final ActivityLogService activityLogService;
 
     @Autowired
     public DashboardController(
@@ -30,13 +32,15 @@ public class DashboardController {
             GroupService groupService,
             PostService postService,
             ReportService reportService,
-            UserRegistrationService userRegistrationService
+            UserRegistrationService userRegistrationService,
+            ActivityLogService activityLogService
     ) {
         this.userService = userService;
         this.groupService = groupService;
         this.postService = postService;
         this.reportService = reportService;
         this.userRegistrationService = userRegistrationService;
+        this.activityLogService = activityLogService;
     }
 
     @GetMapping("/stats")
@@ -60,5 +64,11 @@ public class DashboardController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("message", "Error retrieving registration stats", "error", e.getMessage()));
         }
+    }
+
+    @GetMapping(URLConfig.RECENT_ACTIVITIES)
+    public ResponseEntity<List<ActivityLogDto>> getRecentActivities() {
+        List<ActivityLogDto> activities = activityLogService.getRecentActivities(5); // Lấy 5 hoạt động gần nhất
+        return ResponseEntity.ok(activities);
     }
 }

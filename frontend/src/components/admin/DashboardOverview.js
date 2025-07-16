@@ -42,6 +42,8 @@ const DashboardOverview = () => {
     datasets: [],
   });
 
+  const [activities, setActivities] = useState([]);
+
   useEffect(() => {
     const fetchStats = async () => {
       try {
@@ -86,7 +88,6 @@ const DashboardOverview = () => {
 
         const data = await response.json();
 
-        // Tạo gradient cho màu nền cột
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("2d");
         const gradient = ctx.createLinearGradient(0, 0, 0, 400);
@@ -104,8 +105,8 @@ const DashboardOverview = () => {
               borderWidth: 2,
               hoverBackgroundColor: "rgba(54, 162, 235, 1)",
               hoverBorderColor: "rgba(54, 162, 235, 1.2)",
-              borderRadius: 8, // Bo góc cột
-              barPercentage: 0.7, // Giảm độ rộng cột
+              borderRadius: 8,
+              barPercentage: 0.7,
             },
           ],
         });
@@ -114,8 +115,30 @@ const DashboardOverview = () => {
       }
     };
 
+    const fetchRecentActivities = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch(
+            `${process.env.REACT_APP_API_URL}/admin/dashboard/recent-activities`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+        );
+
+        if (!response.ok) throw new Error("Lỗi khi lấy dữ liệu hoạt động");
+
+        const data = await response.json();
+        setActivities(data);
+      } catch (error) {
+        console.error("Lỗi khi load dữ liệu hoạt động:", error);
+      }
+    };
+
     fetchStats();
     fetchRegistrationData();
+    fetchRecentActivities();
   }, []);
 
   const monthlyStats = [
@@ -125,21 +148,6 @@ const DashboardOverview = () => {
     { id: 4, month: "Tháng 4", users: 56, posts: 35, communities: 25 },
     { id: 5, month: "Tháng 5", users: 61, posts: 40, communities: 28 },
     { id: 6, month: "Tháng 6", users: 58, posts: 42, communities: 30 },
-  ];
-
-  const activities = [
-    {
-      title: "Nguyễn Văn A đã đăng ký tài khoản mới",
-      time: "10 phút trước",
-    },
-    {
-      title: "Bài viết ID #12345 đã bị báo cáo",
-      time: "30 phút trước",
-    },
-    {
-      title: 'Cộng đồng "Yêu Thích ReactJS" được tạo',
-      time: "1 giờ trước",
-    },
   ];
 
   const chartOptions = {
@@ -159,7 +167,7 @@ const DashboardOverview = () => {
           color: "#333",
         },
         grid: {
-          color: "rgba(0, 0, 0, 0.1)", // Grid lines nhẹ
+          color: "rgba(0, 0, 0, 0.1)",
         },
         ticks: {
           font: {
@@ -167,7 +175,7 @@ const DashboardOverview = () => {
             family: "'Roboto', sans-serif",
           },
           color: "#555",
-          stepSize: 1, // Bước nhảy là 1 vì userCount nhỏ
+          stepSize: 1,
         },
       },
       x: {
@@ -182,7 +190,7 @@ const DashboardOverview = () => {
           color: "#333",
         },
         grid: {
-          display: false, // Tắt grid lines trục x để gọn gàng
+          display: false,
         },
         ticks: {
           font: {
@@ -238,7 +246,7 @@ const DashboardOverview = () => {
       },
     },
     animation: {
-      duration: 1000, // Animation mượt mà
+      duration: 1000,
       easing: "easeOutQuart",
     },
     hover: {

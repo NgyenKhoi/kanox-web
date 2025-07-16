@@ -145,7 +145,7 @@ public class URLConfig {
     public static final String DASHBOARD_BASE = ADMIN_BASE + "/dashboard";
     public static final String DASHBOARD_STATS = "/stats";
     public static final String REGISTRATIONS_BY_WEEK = "/registrations-by-week";
-
+    public static final String RECENT_ACTIVITIES = "/recent-activities";
 
     //Admin report urls
     public static final String GET_REPORTS = "/list";
