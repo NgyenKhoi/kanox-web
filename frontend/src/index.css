@@ -132,3 +132,49 @@ body {
 .dark {
   --input-bg: #2e2e2e;
 }
+
+.loader {
+  width: 4px;
+  height: 24px;
+  border-radius: 2px;
+  display: inline-block;
+  margin: 12px auto;
+  position: relative;
+  background: currentColor;
+  color: #6c757d; /* Màu xám nhạt của Bootstrap */
+  box-sizing: border-box;
+  animation: animloader 0.4s linear infinite alternate;
+}
+
+.loader::before,
+.loader::after {
+  content: '';
+  width: 4px;
+  height: 24px;
+  border-radius: 2px;
+  background: currentColor;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  box-sizing: border-box;
+  animation: animloader 0.4s linear infinite alternate;
+}
+
+.loader::before {
+  left: -10px;
+  animation-delay: 0.2s;
+}
+
+.loader::after {
+  left: 10px;
+  animation-delay: 0.4s;
+}
+
+@keyframes animloader {
+  0% {
+    height: 28px;
+  }
+  100% {
+    height: 6px;
+  }
+}

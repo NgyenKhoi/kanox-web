@@ -127,8 +127,7 @@ public class AdminController {
                     .body(Map.of("message", "User not found", "error", e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error updating report status: " + e.getMessage());
-
+                    .body(Map.of("message", "Error updating user status", "error", e.getMessage()));
         }
     }
 

@@ -1,4 +1,4 @@
-package com.example.social_media.repository;
+package com.example.social_media.repository.message;
 
 import com.example.social_media.entity.MessageStatus;
 import com.example.social_media.entity.MessageStatusId;

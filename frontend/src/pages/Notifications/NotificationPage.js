@@ -129,7 +129,7 @@ function NotificationPage({ onToggleDarkMode, isDarkMode, onShowCreatePost }) {
                     userId: user.id,
                     displayName:
                         notification.targetType === "GROUP"
-                            ? notification.groupName || "Nhóm"
+                            ? notification.displayName || "Nhóm"
                             : notification.adminDisplayName || notification.displayName || "Người dùng",
                     username: notification.username || notification.adminDisplayName || "unknown",
                     message: notification.message,

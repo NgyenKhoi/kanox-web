@@ -4,9 +4,7 @@ import com.example.social_media.config.URLConfig;
 import com.example.social_media.dto.authentication.*;
 import com.example.social_media.dto.user.UserDto;
 import com.example.social_media.entity.User;
-import com.example.social_media.exception.EmailAlreadyExistsException;
-import com.example.social_media.exception.InvalidTokenException;
-import com.example.social_media.exception.TokenExpiredException;
+import com.example.social_media.exception.*;
 import com.example.social_media.jwt.JwtService;
 import com.example.social_media.service.AuthService;
 import com.example.social_media.service.MailService;
@@ -72,22 +70,51 @@ public class AuthController {
     // LOGIN
     @PostMapping(URLConfig.LOGIN)
     public ResponseEntity<?> login(@RequestBody @Valid LoginRequestDto loginRequest) {
-        Optional<User> userOpt = authService.loginFlexible(loginRequest.getIdentifier(), loginRequest.getPassword());
-        if (userOpt.isPresent()) {
+        try {
+            Optional<User> userOpt = authService.loginFlexible(loginRequest.getIdentifier(), loginRequest.getPassword());
+
+            if (userOpt.isEmpty()) {
+                logger.warn("Đăng nhập thất bại cho identifier: {}", loginRequest.getIdentifier());
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("message", "Thông tin đăng nhập không chính xác"));
+            }
+
             User user = userOpt.get();
+
+            if (user == null) {
+                logger.error("userOpt có giá trị nhưng user lại null");
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(Map.of("message", "Lỗi máy chủ: thông tin người dùng không hợp lệ"));
+            }
+
             String token = jwtService.generateToken(user.getUsername());
+            String refreshToken = jwtService.generateRefreshToken(user.getUsername());
+
+            Map<String, Object> userMap = new HashMap<>();
+            userMap.put("id", user.getId());
+            userMap.put("username", user.getUsername());
+            userMap.put("email", user.getEmail()); // email có thể null
+            userMap.put("isAdmin", user.getIsAdmin());
 
             Map<String, Object> result = new HashMap<>();
             result.put("token", token);
-            result.put("user", Map.of(
-                    "id", user.getId(),
-                    "username", user.getUsername(),
-                    "email", user.getEmail(),
-                    "isAdmin", user.getIsAdmin()
-            ));
+            result.put("refreshToken", refreshToken);
+            result.put("user", userMap);
+
             return ResponseEntity.ok(result);
+        } catch (UserNotFoundException e) {
+            logger.warn("User not found for identifier: {}", loginRequest.getIdentifier());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("message", "Người dùng không tồn tại hoặc bị vô hiệu hóa"));
+        } catch (InvalidPasswordException e) {
+            logger.warn("Invalid password for identifier: {}", loginRequest.getIdentifier());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("message", "Mật khẩu không đúng"));
+        } catch (Exception e) {
+            logger.error("Lỗi khi đăng nhập cho identifier {}: {}", loginRequest.getIdentifier(), e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Lỗi máy chủ khi đăng nhập: " + e.getMessage()));
         }
-        throw new IllegalArgumentException("Invalid credentials");
     }
 
     // LOGOUT
@@ -139,14 +166,6 @@ public class AuthController {
     public ResponseEntity<?> register(@RequestBody @Valid RegisterRequestDto dto) {
         logger.info("Received registration request for username: {}", dto.getUsername());
         try {
-            try {
-                LocalDate.of(dto.getYear(), dto.getMonth(), dto.getDay());
-            } catch (DateTimeException e) {
-                return ResponseEntity.badRequest().body(Map.of(
-                        "message", "Ngày sinh không hợp lệ",
-                        "errors", Map.of("dob", "Ngày sinh không hợp lệ")));
-            }
-
             User createdUser = authService.register(dto);
             if (createdUser == null) {
                 return ResponseEntity.ok(Map.of(

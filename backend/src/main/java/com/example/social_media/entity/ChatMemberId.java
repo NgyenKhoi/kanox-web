@@ -35,6 +35,13 @@ public class ChatMemberId implements Serializable {
         this.userId = userId;
     }
 
+    public ChatMemberId() {}
+
+    public ChatMemberId(Integer chatId, Integer userId) {
+        this.chatId = chatId;
+        this.userId = userId;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

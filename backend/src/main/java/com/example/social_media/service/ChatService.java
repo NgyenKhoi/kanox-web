@@ -1,12 +1,13 @@
 package com.example.social_media.service;
 
+
 import com.example.social_media.dto.message.ChatDto;
 import com.example.social_media.entity.*;
 import com.example.social_media.exception.UnauthorizedException;
 import com.example.social_media.repository.ChatMemberRepository;
 import com.example.social_media.repository.ChatRepository;
-import com.example.social_media.repository.MessageRepository;
-import com.example.social_media.repository.MessageStatusRepository;
+import com.example.social_media.repository.message.MessageRepository;
+import com.example.social_media.repository.message.MessageStatusRepository;
 import com.example.social_media.repository.UserRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -14,33 +15,43 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+
 import java.time.Instant;
 import java.util.List;
 import java.util.stream.Collectors;
 
+
 @Service
 public class ChatService {
+
 
     @PersistenceContext
     private EntityManager entityManager;
 
+
     @Autowired
     private ChatRepository chatRepository;
+
 
     @Autowired
     private ChatMemberRepository chatMemberRepository;
 
+
     @Autowired
     private CustomUserDetailsService userDetailsService;
+
 
     @Autowired
     private UserRepository userRepository;
 
+
     @Autowired
     private MessageRepository messageRepository;
 
+
     @Autowired
     private MessageStatusRepository messageStatusRepository;
+
 
     @Transactional
     public ChatDto createChat(String username, Integer targetUserId) {
@@ -53,6 +64,7 @@ public class ChatService {
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + targetUserId));
         System.out.println("Found currentUser: " + currentUser.getDisplayName() + ", targetUser: " + targetUser.getDisplayName());
 
+
         // Kiểm tra chat 1-1 đã tồn tại
         List<ChatMember> targetUserChats = chatMemberRepository.findByUserId(targetUser.getId());
         for (ChatMember cm : targetUserChats) {
@@ -61,6 +73,7 @@ public class ChatService {
                     members.size() == 2 && !cm.getChat().getIsGroup()) {
                 Chat existingChat = cm.getChat();
                 System.out.println("Found existing chat: ID=" + existingChat.getId());
+
 
                 // Khôi phục ChatMember cho currentUser với status=true và joinedAt mới
                 ChatMember existingMember = chatMemberRepository.findByChatIdAndUserId(existingChat.getId(), currentUser.getId())
@@ -94,6 +107,7 @@ public class ChatService {
             }
         }
 
+
         // Tạo chat mới nếu không tìm thấy
         Chat chat = new Chat();
         chat.setIsGroup(false);
@@ -107,6 +121,7 @@ public class ChatService {
         chat.setStatus(true);
         System.out.println("Chat object before save: " + chat);
         System.out.println("Chat name in DB: " + chatName);
+
 
         Chat savedChat;
         try {
@@ -122,6 +137,7 @@ public class ChatService {
             throw new RuntimeException("Failed to save Chat due to: " + e.getMessage(), e);
         }
 
+
         ChatMember member1 = new ChatMember();
         ChatMemberId member1Id = new ChatMemberId();
         member1Id.setChatId(savedChat.getId());
@@ -133,6 +149,7 @@ public class ChatService {
         member1.setStatus(true);
         member1.setIsAdmin(false);
         member1.setIsSpam(false);
+
 
         ChatMember member2 = new ChatMember();
         ChatMemberId member2Id = new ChatMemberId();
@@ -146,6 +163,7 @@ public class ChatService {
         member2.setIsAdmin(false);
         member2.setIsSpam(false);
 
+
         try {
             chatMemberRepository.saveAndFlush(member1);
             chatMemberRepository.saveAndFlush(member2);
@@ -155,10 +173,12 @@ public class ChatService {
             throw new RuntimeException("Failed to save ChatMember due to: " + e.getMessage(), e);
         }
 
+
         ChatDto chatDto = convertToDto(savedChat, currentUser.getId());
         System.out.println("Returning ChatDto for currentUser: ID=" + chatDto.getId() + ", Name=" + chatDto.getName());
         return chatDto;
     }
+
 
     @Transactional(readOnly = true)
     public List<ChatDto> getChats(String username) {
@@ -171,6 +191,7 @@ public class ChatService {
         return chats;
     }
 
+
     @Transactional(readOnly = true)
     public ChatDto getChatById(Integer chatId, String username) {
         User user = userDetailsService.getUserByUsername(username);
@@ -181,12 +202,14 @@ public class ChatService {
         return convertToDto(chat, user.getId());
     }
 
+
     @Transactional(readOnly = true)
     public void checkChatAccess(Integer chatId, String username) {
         if (!chatMemberRepository.existsByChatIdAndUserUsername(chatId, username)) {
             throw new UnauthorizedException("You are not a member of this chat.");
         }
     }
+
 
     @Transactional
     public void deleteChat(Integer chatId, String username) {
@@ -198,6 +221,7 @@ public class ChatService {
         chatMemberRepository.saveAndFlush(chatMember);
         System.out.println("Marked ChatMember as deleted for chatId: " + chatId + ", userId: " + user.getId());
     }
+
 
     public ChatDto convertToDto(Chat chat, Integer currentUserId) {
         Message lastMessage = messageRepository.findTopByChatIdOrderByCreatedAtDesc(chat.getId())
@@ -219,6 +243,7 @@ public class ChatService {
                 unreadMessagesCount
         );
     }
+
 
     @Transactional(readOnly = true)
     public int countUnreadByChatIdAndUserId(Integer chatId, Integer userId) {

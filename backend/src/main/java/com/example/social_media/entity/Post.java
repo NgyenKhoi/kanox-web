@@ -14,19 +14,20 @@ import java.util.Set;
         name = "sp_CreatePost",
         procedureName = "sp_CreatePost",
         parameters = {
-                @StoredProcedureParameter(mode = ParameterMode.IN, name = "owner_id", type = Integer.class),
-                @StoredProcedureParameter(mode = ParameterMode.IN, name = "content", type = String.class),
-                @StoredProcedureParameter(mode = ParameterMode.IN, name = "privacy_setting", type = String.class),
-                @StoredProcedureParameter(mode = ParameterMode.IN, name = "media_urls", type = String.class),
-                @StoredProcedureParameter(mode = ParameterMode.IN, name = "tagged_user_ids", type = String.class),
-                @StoredProcedureParameter(mode = ParameterMode.IN, name = "custom_list_id", type = Integer.class),
-                @StoredProcedureParameter(mode = ParameterMode.IN, name = "group_id", type = Integer.class), // 👈 moved up
-                @StoredProcedureParameter(mode = ParameterMode.OUT, name = "new_post_id", type = Integer.class) // 👈 moved down
+            @StoredProcedureParameter(mode = ParameterMode.IN, name = "owner_id", type = Integer.class),
+            @StoredProcedureParameter(mode = ParameterMode.IN, name = "content", type = String.class),
+            @StoredProcedureParameter(mode = ParameterMode.IN, name = "privacy_setting", type = String.class),
+            @StoredProcedureParameter(mode = ParameterMode.IN, name = "media_urls", type = String.class),
+            @StoredProcedureParameter(mode = ParameterMode.IN, name = "tagged_user_ids", type = String.class),
+            @StoredProcedureParameter(mode = ParameterMode.IN, name = "custom_list_id", type = Integer.class),
+            @StoredProcedureParameter(mode = ParameterMode.IN, name = "group_id", type = Integer.class), // 👈 moved up
+            @StoredProcedureParameter(mode = ParameterMode.OUT, name = "new_post_id", type = Integer.class) // 👈 moved down
         }
 )
 @Entity
 @Table(name = "tblPost", schema = "dbo")
 public class Post {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
@@ -70,6 +71,14 @@ public class Post {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "group_id")
     private Group group;
+
+    @ColumnDefault("0")
+    @Column(name = "share_count", nullable = false)
+    private Integer shareCount = 0;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "shared_post_id")
+    private Post sharedPost;
 
     public Integer getId() {
         return id;
@@ -154,7 +163,25 @@ public class Post {
     public Group getGroup() {
         return group;
     }
+
     public void setGroup(Group group) {
         this.group = group;
     }
+
+    public Integer getShareCount() {
+        return shareCount;
+    }
+
+    public void setShareCount(Integer shareCount) {
+        this.shareCount = shareCount;
+    }
+
+    public Post getSharedPost() {
+        return sharedPost;
+    }
+
+    public void setSharedPost(Post sharedPost) {
+        this.sharedPost = sharedPost;
+    }
+
 }

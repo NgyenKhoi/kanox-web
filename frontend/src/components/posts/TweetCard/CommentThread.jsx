@@ -42,6 +42,8 @@ function CommentThread({
         e.preventDefault();
         if (replyText.trim()) {
             onReply(comment.commentId, replyText, selectedMediaFiles);
+
+            // ✅ Reset sau khi gửi
             setReplyText("");
             setSelectedMediaFiles([]);
             setSelectedMediaPreviews([]);

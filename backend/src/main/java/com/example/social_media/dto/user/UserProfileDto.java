@@ -14,15 +14,14 @@ public class UserProfileDto {
     private int followeeCount;
     private String profileImageUrl;
     private int postCount;
-
     private String profilePrivacySetting;
+    private String phoneNumber;
 
-    // Constructors
     public UserProfileDto() {}
 
     public UserProfileDto(Integer id, String username, String displayName, String email, String bio, Short gender,
                           LocalDate dateOfBirth, int followerCount, int followeeCount, String profileImageUrl, int postCount,
-                          String profilePrivacySetting) {
+                          String profilePrivacySetting, String phoneNumber) {
         this.id = id;
         this.username = username;
         this.displayName = displayName;
@@ -35,6 +34,7 @@ public class UserProfileDto {
         this.profileImageUrl = profileImageUrl;
         this.postCount = postCount;
         this.profilePrivacySetting = profilePrivacySetting;
+        this.phoneNumber = phoneNumber;
     }
 
     // Getters và setters

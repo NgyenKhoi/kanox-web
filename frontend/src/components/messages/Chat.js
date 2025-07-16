@@ -6,6 +6,8 @@ import "react-toastify/dist/ReactToastify.css";
 import { AuthContext } from "../../context/AuthContext";
 import { WebSocketContext } from "../../context/WebSocketContext";
 import { FaPaperclip, FaPaperPlane, FaPhone, FaCheckCircle, FaExclamationTriangle } from "react-icons/fa";
+import useMedia from "../../hooks/useMedia";
+import MediaActionBar from "../../components/utils/MediaActionBar";
 
 const Chat = ({ chatId, messages, onMessageUpdate, onSendMessage }) => {
     const { user, token } = useContext(AuthContext);
@@ -17,23 +19,56 @@ const Chat = ({ chatId, messages, onMessageUpdate, onSendMessage }) => {
     const [message, setMessage] = useState("");
     const [typingUsers, setTypingUsers] = useState([]);
     const [recipientName, setRecipientName] = useState("");
+    const [selectedMediaFiles, setSelectedMediaFiles] = useState([]);
+    const [selectedMediaPreviews, setSelectedMediaPreviews] = useState([]);
     const [isSpam, setIsSpam] = useState(false);
     const chatContainerRef = useRef(null);
     const isConnectedRef = useRef(false);
     const lastMessageIdRef = useRef(null);
     const typingTimeoutRef = useRef(null);
+    const targetUserId = useRef(null);
+    const [resolvedTargetId, setResolvedTargetId] = useState(null);
     const messagesRef = useRef(messages);
+    const inputRef = useRef(null);
 
     useEffect(() => {
         messagesRef.current = messages;
     }, [messages]);
+
+    const {
+        mediaData,
+        loading: mediaLoading,
+        error: mediaError,
+    } = useMedia(
+        resolvedTargetId ? [resolvedTargetId] : [],
+        "PROFILE",
+        "image"
+    );
+
+    const avatarUrl = mediaData?.[resolvedTargetId]?.[0]?.url || "/assets/default-avatar.png";
+
+    useEffect(() => {
+        if (messages?.length > 0) {
+            const firstSenderId = messages[0].senderId;
+            if (firstSenderId !== user.id) {
+                targetUserId.current = firstSenderId;
+            } else {
+                const recipient = messages.find(m => m.senderId !== user.id);
+                if (recipient) targetUserId.current = recipient.senderId;
+            }
+
+            if (targetUserId.current) {
+                setResolvedTargetId(targetUserId.current);
+            }
+        }
+    }, [messages, user.id]);
 
     const fetchUnreadMessageCount = async () => {
         try {
             const response = await fetch(
                 `${process.env.REACT_APP_API_URL}/chat/messages/unread-count`,
                 { headers: { Authorization: `Bearer ${token}` } }
-        );
+            );
             if (response.ok) {
                 const messageData = await response.json();
                 window.dispatchEvent(
@@ -178,65 +213,134 @@ const Chat = ({ chatId, messages, onMessageUpdate, onSendMessage }) => {
 
 
     useEffect(() => {
-    if (chatContainerRef.current) {
-        chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
-    }
-}, [messages, typingUsers]);
-
-const sendMessage = () => {
-    if (!message.trim()) return;
-    const msg = {
-        chatId: Number(chatId),
-        senderId: user.id,
-        content: message,
-        typeId: 1,
+        if (chatContainerRef.current) {
+            chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+        }
+    }, [messages, typingUsers]);
+    const chunkMedia = (mediaList, size = 3) => {
+        const chunks = [];
+        for (let i = 0; i < mediaList.length; i += size) {
+            chunks.push(mediaList.slice(i, i + size));
+        }
+        return chunks;
     };
-    publish("/app/sendMessage", msg);
-    setMessage("");
-    publish("/app/typing", {
-        chatId: Number(chatId),
-        userId: user.id,
-        username: user.username,
-        isTyping: false,
-    });
-    console.log("Sent message:", msg);
-};
 
-const handleKeyPress = (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        sendMessage();
-    }
-};
+    const sendMessage = () => {
+        if (!message.trim() && selectedMediaPreviews.length === 0) return;
 
-const sendTyping = () => {
-    if (message.length > 0) {
-        publish("/app/typing", {
+        const mediaList = selectedMediaPreviews.map((media) => ({
+            url: media.uploadedUrl,
+            type: media.mediaType
+        }));
+
+        const msg = {
             chatId: Number(chatId),
-            userId: user.id,
-            username: user.username,
-            isTyping: true,
-        });
-        console.log("Sent typing status");
-    } else {
+            senderId: user.id,
+            content: message.trim(),
+            mediaList, // Gửi nhiều media
+            typeId: mediaList.length > 0 ? 2 : 1,
+        };
+
+        publish("/app/sendMessage", msg);
+        setMessage("");
+        setSelectedMediaPreviews([]);
+        setSelectedMediaFiles([]);
+
         publish("/app/typing", {
             chatId: Number(chatId),
             userId: user.id,
             username: user.username,
             isTyping: false,
         });
-    }
-};
+    };
+
+    const handleKeyPress = (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    };
+
+    const sendTyping = () => {
+        if (message.length > 0) {
+            publish("/app/typing", {
+                chatId: Number(chatId),
+                userId: user.id,
+                username: user.username,
+                isTyping: true,
+            });
+            console.log("Sent typing status");
+        } else {
+            publish("/app/typing", {
+                chatId: Number(chatId),
+                userId: user.id,
+                username: user.username,
+                isTyping: false,
+            });
+        }
+    };
 
 // Hàm điều hướng đến trang Call
-const handleStartCall = () => {
-    navigate(`/call/${chatId}`);
-};
+    const handleStartCall = () => {
+        navigate(`/call/${chatId}`);
+    };
+
+    const handleFileSelect = async (files) => {
+        const previews = [];
+
+        for (const file of files) {
+            const mediaType = file.type.startsWith("image/")
+                ? (file.type === "image/gif" ? "gif" : "image")
+                : file.type.startsWith("video/") ? "video" : "other";
+
+            const formData = new FormData();
+            formData.append("userId", user.id);
+            formData.append("targetId", chatId);
+            formData.append("targetTypeCode", "MESSAGE");
+            formData.append("mediaTypeName", mediaType);
+            formData.append("file", file);
+
+            try {
+                const res = await fetch(`${process.env.REACT_APP_API_URL}/media/upload`, {
+                    method: "POST",
+                    headers: { Authorization: `Bearer ${token}` },
+                    body: formData,
+                });
+
+                if (!res.ok) throw new Error("Upload thất bại");
+                const data = await res.json();
+
+                if (selectedMediaPreviews.length + previews.length >= 15) {
+                    toast.error("Chỉ gửi tối đa 15 ảnh/video mỗi tin nhắn");
+                    return;
+                }
+
+                previews.push({
+                    url: URL.createObjectURL(file),
+                    type: file.type,
+                    uploadedUrl: data.url,
+                    mediaType: data.mediaTypeName,
+                });
+            } catch (err) {
+                toast.error("Không thể gửi file: " + err.message);
+            }
+        }
+
+        setSelectedMediaPreviews((prev) => [...prev, ...previews]);
+    };
 
     return (
         <div className="flex flex-col h-full bg-[var(--background-color)]">
             <div className="p-3 border-b border-[var(--border-color)] bg-[var(--background-color)] shadow-sm flex items-center">
-                <h5 className="mb-0 flex-grow text-[var(--text-color)]">{recipientName}</h5>
+                <div className="flex items-center gap-2 flex-grow">
+                    <img
+                        src={avatarUrl}
+                        alt="Avatar"
+                        className="w-8 h-8 rounded-full object-cover"
+                    />
+                    <h5 className="mb-0 text-[var(--text-color)]">{recipientName}</h5>
+                </div>
+
                 <OverlayTrigger placement="left" overlay={<Tooltip className="!bg-[var(--tooltip-bg-color)] !text-[var(--text-color)] dark:!bg-gray-800 dark:!text-white">
                     Gọi video
                 </Tooltip>}>
@@ -281,6 +385,20 @@ const handleStartCall = () => {
                                 ) : (
                                     <>
                                         {msg.content}
+                                        {/* ✅ Hiển thị media nếu có */}
+                                        {msg.mediaList && msg.mediaList.length > 0 && (
+                                            <div className="grid grid-cols-3 gap-1 mt-2">
+                                                {msg.mediaList.map((media, idx) => (
+                                                    <div key={idx} className="relative w-full aspect-square">
+                                                        {media.type.startsWith("image") ? (
+                                                            <img src={media.url} className="w-full h-full object-cover rounded" alt="media" />
+                                                        ) : (
+                                                            <video src={media.url} className="w-full h-full object-cover rounded" controls />
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
                                         <div className="text-end mt-1">
                                             <small className={`${msg.senderId === user?.id ? "text-[var(--light-text-color)]" : "text-[var(--text-color-muted)]"} text-xs`}>
                                                 {new Date(msg.createdAt).toLocaleTimeString()}
@@ -294,18 +412,80 @@ const handleStartCall = () => {
                 })}
                 {typingUsers.length > 0 && <div className="text-[var(--text-color-muted)]">{typingUsers.join(", ")} đang nhập...</div>}
             </div>
-            <div className="p-3 border-t border-[var(--border-color)] bg-[var(--background-color)]">
-                <div className="flex items-center bg-[var(--input-bg-color)] rounded-xl shadow-sm overflow-hidden">
-                    <button className="p-2 text-[var(--text-color)] hover:opacity-80"><FaPaperclip /></button>
+            <div className="p-3 border-t border-[var(--border-color)] bg-[var(--background-color)] relative">
+                {/* Media preview */}
+                {selectedMediaPreviews.length > 0 && (
+                    <div className="flex gap-2 overflow-x-auto mb-2">
+                        {selectedMediaPreviews.map((media, idx) => (
+                            <div key={idx} className="relative w-20 h-20 border rounded overflow-hidden">
+                                {media.type.startsWith("image/") ? (
+                                    <img src={media.url} className="w-full h-full object-cover" alt="preview" />
+                                ) : (
+                                    <video src={media.url} className="w-full h-full object-cover" controls />
+                                )}
+                                <button
+                                    onClick={() => {
+                                        setSelectedMediaPreviews((prev) => prev.filter((_, i) => i !== idx));
+                                        setSelectedMediaFiles((prev) => prev.filter((_, i) => i !== idx));
+                                    }}
+                                    className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                                >
+                                    ×
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* Input + Action Bar */}
+                <div className="flex items-center bg-[var(--input-bg-color)] rounded-xl shadow-sm overflow-hidden px-2">
+                    <MediaActionBar
+                        onFileSelect={(files) => {
+                            // Preview
+                            setSelectedMediaFiles((prev) => [...prev, ...files]);
+                            setSelectedMediaPreviews((prev) => [
+                                ...prev,
+                                ...files.map((f) => ({
+                                    url: URL.createObjectURL(f),
+                                    type: f.type,
+                                })),
+                            ]);
+                            handleFileSelect(files); // Upload
+                        }}
+                        onSelectEmoji={(emoji) => {
+                            const input = inputRef.current;
+                            if (!input) return;
+
+                            const start = input.selectionStart;
+                            const end = input.selectionEnd;
+
+                            const newText =
+                                message.substring(0, start) + emoji.emoji + message.substring(end);
+                            setMessage(newText);
+
+                            setTimeout(() => {
+                                input.focus();
+                                const cursorPosition = start + emoji.emoji.length;
+                                input.setSelectionRange(cursorPosition, cursorPosition);
+                            }, 0);
+                        }}
+                    />
+
                     <input
+                        ref={inputRef}
                         type="text"
                         placeholder="Nhập tin nhắn..."
                         value={message}
-                        onChange={(e) => { setMessage(e.target.value); sendTyping(); }}
+                        onChange={(e) => {
+                            setMessage(e.target.value);
+                            sendTyping();
+                        }}
                         onKeyPress={handleKeyPress}
                         className="flex-grow bg-transparent border-none px-2 py-2 text-[var(--text-color)] placeholder:text-[var(--text-color-muted)] outline-none"
                     />
-                    <button onClick={sendMessage} className="p-2 text-[var(--text-color)] hover:opacity-80"><FaPaperPlane /></button>
+                    <button onClick={sendMessage} className="p-2 text-[var(--text-color)] hover:opacity-80">
+                        <FaPaperPlane />
+                    </button>
                 </div>
             </div>
             <ToastContainer />

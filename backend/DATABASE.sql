@@ -2325,7 +2325,7 @@ GO
 	BEGIN
 		SET NOCOUNT ON;
 		DECLARE @ErrorMessage NVARCHAR(4000);
-		DECLARE @new_created_at DATETIME; -- Thay đổi thành DATETIME
+		DECLARE @new_created_at DATETIMEOFFSET;
 
 		BEGIN TRY
 			-- Kiểm tra chat_id
@@ -2367,9 +2367,9 @@ GO
 				THROW 50004, @ErrorMessage, 1;
 			END
 
-			-- Thêm tin nhắn vào tblMessage
-			INSERT INTO tblMessage (chat_id, sender_id, type_id, content, media_url, media_type, created_at, status)
-			VALUES (@chat_id, @sender_id, 1, @content, @media_url, @media_type, GETDATE(), 1); -- Sử dụng GETDATE()
+			-- Thêm tin nhắn vào tblMessage (loại media bị loại bỏ ở đây)
+			INSERT INTO tblMessage (chat_id, sender_id, type_id, content, created_at, status)
+			VALUES (@chat_id, @sender_id, 1, @content, SYSDATETIMEOFFSET(), 1);
 
 			-- Lấy ID và created_at của tin nhắn vừa thêm
 			SET @new_message_id = SCOPE_IDENTITY();
@@ -2377,7 +2377,7 @@ GO
 
 			-- Thêm trạng thái tin nhắn cho các thành viên (trừ người gửi và những người đánh dấu người gửi là spam)
 			INSERT INTO tblMessageStatus (message_id, user_id, status, created_at)
-			SELECT @new_message_id, cm.user_id, 'unread', GETDATE() -- Sử dụng GETDATE()
+			SELECT @new_message_id, cm.user_id, 'unread', SYSDATETIMEOFFSET()
 			FROM tblChatMember cm
 			WHERE cm.chat_id = @chat_id 
 			AND cm.user_id != @sender_id 
@@ -3249,7 +3249,7 @@ WHERE definition LIKE '%friendship%';
         )
             SET @has_access = 0;
     END;
-	select * from tblUser
+
     CREATE TABLE tblErrorLog (
         id INT PRIMARY KEY IDENTITY(1, 1),
         error_message NVARCHAR(4000),
@@ -3427,34 +3427,7 @@ WHERE definition LIKE '%friendship%';
         updated_at = GETDATE()
     WHERE user_id = 2;
 
-    -- tblCustomPrivacyLists (Danh sách quyền riêng tư tùy chỉnh)
-    INSERT INTO tblCustomPrivacyLists (user_id, list_name, created_at, status) VALUES
-    (1, 'CloseFriends', GETDATE(), 1),
-    (9, 'Family', GETDATE(), 1);
 
-    -- tblCustomPrivacyListMembers (Thành viên trong danh sách tùy chỉnh)
-    INSERT INTO tblCustomPrivacyListMembers (list_id, member_user_id, added_at, status) VALUES
-    (1, 46, GETDATE(), 1), -- User 1 trong danh sách CloseFriends của User 4
-    (1, 47, GETDATE(), 1), -- User 2 trong danh sách CloseFriends của User 4
-    (2, 49, GETDATE(), 1); -- User 3 trong danh sách Family của User 4
-
-
-    -- tblContentPrivacy (Quyền riêng tư cho bài viết)
-    INSERT INTO tblContentPrivacy (content_id, content_type_id, privacy_setting, custom_list_id, updated_at, status) VALUES
-    (3, 1, 'custom', 1, GETDATE(), 1); -- Bài viết ID=3 của User 4 có quyền riêng tư tùy chỉnh
-
-
-    -- tblStory (Câu chuyện)
-
-    -- tblContentPrivacy (Quyền riêng tư cho câu chuyện)
-    INSERT INTO tblContentPrivacy (content_id, content_type_id, privacy_setting, custom_list_id, updated_at, status) VALUES
-    (2, 3, 'custom', 1, GETDATE(), 1); -- Câu chuyện ID=2 của User 4 có quyền riêng tư tùy chỉnh
-
-    ------the fifth----------
-    -- tblReaction (Phản hồi)
-    INSERT INTO tblReaction (user_id, reaction_type_id, target_id, target_type_id, created_at, status) VALUES
-    (2, 1, 1, 1, GETDATE(), 1), -- User 2 thích bài viết ID=1
-    (3, 2, 1, 3, GETDATE(), 1); -- User 3 yêu thích câu chuyện ID=1
 
     -- tblAnalytics (Phân tích)
     INSERT INTO tblAnalytics (field_name, field_value, update_time, status) VALUES

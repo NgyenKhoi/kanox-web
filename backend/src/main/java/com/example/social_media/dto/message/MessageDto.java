@@ -1,9 +1,11 @@
 package com.example.social_media.dto.message;
 
+import com.example.social_media.dto.media.MediaDto;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
 import java.io.Serializable;
 import java.time.Instant;
+import java.util.List;
 
 public class MessageDto implements Serializable {
     private Integer id;
@@ -13,8 +15,20 @@ public class MessageDto implements Serializable {
     private Integer typeId;
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
     private Instant createdAt;
+    private List<MediaDto> mediaList;
 
     public MessageDto() {}
+
+    public MessageDto(Integer id, Integer chatId, Integer senderId, String content, Integer typeId, Instant createdAt,
+                      List<MediaDto> mediaList
+                      ) {
+        this.id = id;
+        this.chatId = chatId;
+        this.senderId = senderId;
+        this.content = content;
+        this.typeId = typeId;
+        this.createdAt = createdAt;
+    }
 
     public MessageDto(Integer id, Integer chatId, Integer senderId, String content, Integer typeId, Instant createdAt) {
         this.id = id;
@@ -38,4 +52,6 @@ public class MessageDto implements Serializable {
     public void setTypeId(Integer typeId) { this.typeId = typeId; }
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+    public List<MediaDto> getMediaList() { return mediaList; }
+    public void setMediaList(List<MediaDto> mediaList) { this.mediaList = mediaList; }
 }

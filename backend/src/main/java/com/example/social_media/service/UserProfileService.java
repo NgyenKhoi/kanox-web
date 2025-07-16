@@ -61,10 +61,10 @@ public class UserProfileService {
             profileImageUrl = profileMedia.getFirst().getUrl();
         }
 
-        int postCount = postRepository.countByOwnerIdAndStatusTrue(targetUser.getId());
+        int postCount = postRepository.countByOwnerAndStatusTrue(targetUser); // ✅ fix: truyền User
 
         // 👉 Lấy thêm cài đặt quyền riêng tư hồ sơ
-        var profilePrivacy = privacyService.getProfilePrivacySetting(targetUser.getId()); // ví dụ
+        var profilePrivacy = privacyService.getProfilePrivacySetting(targetUser.getId());
         String profilePrivacySetting = profilePrivacy.getPrivacySetting();
 
         // Nếu không có quyền xem
@@ -81,7 +81,8 @@ public class UserProfileService {
                     0,
                     profileImageUrl,
                     0,
-                    profilePrivacySetting
+                    profilePrivacySetting,
+                    null
             );
         }
 
@@ -101,9 +102,11 @@ public class UserProfileService {
                 followeeCount,
                 profileImageUrl,
                 postCount,
-                profilePrivacySetting
+                profilePrivacySetting,
+                targetUser.getPhoneNumber()
         );
     }
+
 
     @Transactional
     public UserProfileDto updateUserProfile(String username, UserUpdateProfileDto updateDto, MultipartFile avatarFile) throws IOException {
@@ -127,9 +130,10 @@ public class UserProfileService {
 
         int followerCount = followRepository.countByFolloweeAndStatusTrue(user);
         int followeeCount = followRepository.countByFollowerAndStatusTrue(user);
-        int postCount = postRepository.countByOwnerIdAndStatusTrue(user.getId());
+        int postCount = postRepository.countByOwnerAndStatusTrue(user); // ✅ fix: dùng cùng kiểu
 
         ProfilePrivacySettingDto profilePrivacy = privacyService.getProfilePrivacySetting(user.getId());
+        user.setPhoneNumber(updateDto.getPhoneNumber());
 
         return new UserProfileDto(
                 user.getId(),
@@ -143,7 +147,8 @@ public class UserProfileService {
                 followeeCount,
                 profileImageUrl,
                 postCount,
-                profilePrivacy.getPrivacySetting()
+                profilePrivacy.getPrivacySetting(),
+                user.getPhoneNumber()
         );
     }
 

@@ -57,11 +57,6 @@ public class ReactionController {
         return ResponseEntity.ok(result);
     }
 
-    @GetMapping(URLConfig.GET_MAIN_REACTION)
-    public ResponseEntity<List<ReactionType>> getMainReactions() {
-        return ResponseEntity.ok(reactionService.getMainReactions());
-    }
-
     @PostMapping(URLConfig.ADD_REACTION_BY_NAME)
     public ResponseEntity<Void> addReactionByName(@RequestBody ReactionRequestDto dto) {
         reactionService.addOrUpdateReaction(
@@ -84,7 +79,7 @@ public class ReactionController {
     }
 
 
-    @GetMapping("/emoji-main-list")
+    @GetMapping(URLConfig.EMOJI_MAIN_LIST)
     public ResponseEntity<List<Map<String, String>>> getMainEmojiList() {
         List<ReactionType> types = reactionService.getMainReactions();
 
@@ -95,19 +90,15 @@ public class ReactionController {
         return ResponseEntity.ok(result);
     }
 
-    @PostMapping("/user")
-    public ResponseEntity<?> getUserReaction(@RequestBody ReactionRequestDto dto) {
-        ReactionType reaction = reactionService.getReactionOfUser(
-                dto.getUserId(),
-                dto.getTargetId(),
-                dto.getTargetTypeCode()
-        );
-
+    @GetMapping(URLConfig.GET_REACTION_BY_USER)
+    public ResponseEntity<?> getUserReaction(@RequestParam Integer userId,
+                                             @RequestParam Integer targetId,
+                                             @RequestParam String targetTypeCode) {
+        ReactionType reaction = reactionService.getReactionOfUser(userId, targetId, targetTypeCode);
         if (reaction == null) {
-            return ResponseEntity.ok().body(null); // chưa thả cảm xúc
+            return ResponseEntity.noContent().build(); // Trả status 204
         }
-
-        return ResponseEntity.ok(new ReactionResponseDto(reaction));
+        return ResponseEntity.ok().body(new ReactionResponseDto(reaction));
     }
 
     @GetMapping(URLConfig.LIST_REACTION_BY_TYPE)
