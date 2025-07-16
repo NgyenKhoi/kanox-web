@@ -2325,7 +2325,7 @@ GO
 	BEGIN
 		SET NOCOUNT ON;
 		DECLARE @ErrorMessage NVARCHAR(4000);
-		DECLARE @new_created_at DATETIMEOFFSET;
+		DECLARE @new_created_at DATETIME; -- Thay đổi thành DATETIME
 
 		BEGIN TRY
 			-- Kiểm tra chat_id
@@ -2369,7 +2369,7 @@ GO
 
 			-- Thêm tin nhắn vào tblMessage
 			INSERT INTO tblMessage (chat_id, sender_id, type_id, content, media_url, media_type, created_at, status)
-			VALUES (@chat_id, @sender_id, 1, @content, @media_url, @media_type, SYSDATETIMEOFFSET(), 1);
+			VALUES (@chat_id, @sender_id, 1, @content, @media_url, @media_type, GETDATE(), 1); -- Sử dụng GETDATE()
 
 			-- Lấy ID và created_at của tin nhắn vừa thêm
 			SET @new_message_id = SCOPE_IDENTITY();
@@ -2377,7 +2377,7 @@ GO
 
 			-- Thêm trạng thái tin nhắn cho các thành viên (trừ người gửi và những người đánh dấu người gửi là spam)
 			INSERT INTO tblMessageStatus (message_id, user_id, status, created_at)
-			SELECT @new_message_id, cm.user_id, 'unread', SYSDATETIMEOFFSET()
+			SELECT @new_message_id, cm.user_id, 'unread', GETDATE() -- Sử dụng GETDATE()
 			FROM tblChatMember cm
 			WHERE cm.chat_id = @chat_id 
 			AND cm.user_id != @sender_id 
