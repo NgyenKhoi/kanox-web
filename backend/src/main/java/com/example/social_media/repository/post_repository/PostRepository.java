@@ -80,7 +80,7 @@ public interface PostRepository extends JpaRepository<Post, Integer> {
       AND g.status = 1
       AND (
           -- Bài viết từ các nhóm công khai
-          g.privacy = 'PUBLIC'
+          g.privacy_level = 'public'
 
           -- Hoặc nhóm mà user đã tham gia
           OR g.id IN (
