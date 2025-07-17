@@ -168,11 +168,6 @@ function SettingsPage() {
     const handleSave = async () => {
         setSaving(true);
         const token = sessionStorage.getItem("token") || localStorage.getItem("token");
-        // if (!token) {
-        //     toast.error("Không tìm thấy token. Vui lòng đăng nhập lại.");
-        //     navigate("/login");
-        //     return;
-        // }
 
         try {
             // Gửi cập nhật bài đăng/bình luận

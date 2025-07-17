@@ -36,7 +36,19 @@ public interface FriendshipRepository extends JpaRepository<Friendship, Friendsh
             @Param("friendshipStatus") String friendshipStatus,
             @Param("status") boolean status);
 
-    @Query("SELECT f.friend.id FROM Friendship f WHERE f.user.id = :userId AND f.friendshipStatus = :status AND f.status = true")
-    List<Integer> findFriendIdsByUserIdAndStatus(@Param("userId") Integer userId, @Param("status") String status);
+    @Query("""
+    SELECT CASE
+        WHEN f.user.id = :userId THEN f.friend.id
+        ELSE f.user.id
+    END
+    FROM Friendship f
+    WHERE (f.user.id = :userId OR f.friend.id = :userId)
+      AND f.friendshipStatus = :status
+      AND f.status = true
+""")
+    List<Integer> findBidirectionalFriendIdsByUserIdAndStatus(
+            @Param("userId") Integer userId,
+            @Param("status") String status
+    );
 
 }
