@@ -708,7 +708,13 @@ function TweetCard({ tweet, onPostUpdate }) {
                   <Dropdown.Toggle
                     variant="link"
                     className="text-[var(--text-color-muted)] p-0 w-9 h-9 rounded-full d-flex align-items-center justify-content-center hover:bg-gray-700 hover:text-white"
-                    style={{ fontSize: "1.2rem", textDecoration: "none" }}
+                    style={{
+                      fontSize: "1.2rem",
+                      textDecoration: "none",
+                      "::after": {
+                        display: "none",
+                      },
+                    }}
                   >
                     <FaEllipsisH />
                   </Dropdown.Toggle>
