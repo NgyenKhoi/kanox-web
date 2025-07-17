@@ -24,48 +24,38 @@ public interface PostRepository extends JpaRepository<Post, Integer> {
     );
 
     @Query(value = """
-    SELECT * FROM (
-        (
-            SELECT p.*
-            FROM tblPost p
-            INNER JOIN tblFriendship f ON p.owner_id = f.friend_id
-            WHERE f.user_id = :userId AND f.friendship_status = 'accepted' AND f.status = 1
-              AND p.status = 1
-              AND (
-                    p.privacy_setting = 'public'
-                 OR (p.privacy_setting = 'friends' AND f.friend_id = p.owner_id)
-                 OR (p.privacy_setting = 'custom'
-                     AND EXISTS (
-                         SELECT 1
-                         FROM tblContentPrivacy cp
-                         INNER JOIN tblCustomPrivacyListMembers cplm
-                             ON cp.custom_list_id = cplm.list_id
-                         WHERE cp.content_id = p.id
-                           AND cp.content_type_id = 1
-                           AND cplm.member_user_id = :userId
-                           AND cplm.status = 1
-                     ))
-                 OR (p.privacy_setting = 'only_me' AND p.owner_id = :userId)
-              )
+    SELECT p.*
+    FROM tblPost p
+    LEFT JOIN tblGroup g ON p.group_id = g.id
+    WHERE p.status = 1
+      AND (
+        -- Bài viết của chính user
+        p.owner_id = :userId
+
+        -- Bài viết của bạn bè: chỉ khi privacy là 'friends' hoặc 'public'
+        OR (
+            p.owner_id IN (
+                SELECT friend_id FROM tblFriendship
+                WHERE user_id = :userId AND friendship_status = 'accepted' AND status = 1
+                UNION
+                SELECT user_id FROM tblFriendship
+                WHERE friend_id = :userId AND friendship_status = 'accepted' AND status = 1
+            )
+            AND p.privacy_setting IN ('friends', 'public')
         )
-        UNION
-        (
-            SELECT p.*
-            FROM tblPost p
-            WHERE p.owner_id = :userId AND p.status = 1
+
+        -- Bài viết public của người lạ
+        OR p.privacy_setting = 'public'
+
+        -- Bài trong nhóm user đã tham gia
+        OR (
+            p.group_id IN (
+                SELECT group_id FROM tblGroupMember
+                WHERE user_id = :userId AND invite_status = 'ACCEPTED' AND status = 1
+            )
         )
-        UNION
-        (
-            SELECT p.*
-            FROM tblPost p
-            LEFT JOIN tblGroup g ON p.group_id = g.id
-            WHERE p.privacy_setting = 'public'
-              AND p.status = 1
-              AND (p.group_id IS NULL OR g.privacy_level = 'public')
-              AND p.owner_id != :userId
-        )
-    ) AS merged
-    ORDER BY merged.created_at DESC
+    )
+    ORDER BY p.created_at DESC
     """, nativeQuery = true)
     List<Post> findNewsfeedPosts(@Param("userId") Integer userId);
 
@@ -75,14 +65,30 @@ public interface PostRepository extends JpaRepository<Post, Integer> {
 
     int countByOwnerAndStatusTrue(User owner);
 
-    @Query("SELECT p FROM Post p WHERE p.status = true AND p.group IS NOT NULL AND p.group.status = true ORDER BY p.createdAt DESC")
-    List<Post> findPostsFromPublicGroups();
-    @EntityGraph(attributePaths = {"tblComments"})
-    List<Post> findByGroupIdInAndStatusTrueOrderByCreatedAtDesc(List<Integer> groupIds);
     @EntityGraph(attributePaths = {"tblComments"})
     List<Post> findByGroupIdAndStatusTrueOrderByCreatedAtDesc(Integer groupId);
 
     long count();
     @EntityGraph(attributePaths = {"tblComments"})
     List<Post> findByOwnerIdAndGroupIdAndStatusTrueOrderByCreatedAtDesc(Integer ownerId, Integer groupId);
+
+    @Query(value = """
+    SELECT p.*
+    FROM tblPost p
+    JOIN tblGroup g ON p.group_id = g.id
+    WHERE p.status = 1
+      AND g.status = 1
+      AND (
+          -- Bài viết từ các nhóm công khai
+          g.privacy = 'PUBLIC'
+
+          -- Hoặc nhóm mà user đã tham gia
+          OR g.id IN (
+              SELECT group_id FROM tblGroupMember
+              WHERE user_id = :userId AND invite_status = 'ACCEPTED' AND status = 1
+          )
+      )
+    ORDER BY p.created_at DESC
+""", nativeQuery = true)
+    List<Post> findCommunityFeedPosts(@Param("userId") Integer userId);
 }

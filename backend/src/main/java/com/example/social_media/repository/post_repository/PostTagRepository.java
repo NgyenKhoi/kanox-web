@@ -12,4 +12,6 @@ public interface PostTagRepository extends JpaRepository<PostTag, Integer> {
     void deleteByPostId(Integer postId);
 
     List<PostTag> findByPost_IdInAndStatusTrue(List<Integer> postIds);
+
+    List<PostTag> findAllByPostIdInAndStatusTrue(List<Integer> postIds);
 }

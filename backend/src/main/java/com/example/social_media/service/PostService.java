@@ -20,11 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Instant;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import com.example.social_media.dto.post.SharePostRequestDto;
@@ -396,43 +392,52 @@ public class PostService {
         User user = userRepository.findByUsernameAndStatusTrue(username)
                 .orElseThrow(() -> new UserNotFoundException("Không tìm thấy người dùng hoặc người dùng không hoạt động"));
 
-        List<Integer> joinedGroupIds = groupMemberRepository
-                .findByUserIdAndStatusTrueAndInviteStatusAccepted(user.getId())
-                .stream()
-                .map(member -> member.getGroup().getId())
-                .toList();
+        Integer userId = user.getId();
 
-        List<SavedPost> savedPosts = savedPostRepository.findByUserIdAndStatusTrue(user.getId());
-        List<Integer> savedPostIds = savedPosts.stream()
+        // ✅ Lấy bài viết từ nhóm công khai + nhóm đã tham gia
+        List<Post> posts = postRepository.findCommunityFeedPosts(userId);
+
+        List<Integer> postIds = posts.stream().map(Post::getId).toList();
+
+        // ✅ Kiểm tra quyền truy cập
+        Map<Integer, Boolean> accessMap = privacyService.checkContentAccessBatch(userId, postIds, "post");
+
+        // ✅ Bài viết đã lưu
+        Set<Integer> savedPostIdSet = savedPostRepository.findByUserIdAndStatusTrue(userId).stream()
                 .map(sp -> sp.getPost().getId())
-                .collect(Collectors.toList());
+                .collect(Collectors.toSet());
 
-        List<Post> posts = joinedGroupIds.isEmpty()
-                ? postRepository.findPostsFromPublicGroups()
-                : postRepository.findByGroupIdInAndStatusTrueOrderByCreatedAtDesc(joinedGroupIds);
+        List<Integer> savedPostIds = new ArrayList<>(savedPostIdSet);
 
-        List<Integer> postIds = posts.stream().map(Post::getId).collect(Collectors.toList());
-        Map<Integer, Boolean> accessMap = privacyService.checkContentAccessBatch(user.getId(), postIds, "post");
-
-        Map<Integer, List<PostTag>> postTagsMap = postIds.stream()
-                .flatMap(postId -> postTagRepository.findByPostIdAndStatusTrue(postId).stream())
+        // ✅ Gắn tag bài viết
+        Map<Integer, List<PostTag>> postTagsMap = postTagRepository.findAllByPostIdInAndStatusTrue(postIds).stream()
                 .collect(Collectors.groupingBy(pt -> pt.getPost().getId()));
 
+        // ✅ Media
         Map<Integer, List<MediaDto>> mediaMap = new HashMap<>();
         if (!postIds.isEmpty()) {
             mediaMap.putAll(mediaService.getMediaByTargetIds(postIds, "POST", "image", true));
             mediaMap.putAll(mediaService.getMediaByTargetIds(postIds, "POST", "video", true));
         }
 
+        // ✅ Reaction
         Map<Integer, Map<ReactionType, Long>> reactionCountMap = postIds.stream()
                 .collect(Collectors.toMap(
                         postId -> postId,
                         postId -> reactionService.countAllReactions(postId, "POST")
                 ));
 
+        // ✅ Trả về DTO
         return posts.stream()
                 .filter(post -> accessMap.getOrDefault(post.getId(), false))
-                .map(post -> convertToDto(post, user.getId(), savedPostIds, postTagsMap, mediaMap, reactionCountMap))
+                .map(post -> convertToDto(
+                        post,
+                        userId,
+                        savedPostIds,
+                        postTagsMap,
+                        mediaMap,
+                        reactionCountMap
+                ))
                 .toList();
     }
 
