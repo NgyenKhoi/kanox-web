@@ -289,7 +289,7 @@ public class PrivacyService {
                 ));
 
         // Lấy danh sách ID bạn bè của viewer
-        List<Integer> friendIds = friendshipRepository.findFriendIdsByUserIdAndStatus(viewerId, "accepted");
+        List<Integer> friendIds = friendshipRepository.findBidirectionalFriendIdsByUserIdAndStatus(viewerId, "accepted");
 
         // Lấy cài đặt quyền riêng tư cho tất cả owner
         List<Integer> ownerIds = new ArrayList<>(new HashSet<>(contentOwnerMap.values()));

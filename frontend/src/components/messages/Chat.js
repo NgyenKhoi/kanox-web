@@ -452,10 +452,12 @@ const Chat = ({ chatId, messages, onMessageUpdate, onSendMessage }) => {
                                             <div className="grid grid-cols-3 gap-1 mt-2">
                                                 {msg.mediaList.map((media, idx) => (
                                                     <div key={idx} className="relative w-full aspect-square">
-                                                        {media.type.startsWith("image") ? (
+                                                        {media.type === "image" ? (
                                                             <img src={media.url} className="w-full h-full object-cover rounded" alt="media" />
-                                                        ) : (
+                                                        ) : media.type === "video" ? (
                                                             <video src={media.url} className="w-full h-full object-cover rounded" controls />
+                                                        ) : (
+                                                            <div className="text-xs text-red-500">Không hỗ trợ media</div>
                                                         )}
                                                     </div>
                                                 ))}

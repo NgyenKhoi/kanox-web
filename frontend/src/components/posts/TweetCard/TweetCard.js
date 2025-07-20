@@ -136,7 +136,7 @@ function TweetCard({ tweet, onPostUpdate }) {
     reactionUserMap,
   } = useReaction({
     user,
-    targetId: tweet.id,
+    targetId: id,
     targetTypeCode: "POST",
     initialReactionCountMap: memoizedInitialReactionCountMap,
   });
@@ -195,7 +195,7 @@ function TweetCard({ tweet, onPostUpdate }) {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ originalPostId: tweet.id, content: "" }),
+          body: JSON.stringify({ originalPostId: id, content: "" }),
         }
       );
       const result = await response.json();
@@ -208,7 +208,7 @@ function TweetCard({ tweet, onPostUpdate }) {
   };
 
   const handleCopyLink = () => {
-    const postUrl = `${window.location.origin}/posts/${tweet.id}`;
+    const postUrl = `${window.location.origin}/posts/${id}`;
     navigator.clipboard.writeText(postUrl);
     toast.info("Đã sao chép liên kết!");
   };
@@ -306,7 +306,7 @@ function TweetCard({ tweet, onPostUpdate }) {
           },
           body: JSON.stringify({
             reporterId: user.id,
-            targetId: tweet.id,
+            targetId: id,
             targetTypeId: 1, // 1 = POST
             reasonId: parseInt(reportReasonId),
           }),
@@ -708,7 +708,13 @@ function TweetCard({ tweet, onPostUpdate }) {
                   <Dropdown.Toggle
                     variant="link"
                     className="text-[var(--text-color-muted)] p-0 w-9 h-9 rounded-full d-flex align-items-center justify-content-center hover:bg-gray-700 hover:text-white"
-                    style={{ fontSize: "1.2rem", textDecoration: "none" }}
+                    style={{
+                      fontSize: "1.2rem",
+                      textDecoration: "none",
+                      "::after": {
+                        display: "none",
+                      },
+                    }}
                   >
                     <FaEllipsisH />
                   </Dropdown.Toggle>
@@ -988,7 +994,7 @@ function TweetCard({ tweet, onPostUpdate }) {
               <div className="text-center">
                 <ReactionButtonGroup
                   user={user}
-                  targetId={tweet.id}
+                  targetId={id}
                   targetTypeCode="POST"
                   initialReactionCountMap={tweet.reactionCountMap}
                 />

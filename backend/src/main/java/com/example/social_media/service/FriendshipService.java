@@ -8,6 +8,8 @@ import com.example.social_media.entity.User;
 import com.example.social_media.exception.UserNotFoundException;
 import com.example.social_media.repository.FriendshipRepository;
 import com.example.social_media.repository.UserRepository;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -80,7 +82,10 @@ public class FriendshipService {
                 "PROFILE"
         );
     }
-
+    @Caching(evict = {
+            @CacheEvict(value = "newsfeed", key = "#requester.username"),
+            @CacheEvict(value = "newsfeed", key = "#user.username")
+    })
     @Transactional
     public void acceptFriendRequest(Integer userId, Integer requesterId) {
         String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
