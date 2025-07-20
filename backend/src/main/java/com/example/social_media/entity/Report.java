@@ -3,14 +3,16 @@ package com.example.social_media.entity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
 
 import java.time.Instant;
 
 @Entity
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Table(name = "tblReport", schema = "dbo")
 public class Report {
     @Id
@@ -50,6 +52,10 @@ public class Report {
     @ColumnDefault("1")
     @Column(name = "status")
     private Boolean status;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "reporter_type", nullable = false)
+    private ReporterType reporterType = ReporterType.ADMIN;
 
     public Integer getId() {
         return id;
@@ -114,4 +120,18 @@ public class Report {
     public void setStatus(Boolean status) {
         this.status = status;
     }
+
+    public ReporterType getReporterType() {
+        return reporterType;
+    }
+
+    public void setReporterType(ReporterType reporterType) {
+        this.reporterType = reporterType;
+    }
+
+    public enum ReporterType {
+        ADMIN,
+        AI
+    }
+
 }

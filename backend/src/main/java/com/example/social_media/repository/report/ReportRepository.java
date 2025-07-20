@@ -1,4 +1,4 @@
-package com.example.social_media.repository;
+package com.example.social_media.repository.report;
 
 import com.example.social_media.dto.report.ReportResponseDto;
 import com.example.social_media.entity.Report;
@@ -11,8 +11,6 @@ import org.springframework.data.jpa.repository.query.Procedure;
 import org.springframework.data.repository.query.Param;
 
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 

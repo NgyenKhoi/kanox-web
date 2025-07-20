@@ -7,8 +7,11 @@ import com.example.social_media.dto.report.ReportReasonDto;
 import com.example.social_media.entity.*;
 import com.example.social_media.exception.UserNotFoundException;
 import com.example.social_media.repository.*;
-import com.example.social_media.repository.post_repository.PostRepository;
-import org.springframework.dao.DataAccessException;
+import com.example.social_media.repository.post.PostAIModerationRepository;
+import com.example.social_media.repository.post.PostFlagHistoryRepository;
+import com.example.social_media.repository.post.PostFlagRepository;
+import com.example.social_media.repository.post.PostRepository;
+import com.example.social_media.repository.report.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -19,7 +22,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +38,10 @@ public class ReportService {
     private final PostRepository postRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final NotificationService notificationService;
+    private final PostFlagRepository postFlagRepository;
+    private final PostFlagHistoryRepository postFlagHistoryRepository;
+    private final PostAIModerationRepository postAIModerationRepository;
+
     private static final int MAX_REPORTS_PER_DAY = 3;
 
     public ReportService(
@@ -47,7 +53,10 @@ public class ReportService {
             ReportLimitRepository reportLimitRepository,
             PostRepository postRepository,
             SimpMessagingTemplate messagingTemplate,
-            NotificationService notificationService
+            NotificationService notificationService,
+            PostFlagRepository postFlagRepository,
+            PostFlagHistoryRepository postFlagHistoryRepository,
+            PostAIModerationRepository postAIModerationRepository
     ) {
         this.reportRepository = reportRepository;
         this.userRepository = userRepository;
@@ -58,6 +67,9 @@ public class ReportService {
         this.postRepository = postRepository;
         this.messagingTemplate = messagingTemplate;
         this.notificationService = notificationService;
+        this.postFlagRepository = postFlagRepository;
+        this.postFlagHistoryRepository = postFlagHistoryRepository;
+        this.postAIModerationRepository = postAIModerationRepository;
     }
 
     @Transactional
@@ -167,6 +179,37 @@ public class ReportService {
             System.out.println("report.getTargetId() = " + report.getTargetId());
 
             reportRepository.updateReportStatus(reportId, admin.getId(), request.getProcessingStatusId());
+
+            boolean isApproved = request.getProcessingStatusId() == 3;
+            boolean isPostReport = report.getTargetType() != null && report.getTargetType().getId() == 1;
+            boolean isReporterAI = report.getReporter() != null && Boolean.TRUE.equals(report.getReporter().getIsSystem());
+
+            if (isApproved && isPostReport) {
+                Post reportedPost = postRepository.findById(report.getTargetId())
+                        .orElseThrow(() -> new IllegalArgumentException("Post not found with id: " + report.getTargetId()));
+
+                // Với báo cáo từ AI
+                if (isReporterAI) {
+                    try {
+                        postFlagRepository.findByPostId(reportedPost.getId()).ifPresent(postFlagRepository::delete);
+                        postAIModerationRepository.findByPostId(reportedPost.getId()).ifPresent(postAIModerationRepository::delete);
+
+                        postRepository.delete(reportedPost);
+                        System.out.println("✅ [AI MODERATION] Post " + reportedPost.getId() + " deleted by AI report approval.");
+                    } catch (Exception e) {
+                        System.err.println("❌ Error during AI auto-moderation delete: " + e.getMessage());
+                    }
+                }
+                // Với báo cáo người dùng
+                else {
+                    try {
+                        postRepository.delete(reportedPost);
+                        System.out.println("✅ [USER MODERATION] Post " + reportedPost.getId() + " deleted by user report approval.");
+                    } catch (Exception e) {
+                        System.err.println("❌ Error during user report moderation delete: " + e.getMessage());
+                    }
+                }
+            }
 
             String message;
             switch (request.getProcessingStatusId()) {

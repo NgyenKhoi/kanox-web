@@ -1,4 +1,4 @@
-package com.example.social_media.repository.post_repository;
+package com.example.social_media.repository.post;
 
 import com.example.social_media.entity.Post;
 import com.example.social_media.entity.User;
@@ -91,4 +91,14 @@ public interface PostRepository extends JpaRepository<Post, Integer> {
     ORDER BY p.created_at DESC
 """, nativeQuery = true)
     List<Post> findCommunityFeedPosts(@Param("userId") Integer userId);
+
+    @Query("""
+    SELECT p
+    FROM Post p
+    WHERE p.id NOT IN (
+        SELECT pm.id FROM PostAIModeration pm WHERE pm.checked = true
+    )
+""")
+    List<Post> findUncheckedPosts();
+
 }

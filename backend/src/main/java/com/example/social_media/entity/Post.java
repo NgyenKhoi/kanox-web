@@ -80,6 +80,12 @@ public class Post {
     @JoinColumn(name = "shared_post_id")
     private Post sharedPost;
 
+    @OneToOne(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    private PostFlag postFlag;
+
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<PostFlagHistory> postFlagHistories = new LinkedHashSet<>();
+
     public Integer getId() {
         return id;
     }

@@ -6,7 +6,7 @@ import com.example.social_media.dto.report.ReportReasonDto;
 import com.example.social_media.entity.ReportReason;
 import com.example.social_media.entity.User;
 import com.example.social_media.exception.UserNotFoundException;
-import com.example.social_media.repository.ReportReasonRepository;
+import com.example.social_media.repository.report.ReportReasonRepository;
 import com.example.social_media.service.CustomUserDetailsService;
 import com.example.social_media.service.ReportService;
 import org.springframework.http.HttpStatus;

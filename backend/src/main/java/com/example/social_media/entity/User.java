@@ -48,6 +48,9 @@ public class User {
     @Column(name = "is_admin")
     private Boolean isAdmin;
 
+    @Column(name = "is_system", nullable = false)
+    private Boolean isSystem = false;
+
     @Size(max = 50)
     @Nationalized
     @Column(name = "display_name", length = 50)
@@ -73,6 +76,8 @@ public class User {
     @ColumnDefault("1")
     @Column(name = "status", nullable = false)
     private Boolean status = true;
+
+
 
     public User() {}
 
@@ -143,6 +148,14 @@ public class User {
 
     public void setIsAdmin(Boolean isAdmin) {
         this.isAdmin = isAdmin;
+    }
+
+    public Boolean getIsSystem() {
+        return isSystem;
+    }
+
+    public void setIsSystem(Boolean isSystem) {
+        this.isSystem = isSystem;
     }
 
     public String getDisplayName() {

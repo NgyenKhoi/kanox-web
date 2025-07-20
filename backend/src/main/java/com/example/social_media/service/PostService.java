@@ -9,7 +9,7 @@ import com.example.social_media.exception.RegistrationException;
 import com.example.social_media.exception.UserNotFoundException;
 import com.example.social_media.exception.UnauthorizedException;
 import com.example.social_media.repository.*;
-import com.example.social_media.repository.post_repository.*;
+import com.example.social_media.repository.post.*;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,6 +45,7 @@ public class PostService {
     private final ReactionService reactionService;
     private final TargetTypeRepository targetTypeRepository;
     private final PostShareRepository postShareRepository;
+    private final PostAIModerationRepository postAIModerationRepository;
 
     public PostService(PostRepository postRepository, PostTagRepository postTagRepository,
             UserRepository userRepository, ContentPrivacyRepository contentPrivacyRepository,
@@ -53,7 +54,8 @@ public class PostService {
             SavedPostRepository savedPostRepository, HiddenPostRepository hiddenPostRepository,
             GroupRepository groupRepository, GroupMemberRepository groupMemberRepository,
             ReactionService reactionService,
-            TargetTypeRepository targetTypeRepository, PostShareRepository postShareRepository) {
+            TargetTypeRepository targetTypeRepository, PostShareRepository postShareRepository,
+                       PostAIModerationRepository postAIModerationRepository) {
         this.postRepository = postRepository;
         this.postTagRepository = postTagRepository;
         this.userRepository = userRepository;
@@ -69,6 +71,7 @@ public class PostService {
         this.reactionService = reactionService;
         this.targetTypeRepository = targetTypeRepository;
         this.postShareRepository = postShareRepository;
+        this.postAIModerationRepository = postAIModerationRepository;
     }
 
     @CacheEvict(value = {"newsfeed", "postsByUsername", "communityFeed", "postsByGroup", "postsByUserInGroup", "savedPosts"}, allEntries = true)
@@ -300,49 +303,54 @@ public class PostService {
         User user = userRepository.findByUsernameAndStatusTrue(username)
                 .orElseThrow(() -> new UserNotFoundException("Không tìm thấy người dùng hoặc người dùng không hoạt động"));
 
-        // 1. Lấy tất cả bài viết newsfeed (tối đa 10–20 bản ghi như bạn nói)
         List<Post> posts = postRepository.findNewsfeedPosts(user.getId());
-        if (posts.isEmpty()) {
-            return List.of();
-        }
+        if (posts.isEmpty()) return List.of();
 
-        // 2. Các ID cần thiết
         List<Integer> postIds = posts.stream().map(Post::getId).toList();
-        List<Integer> hiddenPostIds = hiddenPostRepository.findHiddenPostIdsByUserId(user.getId());
-        List<Integer> savedPostIds = savedPostRepository.findByUserIdAndStatusTrue(user.getId())
-                .stream().map(sp -> sp.getPost().getId()).toList();
-
-        List<Integer> joinedGroupIds = groupMemberRepository
+        Set<Integer> hiddenPostIds = new HashSet<>(hiddenPostRepository.findHiddenPostIdsByUserId(user.getId()));
+        Set<Integer> savedPostIds = savedPostRepository.findByUserIdAndStatusTrue(user.getId())
+                .stream().map(sp -> sp.getPost().getId()).collect(Collectors.toSet());
+        Set<Integer> joinedGroupIds = groupMemberRepository
                 .findByUserIdAndStatusTrueAndInviteStatusAccepted(user.getId())
-                .stream().map(m -> m.getGroup().getId()).toList();
+                .stream().map(m -> m.getGroup().getId()).collect(Collectors.toSet());
 
         Map<Integer, Boolean> accessMap = privacyService.checkContentAccessBatch(user.getId(), postIds, "post");
 
-        // 3. Dữ liệu liên quan
         Map<Integer, List<PostTag>> postTagsMap = postTagRepository.findByPost_IdInAndStatusTrue(postIds)
                 .stream().collect(Collectors.groupingBy(pt -> pt.getPost().getId()));
-
         Map<Integer, List<MediaDto>> mediaMap = mediaService.getMediaByTargetIds(postIds, "POST", null, true);
-
         Map<Integer, Map<ReactionType, Long>> reactionCountMap = reactionService.countAllReactionsBatch(postIds, "POST");
 
-        // 4. Lọc và trả về DTO
+        Set<Integer> flaggedPostIds = new HashSet<>(postAIModerationRepository.findFlaggedPostIds());
+        List<Integer> savedPostIdList = new ArrayList<>(savedPostIds);
+
         return posts.stream()
-                .filter(post -> !hiddenPostIds.contains(post.getId()))
-                .filter(post -> {
-                    boolean access = accessMap.getOrDefault(post.getId(), false);
-                    Group group = post.getGroup();
-                    if (group == null) {
-                        return access;
-                    }
-                    if ("public".equalsIgnoreCase(group.getPrivacyLevel())) {
-                        return true;
-                    }
-                    return joinedGroupIds.contains(group.getId()) && access;
-                })
-                .map(post -> convertToDto(post, user.getId(), savedPostIds, postTagsMap, mediaMap, reactionCountMap))
+                .filter(post -> isValidPostForUser(post, user.getId(), accessMap, hiddenPostIds, flaggedPostIds, joinedGroupIds))
+                .map(post -> convertToDto(post, user.getId(), savedPostIdList, postTagsMap, mediaMap, reactionCountMap))
                 .toList();
     }
+
+        private boolean isValidPostForUser(Post post,
+                                           int userId,
+                                           Map<Integer, Boolean> accessMap,
+                                           Set<Integer> hiddenPostIds,
+                                           Set<Integer> flaggedPostIds,
+                                           Set<Integer> joinedGroupIds) {
+
+            int postId = post.getId();
+
+            if (hiddenPostIds.contains(postId)) return false;
+            if (flaggedPostIds.contains(postId)) return false;
+
+            boolean access = accessMap.getOrDefault(postId, false);
+            Group group = post.getGroup();
+
+            if (group == null) return access;
+
+            if ("public".equalsIgnoreCase(group.getPrivacyLevel())) return true;
+
+            return joinedGroupIds.contains(group.getId()) && access;
+        }
 
     @Cacheable(value = "postsByUsername", key = "#targetUsername + ':' + #currentUsername")
     public List<PostResponseDto> getPostsByUsername(String targetUsername, String currentUsername) {
@@ -403,11 +411,9 @@ public class PostService {
         Map<Integer, Boolean> accessMap = privacyService.checkContentAccessBatch(userId, postIds, "post");
 
         // ✅ Bài viết đã lưu
-        Set<Integer> savedPostIdSet = savedPostRepository.findByUserIdAndStatusTrue(userId).stream()
-                .map(sp -> sp.getPost().getId())
-                .collect(Collectors.toSet());
 
-        List<Integer> savedPostIds = new ArrayList<>(savedPostIdSet);
+        List<Integer> savedPostIds = savedPostRepository.findByUserIdAndStatusTrue(userId).stream()
+                .map(sp -> sp.getPost().getId()).distinct().collect(Collectors.toList());
 
         // ✅ Gắn tag bài viết
         Map<Integer, List<PostTag>> postTagsMap = postTagRepository.findAllByPostIdInAndStatusTrue(postIds).stream()

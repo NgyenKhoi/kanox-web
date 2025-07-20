@@ -1,4 +1,4 @@
-package com.example.social_media.repository.document_repository;
+package com.example.social_media.repository.document;
 
 import com.example.social_media.document.PageDocument;
 import org.springframework.data.elasticsearch.repository.ElasticsearchRepository;

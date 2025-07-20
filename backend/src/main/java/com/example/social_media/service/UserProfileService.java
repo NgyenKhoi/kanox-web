@@ -9,7 +9,7 @@ import com.example.social_media.entity.User;
 import com.example.social_media.exception.UserNotFoundException;
 import com.example.social_media.repository.FollowRepository;
 import com.example.social_media.repository.UserRepository;
-import com.example.social_media.repository.post_repository.PostRepository;
+import com.example.social_media.repository.post.PostRepository;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

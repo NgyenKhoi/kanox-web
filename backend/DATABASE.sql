@@ -30,10 +30,42 @@
         date_of_birth DATE,
         bio NVARCHAR(255),
         gender TINYINT CHECK (gender IN (0, 1, 2)),
+		is_system BIT NOT NULL DEFAULT 0,
         profile_privacy_setting VARCHAR(20) CHECK (profile_privacy_setting IN ('public', 'friends', 'only_me', 'custom', 'default')) DEFAULT 'default',
         status BIT NOT NULL DEFAULT 1
     );
-
+	--AI account 
+	INSERT INTO tblUser (
+    email,
+    username,
+    phone_number,
+    password,
+    persistent_cookie,
+    google_id,
+    is_admin,
+    display_name,
+    date_of_birth,
+    bio,
+    gender,
+    is_system,
+    profile_privacy_setting,
+    status
+) VALUES (
+    'ai@system.local',             -- Email
+    'ai_moderator',                -- Username
+    NULL,                          -- Phone number
+    '$2a$10$PLACEHOLDER_HASHED_PASSWORD',  -- Password đã hash (bạn thay lại)
+    NULL,                          -- persistent_cookie
+    NULL,                          -- google_id
+    0,                             -- is_admin
+    'AI Moderator',                -- display_name
+    NULL,                          -- date_of_birth
+    'This is an automated AI moderator account.', -- bio
+    2,                             -- gender = 2 (không xác định)
+    1,                             -- is_system = true
+    'only_me',                     -- profile_privacy_setting
+    1                              -- status = active
+);
 	CREATE TABLE tblVerifiedEmail (
     id INT PRIMARY KEY IDENTITY(1, 1),
     user_id INT NOT NULL,
@@ -1432,6 +1464,14 @@ GO
         status BIT DEFAULT 1
     );
 
+	CREATE TABLE tblPostAIModeration (
+		post_id INT PRIMARY KEY FOREIGN KEY REFERENCES tblPost(id) ON DELETE CASCADE,
+		checked BIT NOT NULL DEFAULT 0,
+		flagged BIT NOT NULL DEFAULT 0,
+		violation_reason_id INT NULL FOREIGN KEY REFERENCES tblReportReason(id),
+		checked_at DATETIME NULL
+	);
+
     CREATE TABLE tblSavedPost (
         user_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
         post_id INT NOT NULL FOREIGN KEY REFERENCES tblPost(id),
@@ -1454,6 +1494,24 @@ GO
         tagged_user_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
         status BIT DEFAULT 1
         );
+
+	CREATE TABLE tblPostFlag (
+		post_id INT PRIMARY KEY FOREIGN KEY REFERENCES tblPost(id), 
+		flag_reason NVARCHAR(255) NOT NULL,      
+		confidence_score FLOAT NOT NULL,          
+		flagged_at DATETIME DEFAULT GETDATE(),   
+		is_reviewed BIT DEFAULT 0,                
+		status BIT DEFAULT 1                  
+		);
+
+	CREATE TABLE tblPostFlagHistory (
+		id INT PRIMARY KEY IDENTITY(1,1),
+		post_id INT NOT NULL FOREIGN KEY REFERENCES tblPost(id),
+		flag_reason NVARCHAR(255) NOT NULL,
+		confidence_score FLOAT NOT NULL,
+		flagged_at DATETIME DEFAULT GETDATE()
+	);
+		CREATE INDEX idx_postflag_reviewed ON tblPostFlag(is_reviewed, status);
 
     CREATE TABLE tblComment (
         id INT PRIMARY KEY IDENTITY(1, 1),
@@ -2664,8 +2722,10 @@ WHERE definition LIKE '%friendship%';
 		reason_id INT NOT NULL FOREIGN KEY REFERENCES tblReportReason(id),
 		processing_status_id INT NOT NULL DEFAULT 1 FOREIGN KEY REFERENCES tblReportStatus(id),
 		report_time DATETIME DEFAULT GETDATE(),
+		reporter_type VARCHAR(10) CHECK (reporter_type IN ('AI', 'ADMIN')) DEFAULT 'ADMIN',
 		status BIT DEFAULT 1
 	);
+
 
 	CREATE TABLE tblReportReason (
 		id INT PRIMARY KEY IDENTITY(1, 1),
@@ -2696,8 +2756,10 @@ WHERE definition LIKE '%friendship%';
 		report_id INT NOT NULL FOREIGN KEY REFERENCES tblReport(id),
 		processing_status_id INT NOT NULL FOREIGN KEY REFERENCES tblReportStatus(id),
 		action_time DATETIME DEFAULT GETDATE(),
+		reporter_type VARCHAR(10) NOT NULL DEFAULT 'ADMIN',
 		status BIT DEFAULT 1
 	);
+
     ----------------PROC FOR ADD REPORT----------------
 
 	CREATE OR ALTER PROCEDURE sp_AddReport
