@@ -5,9 +5,11 @@ import com.example.social_media.dto.privacy.ProfilePrivacySettingDto;
 import com.example.social_media.dto.user.UserProfileDto;
 import com.example.social_media.dto.user.UserTagDto;
 import com.example.social_media.dto.user.UserUpdateProfileDto;
+import com.example.social_media.entity.Location;
 import com.example.social_media.entity.User;
 import com.example.social_media.exception.UserNotFoundException;
 import com.example.social_media.repository.FollowRepository;
+import com.example.social_media.repository.LocationRepository;
 import com.example.social_media.repository.UserRepository;
 import com.example.social_media.repository.post_repository.PostRepository;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -27,6 +29,7 @@ public class UserProfileService {
     private final GcsService gcsService;
     private final PrivacyService privacyService;
     private final PostRepository postRepository;
+    private final LocationRepository locationRepository;
 
     public UserProfileService(
             UserRepository userRepository,
@@ -34,14 +37,15 @@ public class UserProfileService {
             MediaService mediaService,
             GcsService gcsService,
             PrivacyService privacyService,
-            PostRepository postRepository
-    ) {
+            PostRepository postRepository,
+            LocationRepository locationRepository) {
         this.userRepository = userRepository;
         this.followRepository = followRepository;
         this.mediaService = mediaService;
         this.gcsService = gcsService;
         this.privacyService = privacyService;
         this.postRepository = postRepository;
+        this.locationRepository = locationRepository;
     }
 
     public UserProfileDto getUserProfile(String username) {
@@ -67,6 +71,11 @@ public class UserProfileService {
         var profilePrivacy = privacyService.getProfilePrivacySetting(targetUser.getId());
         String profilePrivacySetting = profilePrivacy.getPrivacySetting();
 
+        Location location = locationRepository.findByUserId(targetUser.getId()).orElse(null);
+        Double latitude = location != null ? location.getLatitude() : null;
+        Double longitude = location != null ? location.getLongitude() : null;
+        String locationName = location != null ? location.getLocationName() : null;
+
         // Nếu không có quyền xem
         if (!hasAccess) {
             return new UserProfileDto(
@@ -82,7 +91,10 @@ public class UserProfileService {
                     profileImageUrl,
                     0,
                     profilePrivacySetting,
-                    null
+                    null,
+                    latitude,
+                    longitude,
+                    locationName
             );
         }
 
@@ -103,7 +115,10 @@ public class UserProfileService {
                 profileImageUrl,
                 postCount,
                 profilePrivacySetting,
-                targetUser.getPhoneNumber()
+                targetUser.getPhoneNumber(),
+                latitude,
+                longitude,
+                locationName
         );
     }
 
@@ -135,6 +150,10 @@ public class UserProfileService {
         ProfilePrivacySettingDto profilePrivacy = privacyService.getProfilePrivacySetting(user.getId());
         user.setPhoneNumber(updateDto.getPhoneNumber());
 
+        Location location = locationRepository.findByUserId(user.getId()).orElse(null);
+        Double latitude = location != null ? location.getLatitude() : null;
+        Double longitude = location != null ? location.getLongitude() : null;
+        String locationName = location != null ? location.getLocationName() : null;
         return new UserProfileDto(
                 user.getId(),
                 user.getUsername(),
@@ -148,7 +167,10 @@ public class UserProfileService {
                 profileImageUrl,
                 postCount,
                 profilePrivacy.getPrivacySetting(),
-                user.getPhoneNumber()
+                user.getPhoneNumber(),
+                latitude,
+                longitude,
+                locationName
         );
     }
 

@@ -20,7 +20,10 @@ public interface PostRepository extends JpaRepository<Post, Integer> {
             @Param("media_urls") String mediaUrls,
             @Param("tagged_user_ids") String taggedUserIds,
             @Param("custom_list_id") Integer customListId,
-            @Param("group_id") Integer groupId
+            @Param("group_id") Integer groupId,
+            @Param("latitude") Double latitude,
+            @Param("longitude") Double longitude,
+            @Param("location_name") String locationName
     );
 
     @Query(value = """

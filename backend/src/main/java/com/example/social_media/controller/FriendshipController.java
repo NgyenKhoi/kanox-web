@@ -2,12 +2,14 @@ package com.example.social_media.controller;
 
 import com.example.social_media.config.URLConfig;
 import com.example.social_media.dto.friend.*;
+import com.example.social_media.dto.user.UserDto;
 import com.example.social_media.dto.user.UserTagDto;
 import com.example.social_media.entity.Friendship;
 import com.example.social_media.entity.User;
 import com.example.social_media.exception.UserNotFoundException;
 import com.example.social_media.repository.FriendshipRepository;
 import com.example.social_media.repository.UserRepository;
+import com.example.social_media.service.FriendSuggestionService;
 import com.example.social_media.service.FriendshipService;
 import com.example.social_media.service.CustomUserDetailsService;
 import org.springframework.data.domain.PageRequest;
@@ -17,6 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -26,17 +29,19 @@ public class FriendshipController {
     private final CustomUserDetailsService customUserDetailsService;
     private final UserRepository userRepository;
     private final FriendshipRepository friendshipRepository;
+    private final FriendSuggestionService friendSuggestionService; // Thêm FriendSuggestionService
 
     public FriendshipController(
             FriendshipService friendshipService,
             CustomUserDetailsService customUserDetailsService,
             UserRepository userRepository,
-            FriendshipRepository friendshipRepository
-    ) {
+            FriendshipRepository friendshipRepository,
+            FriendSuggestionService friendSuggestionService) {
         this.friendshipService = friendshipService;
         this.customUserDetailsService = customUserDetailsService;
         this.userRepository = userRepository;
         this.friendshipRepository = friendshipRepository;
+        this.friendSuggestionService = friendSuggestionService;
     }
 
     @PostMapping(URLConfig.SEND_FRIEND_REQUEST)
@@ -183,6 +188,24 @@ public class FriendshipController {
             return ResponseEntity.ok(Map.of("status", status));
         } catch (UserNotFoundException e) {
             return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage(), "errors", Map.of()));
+        }
+    }
+    @GetMapping("/suggestions")
+    public ResponseEntity<?> getFriendSuggestions(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        try {
+            String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+            User currentUser = customUserDetailsService.getUserByUsername(currentUsername);
+            friendSuggestionService.generateFriendSuggestions(currentUser.getId()); // Gọi để cập nhật gợi ý
+            List<UserDto> suggestions = friendSuggestionService.getFriendSuggestions(currentUser.getId());
+            return ResponseEntity.ok(Map.of("message", "Friend suggestions retrieved successfully", "data", suggestions));
+        } catch (IllegalArgumentException | UserNotFoundException e) {
+            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage(), "errors", Map.of()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("status", "error", "message", "Lỗi hệ thống: " + e.getMessage()));
         }
     }
 }

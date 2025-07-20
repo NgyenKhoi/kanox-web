@@ -37,6 +37,7 @@ import {
   FaArrowLeft,
   FaArrowRight,
   FaRegBookmark,
+  FaMapMarkerAlt,
 } from "react-icons/fa";
 import moment from "moment";
 import { AuthContext } from "../../../context/AuthContext";
@@ -798,6 +799,13 @@ function TweetCard({ tweet, onPostUpdate }) {
             </div>
             {/* Nội dung */}
             <p className="mb-2 text-[var(--text-color)]">{content}</p>
+            {tweet?.locationName && (
+                <div className="mb-2 text-[var(--text-color-muted)] small">
+                  <FaMapMarkerAlt className="me-1" />
+                  Đang ở {tweet.locationName}
+                </div>
+            )}
+
 
             {sharedPost ? (
               <SharedPostPreview post={sharedPost} />

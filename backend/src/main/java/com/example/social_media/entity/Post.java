@@ -79,6 +79,16 @@ public class Post {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "shared_post_id")
     private Post sharedPost;
+    @Column(name = "latitude")
+    private Double latitude;
+
+    @Column(name = "longitude")
+    private Double longitude;
+
+    @Size(max = 255)
+    @Nationalized
+    @Column(name = "location_name")
+    private String locationName;
 
     public Integer getId() {
         return id;
@@ -183,5 +193,14 @@ public class Post {
     public void setSharedPost(Post sharedPost) {
         this.sharedPost = sharedPost;
     }
+
+    public Double getLatitude() { return latitude; }
+    public void setLatitude(Double latitude) { this.latitude = latitude; }
+
+    public Double getLongitude() { return longitude; }
+    public void setLongitude(Double longitude) { this.longitude = longitude; }
+
+    public String getLocationName() { return locationName; }
+    public void setLocationName(String locationName) { this.locationName = locationName; }
 
 }

@@ -11,6 +11,7 @@ import com.example.social_media.exception.UnauthorizedException;
 import com.example.social_media.repository.*;
 import com.example.social_media.repository.post_repository.*;
 
+import com.google.maps.model.GeocodingResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.CacheEvict;
@@ -45,15 +46,25 @@ public class PostService {
     private final ReactionService reactionService;
     private final TargetTypeRepository targetTypeRepository;
     private final PostShareRepository postShareRepository;
+    private final GeocodingService geocodingService;
 
-    public PostService(PostRepository postRepository, PostTagRepository postTagRepository,
-            UserRepository userRepository, ContentPrivacyRepository contentPrivacyRepository,
-            CustomPrivacyListRepository customPrivacyListRepository, PrivacyService privacyService,
-            MediaService mediaService, CommentRepository commentRepository,
-            SavedPostRepository savedPostRepository, HiddenPostRepository hiddenPostRepository,
-            GroupRepository groupRepository, GroupMemberRepository groupMemberRepository,
+    public PostService(
+            PostRepository postRepository,
+            PostTagRepository postTagRepository,
+            UserRepository userRepository,
+            ContentPrivacyRepository contentPrivacyRepository,
+            CustomPrivacyListRepository customPrivacyListRepository,
+            PrivacyService privacyService,
+            MediaService mediaService,
+            CommentRepository commentRepository,
+            SavedPostRepository savedPostRepository,
+            HiddenPostRepository hiddenPostRepository,
+            GroupRepository groupRepository,
+            GroupMemberRepository groupMemberRepository,
             ReactionService reactionService,
-            TargetTypeRepository targetTypeRepository, PostShareRepository postShareRepository) {
+            TargetTypeRepository targetTypeRepository,
+            PostShareRepository postShareRepository,
+            GeocodingService geocodingService) {
         this.postRepository = postRepository;
         this.postTagRepository = postTagRepository;
         this.userRepository = userRepository;
@@ -69,6 +80,7 @@ public class PostService {
         this.reactionService = reactionService;
         this.targetTypeRepository = targetTypeRepository;
         this.postShareRepository = postShareRepository;
+        this.geocodingService = geocodingService;
     }
 
     @CacheEvict(value = {"newsfeed", "postsByUsername", "communityFeed", "postsByGroup", "postsByUserInGroup", "savedPosts"}, allEntries = true)
@@ -110,8 +122,18 @@ public class PostService {
             throw new IllegalArgumentException("Không tìm thấy nhóm hoặc nhóm không hoạt động với id: " + groupId);
         }
 
+        if (dto.getLocationName() == null && dto.getLatitude() != null && dto.getLongitude() != null) {
+            try {
+                GeocodingResult[] results = geocodingService.geocodeAddress(dto.getLatitude() + "," + dto.getLongitude());
+                dto.setLocationName(results[0].formattedAddress);
+            } catch (Exception e) {
+                logger.warn("Không thể lấy tên địa điểm: {}", e.getMessage());
+            }
+        }
+
         Integer newPostId = postRepository.createPost(
-                user.getId(), dto.getContent(), privacySetting, null, taggedUserIds, customListId, groupId);
+                user.getId(), dto.getContent(), privacySetting, null, taggedUserIds, customListId, groupId,
+                dto.getLatitude(), dto.getLongitude(), dto.getLocationName());
 
         if (newPostId == null) {
             throw new RegistrationException("Không thể tạo bài viết");
@@ -229,8 +251,20 @@ public class PostService {
         existingPrivacy.setCustomList(customList);
         contentPrivacyRepository.save(existingPrivacy);
 
+        if (dto.getLocationName() == null && dto.getLatitude() != null && dto.getLongitude() != null) {
+            try {
+                GeocodingResult[] results = geocodingService.geocodeAddress(dto.getLatitude() + "," + dto.getLongitude());
+                dto.setLocationName(results[0].formattedAddress);
+            } catch (Exception e) {
+                logger.warn("Không thể lấy tên địa điểm: {}", e.getMessage());
+            }
+        }
+
         post.setContent(dto.getContent());
         post.setPrivacySetting(privacySetting);
+        post.setLatitude(dto.getLatitude());
+        post.setLongitude(dto.getLongitude());
+        post.setLocationName(dto.getLocationName());
         postRepository.save(post);
 
         List<PostTag> postTags = List.of();
@@ -713,6 +747,9 @@ public class PostService {
         dto.setContent(post.getContent());
         dto.setPrivacySetting(post.getPrivacySetting());
         dto.setCreatedAt(post.getCreatedAt());
+        dto.setLatitude(post.getLatitude());
+        dto.setLongitude(post.getLongitude());
+        dto.setLocationName(post.getLocationName());
 
         // Lấy shareCount từ bảng tblPostShare thay vì từ tblPost
         dto.setShareCount((int) postShareRepository.countByOriginalPostAndStatusTrue(post));

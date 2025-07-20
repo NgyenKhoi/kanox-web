@@ -28,16 +28,19 @@ public class UserController {
     private final FriendshipService friendshipService;
     private final FollowService followService;
     private final CustomUserDetailsService customUserDetailsService;
+    private final UserService userService;
 
     public UserController(
             UserProfileService userProfileService,
             FriendshipService friendshipService,
             FollowService followService,
-            CustomUserDetailsService customUserDetailsService) {
+            CustomUserDetailsService customUserDetailsService,
+            UserService userService) {
         this.userProfileService = userProfileService;
         this.friendshipService = friendshipService;
         this.followService = followService;
         this.customUserDetailsService = customUserDetailsService;
+        this.userService = userService;
     }
 
     // Lấy profile người dùng
@@ -175,6 +178,41 @@ public class UserController {
                     "status", "error",
                     "message", "Lỗi hệ thống: " + e.getMessage(),
                     "errors", new HashMap<>()));
+        }
+    }
+
+    // Thêm endpoint để cập nhật vị trí quê quán
+    @PutMapping("/profile/{username}/location")
+    public ResponseEntity<Map<String, Object>> updateUserLocation(
+            @PathVariable String username,
+            @RequestBody UserLocationDto locationDto) {
+        try {
+            String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+            if (!username.equals(currentUsername)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
+                        "status", "error",
+                        "message", "Không thể cập nhật vị trí của người khác"));
+            }
+
+            User currentUser = customUserDetailsService.getUserByUsername(currentUsername);
+            userService.updateUserLocation(currentUser.getId(), locationDto);
+
+            Map<String, Object> data = new HashMap<>();
+            data.put("latitude", locationDto.getLatitude());
+            data.put("longitude", locationDto.getLongitude());
+            data.put("locationName", locationDto.getLocationName());
+
+            return ResponseEntity.ok(Map.of(
+                    "message", "Cập nhật vị trí quê quán thành công",
+                    "data", data));
+        } catch (UserNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                    "status", "error",
+                    "message", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                    "status", "error",
+                    "message", "Lỗi hệ thống: " + e.getMessage()));
         }
     }
 }
