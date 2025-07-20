@@ -163,12 +163,16 @@ public class AdminController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String processingStatusId,
-            @RequestParam(required = false) Integer targetTypeId
+            @RequestParam(required = false) Integer targetTypeId,
+            @RequestParam(required = false) String reporterType
     ) {
         try {
             Pageable pageable = PageRequest.of(page, size);
             Page<ReportResponseDto> reports;
-            if (targetTypeId != null && processingStatusId != null && !processingStatusId.isEmpty()) {
+            if ("AI".equals(reporterType)) {
+                Integer statusId = processingStatusId != null && !processingStatusId.isEmpty() ? Integer.parseInt(processingStatusId) : null;
+                reports = reportService.getReportsByReporterTypeAIAndTargetTypeId(targetTypeId, statusId, pageable);
+            } else if (targetTypeId != null && processingStatusId != null && !processingStatusId.isEmpty()) {
                 Integer statusId = Integer.parseInt(processingStatusId);
                 reports = reportService.getReportsByTargetTypeIdAndProcessingStatusId(targetTypeId, statusId, pageable);
             } else if (targetTypeId != null) {

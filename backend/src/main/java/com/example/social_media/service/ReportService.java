@@ -447,4 +447,10 @@ public class ReportService {
         return reportRepository.count();
     }
 
+    @Transactional(readOnly = true)
+    public Page<ReportResponseDto> getReportsByReporterTypeAIAndTargetTypeId(Integer targetTypeId, Integer processingStatusId, Pageable pageable) {
+        Page<Report> reportPage = reportRepository.findByReporterTypeAIAndTargetTypeId(targetTypeId, processingStatusId, pageable);
+        return reportPage.map(this::convertToReportResponseDto);
+    }
+
 }
