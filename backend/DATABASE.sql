@@ -1637,8 +1637,8 @@ GO
 			END
 
 			-- Tạo bài viết
-			INSERT INTO tblPost (owner_id, content, privacy_setting, group_id, created_at, status)
-			VALUES (@owner_id, @content, @privacy_setting, @group_id, GETDATE(), 1);
+			INSERT INTO tblPost (owner_id, content, privacy_setting, group_id, created_at, status, latitude, longitude, location_name)
+			VALUES (@owner_id, @content, @privacy_setting, @group_id, GETDATE(), 1, @latitude, @longitude, @location_name);
 
 			SET @new_post_id = SCOPE_IDENTITY();
 

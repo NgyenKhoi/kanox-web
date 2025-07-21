@@ -20,7 +20,10 @@ import java.util.Set;
             @StoredProcedureParameter(mode = ParameterMode.IN, name = "media_urls", type = String.class),
             @StoredProcedureParameter(mode = ParameterMode.IN, name = "tagged_user_ids", type = String.class),
             @StoredProcedureParameter(mode = ParameterMode.IN, name = "custom_list_id", type = Integer.class),
-            @StoredProcedureParameter(mode = ParameterMode.IN, name = "group_id", type = Integer.class), // 👈 moved up
+            @StoredProcedureParameter(mode = ParameterMode.IN, name = "group_id", type = Integer.class),
+            @StoredProcedureParameter(mode = ParameterMode.IN, name = "latitude", type = Double.class),
+            @StoredProcedureParameter(mode = ParameterMode.IN, name = "longitude", type = Double.class),
+            @StoredProcedureParameter(mode = ParameterMode.IN, name = "location_name", type = String.class),
             @StoredProcedureParameter(mode = ParameterMode.OUT, name = "new_post_id", type = Integer.class) // 👈 moved down
         }
 )
