@@ -4,47 +4,34 @@ export default function LocationAutocomplete({ onPlaceSelect }) {
     const inputRef = useRef(null);
 
     useEffect(() => {
-        const el = inputRef.current;
-        if (!el) return;
+        if (!window.google || !window.google.maps || !window.google.maps.places) {
+            console.error("Google Maps JavaScript API chưa sẵn sàng");
+            return;
+        }
 
-        const handlePlaceChange = (event) => {
-            const place = el.value;
+        const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, {
+            types: ["geocode"],
+            componentRestrictions: { country: "vn" },
+        });
 
-            // Truy cập thông tin địa điểm từ el.gmpxResult
-            const result = el.gmpxResult;
+        autocomplete.addListener("place_changed", () => {
+            const place = autocomplete.getPlace();
+            if (!place.geometry) return;
 
-            if (result && onPlaceSelect) {
-                onPlaceSelect({
-                    formatted_address: result.formatted_address,
-                    name: result.name,
-                    geometry: {
-                        location: {
-                            lat: () => result.geometry?.location?.lat,
-                            lng: () => result.geometry?.location?.lng,
-                        },
-                    },
-                });
-            }
-        };
-
-        el.addEventListener("gmpx-placechange", handlePlaceChange);
-
-        return () => {
-            el.removeEventListener("gmpx-placechange", handlePlaceChange);
-        };
+            onPlaceSelect?.(place);
+        });
     }, [onPlaceSelect]);
 
     return (
-        <gmpx-place-autocomplete
+        <input
             ref={inputRef}
+            type="text"
+            placeholder="Nhập địa điểm"
+            className="form-control border-0 border-bottom rounded-0 px-0 py-1 text-[var(--text-color)]"
             style={{
-                width: "100%",
-                border: "none",
-                borderBottom: "1px solid var(--border-color)",
-                padding: "4px 0",
                 backgroundColor: "transparent",
-                color: "var(--text-color)",
+                borderBottom: "1px solid var(--border-color)",
             }}
-        ></gmpx-place-autocomplete>
+        />
     );
 }
