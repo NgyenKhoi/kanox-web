@@ -3,7 +3,6 @@ import { Modal, Button, Form, Image, Spinner, Nav } from "react-bootstrap";
 import { FaCamera, FaTimes, FaLock, FaTrash } from "react-icons/fa";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { useLoadScript, Autocomplete } from "@react-google-maps/api";
 
 const libraries = ["places"];
 
@@ -20,37 +19,33 @@ function EditProfileModal({
     dateOfBirth: "",
     avatar: "",
     gender: "",
-    location: "",
+    locationName: "",
+    latitude: null,
+    longitude: null,
   });
   const [avatarFile, setAvatarFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const placeInputRef = useRef(null);
 
-  const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: process.env.REACT_APP_GOOGLE_MAPS_API_KEY,
-    libraries,
-  });
-
   useEffect(() => {
-    if (isLoaded && placeInputRef.current) {
-      const autocomplete = new window.google.maps.places.Autocomplete(
-          placeInputRef.current,
-          { types: ["geocode"] }
-      );
-      autocomplete.addListener("place_changed", () => {
-        const place = autocomplete.getPlace();
-        if (place.geometry) {
-          setFormData((prev) => ({
-            ...prev,
-            location: place.formatted_address,
-          }));
-        } else {
-          setFormData((prev) => ({ ...prev, location: "" }));
-        }
-      });
-    }
-  }, [isLoaded]);
+    const placeInput = document.getElementById("place-autocomplete");
+
+    if (!placeInput) return;
+
+    placeInput.addEventListener("gmpx-placechange", (e) => {
+      const place = e.target.value;
+      if (place) {
+        setFormData((prev) => ({
+          ...prev,
+          locationName: place.formatted_address || place.name || "",
+          latitude: place.geometry?.location?.lat() || null,
+          longitude: place.geometry?.location?.lng() || null,
+        }));
+      }
+    });
+  }, [show]);
+
 
   useEffect(() => {
     if (show && userProfile) {
@@ -62,12 +57,15 @@ function EditProfileModal({
           : "",
         gender: userProfile.gender != null ? String(userProfile.gender) : "",
         avatar: userProfile.profileImageUrl || "",
-        location: userProfile.location || "",
+        locationName: userProfile.locationName || "",
+        latitude: userProfile.latitude || null,
+        longitude: userProfile.longitude || null,
       });
       setAvatarFile(null);
       setErrors({});
     }
   }, [show, userProfile]);
+
 
   const validateForm = () => {
     const newErrors = {};
@@ -77,8 +75,14 @@ function EditProfileModal({
     if (formData.bio.length > 160) {
       newErrors.bio = "Tiểu sử không được vượt quá 160 ký tự.";
     }
-    if (formData.location && formData.location.length > 100) {
-      newErrors.location = "Địa điểm không được vượt quá 100 ký tự.";
+    if (formData.locationName && formData.locationName.length > 255) {
+      newErrors.locationName = "Địa điểm không được vượt quá 255 ký tự.";
+    }
+    if (formData.latitude && (formData.latitude < -90 || formData.latitude > 90)) {
+      newErrors.latitude = "Latitude phải nằm trong khoảng -90 đến 90.";
+    }
+    if (formData.longitude && (formData.longitude < -180 || formData.longitude > 180)) {
+      newErrors.longitude = "Longitude phải nằm trong khoảng -180 đến 180.";
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -117,7 +121,9 @@ function EditProfileModal({
         bio: formData.bio,
         dateOfBirth: formData.dateOfBirth,
         gender: formData.gender ? Number(formData.gender) : null,
-        location: formData.location || null,
+        locationName: formData.locationName || null,
+        latitude: formData.latitude || null,
+        longitude: formData.longitude || null,
       };
 
       const form = new FormData();
@@ -322,28 +328,14 @@ function EditProfileModal({
               <Form.Label className="text-[var(--muted-text-color)] small mb-1">
                 Địa điểm
               </Form.Label>
-              {isLoaded ? (
-                  <Autocomplete>
-                    <Form.Control
-                        type="text"
-                        value={formData.location}
-                        onChange={(e) => handleInputChange("location", e.target.value)}
-                        ref={placeInputRef}
-                        className="border-0 border-b border-[var(--border-color)] rounded-0 px-0 py-1 text-[var(--text-color)]"
-                        isInvalid={!!errors.location}
-                    />
-                  </Autocomplete>
-              ) : (
-                  <Form.Control
-                      type="text"
-                      value={formData.location}
-                      onChange={(e) => handleInputChange("location", e.target.value)}
-                      className="border-0 border-b border-[var(--border-color)] rounded-0 px-0 py-1 text-[var(--text-color)]"
-                      isInvalid={!!errors.location}
-                  />
-              )}
+              <gmpx-place-autocomplete
+                  id="place-autocomplete"
+                  placeholder="Nhập địa điểm"
+                  style="width: 100%; border: none; border-bottom: 1px solid var(--border-color); padding: 4px 0; background-color: transparent; color: var(--text-color);"
+              ></gmpx-place-autocomplete>
+
               <Form.Control.Feedback type="invalid">
-                {errors.location}
+                {errors.locationName}
               </Form.Control.Feedback>
             </Form.Group>
           </Form>

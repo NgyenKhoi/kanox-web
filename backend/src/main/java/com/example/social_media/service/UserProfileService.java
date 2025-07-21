@@ -2,6 +2,7 @@ package com.example.social_media.service;
 
 import com.example.social_media.dto.media.MediaDto;
 import com.example.social_media.dto.privacy.ProfilePrivacySettingDto;
+import com.example.social_media.dto.user.UserLocationDto;
 import com.example.social_media.dto.user.UserProfileDto;
 import com.example.social_media.dto.user.UserTagDto;
 import com.example.social_media.dto.user.UserUpdateProfileDto;
@@ -30,6 +31,7 @@ public class UserProfileService {
     private final PrivacyService privacyService;
     private final PostRepository postRepository;
     private final LocationRepository locationRepository;
+    private final UserService userService;
 
     public UserProfileService(
             UserRepository userRepository,
@@ -38,7 +40,8 @@ public class UserProfileService {
             GcsService gcsService,
             PrivacyService privacyService,
             PostRepository postRepository,
-            LocationRepository locationRepository) {
+            LocationRepository locationRepository,
+            UserService  userService) {
         this.userRepository = userRepository;
         this.followRepository = followRepository;
         this.mediaService = mediaService;
@@ -46,6 +49,7 @@ public class UserProfileService {
         this.privacyService = privacyService;
         this.postRepository = postRepository;
         this.locationRepository = locationRepository;
+        this.userService = userService;
     }
 
     public UserProfileDto getUserProfile(String username) {
@@ -139,6 +143,14 @@ public class UserProfileService {
             profileImageUrl = gcsService.uploadFile(avatarFile);
             mediaService.disableOldProfileMedia(user.getId());
             mediaService.saveMediaWithUrl(user.getId(), user.getId(), "PROFILE", "image", profileImageUrl, null);
+        }
+
+        if (updateDto.getLocationName() != null || updateDto.getLatitude() != null || updateDto.getLongitude() != null) {
+            UserLocationDto locationDto = new UserLocationDto();
+            locationDto.setLocationName(updateDto.getLocationName());
+            locationDto.setLatitude(updateDto.getLatitude());
+            locationDto.setLongitude(updateDto.getLongitude());
+            userService.updateUserLocation(user.getId(), locationDto);
         }
 
         userRepository.save(user);
