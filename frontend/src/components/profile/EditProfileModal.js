@@ -319,13 +319,14 @@ function EditProfileModal({
                 Địa điểm
               </Form.Label>
               <PlaceAutocomplete
+                  ref={placeInputRef}
                   onPlaceSelect={(place) => {
                     if (!place || !place.geometry) return;
                     setFormData((prev) => ({
                       ...prev,
                       locationName: place.formattedAddress || "",
-                      latitude: place.geometry.location.lat(),
-                      longitude: place.geometry.location.lng(),
+                      latitude: place.latitude,
+                      longitude: place.longitude,
                     }));
                   }}
               />

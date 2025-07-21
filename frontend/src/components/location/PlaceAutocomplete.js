@@ -1,17 +1,17 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, forwardRef } from "react";
 
-export default function PlaceAutocomplete({ onPlaceSelect }) {
-    const ref = useRef(null);
+const PlaceAutocomplete = forwardRef(({ onPlaceSelect }, ref) => {
+    const internalRef = useRef(null);
+    const elRef = ref || internalRef;
 
     useEffect(() => {
-        const el = ref.current;
+        const el = elRef.current;
         if (!el) return;
 
         el.setAttribute("placeholder", "Nhập địa điểm");
-        // el.setAttribute("country", "vn");
 
         const handlePlaceChange = (event) => {
-            const place = event.detail; // ✅ Đây mới là object placeResult đúng chuẩn
+            const place = event.detail;
             if (place && place.geometry) {
                 const lat = place.geometry.location.lat;
                 const lng = place.geometry.location.lng;
@@ -30,11 +30,11 @@ export default function PlaceAutocomplete({ onPlaceSelect }) {
         return () => {
             el.removeEventListener("gmpx-placeautocomplete:placechanged", handlePlaceChange);
         };
-    }, [onPlaceSelect]);
+    }, [onPlaceSelect, elRef]);
 
     return (
         <gmpx-place-autocomplete
-            ref={ref}
+            ref={elRef}
             style={{
                 width: "100%",
                 display: "block",
@@ -44,4 +44,6 @@ export default function PlaceAutocomplete({ onPlaceSelect }) {
             country="VN"
         />
     );
-}
+});
+
+export default PlaceAutocomplete;
