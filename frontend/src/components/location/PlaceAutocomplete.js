@@ -7,13 +7,23 @@ export default function PlaceAutocomplete({ onPlaceSelect }) {
         const el = ref.current;
         if (!el) return;
 
-        // ✅ Set placeholder thủ công vì React không set được lên custom element
         el.setAttribute("placeholder", "Nhập địa điểm");
-        el.setAttribute("country", "vn"); // đảm bảo đặt luôn country ở đây
+        el.setAttribute("country", "vn");
 
-        const handlePlaceChange = () => {
-            const place = el.value;
-            onPlaceSelect?.(place);
+        const handlePlaceChange = (event) => {
+            const place = event.detail; // ✅ Đây mới là object placeResult đúng chuẩn
+            if (place && place.geometry) {
+                const lat = place.geometry.location.lat;
+                const lng = place.geometry.location.lng;
+                const name = place.formattedAddress || place.displayName || "";
+
+                onPlaceSelect?.({
+                    ...place,
+                    formattedAddress: name,
+                    latitude: lat,
+                    longitude: lng,
+                });
+            }
         };
 
         el.addEventListener("gmpx-placeautocomplete:placechanged", handlePlaceChange);
