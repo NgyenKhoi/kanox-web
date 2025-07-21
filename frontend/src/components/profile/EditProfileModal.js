@@ -3,7 +3,7 @@ import { Modal, Button, Form, Image, Spinner, Nav } from "react-bootstrap";
 import { FaCamera, FaTimes, FaLock, FaTrash } from "react-icons/fa";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import LocationAutocomplete from "../location/LocationAutocomplete"; // đường dẫn đúng tới file
+import PlaceAutocomplete from "../location/PlaceAutocomplete"; // đường dẫn đúng tới file
 
 const libraries = ["places"];
 
@@ -310,13 +310,14 @@ function EditProfileModal({
               <Form.Label className="text-[var(--muted-text-color)] small mb-1">
                 Địa điểm
               </Form.Label>
-              <LocationAutocomplete
+              <PlaceAutocomplete
                   onPlaceSelect={(place) => {
+                    if (!place || !place.geometry) return;
                     setFormData((prev) => ({
                       ...prev,
-                      locationName: place.formatted_address || place.name || "",
-                      latitude: place.geometry?.location?.lat() || null,
-                      longitude: place.geometry?.location?.lng() || null,
+                      locationName: place.formattedAddress || "",
+                      latitude: place.geometry.location.lat,
+                      longitude: place.geometry.location.lng,
                     }));
                   }}
               />
