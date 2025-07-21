@@ -3,6 +3,7 @@ import { Modal, Button, Form, Image, Spinner, Nav } from "react-bootstrap";
 import { FaCamera, FaTimes, FaLock, FaTrash } from "react-icons/fa";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import LocationAutocomplete from "../location/LocationAutocomplete"; // đường dẫn đúng tới file
 
 const libraries = ["places"];
 
@@ -27,25 +28,6 @@ function EditProfileModal({
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const placeInputRef = useRef(null);
-
-  useEffect(() => {
-    const placeInput = document.getElementById("place-autocomplete");
-
-    if (!placeInput) return;
-
-    placeInput.addEventListener("gmpx-placechange", (e) => {
-      const place = e.target.value;
-      if (place) {
-        setFormData((prev) => ({
-          ...prev,
-          locationName: place.formatted_address || place.name || "",
-          latitude: place.geometry?.location?.lat() || null,
-          longitude: place.geometry?.location?.lng() || null,
-        }));
-      }
-    });
-  }, [show]);
-
 
   useEffect(() => {
     if (show && userProfile) {
@@ -328,12 +310,16 @@ function EditProfileModal({
               <Form.Label className="text-[var(--muted-text-color)] small mb-1">
                 Địa điểm
               </Form.Label>
-              <gmpx-place-autocomplete
-                  id="place-autocomplete"
-                  placeholder="Nhập địa điểm"
-                  style="width: 100%; border: none; border-bottom: 1px solid var(--border-color); padding: 4px 0; background-color: transparent; color: var(--text-color);"
-              ></gmpx-place-autocomplete>
-
+              <LocationAutocomplete
+                  onPlaceSelect={(place) => {
+                    setFormData((prev) => ({
+                      ...prev,
+                      locationName: place.formatted_address || place.name || "",
+                      latitude: place.geometry?.location?.lat() || null,
+                      longitude: place.geometry?.location?.lng() || null,
+                    }));
+                  }}
+              />
               <Form.Control.Feedback type="invalid">
                 {errors.locationName}
               </Form.Control.Feedback>
