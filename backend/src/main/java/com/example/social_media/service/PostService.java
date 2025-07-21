@@ -9,7 +9,7 @@ import com.example.social_media.exception.RegistrationException;
 import com.example.social_media.exception.UserNotFoundException;
 import com.example.social_media.exception.UnauthorizedException;
 import com.example.social_media.repository.*;
-import com.example.social_media.repository.post_repository.*;
+import com.example.social_media.repository.post.*;
 
 import com.google.maps.model.GeocodingResult;
 import org.slf4j.Logger;
@@ -46,6 +46,7 @@ public class PostService {
     private final ReactionService reactionService;
     private final TargetTypeRepository targetTypeRepository;
     private final PostShareRepository postShareRepository;
+    private final PostAIModerationRepository postAIModerationRepository;
     private final GeocodingService geocodingService;
 
     public PostService(
@@ -64,6 +65,7 @@ public class PostService {
             ReactionService reactionService,
             TargetTypeRepository targetTypeRepository,
             PostShareRepository postShareRepository,
+            PostAIModerationRepository postAIModerationRepository,
             GeocodingService geocodingService) {
         this.postRepository = postRepository;
         this.postTagRepository = postTagRepository;
@@ -80,6 +82,7 @@ public class PostService {
         this.reactionService = reactionService;
         this.targetTypeRepository = targetTypeRepository;
         this.postShareRepository = postShareRepository;
+        this.postAIModerationRepository = postAIModerationRepository;
         this.geocodingService = geocodingService;
     }
 
@@ -327,56 +330,61 @@ public class PostService {
         postRepository.save(post);
     }
 
-//    @Cacheable(value = "newsfeed", key = "#username")
+   @Cacheable(value = "newsfeed", key = "#username")
     public List<PostResponseDto> getAllPosts(String username) {
         logger.info("Lấy newsfeed tối ưu cho người dùng: {}", username);
 
         User user = userRepository.findByUsernameAndStatusTrue(username)
                 .orElseThrow(() -> new UserNotFoundException("Không tìm thấy người dùng hoặc người dùng không hoạt động"));
 
-        // 1. Lấy tất cả bài viết newsfeed (tối đa 10–20 bản ghi như bạn nói)
         List<Post> posts = postRepository.findNewsfeedPosts(user.getId());
-        if (posts.isEmpty()) {
-            return List.of();
-        }
+        if (posts.isEmpty()) return List.of();
 
-        // 2. Các ID cần thiết
         List<Integer> postIds = posts.stream().map(Post::getId).toList();
-        List<Integer> hiddenPostIds = hiddenPostRepository.findHiddenPostIdsByUserId(user.getId());
-        List<Integer> savedPostIds = savedPostRepository.findByUserIdAndStatusTrue(user.getId())
-                .stream().map(sp -> sp.getPost().getId()).toList();
-
-        List<Integer> joinedGroupIds = groupMemberRepository
+        Set<Integer> hiddenPostIds = new HashSet<>(hiddenPostRepository.findHiddenPostIdsByUserId(user.getId()));
+        Set<Integer> savedPostIds = savedPostRepository.findByUserIdAndStatusTrue(user.getId())
+                .stream().map(sp -> sp.getPost().getId()).collect(Collectors.toSet());
+        Set<Integer> joinedGroupIds = groupMemberRepository
                 .findByUserIdAndStatusTrueAndInviteStatusAccepted(user.getId())
-                .stream().map(m -> m.getGroup().getId()).toList();
+                .stream().map(m -> m.getGroup().getId()).collect(Collectors.toSet());
 
         Map<Integer, Boolean> accessMap = privacyService.checkContentAccessBatch(user.getId(), postIds, "post");
 
-        // 3. Dữ liệu liên quan
         Map<Integer, List<PostTag>> postTagsMap = postTagRepository.findByPost_IdInAndStatusTrue(postIds)
                 .stream().collect(Collectors.groupingBy(pt -> pt.getPost().getId()));
-
         Map<Integer, List<MediaDto>> mediaMap = mediaService.getMediaByTargetIds(postIds, "POST", null, true);
-
         Map<Integer, Map<ReactionType, Long>> reactionCountMap = reactionService.countAllReactionsBatch(postIds, "POST");
 
-        // 4. Lọc và trả về DTO
+        Set<Integer> flaggedPostIds = new HashSet<>(postAIModerationRepository.findFlaggedPostIds());
+        List<Integer> savedPostIdList = new ArrayList<>(savedPostIds);
+
         return posts.stream()
-                .filter(post -> !hiddenPostIds.contains(post.getId()))
-                .filter(post -> {
-                    boolean access = accessMap.getOrDefault(post.getId(), false);
-                    Group group = post.getGroup();
-                    if (group == null) {
-                        return access;
-                    }
-                    if ("public".equalsIgnoreCase(group.getPrivacyLevel())) {
-                        return true;
-                    }
-                    return joinedGroupIds.contains(group.getId()) && access;
-                })
-                .map(post -> convertToDto(post, user.getId(), savedPostIds, postTagsMap, mediaMap, reactionCountMap))
+                .filter(post -> isValidPostForUser(post, user.getId(), accessMap, hiddenPostIds, flaggedPostIds, joinedGroupIds))
+                .map(post -> convertToDto(post, user.getId(), savedPostIdList, postTagsMap, mediaMap, reactionCountMap))
                 .toList();
     }
+
+        private boolean isValidPostForUser(Post post,
+                                           int userId,
+                                           Map<Integer, Boolean> accessMap,
+                                           Set<Integer> hiddenPostIds,
+                                           Set<Integer> flaggedPostIds,
+                                           Set<Integer> joinedGroupIds) {
+
+            int postId = post.getId();
+
+            if (hiddenPostIds.contains(postId)) return false;
+            if (flaggedPostIds.contains(postId)) return false;
+
+            boolean access = accessMap.getOrDefault(postId, false);
+            Group group = post.getGroup();
+
+            if (group == null) return access;
+
+            if ("public".equalsIgnoreCase(group.getPrivacyLevel())) return true;
+
+            return joinedGroupIds.contains(group.getId()) && access;
+        }
 
     @Cacheable(value = "postsByUsername", key = "#targetUsername + ':' + #currentUsername")
     public List<PostResponseDto> getPostsByUsername(String targetUsername, String currentUsername) {

@@ -90,6 +90,12 @@ public class Post {
     @Column(name = "location_name")
     private String locationName;
 
+    @OneToOne(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    private PostFlag postFlag;
+
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<PostFlagHistory> postFlagHistories = new LinkedHashSet<>();
+
     public Integer getId() {
         return id;
     }

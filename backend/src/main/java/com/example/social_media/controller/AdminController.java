@@ -4,11 +4,10 @@ import com.example.social_media.config.URLConfig;
 import com.example.social_media.dto.report.ReportResponseDto;
 import com.example.social_media.dto.report.UpdateReportStatusRequestDto;
 import com.example.social_media.dto.report.ReportHistoryDto;
-import com.example.social_media.dto.report.ReportReasonDto;
 import com.example.social_media.entity.*;
 import com.example.social_media.exception.UserNotFoundException;
-import com.example.social_media.repository.ReportHistoryRepository;
-import com.example.social_media.repository.ReportRepository;
+import com.example.social_media.repository.report.ReportHistoryRepository;
+import com.example.social_media.repository.report.ReportRepository;
 import com.example.social_media.service.CustomUserDetailsService;
 import com.example.social_media.service.NotificationService;
 import com.example.social_media.service.ReportService;
@@ -164,12 +163,16 @@ public class AdminController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String processingStatusId,
-            @RequestParam(required = false) Integer targetTypeId
+            @RequestParam(required = false) Integer targetTypeId,
+            @RequestParam(required = false) String reporterType
     ) {
         try {
             Pageable pageable = PageRequest.of(page, size);
             Page<ReportResponseDto> reports;
-            if (targetTypeId != null && processingStatusId != null && !processingStatusId.isEmpty()) {
+            if ("AI".equals(reporterType)) {
+                Integer statusId = processingStatusId != null && !processingStatusId.isEmpty() ? Integer.parseInt(processingStatusId) : null;
+                reports = reportService.getReportsByReporterTypeAIAndTargetTypeId(targetTypeId, statusId, pageable);
+            } else if (targetTypeId != null && processingStatusId != null && !processingStatusId.isEmpty()) {
                 Integer statusId = Integer.parseInt(processingStatusId);
                 reports = reportService.getReportsByTargetTypeIdAndProcessingStatusId(targetTypeId, statusId, pageable);
             } else if (targetTypeId != null) {

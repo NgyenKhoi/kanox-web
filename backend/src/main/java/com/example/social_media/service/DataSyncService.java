@@ -4,7 +4,9 @@ import com.example.social_media.document.*;
 import com.example.social_media.entity.*;
 import com.example.social_media.mapper.DocumentMapper;
 import com.example.social_media.repository.*;
-import com.example.social_media.repository.document_repository.*;
+import com.example.social_media.repository.document.GroupDocumentRepository;
+import com.example.social_media.repository.document.PageDocumentRepository;
+import com.example.social_media.repository.document.UserDocumentRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -45,10 +47,14 @@ public class DataSyncService {
     }
 
     public void syncAllUsersToElasticsearch() {
-        List<User> allUsers = userRepo.findAll();
+        List<User> allUsers = userRepo.findAll().stream()
+                .filter(user -> !Boolean.TRUE.equals(user.getIsSystem())) // 👈 Ẩn user hệ thống
+                .collect(Collectors.toList());
+
         List<UserDocument> docs = allUsers.stream()
                 .map(mapper::toUserDocument)
                 .collect(Collectors.toList());
+
         userDocRepo.saveAll(docs);
         System.out.println("Đã đồng bộ " + docs.size() + " users sang Elasticsearch.");
     }
@@ -80,10 +86,13 @@ public class DataSyncService {
 
     public void syncUserToElasticsearch(Integer userId) {
         userRepo.findById(userId).ifPresent(user -> {
+            if (Boolean.TRUE.equals(user.getIsSystem())) {
+                System.out.println("Bỏ qua đồng bộ user hệ thống với ID = " + userId);
+                return;
+            }
             UserDocument userDoc = mapper.toUserDocument(user);
-            System.out.println("Syncing user to Elasticsearch: " + userDoc.getDisplayName());
             userDocRepo.save(userDoc);
-            System.out.println("Saved userDoc to ES");
+            System.out.println("Đã đồng bộ user [" + user.getDisplayName() + "] sang Elasticsearch.");
         });
     }
 

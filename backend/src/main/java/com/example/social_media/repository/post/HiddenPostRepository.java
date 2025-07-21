@@ -1,4 +1,4 @@
-package com.example.social_media.repository.post_repository;
+package com.example.social_media.repository.post;
 
 import com.example.social_media.entity.HiddenPost;
 import com.example.social_media.entity.HiddenPostId;

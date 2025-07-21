@@ -1,4 +1,4 @@
-package com.example.social_media.repository;
+package com.example.social_media.repository.report;
 
 import com.example.social_media.entity.ReportHistory;
 import org.springframework.data.jpa.repository.EntityGraph;

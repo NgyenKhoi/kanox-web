@@ -1,12 +1,13 @@
-import React, {useState, useEffect, useContext} from "react";
-import {toast} from "react-toastify";
-import {WebSocketContext} from "../../context/WebSocketContext";
-import {useLocation, useNavigate} from "react-router-dom";
+import React, { useState, useEffect, useContext } from "react";
+import { toast } from "react-toastify";
+import { WebSocketContext } from "../../context/WebSocketContext";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const ReportsManagement = () => {
-    const {subscribe, unsubscribe} = useContext(WebSocketContext);
+    const { subscribe, unsubscribe } = useContext(WebSocketContext);
     const [postReports, setPostReports] = useState([]);
     const [userReports, setUserReports] = useState([]);
+    const [aiFlaggedPosts, setAiFlaggedPosts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
@@ -34,6 +35,9 @@ const ReportsManagement = () => {
                 url.searchParams.append("targetTypeId", "1");
             } else if (mainTab === "users") {
                 url.searchParams.append("targetTypeId", "4");
+            } else if (mainTab === "ai-flagged-posts") {
+                url.searchParams.append("targetTypeId", "1");
+                url.searchParams.append("reporterType", "AI");
             }
             if (subTab !== "all") {
                 url.searchParams.append("processingStatusId", subTab);
@@ -49,8 +53,10 @@ const ReportsManagement = () => {
             if (!response.ok) throw new Error(data.message || "Không thể tải danh sách báo cáo");
             if (mainTab === "posts") {
                 setPostReports(data.data?.content || []);
-            } else {
+            } else if (mainTab === "users") {
                 setUserReports(data.data?.content || []);
+            } else if (mainTab === "ai-flagged-posts") {
+                setAiFlaggedPosts(data.data?.content || []);
             }
             setTotalPages(data.data?.totalPages || 0);
         } catch (error) {
@@ -123,7 +129,7 @@ const ReportsManagement = () => {
             toast.success("Đã xóa báo cáo!");
             loadReports();
         } catch (error) {
-            toast.error("Lỗi khi xóa báo cáo: " + error.message);
+            toast.error("Lố khi xóa báo cáo: " + error.message);
         }
     };
 
@@ -137,7 +143,7 @@ const ReportsManagement = () => {
             console.error("Invalid reportId:", reportId);
             return;
         }
-        
+
         // Cảnh báo khi duyệt báo cáo về người dùng
         if (parseInt(statusId) === 3 && selectedReport?.targetTypeId === 4) {
             const confirmApprove = window.confirm(
@@ -147,7 +153,7 @@ const ReportsManagement = () => {
                 return;
             }
         }
-        
+
         try {
             const response = await fetch(`${process.env.REACT_APP_API_URL}/admin/${parseInt(reportId)}/status`, {
                 method: "PUT",
@@ -163,17 +169,17 @@ const ReportsManagement = () => {
                 const data = await response.json();
                 throw new Error(data.message || "Lỗi khi cập nhật trạng thái");
             }
-            
+
             let successMessage = "Đã cập nhật trạng thái báo cáo!";
             if (parseInt(statusId) === 3 && selectedReport?.targetTypeId === 4) {
                 successMessage += " Hệ thống sẽ tự động kiểm tra và khóa tài khoản nếu đạt 3 báo cáo được duyệt.";
             }
-            
+
             toast.success(successMessage);
             setShowDetailModal(false);
             loadReports();
         } catch (error) {
-            console.error("Lỗi khi cập nhật trạng thái:", error, {reportId, statusId});
+            console.error("Lỗi khi cập nhật trạng thái:", error, { reportId, statusId });
             toast.error("Lỗi khi cập nhật trạng thái: " + error.message);
         }
     };
@@ -189,22 +195,33 @@ const ReportsManagement = () => {
         if (!subscribe || !unsubscribe) return;
 
         const subscription = subscribe("/topic/admin/reports", (message) => {
-            console.log("Received new report:", message);
-            // Chuẩn hóa dữ liệu báo cáo từ WebSocket
             const report = {
                 ...message,
-                reason: { name: message.reason || "Không xác định" }, // Chuyển reason thành đối tượng
-                processingStatusId: message.processingStatusId || 1, // Mặc định là Pending
+                reason: { name: message.reason || "Không xác định" },
+                processingStatusId: message.processingStatusId || 1,
                 processingStatusName: message.processingStatusName || "Đang chờ"
             };
-            toast.info(`Báo cáo mới từ ${report.reporterUsername}: ${report.reason.name}`, {
-                onClick: () => {
-                    navigate("/admin", { state: { newReport: report } });
-                },
-            });
-            // Thêm báo cáo mới vào danh sách phù hợp
+
+            const isAIReport =
+                report.reporterUsername?.toLowerCase() === "ai_moderator" ||
+                report.reporterDisplayName?.toLowerCase() === "ai moderator";
+
+            toast.info(
+                isAIReport
+                    ? `🧠 AI đã gắn cờ một bài viết: ${report.reason.name}`
+                    : `👤 Báo cáo mới từ ${report.reporterUsername}: ${report.reason.name}`,
+                {
+                    onClick: () => {
+                        navigate("/admin", { state: { newReport: report } });
+                    },
+                }
+            );
+
             if (report.targetTypeId === 1) {
                 setPostReports((prev) => [report, ...prev]);
+                if (isAIReport) {
+                    setAiFlaggedPosts((prev) => [report, ...prev]);
+                }
             } else if (report.targetTypeId === 4) {
                 setUserReports((prev) => [report, ...prev]);
             }
@@ -222,7 +239,7 @@ const ReportsManagement = () => {
     return (
         <div className="bg-background text-text p-6 min-h-screen">
             <h2 className="text-2xl font-bold mb-6 dark:text-white">Quản lý Báo cáo</h2>
-            
+
             {/* Thông báo về tính năng tự động block */}
             <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg">
                 <div className="flex items-start gap-3">
@@ -236,7 +253,7 @@ const ReportsManagement = () => {
                             Tính năng tự động khóa tài khoản
                         </h3>
                         <p className="text-sm text-blue-700 dark:text-blue-300">
-                            Khi một tài khoản người dùng bị báo cáo và được duyệt <strong>3 lần</strong>, hệ thống sẽ tự động khóa tài khoản đó. 
+                            Khi một tài khoản người dùng bị báo cáo và được duyệt <strong>3 lần</strong>, hệ thống sẽ tự động khóa tài khoản đó.
                             Admin có thể mở khóa tài khoản trong phần <strong>Quản lý Người dùng</strong>.
                         </p>
                     </div>
@@ -269,6 +286,19 @@ const ReportsManagement = () => {
                         }}
                     >
                         Báo cáo người dùng
+                    </button>
+                    <button
+                        className={`px-4 py-2 rounded-md font-medium transition-colors duration-200 ${
+                            activeMainTab === "ai-flagged-posts" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600"
+                        }`}
+                        onClick={() => {
+                            setActiveMainTab("ai-flagged-posts");
+                            setActiveSubTab("all");
+                            setCurrentPage(0);
+                            loadReports("ai-flagged-posts", "all");
+                        }}
+                    >
+                        Bài viết bị AI gắn cờ
                     </button>
                 </div>
                 <div className="flex gap-2 flex-wrap">
@@ -321,7 +351,7 @@ const ReportsManagement = () => {
                             </tr>
                             </thead>
                             <tbody>
-                            {(activeMainTab === "posts" ? postReports : userReports).map((report) => (
+                            {(activeMainTab === "posts" ? postReports : activeMainTab === "users" ? userReports : aiFlaggedPosts).map((report) => (
                                 <tr
                                     key={report.id}
                                     className="border-t border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150"

@@ -2,10 +2,15 @@ package com.example.social_media.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.ColumnDefault;
 
 import java.time.Instant;
-
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Entity
 @Table(name = "tblReportHistory", schema = "dbo")
 public class ReportHistory {
@@ -28,6 +33,10 @@ public class ReportHistory {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "processing_status_id", nullable = false)
     private ReportStatus processingStatus;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "reporter_type", nullable = false)
+    private Report.ReporterType reporterType = Report.ReporterType.ADMIN;
 
     @ColumnDefault("getdate()")
     @Column(name = "action_time")
