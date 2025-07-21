@@ -8,7 +8,7 @@ export default function PlaceAutocomplete({ onPlaceSelect }) {
         if (!el) return;
 
         el.setAttribute("placeholder", "Nhập địa điểm");
-        el.setAttribute("country", "vn");
+        // el.setAttribute("country", "vn");
 
         const handlePlaceChange = (event) => {
             const place = event.detail; // ✅ Đây mới là object placeResult đúng chuẩn
@@ -41,6 +41,7 @@ export default function PlaceAutocomplete({ onPlaceSelect }) {
                 borderBottom: "1px solid #ccc",
                 padding: "8px",
             }}
+            country="VN"
         />
     );
 }

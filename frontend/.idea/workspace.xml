@@ -10,6 +10,7 @@
       <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/public/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/public/index.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/components/location/PlaceAutocomplete.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/location/PlaceAutocomplete.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/profile/EditProfileModal.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/profile/EditProfileModal.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -167,7 +168,7 @@
       <workItem from="1752769847271" duration="4408000" />
       <workItem from="1752817821730" duration="3566000" />
       <workItem from="1753019609758" duration="4287000" />
-      <workItem from="1753072576559" duration="11441000" />
+      <workItem from="1753072576559" duration="12785000" />
     </task>
     <servers />
   </component>

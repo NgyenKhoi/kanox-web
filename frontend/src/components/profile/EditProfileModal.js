@@ -48,6 +48,14 @@ function EditProfileModal({
     }
   }, [show, userProfile]);
 
+  useEffect(() => {
+    const el = placeInputRef.current;
+    if (el && formData.locationName) {
+      el.querySelector("input")?.setAttribute("value", formData.locationName);
+    }
+  }, [formData.locationName]);
+
+
 
   const validateForm = () => {
     const newErrors = {};
@@ -316,8 +324,8 @@ function EditProfileModal({
                     setFormData((prev) => ({
                       ...prev,
                       locationName: place.formattedAddress || "",
-                      latitude: place.geometry.location.lat,
-                      longitude: place.geometry.location.lng,
+                      latitude: place.geometry.location.lat(),
+                      longitude: place.geometry.location.lng(),
                     }));
                   }}
               />
