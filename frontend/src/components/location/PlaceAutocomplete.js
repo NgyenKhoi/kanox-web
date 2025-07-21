@@ -7,6 +7,10 @@ export default function PlaceAutocomplete({ onPlaceSelect }) {
         const el = ref.current;
         if (!el) return;
 
+        // ✅ Set placeholder thủ công vì React không set được lên custom element
+        el.setAttribute("placeholder", "Nhập địa điểm");
+        el.setAttribute("country", "vn"); // đảm bảo đặt luôn country ở đây
+
         const handlePlaceChange = () => {
             const place = el.value;
             onPlaceSelect?.(place);
@@ -27,8 +31,6 @@ export default function PlaceAutocomplete({ onPlaceSelect }) {
                 borderBottom: "1px solid #ccc",
                 padding: "8px",
             }}
-            placeholder="Nhập địa điểm"
-            country="vn"
         />
     );
 }
