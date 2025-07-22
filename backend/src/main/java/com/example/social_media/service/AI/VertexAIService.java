@@ -63,7 +63,7 @@ public class VertexAIService {
       "explanation": "Giải thích ngắn gọn tại sao nội dung này bị cho là vi phạm"
     }
 
-    ❗️Chỉ trả về JSON hợp lệ, không thêm bất kỳ mô tả nào khác.
+    ❗️Chỉ trả về JSON hợp lệ, KHÔNG bao quanh bằng ``` hoặc bất kỳ mô tả nào khác.
 
     Dưới đây là nội dung:
 
@@ -105,10 +105,15 @@ public class VertexAIService {
 
             JsonNode resultNode;
             try {
+                // Strip markdown code block if exists
+                if (resultText.startsWith("```")) {
+                    resultText = resultText.replaceAll("(?s)```.*?\\n(\\{.*?\\})\\n```", "$1");
+                }
+
                 resultNode = objectMapper.readTree(resultText);
             } catch (Exception jsonEx) {
                 log.error("❌ Phản hồi Gemini không đúng định dạng JSON. Nội dung: {}", resultText);
-                return Optional.empty(); // hoặc fallback nếu muốn
+                return Optional.empty();
             }
 
 
