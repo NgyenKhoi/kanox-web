@@ -39,7 +39,7 @@ public class VertexAIService {
 
             // Endpoint URL
             String url = String.format(
-                    "https://%s-aiplatform.googleapis.com/v1/projects/%s/locations/%s/publishers/google/models/%s:generateContent",
+                    "https://%s-aiplatform.googleapis.com/v1/projects/%s/locations/%s/models/%s:generateContent",
                     LOCATION, PROJECT_ID, LOCATION, MODEL_ID
             );
 
