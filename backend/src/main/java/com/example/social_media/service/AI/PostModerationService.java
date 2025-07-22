@@ -65,7 +65,7 @@
             double confidenceScore = 1.0; // hoặc lấy từ result nếu có
 
             PostAIModeration moderation = new PostAIModeration();
-            moderation.setId(post.getId());
+            moderation.setPost(post);
             moderation.setChecked(true);
             moderation.setCheckedAt(Instant.now());
 
