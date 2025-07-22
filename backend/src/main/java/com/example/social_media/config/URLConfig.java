@@ -74,7 +74,7 @@ public class URLConfig {
     public static final String SEARCH_ALL = "/all";
     public static final String SEARCH_SYNC = "/sync";
 
-    public static final String GOOGLE_LOGIN_CLIENT_ID = "233866118973-t26ue94egg2v1reebqpe684kglf0bjej.apps.googleusercontent.com";
+    public static final String GOOGLE_LOGIN_CLIENT_ID = "169927075241-2bls9jare84nfak44e777ish524o5avk.apps.googleusercontent.com";
 
     // Friendship URLs
     public static final String FRIENDSHIP_BASE = "/api/friends";
