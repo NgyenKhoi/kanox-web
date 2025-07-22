@@ -23,8 +23,10 @@ import java.sql.SQLException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class ReportService {
@@ -39,8 +41,9 @@ public class ReportService {
     private final SimpMessagingTemplate messagingTemplate;
     private final NotificationService notificationService;
     private final PostFlagRepository postFlagRepository;
-    private final PostFlagHistoryRepository postFlagHistoryRepository;
     private final PostAIModerationRepository postAIModerationRepository;
+    private final MediaService mediaService;
+    private final MediaRepository mediaRepository;
 
     private static final int MAX_REPORTS_PER_DAY = 3;
 
@@ -55,8 +58,9 @@ public class ReportService {
             SimpMessagingTemplate messagingTemplate,
             NotificationService notificationService,
             PostFlagRepository postFlagRepository,
-            PostFlagHistoryRepository postFlagHistoryRepository,
-            PostAIModerationRepository postAIModerationRepository
+            PostAIModerationRepository postAIModerationRepository,
+            MediaService mediaService,
+            MediaRepository mediaRepository
     ) {
         this.reportRepository = reportRepository;
         this.userRepository = userRepository;
@@ -68,8 +72,9 @@ public class ReportService {
         this.messagingTemplate = messagingTemplate;
         this.notificationService = notificationService;
         this.postFlagRepository = postFlagRepository;
-        this.postFlagHistoryRepository = postFlagHistoryRepository;
         this.postAIModerationRepository = postAIModerationRepository;
+        this.mediaService = mediaService;
+        this.mediaRepository = mediaRepository;
     }
 
     @Transactional
@@ -439,6 +444,29 @@ public class ReportService {
         dto.setProcessingStatusName(report.getProcessingStatus() != null ? report.getProcessingStatus().getName() : null);
         dto.setReportTime(report.getReportTime());
         dto.setStatus(report.getStatus());
+
+        // Thêm logic để lấy content và imageUrls nếu là báo cáo bài viết
+        if (report.getTargetType() != null && report.getTargetType().getId() == 1) { // 1 = POST
+            Post post = postRepository.findById(report.getTargetId()).orElse(null);
+            if (post != null) {
+                dto.setContent(post.getContent());
+                // Lấy danh sách mediaUrl từ MediaRepository
+                List<String> imageUrls = mediaRepository
+                        .findByTargetIdAndTargetType_CodeAndMediaType_NameAndStatus(
+                                post.getId(), "POST", "image", true)
+                        .stream()
+                        .map(Media::getMediaUrl)
+                        .collect(Collectors.toList());
+                dto.setImageUrls(imageUrls);
+            } else {
+                dto.setContent(null);
+                dto.setImageUrls(Collections.emptyList());
+            }
+        } else {
+            dto.setContent(null);
+            dto.setImageUrls(Collections.emptyList());
+        }
+
         return dto;
     }
 

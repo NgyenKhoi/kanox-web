@@ -1,6 +1,7 @@
 package com.example.social_media.dto.report;
 
 import java.time.Instant;
+import java.util.List;
 
 public class ReportResponseDto {
     private Integer id;
@@ -14,6 +15,8 @@ public class ReportResponseDto {
     private String processingStatusName;
     private Instant reportTime;
     private Boolean status;
+    private String content; // Thêm trường content
+    private List<String> imageUrls; // Thêm trường imageUrls
 
     // Getters and Setters
     public Integer getId() {
@@ -102,5 +105,21 @@ public class ReportResponseDto {
 
     public void setStatus(Boolean status) {
         this.status = status;
+    }
+
+    public String getContent() {
+        return content;
+    }
+
+    public void setContent(String content) {
+        this.content = content;
+    }
+
+    public List<String> getImageUrls() {
+        return imageUrls;
+    }
+
+    public void setImageUrls(List<String> imageUrls) {
+        this.imageUrls = imageUrls;
     }
 }
