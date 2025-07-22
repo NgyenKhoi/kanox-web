@@ -23,7 +23,7 @@ public class VertexAIService {
 
     private static final String PROJECT_ID = "social-media-cicd";
     private static final String LOCATION = "us-central1";
-    private static final String MODEL_ID = "gemini-1.5-pro-002"; // hoặc gemini-1.5-flash
+    private static final String MODEL_ID = "gemini-2.0-flash"; // hoặc gemini-1.5-flash
     private static final String PUBLISHER = "google";
 
     private final ObjectMapper objectMapper;
