@@ -45,7 +45,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(List.of(
-            "https://kanox-web.netlify.app",
+            "https://kanox-social-media.netlify.app",
             "http://localhost:3000",
             "http://127.0.0.1:3000"
         ));

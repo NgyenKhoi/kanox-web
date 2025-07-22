@@ -10,8 +10,8 @@ public class URLConfig {
     public static final String RESET_PASSWORD = "/reset-password";
     public static final String LOGOUT = "/logout";
     public static final String LOGIN_GOOGLE = "/login-google";
-    public static final String EMAIL_VERIFICATION = "https://kanox-web.netlify.app/verify-email?token=";
-    public static final String EMAIL_VERIFY_EXTRA = "https://kanox-web.netlify.app/verify-extra-email?code=";
+    public static final String EMAIL_VERIFICATION = "https://kanox-social-media.netlify.app/verify-email?token=";
+    public static final String EMAIL_VERIFY_EXTRA = "https://kanox-social-media.netlify.app/verify-extra-email?code=";
     public static final String ME = "/me";
     public static final String REFRESH_TOKEN = "/refresh-token";
     public static final String CHECK_TOKEN = "/check-token";
@@ -64,7 +64,7 @@ public class URLConfig {
     public static final String EMOJI_MAIN_LIST = "/emoji-main-list";
     public static final String GET_REACTION_BY_USER = "/by-user";
     // Frontend URLs
-    public static final String FRONTEND_RESET_PASSWORD_URL = "https://kanox-web.netlify.app/reset-password?token=";
+    public static final String FRONTEND_RESET_PASSWORD_URL = "https://kanox-social-media.netlify.app/reset-password?token=";
 
     //Search URLs
     public static final String SEARCH_BASE = "/api/search";
