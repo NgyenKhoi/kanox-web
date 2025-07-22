@@ -16,12 +16,13 @@ public class UserProfileDto {
     private int postCount;
     private String profilePrivacySetting;
     private String phoneNumber;
+    private Double latitude;
+    private Double longitude;
+    private String locationName;
 
     public UserProfileDto() {}
 
-    public UserProfileDto(Integer id, String username, String displayName, String email, String bio, Short gender,
-                          LocalDate dateOfBirth, int followerCount, int followeeCount, String profileImageUrl, int postCount,
-                          String profilePrivacySetting, String phoneNumber) {
+    public UserProfileDto(Integer id, String username, String displayName, String email, String bio, Short gender, LocalDate dateOfBirth, int followerCount, int followeeCount, String profileImageUrl, int postCount, String profilePrivacySetting, String phoneNumber, Double latitude, Double longitude, String locationName) {
         this.id = id;
         this.username = username;
         this.displayName = displayName;
@@ -35,6 +36,9 @@ public class UserProfileDto {
         this.postCount = postCount;
         this.profilePrivacySetting = profilePrivacySetting;
         this.phoneNumber = phoneNumber;
+        this.latitude = latitude;
+        this.longitude = longitude;
+        this.locationName = locationName;
     }
 
     // Getters và setters
@@ -81,4 +85,35 @@ public class UserProfileDto {
         this.profilePrivacySetting = profilePrivacySetting;
     }
 
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
+    }
+
+    public Double getLatitude() {
+        return latitude;
+    }
+
+    public void setLatitude(Double latitude) {
+        this.latitude = latitude;
+    }
+
+    public Double getLongitude() {
+        return longitude;
+    }
+
+    public void setLongitude(Double longitude) {
+        this.longitude = longitude;
+    }
+
+    public String getLocationName() {
+        return locationName;
+    }
+
+    public void setLocationName(String locationName) {
+        this.locationName = locationName;
+    }
 }

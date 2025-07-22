@@ -1,7 +1,10 @@
 package com.example.social_media.service;
 
+import com.example.social_media.dto.user.UserLocationDto;
+import com.example.social_media.entity.Location;
 import com.example.social_media.entity.User;
 import com.example.social_media.exception.UserNotFoundException;
+import com.example.social_media.repository.LocationRepository;
 import com.example.social_media.repository.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -11,17 +14,24 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.dao.DataAccessException;
 
+import java.time.Instant;
+
 @Service
 public class UserService {
 
     private final UserRepository userRepository;
+    private final LocationRepository locationRepository;
     private final ActivityLogService activityLogService;
     
     @PersistenceContext
     private EntityManager entityManager;
 
-    public UserService(UserRepository userRepository, ActivityLogService activityLogService) {
+    public UserService(
+            UserRepository userRepository,
+            LocationRepository locationRepository,
+            ActivityLogService activityLogService) {
         this.userRepository = userRepository;
+        this.locationRepository = locationRepository;
         this.activityLogService = activityLogService;
     }
 
@@ -139,6 +149,24 @@ public class UserService {
         activityLogService.logUserActivity(userId, action, "Admin role updated");
         
         return userRepository.save(user);
+    }
+
+    /**
+     * Cập nhật vị trí quê quán của người dùng
+     */
+    @Transactional
+    public void updateUserLocation(Integer userId, UserLocationDto locationDto) {
+        User user = getUserById(userId);
+        Location location = locationRepository.findByUserId(userId)
+                .orElse(new Location());
+        location.setUser(user);
+        location.setLatitude(locationDto.getLatitude());
+        location.setLongitude(locationDto.getLongitude());
+        location.setLocationName(locationDto.getLocationName());
+        location.setUpdatedAt(Instant.now());
+        locationRepository.save(location);
+
+        activityLogService.logUserActivity(userId, "UPDATE_LOCATION", "User updated their hometown location");
     }
 
     public long countAllUsers() {

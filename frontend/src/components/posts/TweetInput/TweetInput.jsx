@@ -23,12 +23,18 @@ import {
     FaPlus,
     FaChevronLeft,
     FaChevronRight,
+    FaMapMarkerAlt,
+    FaImage,
+    FaUserTag,
 } from "react-icons/fa";
 import { AiOutlineClose } from "react-icons/ai";
 import { AuthContext } from "../../../context/AuthContext";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import useEmojiList from "../../../hooks/useEmojiList";
+import { useLoadScript, Autocomplete } from '@react-google-maps/api';
+
+const libraries = ['places'];
 
 function TweetInput({ onPostSuccess, groupId }) {
     const { user } = useContext(AuthContext);
@@ -51,6 +57,38 @@ function TweetInput({ onPostSuccess, groupId }) {
     const { emojiList, loading: emojiLoading, error: emojiError } = useEmojiList();
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const emojiPickerRef = useRef(null);
+    const [placeInput, setPlaceInput] = useState("");
+    const [selectedPlace, setSelectedPlace] = useState(null);
+    const [showPlacePicker, setShowPlacePicker] = useState(false);
+    const placeInputRef = useRef(null);
+
+    const { isLoaded, loadError } = useLoadScript({
+        googleMapsApiKey: process.env.REACT_APP_GOOGLE_MAPS_API_KEY,
+        libraries,
+    });
+
+    useEffect(() => {
+        if (isLoaded && placeInputRef.current) {
+            const autocomplete = new window.google.maps.places.Autocomplete(
+                placeInputRef.current,
+                { types: ['geocode'] }
+            );
+            autocomplete.addListener('place_changed', () => {
+                const place = autocomplete.getPlace();
+                if (place.geometry) {
+                    setSelectedPlace({
+                        latitude: place.geometry.location.lat(),
+                        longitude: place.geometry.location.lng(),
+                        locationName: place.formatted_address,
+                    });
+                    setPlaceInput(place.formatted_address);
+                    setShowPlacePicker(false);
+                } else {
+                    setPlaceInput('');
+                }
+            });
+        }
+    }, [isLoaded]);
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -200,6 +238,9 @@ function TweetInput({ onPostSuccess, groupId }) {
                 const formData = new FormData();
                 formData.append("userId", user.id);
                 formData.append("caption", tweetContent);
+                if (selectedPlace?.locationName) {
+                    formData.append('locationName', selectedPlace.locationName);
+                }
                 mediaFiles.forEach((file) => formData.append("files", file));
 
                 const mediaRes = await fetch(
@@ -221,6 +262,8 @@ function TweetInput({ onPostSuccess, groupId }) {
             setMediaPreviews([]);
             setStatus("public");
             setCustomListId(null);
+            setSelectedPlace(null);
+            setPlaceInput("");
             setError(null);
             toast.success("Đăng bài thành công!");
             if (onPostSuccess) onPostSuccess(newPost.data);
@@ -483,6 +526,19 @@ function TweetInput({ onPostSuccess, groupId }) {
                         value={tweetContent}
                         onChange={(e) => setTweetContent(e.target.value)}
                     />
+                    {selectedPlace && (
+                        <div className="flex items-center mb-2">
+                            <FaMapMarkerAlt className="mr-1" />
+                            <span>{selectedPlace.locationName}</span>
+                            <Button
+                                variant="link"
+                                className="text-red-600 p-0 ml-2"
+                                onClick={() => setSelectedPlace(null)}
+                            >
+                                <AiOutlineClose size={18} />
+                            </Button>
+                        </div>
+                    )}
                     <div className="mb-3">{renderMediaPreview()}</div>
 
                     {taggedUserIds.length > 0 && (
@@ -692,6 +748,25 @@ function TweetInput({ onPostSuccess, groupId }) {
                                 </div>
                             </OverlayTrigger>
                         </div>
+                        <Button
+                            variant="link"
+                            className="text-[var(--primary-color)] p-2 rounded-full hover-bg-light"
+                            onClick={() => setShowPlacePicker(!showPlacePicker)}
+                        >
+                            <FaMapMarkerAlt size={20} />
+                        </Button>
+                        {showPlacePicker && (
+                            <div className="absolute z-50 mt-2 w-64 bg-[var(--background-color)] border border-[var(--border-color)] rounded shadow p-3">
+                                <input
+                                    ref={placeInputRef}
+                                    type="text"
+                                    placeholder="Nhập địa điểm"
+                                    value={placeInput}
+                                    onChange={(e) => setPlaceInput(e.target.value)}
+                                    className="border border-[var(--border-color)] bg-[var(--background-color)] text-[var(--text-color)] px-3 py-2 rounded w-full"
+                                />
+                            </div>
+                        )}
 
                         <Button
                             variant="primary"

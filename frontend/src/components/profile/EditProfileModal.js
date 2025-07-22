@@ -1,8 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Modal, Button, Form, Image, Spinner, Nav } from "react-bootstrap";
 import { FaCamera, FaTimes, FaLock, FaTrash } from "react-icons/fa";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import PlaceAutocomplete from "../location/PlaceAutocomplete"; // đường dẫn đúng tới file
+
+const libraries = ["places"];
 
 function EditProfileModal({
   show,
@@ -17,10 +20,14 @@ function EditProfileModal({
     dateOfBirth: "",
     avatar: "",
     gender: "",
+    locationName: "",
+    latitude: null,
+    longitude: null,
   });
   const [avatarFile, setAvatarFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const placeInputRef = useRef(null);
 
   useEffect(() => {
     if (show && userProfile) {
@@ -32,11 +39,23 @@ function EditProfileModal({
           : "",
         gender: userProfile.gender != null ? String(userProfile.gender) : "",
         avatar: userProfile.profileImageUrl || "",
+        locationName: userProfile.locationName || "",
+        latitude: userProfile.latitude || null,
+        longitude: userProfile.longitude || null,
       });
       setAvatarFile(null);
       setErrors({});
     }
   }, [show, userProfile]);
+
+  useEffect(() => {
+    const el = placeInputRef.current;
+    if (el && formData.locationName) {
+      el.querySelector("input")?.setAttribute("value", formData.locationName);
+    }
+  }, [formData.locationName]);
+
+
 
   const validateForm = () => {
     const newErrors = {};
@@ -45,6 +64,15 @@ function EditProfileModal({
     }
     if (formData.bio.length > 160) {
       newErrors.bio = "Tiểu sử không được vượt quá 160 ký tự.";
+    }
+    if (formData.locationName && formData.locationName.length > 255) {
+      newErrors.locationName = "Địa điểm không được vượt quá 255 ký tự.";
+    }
+    if (formData.latitude && (formData.latitude < -90 || formData.latitude > 90)) {
+      newErrors.latitude = "Latitude phải nằm trong khoảng -90 đến 90.";
+    }
+    if (formData.longitude && (formData.longitude < -180 || formData.longitude > 180)) {
+      newErrors.longitude = "Longitude phải nằm trong khoảng -180 đến 180.";
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -83,6 +111,9 @@ function EditProfileModal({
         bio: formData.bio,
         dateOfBirth: formData.dateOfBirth,
         gender: formData.gender ? Number(formData.gender) : null,
+        locationName: formData.locationName || null,
+        latitude: formData.latitude || null,
+        longitude: formData.longitude || null,
       };
 
       const form = new FormData();
@@ -282,6 +313,26 @@ function EditProfileModal({
                   </option>
                 ))}
               </Form.Select>
+            </Form.Group>
+            <Form.Group className="mb-3" controlId="formLocation">
+              <Form.Label className="text-[var(--muted-text-color)] small mb-1">
+                Địa điểm
+              </Form.Label>
+              <PlaceAutocomplete
+                  ref={placeInputRef}
+                  onPlaceSelect={(place) => {
+                    if (!place || !place.geometry) return;
+                    setFormData((prev) => ({
+                      ...prev,
+                      locationName: place.formattedAddress || "",
+                      latitude: place.latitude,
+                      longitude: place.longitude,
+                    }));
+                  }}
+              />
+              <Form.Control.Feedback type="invalid">
+                {errors.locationName}
+              </Form.Control.Feedback>
             </Form.Group>
           </Form>
 

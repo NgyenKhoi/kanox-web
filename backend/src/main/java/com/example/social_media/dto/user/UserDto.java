@@ -7,6 +7,7 @@ public class UserDto {
     private String displayName;
     private Short gender;
     private String bio;
+    private Integer mutualFriendCount;
 
     public UserDto() {}
 
@@ -30,6 +31,13 @@ public class UserDto {
         this.id = id;
         this.username = username;
         this.displayName = displayName;
+    }
+
+    public UserDto(Integer id, String username, String displayName, Integer mutualFriendCount) {
+        this.id = id;
+        this.username = username;
+        this.displayName = displayName;
+        this.mutualFriendCount = mutualFriendCount;
     }
 
     // Getters and setters
@@ -72,6 +80,14 @@ public class UserDto {
 
     public void setBio(String bio) {
         this.bio = bio;
+    }
+
+    public Integer getMutualFriendCount() {
+        return mutualFriendCount;
+    }
+
+    public void setMutualFriendCount(Integer mutualFriendCount) {
+        this.mutualFriendCount = mutualFriendCount;
     }
 }
 

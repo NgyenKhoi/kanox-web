@@ -20,7 +20,10 @@ import java.util.Set;
             @StoredProcedureParameter(mode = ParameterMode.IN, name = "media_urls", type = String.class),
             @StoredProcedureParameter(mode = ParameterMode.IN, name = "tagged_user_ids", type = String.class),
             @StoredProcedureParameter(mode = ParameterMode.IN, name = "custom_list_id", type = Integer.class),
-            @StoredProcedureParameter(mode = ParameterMode.IN, name = "group_id", type = Integer.class), // 👈 moved up
+            @StoredProcedureParameter(mode = ParameterMode.IN, name = "group_id", type = Integer.class),
+            @StoredProcedureParameter(mode = ParameterMode.IN, name = "latitude", type = Double.class),
+            @StoredProcedureParameter(mode = ParameterMode.IN, name = "longitude", type = Double.class),
+            @StoredProcedureParameter(mode = ParameterMode.IN, name = "location_name", type = String.class),
             @StoredProcedureParameter(mode = ParameterMode.OUT, name = "new_post_id", type = Integer.class) // 👈 moved down
         }
 )
@@ -79,6 +82,16 @@ public class Post {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "shared_post_id")
     private Post sharedPost;
+    @Column(name = "latitude")
+    private Double latitude;
+
+    @Column(name = "longitude")
+    private Double longitude;
+
+    @Size(max = 255)
+    @Nationalized
+    @Column(name = "location_name")
+    private String locationName;
 
     @OneToOne(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     private PostFlag postFlag;
@@ -189,5 +202,14 @@ public class Post {
     public void setSharedPost(Post sharedPost) {
         this.sharedPost = sharedPost;
     }
+
+    public Double getLatitude() { return latitude; }
+    public void setLatitude(Double latitude) { this.latitude = latitude; }
+
+    public Double getLongitude() { return longitude; }
+    public void setLongitude(Double longitude) { this.longitude = longitude; }
+
+    public String getLocationName() { return locationName; }
+    public void setLocationName(String locationName) { this.locationName = locationName; }
 
 }
