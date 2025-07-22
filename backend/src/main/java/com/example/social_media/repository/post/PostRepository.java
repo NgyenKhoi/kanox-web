@@ -2,6 +2,7 @@ package com.example.social_media.repository.post;
 
 import com.example.social_media.entity.Post;
 import com.example.social_media.entity.User;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -101,7 +102,7 @@ public interface PostRepository extends JpaRepository<Post, Integer> {
     WHERE p.id NOT IN (
         SELECT pm.id FROM PostAIModeration pm WHERE pm.checked = true
     )
+    ORDER BY p.createdAt ASC
 """)
-    List<Post> findUncheckedPosts();
-
+    List<Post> findUncheckedPosts(Pageable pageable);
 }

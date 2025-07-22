@@ -14,11 +14,13 @@
     import com.example.social_media.service.NotificationService;
     import lombok.RequiredArgsConstructor;
     import lombok.extern.slf4j.Slf4j;
+    import org.springframework.data.domain.Pageable;
     import org.springframework.messaging.simp.SimpMessagingTemplate;
     import org.springframework.stereotype.Service;
     import org.springframework.transaction.annotation.Transactional;
 
     import java.time.Instant;
+    import java.util.Comparator;
     import java.util.List;
     import java.util.Map;
     import java.util.Optional;
@@ -157,7 +159,8 @@
 
         @Transactional
         public void moderateUncheckedPosts() {
-            List<Post> uncheckedPosts = postRepository.findUncheckedPosts();
+            int batchSize = 3;
+            List<Post> uncheckedPosts = postRepository.findUncheckedPosts(Pageable.ofSize(batchSize));
 
             log.info("🔍 Bắt đầu kiểm duyệt {} bài viết chưa được AI kiểm duyệt", uncheckedPosts.size());
 
@@ -169,7 +172,7 @@
                 }
             }
 
-            log.info("✅ Đã kiểm duyệt xong tất cả bài viết chưa được xử lý.");
+            log.info("✅ Đã kiểm duyệt xong tất cả bài viết trong lô này.");
         }
 
         private void sendReportToAdmin(Report report, User reporter, ReportReason reason, ReportStatus status) {
