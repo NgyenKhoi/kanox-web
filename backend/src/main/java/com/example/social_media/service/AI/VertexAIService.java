@@ -23,7 +23,8 @@ public class VertexAIService {
 
     private static final String PROJECT_ID = "social-media-cicd";
     private static final String LOCATION = "asia-southeast1";
-    private static final String MODEL_ID = "gemini-2.5-pro";
+    private static final String MODEL_ID = "gemini-1.5-pro"; // hoặc gemini-1.5-flash
+    private static final String PUBLISHER = "google";
 
     private final ObjectMapper objectMapper;
     private final RestTemplate restTemplate = new RestTemplate();
@@ -39,8 +40,8 @@ public class VertexAIService {
 
             // Endpoint URL
             String url = String.format(
-                    "https://%s-aiplatform.googleapis.com/v1/projects/%s/locations/%s/models/%s:generateContent",
-                    LOCATION, PROJECT_ID, LOCATION, MODEL_ID
+                    "https://%s-aiplatform.googleapis.com/v1/projects/%s/locations/%s/publishers/%s/models/%s:generateContent",
+                    LOCATION, PROJECT_ID, LOCATION, PUBLISHER, MODEL_ID
             );
 
             // Prompt content
