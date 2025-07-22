@@ -9,7 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.*;
-import org.springframework.stereotype.Service;
+        import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.InputStream;
@@ -23,7 +23,7 @@ public class VertexAIService {
 
     private static final String PROJECT_ID = "social-media-cicd";
     private static final String LOCATION = "us-central1";
-    private static final String MODEL_ID = "gemini-2.0-flash"; // hoặc gemini-1.5-flash
+    private static final String MODEL_ID = "gemini-2.5-flash-lite"; // hoặc gemini-1.5-flash
     private static final String PUBLISHER = "google";
 
     private final ObjectMapper objectMapper;
@@ -46,27 +46,29 @@ public class VertexAIService {
 
             // Prompt content
             String prompt = """
-                Bạn là một hệ thống kiểm duyệt nội dung tự động.
+    Bạn là một hệ thống kiểm duyệt nội dung tự động.
 
-                Nội dung sau đây là một bài đăng hoặc bình luận từ mạng xã hội của người dùng. Vui lòng đánh giá xem nội dung này có vi phạm **chính sách cộng đồng** không.
+    Nội dung sau đây là một bài đăng hoặc bình luận từ mạng xã hội của người dùng. Vui lòng đánh giá xem nội dung này có vi phạm **chính sách cộng đồng** không.
 
-                Chính sách cộng đồng bao gồm:
-                - Không chứa lời nói căm ghét, kỳ thị, phân biệt chủng tộc, giới tính, tôn giáo,...
-                - Không mang tính chất bạo lực, đe dọa, khủng bố.
-                - Không chứa nội dung tình dục rõ ràng hoặc tục tĩu.
-                - Không lan truyền tin giả, kích động, phản cảm, spam.
+    Chính sách cộng đồng bao gồm:
+    - Không chứa lời nói căm ghét, kỳ thị, phân biệt chủng tộc, giới tính, tôn giáo,...
+    - Không mang tính chất bạo lực, đe dọa, khủng bố.
+    - Không chứa nội dung tình dục rõ ràng hoặc tục tĩu.
+    - Không lan truyền tin giả, kích động, phản cảm, spam.
 
-                Hãy trả lời theo định dạng JSON như sau:
-                {
-                  "is_violation": true|false,
-                  "violation_types": ["hate_speech", "sexual", "violence", "spam", "inappropriate", "fake_news", "harassment", "impersonation"],
-                  "explanation": "Giải thích ngắn gọn tại sao nội dung này bị cho là vi phạm"
-                }
+    Hãy trả lời theo định dạng JSON như sau:
+    {
+      "is_violation": true|false,
+      "violation_types": ["hate_speech", "sexual", "violence", "spam", "inappropriate", "fake_news", "harassment", "impersonation"],
+      "explanation": "Giải thích ngắn gọn tại sao nội dung này bị cho là vi phạm"
+    }
 
-                Dưới đây là nội dung:
+    ❗️Chỉ trả về JSON hợp lệ, không thêm bất kỳ mô tả nào khác.
 
-                "%s"
-                """.formatted(postContent);
+    Dưới đây là nội dung:
+
+    "%s"
+    """.formatted(postContent);
 
             // Request body
             Map<String, Object> requestBody = Map.of(
@@ -101,7 +103,14 @@ public class VertexAIService {
                     .path("parts").get(0)
                     .path("text").asText();
 
-            JsonNode resultNode = objectMapper.readTree(resultText);
+            JsonNode resultNode;
+            try {
+                resultNode = objectMapper.readTree(resultText);
+            } catch (Exception jsonEx) {
+                log.error("❌ Phản hồi Gemini không đúng định dạng JSON. Nội dung: {}", resultText);
+                return Optional.empty(); // hoặc fallback nếu muốn
+            }
+
 
             boolean isViolation = resultNode.get("is_violation").asBoolean();
             List<String> violationTypes = objectMapper.convertValue(resultNode.get("violation_types"), List.class);
