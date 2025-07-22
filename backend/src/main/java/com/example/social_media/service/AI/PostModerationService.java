@@ -138,17 +138,17 @@
             for (User admin : admins) {
                 notificationService.sendNotification(
                         admin.getId(),
-                        "REPORT",
-                        "🚨 {displayName} đã báo cáo bài viết của " + post.getOwner().getDisplayName() + " là vi phạm nội dung",
-                        post.getOwner().getId(),
-                        "USER",
-                        null
+                        "AI_FLAGGED_POST", // ✅ loại mới (đã thêm vào tblNotificationType)
+                        "🚨 AI đã gắn cờ bài viết của " + post.getOwner().getDisplayName() + " vì nghi ngờ vi phạm nội dung",
+                        post.getId(),
+                        "POST",
+                        mediaService.getAvatarUrlByUserId(aiUser.getId())
                 );
             }
 
             notificationService.sendNotification(
                     post.getOwner().getId(),
-                    "REPORT",
+                    "AI_FLAGGED_NOTICE",
                     "📣 Bài viết của bạn đã bị AI báo cáo là vi phạm nội dung. Vui lòng chờ xét duyệt.",
                     post.getId(),
                     "POST",
