@@ -4,6 +4,7 @@ import com.example.social_media.dto.notification.NotificationDto;
 import com.example.social_media.entity.*;
 import com.example.social_media.exception.UserNotFoundException;
 import com.example.social_media.repository.*;
+import com.example.social_media.repository.post.PostRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -24,6 +25,7 @@ public class NotificationService {
     private final GroupRepository groupRepository;
     private final MediaService mediaService;
     private final SimpMessagingTemplate messagingTemplate;
+    private final PostRepository postRepository;
 
     @Autowired
     public NotificationService(
@@ -34,7 +36,8 @@ public class NotificationService {
             UserRepository userRepository,
             GroupRepository groupRepository,
             MediaService mediaService,
-            SimpMessagingTemplate messagingTemplate
+            SimpMessagingTemplate messagingTemplate,
+            PostRepository postRepository
     ) {
         this.notificationRepository = notificationRepository;
         this.notificationTypeRepository = notificationTypeRepository;
@@ -44,6 +47,7 @@ public class NotificationService {
         this.groupRepository = groupRepository;
         this.mediaService = mediaService;
         this.messagingTemplate = messagingTemplate;
+        this.postRepository = postRepository;
     }
 
     @Transactional
@@ -69,21 +73,34 @@ public class NotificationService {
         String username;
         String notificationImage = image;
 
-        if ("GROUP".equals(targetTypeCode)) {
-            Group group = groupRepository.findById(targetId)
-                    .orElseThrow(() -> new IllegalArgumentException("Group not found with id: " + targetId));
-            displayName = group.getName();
-            username = group.getOwner().getUsername();
-            if (notificationImage == null) {
-                notificationImage = mediaService.getGroupAvatarUrl(targetId);
+        switch (targetTypeCode) {
+            case "GROUP" -> {
+                Group group = groupRepository.findById(targetId)
+                        .orElseThrow(() -> new IllegalArgumentException("Group not found with id: " + targetId));
+                displayName = group.getName();
+                username = group.getOwner().getUsername();
+                if (notificationImage == null) {
+                    notificationImage = mediaService.getGroupAvatarUrl(targetId);
+                }
             }
-        } else {
-            User targetUser = userRepository.findById(targetId)
-                    .orElseThrow(() -> new UserNotFoundException("User not found with id: " + targetId));
-            displayName = targetUser.getDisplayName() != null ? targetUser.getDisplayName() : targetUser.getUsername();
-            username = targetUser.getUsername();
-            if (notificationImage == null) {
-                notificationImage = mediaService.getAvatarUrlByUserId(targetId);
+            case "POST" -> {
+                Post targetPost = postRepository.findById(targetId)
+                        .orElseThrow(() -> new IllegalArgumentException("Post not found with id: " + targetId));
+                User postOwner = targetPost.getOwner();
+                displayName = postOwner.getDisplayName() != null ? postOwner.getDisplayName() : postOwner.getUsername();
+                username = postOwner.getUsername();
+                if (notificationImage == null) {
+                    notificationImage = mediaService.getAvatarUrlByUserId(postOwner.getId());
+                }
+            }
+            default -> {
+                User targetUser = userRepository.findById(targetId)
+                        .orElseThrow(() -> new UserNotFoundException("User not found with id: " + targetId));
+                displayName = targetUser.getDisplayName() != null ? targetUser.getDisplayName() : targetUser.getUsername();
+                username = targetUser.getUsername();
+                if (notificationImage == null) {
+                    notificationImage = mediaService.getAvatarUrlByUserId(targetId);
+                }
             }
         }
 

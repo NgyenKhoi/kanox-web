@@ -3421,7 +3421,10 @@ GO
     ('GROUP_JOIN_REQUEST', 'A user has requested to join your group', 1),
     ('GROUP_REQUEST_APPROVED', 'Your group join request has been approved', 1),
     ('GROUP_REQUEST_REJECTED', 'Your group join request has been rejected', 1),
-	('REPORT_ABUSE_WARNING', 'Warning for report abuse', 1);
+	('REPORT_ABUSE_WARNING', 'Warning for report abuse', 1),
+	('AI_FLAGGED_NOTICE', 'Your post was flagged by AI for review', 1),
+	('AI_FLAGGED_POST', 'A post was flagged by AI for review', 1);
+
 
     -- tblReactionType (Loại phản hồi: Like, Love, Haha, v.v.)
 	INSERT INTO tblReactionType (name, description, emoji, status) VALUES
