@@ -32,5 +32,5 @@ public interface MediaRepository extends JpaRepository<Media, Integer> {
     @Modifying
     @Transactional
     @Query("DELETE FROM Media m WHERE m.targetId = :targetId AND m.targetType.code = 'POST'")
-    void deleteAllPostMedia(@Param("targetId") Integer postId);
+    void deleteAllPostMedia(@Param("targetId") Integer targetId);
 }
