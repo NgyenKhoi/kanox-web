@@ -147,7 +147,7 @@
                     post.getOwner().getId(),
                     "AI_FLAGGED_NOTICE",
                     "📣 Bài viết của bạn đã bị AI báo cáo là vi phạm nội dung. Vui lòng chờ xét duyệt.",
-                    post.getOwner().getId(),
+                    systemUser.getId(),
                     "PROFILE",
                     mediaService.getAvatarUrlByUserId(aiUser.getId())
             );
