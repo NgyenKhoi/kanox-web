@@ -7,7 +7,7 @@ import org.springframework.security.core.userdetails.User;
 import java.util.Optional;
 
 public interface VerifiedEmailRepository extends JpaRepository<VerifiedEmail, Integer> {
-    Optional<VerifiedEmail> findByEmailAndVerificationCodeAndVerifiedFalse(String email, String verificationCode);
-    Optional<VerifiedEmail> findByUserAndEmail(User user, String email);
     Optional<VerifiedEmail> findByVerificationCode(String verificationCode);
+    Optional<VerifiedEmail> findByEmailAndVerifiedTrue(String email);
+    boolean existsByUserIdAndEmail(Integer userId, String email);
 }

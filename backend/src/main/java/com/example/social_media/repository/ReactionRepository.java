@@ -4,8 +4,10 @@ import com.example.social_media.entity.Reaction;
 import com.example.social_media.entity.ReactionId;
 import io.lettuce.core.dynamic.annotation.Param;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -35,5 +37,13 @@ public interface ReactionRepository extends JpaRepository<Reaction, ReactionId> 
             @Param("targetIds") List<Integer> targetIds,
             @Param("targetTypeCode") String targetTypeCode);
 
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM Reaction r WHERE r.id.targetId = :postId AND r.targetType.code = 'POST'")
+    void deleteAllByPostId(@Param("postId") Integer postId);
 
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM Reaction r WHERE r.id.targetId IN :commentIds AND r.targetType.code = 'COMMENT'")
+    void deleteAllByCommentIds(@Param("commentIds") List<Integer> commentIds);
 }

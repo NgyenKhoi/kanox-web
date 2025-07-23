@@ -20,7 +20,6 @@
     import org.springframework.transaction.annotation.Transactional;
 
     import java.time.Instant;
-    import java.util.Comparator;
     import java.util.List;
     import java.util.Map;
     import java.util.Optional;
@@ -82,7 +81,7 @@
             String joinedReasons = String.join(", ", result.getViolationTypes());
             String primaryViolation = result.getViolationTypes().isEmpty()
                     ? "Nội dung không phù hợp"
-                    : result.getViolationTypes().get(0);
+                    : result.getViolationTypes().getFirst();
 
             ReportReason reason = reportReasonRepository.findByName(primaryViolation)
                     .orElseGet(() -> {
@@ -126,10 +125,8 @@
 
             postAIModerationRepository.save(moderation);
 
-            // ✅ Gửi realtime WebSocket cho admin
             sendReportToAdmin(report, systemUser, reason, status);
 
-            // Gửi thông báo hệ thống
             User aiUser = userRepository.findByEmail("ai@system.local")
                     .orElseThrow(() -> new IllegalStateException("AI user not found"));
 
@@ -146,7 +143,7 @@
             notificationService.sendNotification(
                     post.getOwner().getId(),
                     "AI_FLAGGED_NOTICE",
-                    "📣 Bài viết của bạn đã bị AI báo cáo là vi phạm nội dung. Vui lòng chờ xét duyệt.",
+                    "📣 Bài viết của bạn đã bị AI gắn cờ do vi phạm: " + joinedReasons + ". Vui lòng chờ quản trị viên xem xét.",
                     systemUser.getId(),
                     "PROFILE",
                     mediaService.getAvatarUrlByUserId(aiUser.getId())

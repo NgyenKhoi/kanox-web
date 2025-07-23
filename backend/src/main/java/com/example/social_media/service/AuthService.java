@@ -107,11 +107,15 @@ public class AuthService {
     public boolean forgotPassword(String email) {
         logger.info("Processing forgot password for email: {}", email);
 
-        Optional<User> userOpt = userRepository.findByEmail(email);
-        if (userOpt.isEmpty()) {
-            logger.warn("Email not found: {}", email);
+        // Tìm email đã xác minh
+        Optional<VerifiedEmail> verifiedEmailOpt = verifiedEmailRepository.findByEmailAndVerifiedTrue(email);
+        if (verifiedEmailOpt.isEmpty()) {
+            logger.warn("Email chưa được xác minh hoặc không tồn tại: {}", email);
             return false;
         }
+
+        User user = verifiedEmailOpt.get().getUser();
+
         try {
             mailService.sendResetToken(email);
             logger.info("Password reset token sent to email: {}", email);
@@ -200,6 +204,15 @@ public class AuthService {
 
         User savedUser = userRepository.save(user);
         dataSyncService.syncUserToElasticsearch(savedUser.getId());
+
+        // ✅ Lưu email đã xác minh
+        VerifiedEmail verifiedEmail = new VerifiedEmail();
+        verifiedEmail.setUser(savedUser);
+        verifiedEmail.setEmail(verificationToken.getEmail());
+        verifiedEmail.setCreatedAt(Instant.now());
+        verifiedEmail.setVerified(true);
+        verifiedEmailRepository.save(verifiedEmail);
+
         verificationTokenRepository.delete(verificationToken);
         return savedUser;
     }
@@ -225,6 +238,15 @@ public class AuthService {
             } else if (!existingUser.getGoogleId().equals(googleId)) {
                 logger.warn("Email {} is already linked to another Google account", email);
                 throw new IllegalStateException("Email đã được liên kết với một tài khoản Google khác");
+            }
+            if (!verifiedEmailRepository.existsByUserIdAndEmail(existingUser.getId(), email)) {
+                VerifiedEmail verifiedEmail = new VerifiedEmail();
+                verifiedEmail.setUser(existingUser);
+                verifiedEmail.setEmail(email);
+                verifiedEmail.setCreatedAt(Instant.now());
+                verifiedEmail.setVerified(true);
+                verifiedEmailRepository.save(verifiedEmail);
+                logger.info("Verified email added for existing user: {}", email);
             }
             return existingUser;
         }
@@ -268,6 +290,13 @@ public class AuthService {
 
         try {
             User savedUser = userRepository.save(newUser);
+            VerifiedEmail verifiedEmail = new VerifiedEmail();
+            verifiedEmail.setUser(savedUser);
+            verifiedEmail.setEmail(email);
+            verifiedEmail.setCreatedAt(Instant.now());
+            verifiedEmail.setVerified(true);
+            verifiedEmailRepository.save(verifiedEmail);
+            logger.info("Verified email added for new user: {}", email);
             logger.info("New user created: {}", savedUser.getUsername());
             dataSyncService.syncUserToElasticsearch(savedUser.getId());
             try {
