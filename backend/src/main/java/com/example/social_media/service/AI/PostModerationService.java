@@ -136,22 +136,19 @@
             List<User> admins = userRepository.findAllByIsAdminTrue(); // giả sử bạn có hàm này
 
             for (User admin : admins) {
-                notificationService.sendNotification(
-                        admin.getId(),
-                        "AI_FLAGGED_POST", // ✅ loại mới (đã thêm vào tblNotificationType)
-                        "🚨 AI đã gắn cờ bài viết của " + post.getOwner().getDisplayName() + " vì nghi ngờ vi phạm nội dung",
-                        post.getId(),
-                        "POST",
-                        mediaService.getAvatarUrlByUserId(aiUser.getId())
-                );
+                messagingTemplate.convertAndSend("/topic/admin/toast", Map.of(
+                        "type", "AI_FLAGGED_POST",
+                        "message", "🚨 AI đã gắn cờ bài viết của " + post.getOwner().getDisplayName()
+                ));
             }
+
 
             notificationService.sendNotification(
                     post.getOwner().getId(),
                     "AI_FLAGGED_NOTICE",
                     "📣 Bài viết của bạn đã bị AI báo cáo là vi phạm nội dung. Vui lòng chờ xét duyệt.",
-                    post.getId(),
-                    "POST",
+                    post.getOwner().getId(),
+                    "PROFILE",
                     mediaService.getAvatarUrlByUserId(aiUser.getId())
             );
             log.info("AI đã gắn cờ bài viết #{} vì vi phạm: {}. Viết vào hàng chờ xử lý cho admin.", postId, joinedReasons);
