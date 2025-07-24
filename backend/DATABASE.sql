@@ -2381,7 +2381,7 @@ GO
 	BEGIN
 		SET NOCOUNT ON;
 		DECLARE @ErrorMessage NVARCHAR(4000);
-		DECLARE @new_created_at DATETIMEOFFSET;
+		DECLARE @new_created_at DATETIME;
 
 		BEGIN TRY
 			-- Kiểm tra chat_id
@@ -3423,7 +3423,8 @@ GO
     ('GROUP_REQUEST_REJECTED', 'Your group join request has been rejected', 1),
 	('REPORT_ABUSE_WARNING', 'Warning for report abuse', 1),
 	('AI_FLAGGED_NOTICE', 'Your post was flagged by AI for review', 1),
-	('AI_FLAGGED_POST', 'A post was flagged by AI for review', 1);
+	('AI_FLAGGED_POST', 'A post was flagged by AI for review', 1),
+    ('POST_REMOVED', 'Your post was removed due to community standards violation', 1);
 
 
     -- tblReactionType (Loại phản hồi: Like, Love, Haha, v.v.)

@@ -202,6 +202,36 @@ public class ReportService {
                         mediaRepository.deleteAllPostMedia(reportedPost.getId());
 
                         postRepository.delete(reportedPost);
+                        String reasonContent = report.getReason() != null
+                                ? report.getReason().getDescription()
+                                : "vi phạm tiêu chuẩn cộng đồng";
+
+                        String ownerMessage = "Bài viết của bạn đã bị xóa do: \"" + reasonContent + "\". "
+                                + "Vui lòng đảm bảo các nội dung bạn đăng tuân thủ tiêu chuẩn cộng đồng của chúng tôi.";
+
+                        messagingTemplate.convertAndSend(
+                                "/topic/notifications/" + reportedPost.getOwner().getId(),
+                                Map.of(
+                                        "id", reportedPost.getId(),
+                                        "message", ownerMessage,
+                                        "type", "POST_REMOVED",
+                                        "targetId", reportedPost.getId(),
+                                        "targetType", "POST",
+                                        "adminId", admin.getId(),
+                                        "adminDisplayName", admin.getDisplayName(),
+                                        "createdAt", System.currentTimeMillis() / 1000,
+                                        "status", "unread"
+                                )
+                        );
+
+                        notificationService.sendNotification(
+                                reportedPost.getOwner().getId(),      // Người nhận thông báo
+                                "POST_REMOVED",                       // Loại thông báo
+                                ownerMessage,                         // Nội dung
+                                admin.getId(),                        // Người gửi (admin)
+                                "PROFILE",
+                                null
+                        );
                         System.out.println("✅ [AI MODERATION] Post " + reportedPost.getId() + " deleted by AI report approval.");
                     } catch (Exception e) {
                         System.err.println("❌ Error during AI auto-moderation delete: " + e.getMessage());
@@ -226,6 +256,37 @@ public class ReportService {
                         postAIModerationRepository.findByPostId(reportedPost.getId()).ifPresent(postAIModerationRepository::delete);
 
                         postRepository.delete(reportedPost);
+
+                        String reasonContent = report.getReason() != null
+                                ? report.getReason().getDescription()
+                                : "vi phạm tiêu chuẩn cộng đồng";
+
+                        String ownerMessage = "Bài viết của bạn đã bị xóa do: \"" + reasonContent + "\". "
+                                + "Vui lòng đảm bảo các nội dung bạn đăng tuân thủ tiêu chuẩn cộng đồng của chúng tôi.";
+
+                        messagingTemplate.convertAndSend(
+                                "/topic/notifications/" + reportedPost.getOwner().getId(),
+                                Map.of(
+                                        "id", reportedPost.getId(),
+                                        "message", ownerMessage,
+                                        "type", "POST_REMOVED",
+                                        "targetId", reportedPost.getId(),
+                                        "targetType", "POST",
+                                        "adminId", admin.getId(),
+                                        "adminDisplayName", admin.getDisplayName(),
+                                        "createdAt", System.currentTimeMillis() / 1000,
+                                        "status", "unread"
+                                )
+                        );
+
+                        notificationService.sendNotification(
+                                reportedPost.getOwner().getId(),      // Người nhận
+                                "POST_REMOVED",                       // Type
+                                ownerMessage,                         // Nội dung
+                                admin.getId(),                        // Người gửi (admin)
+                                "PROFILE",                            // Target type
+                                null                                  // Avatar URL nếu cần
+                        );
                         System.out.println("✅ [USER MODERATION] Post " + reportedPost.getId() + " deleted by user report approval.");
                     } catch (Exception e) {
                         System.err.println("❌ Error during user report moderation delete: " + e.getMessage());
