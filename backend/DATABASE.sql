@@ -2370,85 +2370,112 @@ GO
 	END;
 	GO
 
-	CREATE OR ALTER PROCEDURE sp_SendMessage
-		@chat_id INT,
-		@sender_id INT,
-		@content NVARCHAR(MAX),
-		@media_url NVARCHAR(512) = NULL,
-		@media_type NVARCHAR(10) = NULL,
-		@new_message_id INT OUTPUT
-	AS
-	BEGIN
-		SET NOCOUNT ON;
-		DECLARE @ErrorMessage NVARCHAR(4000);
-		DECLARE @new_created_at DATETIME;
+CREATE OR ALTER PROCEDURE sp_SendMessage
+    @chat_id INT,
+    @sender_id INT,
+    @content NVARCHAR(MAX),
+    @media_url NVARCHAR(512) = NULL,
+    @media_type NVARCHAR(10) = NULL,
+    @new_message_id INT OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @ErrorMessage NVARCHAR(4000);
+    DECLARE @new_created_at DATETIME;
+    DECLARE @media_type_id INT;
 
-		BEGIN TRY
-			-- Kiểm tra chat_id
-			IF NOT EXISTS (SELECT 1 FROM tblChat WHERE id = @chat_id AND status = 1)
-			BEGIN
-				SET @ErrorMessage = N'Chat không tồn tại hoặc đã bị xóa.';
-				THROW 50001, @ErrorMessage, 1;
-			END
+    BEGIN TRY
+        -- Kiểm tra chat_id
+        IF NOT EXISTS (SELECT 1 FROM tblChat WHERE id = @chat_id AND status = 1)
+            BEGIN
+                SET @ErrorMessage = N'Chat không tồn tại hoặc đã bị xóa.';
+                THROW 50001, @ErrorMessage, 1;
+            END
 
-			-- Kiểm tra sender_id
-			IF NOT EXISTS (SELECT 1 FROM tblUser WHERE id = @sender_id AND status = 1)
-			BEGIN
-				SET @ErrorMessage = N'Người gửi không tồn tại hoặc đã bị vô hiệu hóa.';
-				THROW 50002, @ErrorMessage, 1;
-			END
+        -- Kiểm tra sender_id
+        IF NOT EXISTS (SELECT 1 FROM tblUser WHERE id = @sender_id AND status = 1)
+            BEGIN
+                SET @ErrorMessage = N'Người gửi không tồn tại hoặc đã bị vô hiệu hóa.';
+                THROW 50002, @ErrorMessage, 1;
+            END
 
-			-- Kiểm tra quyền truy cập chat
-			IF NOT EXISTS (
-				SELECT 1 
-				FROM tblChatMember 
-				WHERE chat_id = @chat_id 
-				AND user_id = @sender_id 
-				AND status = 1
-			)
-			BEGIN
-				SET @ErrorMessage = N'Người dùng không có quyền truy cập vào chat này.';
-				THROW 50003, @ErrorMessage, 1;
-			END
+        -- Kiểm tra quyền truy cập chat
+        IF NOT EXISTS (
+            SELECT 1
+            FROM tblChatMember
+            WHERE chat_id = @chat_id
+              AND user_id = @sender_id
+              AND status = 1
+        )
+            BEGIN
+                SET @ErrorMessage = N'Người dùng không có quyền truy cập vào chat này.';
+                THROW 50003, @ErrorMessage, 1;
+            END
 
-			-- Kiểm tra trạng thái chặn
-			IF EXISTS (
-				SELECT 1 
-				FROM tblBlock 
-				WHERE (user_id = @sender_id OR blocked_user_id = @sender_id)
-				AND status = 1
-			)
-			BEGIN
-				SET @ErrorMessage = N'Người dùng bị chặn hoặc đã chặn người khác trong chat này.';
-				THROW 50004, @ErrorMessage, 1;
-			END
+        -- Kiểm tra trạng thái chặn
+        IF EXISTS (
+            SELECT 1
+            FROM tblBlock
+            WHERE (user_id = @sender_id OR blocked_user_id = @sender_id)
+              AND status = 1
+        )
+            BEGIN
+                SET @ErrorMessage = N'Người dùng bị chặn hoặc đã chặn người khác trong chat này.';
+                THROW 50004, @ErrorMessage, 1;
+            END
 
-			-- Thêm tin nhắn vào tblMessage (loại media bị loại bỏ ở đây)
-			INSERT INTO tblMessage (chat_id, sender_id, type_id, content, created_at, status)
-			VALUES (@chat_id, @sender_id, 1, @content, SYSDATETIMEOFFSET(), 1);
+        -- Kiểm tra và lấy media_type_id
+        IF @media_url IS NOT NULL AND @media_type IS NOT NULL
+            BEGIN
+                SET @media_type_id = (SELECT id FROM tblMediaType WHERE name = @media_type);
+                IF @media_type_id IS NULL
+                    BEGIN
+                        SET @ErrorMessage = N'Loại media không hợp lệ.';
+                        THROW 50005, @ErrorMessage, 1;
+                    END
+            END
 
-			-- Lấy ID và created_at của tin nhắn vừa thêm
-			SET @new_message_id = SCOPE_IDENTITY();
-			SET @new_created_at = (SELECT created_at FROM tblMessage WHERE id = @new_message_id);
+        -- Thêm tin nhắn vào tblMessage
+        INSERT INTO tblMessage (chat_id, sender_id, type_id, content, created_at, status)
+        VALUES (@chat_id, @sender_id, 1, @content, SYSDATETIMEOFFSET(), 1);
 
-			-- Thêm trạng thái tin nhắn cho các thành viên (trừ người gửi và những người đánh dấu người gửi là spam)
-			INSERT INTO tblMessageStatus (message_id, user_id, status, created_at)
-			SELECT @new_message_id, cm.user_id, 'unread', SYSDATETIMEOFFSET()
-			FROM tblChatMember cm
-			WHERE cm.chat_id = @chat_id 
-			AND cm.user_id != @sender_id 
-			AND cm.status = 1
-			AND cm.is_spam = 0;
+        -- Lấy ID và created_at của tin nhắn vừa thêm
+        SET @new_message_id = SCOPE_IDENTITY();
+        SET @new_created_at = (SELECT created_at FROM tblMessage WHERE id = @new_message_id);
 
-			-- Trả về new_message_id và created_at
-			SELECT @new_message_id AS new_message_id, @new_created_at AS created_at;
-		END TRY
-		BEGIN CATCH
-			SET @ErrorMessage = ERROR_MESSAGE();
-			THROW 50000, @ErrorMessage, 1;
-		END CATCH
-	END;
-	GO
+        -- Nếu có media, thêm vào tblMedia
+        IF @media_url IS NOT NULL AND @media_type_id IS NOT NULL
+            BEGIN
+                DECLARE @target_type_id INT;
+                SET @target_type_id = (SELECT id FROM tblTargetType WHERE code = 'MESSAGE');
+                IF @target_type_id IS NULL
+                    BEGIN
+                        SET @ErrorMessage = N'Loại target MESSAGE không tồn tại.';
+                        THROW 50006, @ErrorMessage, 1;
+                    END
+
+                INSERT INTO tblMedia (owner_id, target_id, target_type_id, media_type_id, media_url, created_at, status)
+                VALUES (@sender_id, @new_message_id, @target_type_id, @media_type_id, @media_url, SYSDATETIMEOFFSET(), 1);
+            END
+
+        -- Thêm trạng thái tin nhắn cho các thành viên (trừ người gửi và những người đánh dấu người gửi là spam)
+        INSERT INTO tblMessageStatus (message_id, user_id, status, created_at)
+        SELECT @new_message_id, cm.user_id, 'unread', SYSDATETIMEOFFSET()
+        FROM tblChatMember cm
+        WHERE cm.chat_id = @chat_id
+          AND cm.user_id != @sender_id
+          AND cm.status = 1
+          AND cm.is_spam = 0;
+
+        -- Trả về new_message_id và created_at
+        SELECT @new_message_id AS new_message_id, @new_created_at AS created_at;
+    END TRY
+    BEGIN CATCH
+        SET @ErrorMessage = ERROR_MESSAGE();
+        THROW 50000, @ErrorMessage, 1;
+    END CATCH
+END;
+GO
 
 	CREATE NONCLUSTERED INDEX idx_chat_member_is_spam
 	ON tblChatMember (chat_id, user_id, is_spam)
