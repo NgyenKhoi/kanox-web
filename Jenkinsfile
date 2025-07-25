@@ -10,20 +10,20 @@ pipeline {
         NGINX_CONF = '/etc/nginx/sites-enabled/kanox.conf'
     }
 
-    stage('Clone & Build') {
-    steps {
-        dir('backend') {
-            // Inject file vào workspace
-            withCredentials([file(credentialsId: 'my-ssh-key', variable: 'SECRET_FILE')]) {
-                sh 'chmod +x mvnw'
-                // Copy file vào resources
-                sh 'cp $SECRET_FILE src/main/resources/application-secret.properties'
-                // Build
-                sh './mvnw clean install -DskipTests'
+    stages {
+        stage('Clone & Build') {
+            steps {
+                dir('backend') {
+                    script {
+                        withCredentials([file(credentialsId: 'my-ssh-key', variable: 'SECRET_FILE')]) {
+                            sh 'chmod +x mvnw'
+                            sh 'cp $SECRET_FILE src/main/resources/application-secret.properties'
+                            sh './mvnw clean install -DskipTests'
+                        }
+                    }
+                }
             }
         }
-    }
-}
 
         stage('Determine Active/Standby Port') {
             steps {
