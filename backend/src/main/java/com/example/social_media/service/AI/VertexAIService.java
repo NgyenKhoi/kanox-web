@@ -7,13 +7,13 @@ import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.core.io.ClassPathResource;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
-        import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.FileInputStream;
 import java.io.InputStream;
-import java.time.Instant;
 import java.util.*;
 
 @Slf4j
@@ -23,16 +23,19 @@ public class VertexAIService {
 
     private static final String PROJECT_ID = "social-media-cicd";
     private static final String LOCATION = "us-central1";
-    private static final String MODEL_ID = "gemini-2.5-flash-lite"; // hoặc gemini-1.5-flash
+    private static final String MODEL_ID = "gemini-2.5-flash-lite";
     private static final String PUBLISHER = "google";
+
+    @Value("${gcp.credentials.filepath}")
+    private String credentialsPath;
 
     private final ObjectMapper objectMapper;
     private final RestTemplate restTemplate = new RestTemplate();
 
     public Optional<FlagResultDto> analyzePost(String postContent) {
         try {
-            // Load credentials from gcp-credentials.json
-            InputStream credentialsStream = new ClassPathResource("gcp-credentials.json").getInputStream();
+            // ✅ Load credentials từ file system
+            InputStream credentialsStream = new FileInputStream(credentialsPath);
             GoogleCredentials credentials = GoogleCredentials.fromStream(credentialsStream)
                     .createScoped("https://www.googleapis.com/auth/cloud-platform");
             credentials.refreshIfExpired();
@@ -46,29 +49,29 @@ public class VertexAIService {
 
             // Prompt content
             String prompt = """
-    Bạn là một hệ thống kiểm duyệt nội dung tự động.
+                    Bạn là một hệ thống kiểm duyệt nội dung tự động.
 
-    Nội dung sau đây là một bài đăng hoặc bình luận từ mạng xã hội của người dùng. Vui lòng đánh giá xem nội dung này có vi phạm **chính sách cộng đồng** không.
+                    Nội dung sau đây là một bài đăng hoặc bình luận từ mạng xã hội của người dùng. Vui lòng đánh giá xem nội dung này có vi phạm **chính sách cộng đồng** không.
 
-    Chính sách cộng đồng bao gồm:
-    - Không chứa lời nói căm ghét, kỳ thị, phân biệt chủng tộc, giới tính, tôn giáo,...
-    - Không mang tính chất bạo lực, đe dọa, khủng bố.
-    - Không chứa nội dung tình dục rõ ràng hoặc tục tĩu.
-    - Không lan truyền tin giả, kích động, phản cảm, spam.
+                    Chính sách cộng đồng bao gồm:
+                    - Không chứa lời nói căm ghét, kỳ thị, phân biệt chủng tộc, giới tính, tôn giáo,...
+                    - Không mang tính chất bạo lực, đe dọa, khủng bố.
+                    - Không chứa nội dung tình dục rõ ràng hoặc tục tĩu.
+                    - Không lan truyền tin giả, kích động, phản cảm, spam.
 
-    Hãy trả lời theo định dạng JSON như sau:
-    {
-      "is_violation": true|false,
-      "violation_types": ["hate_speech", "sexual", "violence", "spam", "inappropriate", "fake_news", "harassment", "impersonation"],
-      "explanation": "Giải thích ngắn gọn tại sao nội dung này bị cho là vi phạm"
-    }
+                    Hãy trả lời theo định dạng JSON như sau:
+                    {
+                      "is_violation": true|false,
+                      "violation_types": ["hate_speech", "sexual", "violence", "spam", "inappropriate", "fake_news", "harassment", "impersonation"],
+                      "explanation": "Giải thích ngắn gọn tại sao nội dung này bị cho là vi phạm"
+                    }
 
-    ❗️Chỉ trả về JSON hợp lệ, KHÔNG bao quanh bằng ``` hoặc bất kỳ mô tả nào khác.
+                    ❗️Chỉ trả về JSON hợp lệ, KHÔNG bao quanh bằng ``` hoặc bất kỳ mô tả nào khác.
 
-    Dưới đây là nội dung:
+                    Dưới đây là nội dung:
 
-    "%s"
-    """.formatted(postContent);
+                    "%s"
+                    """.formatted(postContent);
 
             // Request body
             Map<String, Object> requestBody = Map.of(
@@ -105,23 +108,19 @@ public class VertexAIService {
 
             JsonNode resultNode;
             try {
-                // Strip markdown code block if exists
                 if (resultText.startsWith("```")) {
                     resultText = resultText.replaceAll("(?s)```.*?\\n(\\{.*?\\})\\n```", "$1");
                 }
-
                 resultNode = objectMapper.readTree(resultText);
             } catch (Exception jsonEx) {
                 log.error("❌ Phản hồi Gemini không đúng định dạng JSON. Nội dung: {}", resultText);
                 return Optional.empty();
             }
 
-
             boolean isViolation = resultNode.get("is_violation").asBoolean();
             List<String> violationTypes = objectMapper.convertValue(resultNode.get("violation_types"), List.class);
             String explanation = resultNode.get("explanation").asText();
 
-            // Mapping
             List<String> mappedViolationTypes = mapViolationTypesToReportReasons(violationTypes);
 
             return Optional.of(FlagResultDto.builder()
