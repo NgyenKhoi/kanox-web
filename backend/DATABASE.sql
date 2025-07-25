@@ -2850,18 +2850,6 @@ WHERE definition LIKE '%friendship%';
 				RAISERROR('Invalid target_id or target_type_id.', 16, 1);
 				RETURN;
 			END
-
-			-- Check content access
-			/*
-			DECLARE @has_access BIT;
-			EXEC sp_CheckContentAccess @reporter_id, @target_id, @target_type_id, @has_access OUTPUT;
-			IF @has_access = 0
-			BEGIN
-				RAISERROR('User does not have permission to report this content.', 16, 1);
-				RETURN;
-			END
-			*/
-			-- Get owner_id based on target_type_id
 			DECLARE @owner_id INT;
 			SELECT @owner_id =
 				CASE @target_type_id
@@ -3070,6 +3058,73 @@ WHERE definition LIKE '%friendship%';
 		FETCH NEXT @size ROWS ONLY;
 	END;
 
+        CREATE OR ALTER PROCEDURE sp_AutoBlockUser
+            @user_id INT,        -- User bị auto-block
+            @admin_id INT        -- Admin thực hiện auto-block
+        AS
+        BEGIN
+            SET NOCOUNT ON;
+            DECLARE @return_code INT = 0;
+
+            BEGIN TRY
+                BEGIN TRANSACTION;
+
+                -- Kiểm tra user_id tồn tại và chưa bị block
+                IF NOT EXISTS (SELECT 1 FROM tblUser WHERE id = @user_id AND status = 1)
+                    BEGIN
+                        SET @return_code = 1; -- User không tồn tại hoặc đã bị khóa
+                        ROLLBACK TRANSACTION;
+                        RETURN @return_code;
+                    END
+
+                -- Kiểm tra admin_id hợp lệ
+                IF NOT EXISTS (SELECT 1 FROM tblUser WHERE id = @admin_id AND is_admin = 1 AND status = 1)
+                    BEGIN
+                        SET @return_code = 2; -- Admin không hợp lệ
+                        ROLLBACK TRANSACTION;
+                        RETURN @return_code;
+                    END
+
+                -- Kiểm tra user đã bị block chưa
+                IF EXISTS (SELECT 1 FROM tblUser WHERE id = @user_id AND status = 0)
+                    BEGIN
+                        SET @return_code = 3; -- Đã bị khóa rồi
+                        ROLLBACK TRANSACTION;
+                        RETURN @return_code;
+                    END
+
+                -- Auto-block user
+                UPDATE tblUser
+                SET status = 0
+                WHERE id = @user_id;
+
+                -- Ghi log hoạt động auto-block
+                DECLARE @action_type_id INT;
+                SELECT @action_type_id = id FROM tblActionType WHERE name = 'AUTO_BLOCK_USER';
+
+                IF @action_type_id IS NULL
+                    BEGIN
+                        INSERT INTO tblActionType (name, description)
+                        VALUES ('AUTO_BLOCK_USER', 'User automatically blocked due to multiple reports');
+                        SET @action_type_id = SCOPE_IDENTITY();
+                    END
+
+                EXEC sp_LogActivity @admin_id, @action_type_id, NULL, NULL, 1, @user_id, 'USER';
+
+                COMMIT TRANSACTION;
+                RETURN @return_code; -- Trả về 0 nếu thành công
+            END TRY
+            BEGIN CATCH
+                IF @@TRANCOUNT > 0
+                    ROLLBACK TRANSACTION;
+
+                DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+                INSERT INTO tblErrorLog (error_message, error_time)
+                VALUES (@ErrorMessage, GETDATE());
+
+                RETURN 99; -- Unknown error
+            END CATCH
+        END;
     ---------------------------------------
 
     --REACTION
