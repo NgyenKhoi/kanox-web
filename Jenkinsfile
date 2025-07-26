@@ -8,6 +8,7 @@ pipeline {
         REMOTE_DIR = '/home/vunguyenkhoi47/kanox'
         REMOTE_JAR = "${REMOTE_DIR}/app.jar"
         NGINX_CONF = '/etc/nginx/sites-enabled/kanox.conf'
+        GOOGLE_APPLICATION_CREDENTIALS = '/home/vunguyenkhoi47/kanox/gcp-credentials.json'
     }
 
     stages {
@@ -132,15 +133,8 @@ pipeline {
                                 success = true
                                 break
                             }
-        
-                            // ❌ Nếu trả về DOWN hoặc bất kỳ response bất thường nào
-                            if (response.contains('"status":"DOWN"') || response == 'FAIL') {
-                                echo "❌ Service trả về lỗi: ${response}, dừng kiểm tra sớm."
-                                break
-                            }
                         } catch (Exception e) {
                             echo "⚠️ Lỗi khi gọi curl: ${e.getMessage()}"
-                            break // cũng có thể dùng continue nếu bạn muốn thử lại khi curl lỗi
                         }
         
                         sleep(time: 2, unit: 'SECONDS')
