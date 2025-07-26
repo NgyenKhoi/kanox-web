@@ -14,34 +14,13 @@ pipeline {
         stage('Clone & Build') {
             steps {
                 dir('backend') {
-                    script {
-                        withCredentials([
-                            file(credentialsId: 'application-secret', variable: 'APPLICATION_SECRET_FILE'),
-                            file(credentialsId: 'gcp-credentials', variable: 'GCP_CREDENTIALS_FILE')
-                        ]) {
-                            sh './mvnw clean package -DskipTests'
-                            sh 'mkdir -p tmp'
-                            sh 'cp "$APPLICATION_SECRET_FILE" tmp/application-secret.properties'
-                        }
-                    }
+                    sh 'chmod +x mvnw'
+                    sh './mvnw clean install -DskipTests'
                 }
             }
         }
 
-        stage('🧪 Debug Env: GOOGLE_APPLICATION_CREDENTIALS') {
-            steps {
-                sh '''
-                    echo "🔍 Giá trị GOOGLE_APPLICATION_CREDENTIALS hiện tại:"
-                    echo "$GOOGLE_APPLICATION_CREDENTIALS"
-                    echo "---"
-                    echo "🌍 Tất cả biến môi trường có chứa GOOGLE:"
-                    env | grep GOOGLE || echo "❌ Không tìm thấy biến nào"
-                '''
-            }
-        }
-
-
-        stage('Determine Active/Standby Port') {
+                stage('Determine Active/Standby Port') {
             steps {
                 script {
                     def status9090 = sh(script: "ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} 'systemctl is-active kanox-9090.service || true'", returnStdout: true).trim()
@@ -60,46 +39,26 @@ pipeline {
 
                     env.ACTIVE_PORT = activePort
                     env.STANDBY_PORT = standbyPort
-                    echo "✅ ACTIVE_PORT: ${activePort}, STANDBY_PORT: ${standbyPort}"
+                    echo "✅ ACTIVE_PORT: ${env.ACTIVE_PORT}, STANDBY_PORT: ${env.STANDBY_PORT}"
                 }
             }
         }
 
-                stage('Upload to standby') {
-                    steps {
-                        script {
-                            // Copy jar và secrets trước
-                            sh """
-                                ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} 'mkdir -p ${REMOTE_DIR}'
-        
-                                scp -i ${SSH_KEY} backend/target/*.jar ${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_JAR}
-        
-                                scp -i ${SSH_KEY} backend/tmp/application-secret.properties ${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_DIR}/application-secret.properties
-                            """
-        
-                            // Sau đó copy GCP credentials trong withCredentials
-                            withCredentials([
-                                file(credentialsId: 'gcp-credentials', variable: 'GCP_CREDENTIALS_FILE')
-                            ]) {
-                                sh """
-                                    scp -i ${SSH_KEY} \$GCP_CREDENTIALS_FILE ${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_DIR}/gcp-credentials.json
-        
-                                    ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} '
-                                        chmod 600 ${REMOTE_DIR}/application-secret.properties ${REMOTE_DIR}/gcp-credentials.json
-                                        chown ${REMOTE_USER}:${REMOTE_USER} ${REMOTE_DIR}/application-secret.properties ${REMOTE_DIR}/gcp-credentials.json
-                                    '
-                                """
-                            }
-                        }
-                    }
-                }
+        stage('Upload to standby') {
+            steps {
+                sh """
+                    ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} 'mkdir -p ${REMOTE_DIR}'
+                    scp -i ${SSH_KEY} backend/target/*.jar ${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_JAR}
+                """
+            }
+        }
 
         stage('Restart standby service') {
             steps {
                 sh """
                     ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} '
                         set -e
-                        echo "🛑 Dừng service kanox-${STANDBY_PORT} nếu đang chạy..."
+                        echo "🛑 Đang dừng service cũ (kanox-${STANDBY_PORT}) nếu có..."
                         sudo systemctl stop kanox-${STANDBY_PORT}.service || true
                         sleep 2
                         if sudo lsof -i :${STANDBY_PORT}; then
@@ -107,36 +66,38 @@ pipeline {
                             sudo fuser -k ${STANDBY_PORT}/tcp || true
                             sleep 2
                         fi
-                        echo "🚀 Khởi động service kanox-${STANDBY_PORT}..."
+                        echo "🚀 Khởi động lại service..."
                         sudo systemctl start kanox-${STANDBY_PORT}.service
                     '
                 """
             }
         }
 
-        stage('Health check standby') {
+        stage('Health Check Standby') {
             steps {
                 script {
-                    def success = false
+                    def healthy = false
                     for (int i = 0; i < 30; i++) {
-                        echo "🔁 Checking health on port ${STANDBY_PORT}, attempt ${i + 1}"
-                        try {
-                            def response = sh(script: "curl -s http://localhost:${STANDBY_PORT}/actuator/health", returnStdout: true).trim()
-                            echo "✅ Health check response: ${response}"
-                            
-                            if (response.contains('"status":"UP"')) {
-                                success = true
-                                break
-                            }
-                        } catch (Exception e) {
-                            echo "⚠️ Lỗi khi gọi curl: ${e.getMessage()}"
+                        def response = sh(
+                            script: """
+                                ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} \\
+                                    'curl -s http://localhost:${STANDBY_PORT}/actuator/health || echo FAIL'
+                            """,
+                            returnStdout: true
+                        ).trim()
+
+                        if (response.contains('"status":"UP"')) {
+                            echo "✅ Service on port ${STANDBY_PORT} is healthy."
+                            healthy = true
+                            break
                         }
-        
-                        sleep(time: 2, unit: 'SECONDS')
+
+                        echo "⌛ Đợi service trên port ${STANDBY_PORT} khởi động (lần ${i+1}/30)..."
+                        sleep time: 5, unit: 'SECONDS'
                     }
-        
-                    if (!success) {
-                        error("❌ Service on port ${STANDBY_PORT} không healthy sau 30 lần kiểm tra.")
+
+                    if (!healthy) {
+                        error "❌ Service on port ${STANDBY_PORT} không khỏe sau 30 lần kiểm tra."
                     }
                 }
             }
@@ -146,11 +107,10 @@ pipeline {
             steps {
                 echo "🔁 Đổi NGINX từ ${ACTIVE_PORT} ➝ ${STANDBY_PORT}"
                 sh """
-                    ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} '
-                        sudo sed -i "s/${ACTIVE_PORT}/${STANDBY_PORT}/g" ${NGINX_CONF} && \
-                        sudo nginx -t && \
-                        sudo systemctl reload nginx
-                    '
+                    ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} \\
+                        'sudo sed -i "s/${ACTIVE_PORT}/${STANDBY_PORT}/g" ${NGINX_CONF} && \\
+                         sudo nginx -t && \\
+                         sudo systemctl reload nginx'
                 """
             }
         }
@@ -166,18 +126,6 @@ pipeline {
                             echo "⚠️ Port ${ACTIVE_PORT} vẫn bị chiếm, kill thủ công..."
                             sudo fuser -k ${ACTIVE_PORT}/tcp || true
                         fi
-                    '
-                """
-            }
-        }
-
-        stage('Cleanup secrets') {
-            steps {
-                sh """
-                    ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} '
-                        echo "🧹 Xóa file secrets sau khi deploy..."
-                        rm -f ${REMOTE_DIR}/application-secret.properties
-                        rm -f ${REMOTE_DIR}/gcp-credentials.json
                     '
                 """
             }
