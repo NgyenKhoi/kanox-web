@@ -20,12 +20,15 @@ pipeline {
                             file(credentialsId: 'gcp-credentials', variable: 'GCP_CREDENTIALS_FILE')
                         ]) {
                             sh 'chmod +x mvnw'
-                            
-                            // Copy secret file
-                            sh 'cp $SECRET_FILE src/main/resources/application-secret.properties'
-                            
-                            // Gán biến môi trường để backend dùng
-                            sh 'export GOOGLE_APPLICATION_CREDENTIALS=$GCP_CREDENTIALS_FILE && ./mvnw clean install -DskipTests'
+
+                            // ✅ Copy secret config ra ngoài resource
+                            sh 'cp $SECRET_FILE ../application-secret.properties'
+
+                            // ✅ Gán biến môi trường GCP & build app
+                            sh '''
+                                export GOOGLE_APPLICATION_CREDENTIALS=$GCP_CREDENTIALS_FILE
+                                ./mvnw clean package -DskipTests
+                            '''
                         }
                     }
                 }
@@ -61,6 +64,8 @@ pipeline {
                 sh """
                     ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} 'mkdir -p ${REMOTE_DIR}'
                     scp -i ${SSH_KEY} backend/target/*.jar ${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_JAR}
+                    scp -i ${SSH_KEY} application-secret.properties ${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_DIR}/application-secret.properties
+                    scp -i ${SSH_KEY} $GCP_CREDENTIALS_FILE ${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_DIR}/gcp-credentials.json
                 """
             }
         }
