@@ -19,21 +19,13 @@ pipeline {
                             file(credentialsId: 'my-ssh-key', variable: 'SECRET_FILE'),
                             file(credentialsId: 'gcp-credentials', variable: 'GCP_CREDENTIALS_FILE')
                         ]) {
-                            sh 'chmod +x mvnw'
-        
-                            // ✅ Copy file vào src/main/resources (đúng classpath Spring)
-                            sh '''
-                                rm -rf src/main/resources
-                                mkdir -p src/main/resources
-                                cp "$SECRET_FILE" src/main/resources/application-secret.properties
-                                cp "$GCP_CREDENTIALS_FILE" src/main/resources/gcp-credentials.json
-                            '''
-        
-                            // ✅ Không cần GOOGLE_APPLICATION_CREDENTIALS nếu file nằm trong classpath
+                            sh 'chmod +x mvnw'        
                             sh './mvnw clean package -DskipTests'
-        
-                            // Gán lại để dùng ở stage sau
-                            env.GCP_CREDENTIALS_FILE = GCP_CREDENTIALS_FILE
+
+                            sh '''
+                            mkdir -p tmp
+                            cp "$SECRET_FILE" tmp/application-secret.properties
+                        '''
                         }
                     }
                 }
@@ -114,31 +106,36 @@ pipeline {
             }
         }
 
-        stage('Health Check Standby') {
+        stage('Health check standby') {
             steps {
                 script {
-                    def healthy = false
+                    def success = false
                     for (int i = 0; i < 30; i++) {
-                        def response = sh(
-                            script: """
-                                ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} \\
-                                    'curl -s http://localhost:${STANDBY_PORT}/actuator/health || echo FAIL'
-                            """,
-                            returnStdout: true
-                        ).trim()
-
-                        if (response.contains('"status":"UP"')) {
-                            echo "✅ Service on port ${STANDBY_PORT} is healthy."
-                            healthy = true
-                            break
+                        echo "🔁 Checking health on port ${STANDBY_PORT}, attempt ${i + 1}"
+                        try {
+                            def response = sh(script: "curl -s http://localhost:${STANDBY_PORT}/actuator/health", returnStdout: true).trim()
+                            echo "✅ Health check response: ${response}"
+                            
+                            if (response.contains('"status":"UP"')) {
+                                success = true
+                                break
+                            }
+        
+                            // ❌ Nếu trả về DOWN hoặc bất kỳ response bất thường nào
+                            if (response.contains('"status":"DOWN"') || response == 'FAIL') {
+                                echo "❌ Service trả về lỗi: ${response}, dừng kiểm tra sớm."
+                                break
+                            }
+                        } catch (Exception e) {
+                            echo "⚠️ Lỗi khi gọi curl: ${e.getMessage()}"
+                            break // cũng có thể dùng continue nếu bạn muốn thử lại khi curl lỗi
                         }
-
-                        echo "⌛ Đợi service trên port ${STANDBY_PORT} khởi động (lần ${i+1}/30)..."
-                        sleep time: 5, unit: 'SECONDS'
+        
+                        sleep(time: 2, unit: 'SECONDS')
                     }
-
-                    if (!healthy) {
-                        error "❌ Service on port ${STANDBY_PORT} không khỏe sau 30 lần kiểm tra."
+        
+                    if (!success) {
+                        error("❌ Service on port ${STANDBY_PORT} không healthy sau 30 lần kiểm tra.")
                     }
                 }
             }
@@ -168,6 +165,18 @@ pipeline {
                             echo "⚠️ Port ${ACTIVE_PORT} vẫn bị chiếm, kill thủ công..."
                             sudo fuser -k ${ACTIVE_PORT}/tcp || true
                         fi
+                    '
+                """
+            }
+        }
+
+        stage('Cleanup secrets') {
+            steps {
+                sh """
+                    ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} '
+                        echo "🧹 Xóa file secrets sau khi deploy..."
+                        rm -f ${REMOTE_DIR}/application-secret.properties
+                        rm -f ${REMOTE_DIR}/gcp-credentials.json
                     '
                 """
             }
