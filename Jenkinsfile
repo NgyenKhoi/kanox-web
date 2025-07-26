@@ -16,19 +16,27 @@ pipeline {
                 dir('backend') {
                     script {
                         withCredentials([
-                            file(credentialsId: 'my-ssh-key', variable: 'SECRET_FILE'),
+                            file(credentialsId: 'application-secret', variable: 'APPLICATION_SECRET_FILE'),
                             file(credentialsId: 'gcp-credentials', variable: 'GCP_CREDENTIALS_FILE')
                         ]) {
-                            sh 'chmod +x mvnw'        
                             sh './mvnw clean package -DskipTests'
-
-                            sh '''
-                            mkdir -p tmp
-                            cp "$SECRET_FILE" tmp/application-secret.properties
-                        '''
+                            sh 'mkdir -p tmp'
+                            sh 'cp "$APPLICATION_SECRET_FILE" tmp/application-secret.properties'
                         }
                     }
                 }
+            }
+        }
+
+        stage('🧪 Debug Env: GOOGLE_APPLICATION_CREDENTIALS') {
+            steps {
+                sh '''
+                    echo "🔍 Giá trị GOOGLE_APPLICATION_CREDENTIALS hiện tại:"
+                    echo "$GOOGLE_APPLICATION_CREDENTIALS"
+                    echo "---"
+                    echo "🌍 Tất cả biến môi trường có chứa GOOGLE:"
+                    env | grep GOOGLE || echo "❌ Không tìm thấy biến nào"
+                '''
             }
         }
 
@@ -120,15 +128,8 @@ pipeline {
                                 success = true
                                 break
                             }
-        
-                            // ❌ Nếu trả về DOWN hoặc bất kỳ response bất thường nào
-                            if (response.contains('"status":"DOWN"') || response == 'FAIL') {
-                                echo "❌ Service trả về lỗi: ${response}, dừng kiểm tra sớm."
-                                break
-                            }
                         } catch (Exception e) {
                             echo "⚠️ Lỗi khi gọi curl: ${e.getMessage()}"
-                            break // cũng có thể dùng continue nếu bạn muốn thử lại khi curl lỗi
                         }
         
                         sleep(time: 2, unit: 'SECONDS')
