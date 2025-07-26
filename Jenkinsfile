@@ -20,11 +20,16 @@ pipeline {
                             file(credentialsId: 'gcp-credentials', variable: 'GCP_CREDENTIALS_FILE')
                         ]) {
                             sh 'chmod +x mvnw'
-                            sh 'cp "$SECRET_FILE" src/main/resources/application-secret.properties'
+        
+                            // Tạo thư mục tạm và copy file vào đó
+                            sh 'mkdir -p tmp && cp "$SECRET_FILE" tmp/application-secret.properties'
+        
                             withEnv(["GOOGLE_APPLICATION_CREDENTIALS=$GCP_CREDENTIALS_FILE"]) {
+                                // build với đường dẫn custom cho file cấu hình
                                 sh './mvnw clean package -DskipTests'
                             }
-                            // Gán lại để dùng ở các stage sau
+        
+                            // Dùng biến ở các stage sau
                             env.GCP_CREDENTIALS_FILE = GCP_CREDENTIALS_FILE
                         }
                     }
