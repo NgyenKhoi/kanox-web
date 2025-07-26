@@ -1,4 +1,4 @@
-# Java build
+### Java build ###
 /backend/target/
 backend/out/
 *.class
@@ -10,32 +10,32 @@ backend/out/
 *.tar.gz
 *.rar
 
-# Maven
+### Maven ###
 /backend/HELP.md
 !/backend/.mvn/wrapper/maven-wrapper.jar
 
-# Node
+### Node ###
 /frontend/node_modules/
 
-# Build output
+### Build output ###
 /frontend/build/
 frontend/dist/
 
-# Logs
+### Logs ###
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Env files
+### Env files ###
 .env
 .env.*.local
 
-# Secrets
+### Secret files ###
 /backend/src/main/resources/application-secret.properties
 /backend/src/main/resources/gcp-credentials.json
 
-# IDEs, OS
+### IDEs & OS ###
 .DS_Store
 Thumbs.db
 .vscode/
