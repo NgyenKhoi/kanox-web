@@ -20,15 +20,12 @@ pipeline {
                             file(credentialsId: 'gcp-credentials', variable: 'GCP_CREDENTIALS_FILE')
                         ]) {
                             sh 'chmod +x mvnw'
-
-                            // ✅ Copy secret config ra ngoài resource
-                            sh 'cp $SECRET_FILE ../application-secret.properties'
-
-                            // ✅ Gán biến môi trường GCP & build app
-                            sh '''
-                                export GOOGLE_APPLICATION_CREDENTIALS=$GCP_CREDENTIALS_FILE
-                                ./mvnw clean package -DskipTests
-                            '''
+                            sh 'cp "$SECRET_FILE" src/main/resources/application-secret.properties'
+                            withEnv(["GOOGLE_APPLICATION_CREDENTIALS=$GCP_CREDENTIALS_FILE"]) {
+                                sh './mvnw clean package -DskipTests'
+                            }
+                            // Gán lại để dùng ở các stage sau
+                            env.GCP_CREDENTIALS_FILE = GCP_CREDENTIALS_FILE
                         }
                     }
                 }
@@ -54,7 +51,7 @@ pipeline {
 
                     env.ACTIVE_PORT = activePort
                     env.STANDBY_PORT = standbyPort
-                    echo "✅ ACTIVE_PORT: ${env.ACTIVE_PORT}, STANDBY_PORT: ${env.STANDBY_PORT}"
+                    echo "✅ ACTIVE_PORT: ${activePort}, STANDBY_PORT: ${standbyPort}"
                 }
             }
         }
@@ -64,8 +61,8 @@ pipeline {
                 sh """
                     ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} 'mkdir -p ${REMOTE_DIR}'
                     scp -i ${SSH_KEY} backend/target/*.jar ${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_JAR}
-                    scp -i ${SSH_KEY} application-secret.properties ${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_DIR}/application-secret.properties
-                    scp -i ${SSH_KEY} $GCP_CREDENTIALS_FILE ${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_DIR}/gcp-credentials.json
+                    scp -i ${SSH_KEY} backend/src/main/resources/application-secret.properties ${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_DIR}/application-secret.properties
+                    scp -i ${SSH_KEY} ${GCP_CREDENTIALS_FILE} ${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_DIR}/gcp-credentials.json
                 """
             }
         }
@@ -75,7 +72,7 @@ pipeline {
                 sh """
                     ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} '
                         set -e
-                        echo "🛑 Đang dừng service cũ (kanox-${STANDBY_PORT}) nếu có..."
+                        echo "🛑 Dừng service kanox-${STANDBY_PORT} nếu đang chạy..."
                         sudo systemctl stop kanox-${STANDBY_PORT}.service || true
                         sleep 2
                         if sudo lsof -i :${STANDBY_PORT}; then
@@ -83,7 +80,7 @@ pipeline {
                             sudo fuser -k ${STANDBY_PORT}/tcp || true
                             sleep 2
                         fi
-                        echo "🚀 Khởi động lại service..."
+                        echo "🚀 Khởi động service kanox-${STANDBY_PORT}..."
                         sudo systemctl start kanox-${STANDBY_PORT}.service
                     '
                 """
@@ -124,10 +121,11 @@ pipeline {
             steps {
                 echo "🔁 Đổi NGINX từ ${ACTIVE_PORT} ➝ ${STANDBY_PORT}"
                 sh """
-                    ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} \\
-                        'sudo sed -i "s/${ACTIVE_PORT}/${STANDBY_PORT}/g" ${NGINX_CONF} && \\
-                         sudo nginx -t && \\
-                         sudo systemctl reload nginx'
+                    ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} '
+                        sudo sed -i "s/${ACTIVE_PORT}/${STANDBY_PORT}/g" ${NGINX_CONF} && \
+                        sudo nginx -t && \
+                        sudo systemctl reload nginx
+                    '
                 """
             }
         }
