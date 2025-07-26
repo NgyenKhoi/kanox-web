@@ -32,6 +32,18 @@ pipeline {
             }
         }
 
+        stage('🧪 Debug Env: GOOGLE_APPLICATION_CREDENTIALS') {
+            steps {
+                sh '''
+                    echo "🔍 Giá trị GOOGLE_APPLICATION_CREDENTIALS hiện tại:"
+                    echo "$GOOGLE_APPLICATION_CREDENTIALS"
+                    echo "---"
+                    echo "🌍 Tất cả biến môi trường có chứa GOOGLE:"
+                    env | grep GOOGLE || echo "❌ Không tìm thấy biến nào"
+                '''
+            }
+        }
+
 
         stage('Determine Active/Standby Port') {
             steps {
