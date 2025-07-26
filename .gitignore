@@ -33,7 +33,6 @@ yarn-error.log*
 
 ### Secret files ###
 /backend/src/main/resources/application-secret.properties
-/backend/src/main/resources/gcp-credentials.json
 
 ### IDEs & OS ###
 .DS_Store
