@@ -14,8 +14,25 @@ pipeline {
         stage('Clone & Build') {
             steps {
                 dir('backend') {
-                    sh 'chmod +x mvnw'
-                    sh './mvnw clean install -DskipTests'
+                    script {
+                        withCredentials([
+                            file(credentialsId: 'my-ssh-key', variable: 'SECRET_FILE'),
+                            file(credentialsId: 'gcp-credentials', variable: 'GCP_CREDENTIALS_FILE')
+                        ]) {
+                            sh 'chmod +x mvnw'
+        
+                            // Tạo thư mục tạm và copy file vào đó
+                            sh 'mkdir -p tmp && cp "$SECRET_FILE" tmp/application-secret.properties'
+        
+                            withEnv(["GOOGLE_APPLICATION_CREDENTIALS=$GCP_CREDENTIALS_FILE"]) {
+                                // build với đường dẫn custom cho file cấu hình
+                                sh './mvnw clean package -DskipTests'
+                            }
+        
+                            // Dùng biến ở các stage sau
+                            env.GCP_CREDENTIALS_FILE = GCP_CREDENTIALS_FILE
+                        }
+                    }
                 }
             }
         }
@@ -39,17 +56,24 @@ pipeline {
 
                     env.ACTIVE_PORT = activePort
                     env.STANDBY_PORT = standbyPort
-                    echo "✅ ACTIVE_PORT: ${env.ACTIVE_PORT}, STANDBY_PORT: ${env.STANDBY_PORT}"
+                    echo "✅ ACTIVE_PORT: ${activePort}, STANDBY_PORT: ${standbyPort}"
                 }
             }
         }
 
         stage('Upload to standby') {
             steps {
-                sh """
-                    ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} 'mkdir -p ${REMOTE_DIR}'
-                    scp -i ${SSH_KEY} backend/target/*.jar ${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_JAR}
-                """
+                script {
+                    sh """
+                        ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} 'mkdir -p ${REMOTE_DIR}'
+        
+                        scp -i ${SSH_KEY} backend/target/*.jar ${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_JAR}
+        
+                        scp -i ${SSH_KEY} backend/tmp/application-secret.properties ${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_DIR}/application-secret.properties
+        
+                        scp -i ${SSH_KEY} ${GCP_CREDENTIALS_FILE} ${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_DIR}/gcp-credentials.json
+                    """
+                }
             }
         }
 
@@ -58,7 +82,7 @@ pipeline {
                 sh """
                     ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} '
                         set -e
-                        echo "🛑 Đang dừng service cũ (kanox-${STANDBY_PORT}) nếu có..."
+                        echo "🛑 Dừng service kanox-${STANDBY_PORT} nếu đang chạy..."
                         sudo systemctl stop kanox-${STANDBY_PORT}.service || true
                         sleep 2
                         if sudo lsof -i :${STANDBY_PORT}; then
@@ -66,7 +90,7 @@ pipeline {
                             sudo fuser -k ${STANDBY_PORT}/tcp || true
                             sleep 2
                         fi
-                        echo "🚀 Khởi động lại service..."
+                        echo "🚀 Khởi động service kanox-${STANDBY_PORT}..."
                         sudo systemctl start kanox-${STANDBY_PORT}.service
                     '
                 """
@@ -107,10 +131,11 @@ pipeline {
             steps {
                 echo "🔁 Đổi NGINX từ ${ACTIVE_PORT} ➝ ${STANDBY_PORT}"
                 sh """
-                    ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} \\
-                        'sudo sed -i "s/${ACTIVE_PORT}/${STANDBY_PORT}/g" ${NGINX_CONF} && \\
-                         sudo nginx -t && \\
-                         sudo systemctl reload nginx'
+                    ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} '
+                        sudo sed -i "s/${ACTIVE_PORT}/${STANDBY_PORT}/g" ${NGINX_CONF} && \
+                        sudo nginx -t && \
+                        sudo systemctl reload nginx
+                    '
                 """
             }
         }
