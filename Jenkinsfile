@@ -76,6 +76,11 @@ pipeline {
                         scp -i ${SSH_KEY} backend/tmp/application-secret.properties ${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_DIR}/application-secret.properties
         
                         scp -i ${SSH_KEY} ${GCP_CREDENTIALS_FILE} ${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_DIR}/gcp-credentials.json
+
+                        ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} '
+                            chmod 600 ${REMOTE_DIR}/application-secret.properties ${REMOTE_DIR}/gcp-credentials.json
+                            chown ${REMOTE_USER}:${REMOTE_USER} ${REMOTE_DIR}/application-secret.properties ${REMOTE_DIR}/gcp-credentials.json
+                        '
                     """
                 }
             }
