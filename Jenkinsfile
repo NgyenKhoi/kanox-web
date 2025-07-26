@@ -8,7 +8,6 @@ pipeline {
         REMOTE_DIR = '/home/vunguyenkhoi47/kanox'
         REMOTE_JAR = "${REMOTE_DIR}/app.jar"
         NGINX_CONF = '/etc/nginx/sites-enabled/kanox.conf'
-        GOOGLE_APPLICATION_CREDENTIALS = '/home/vunguyenkhoi47/kanox/gcp-credentials.json'
     }
 
     stages {
@@ -17,16 +16,12 @@ pipeline {
                 dir('backend') {
                     script {
                         withCredentials([
-                            file(credentialsId: 'my-ssh-key', variable: 'SECRET_FILE'),
+                            file(credentialsId: 'application-secret', variable: 'APPLICATION_SECRET_FILE'),
                             file(credentialsId: 'gcp-credentials', variable: 'GCP_CREDENTIALS_FILE')
                         ]) {
-                            sh 'chmod +x mvnw'        
                             sh './mvnw clean package -DskipTests'
-
-                            sh '''
-                            mkdir -p tmp
-                            cp "$SECRET_FILE" tmp/application-secret.properties
-                        '''
+                            sh 'mkdir -p tmp'
+                            sh 'cp "$APPLICATION_SECRET_FILE" tmp/application-secret.properties'
                         }
                     }
                 }
