@@ -15,10 +15,17 @@ pipeline {
             steps {
                 dir('backend') {
                     script {
-                        withCredentials([file(credentialsId: 'my-ssh-key', variable: 'SECRET_FILE')]) {
+                        withCredentials([
+                            file(credentialsId: 'my-ssh-key', variable: 'SECRET_FILE'),
+                            file(credentialsId: 'gcp-credentials', variable: 'GCP_CREDENTIALS_FILE')
+                        ]) {
                             sh 'chmod +x mvnw'
+                            
+                            // Copy secret file
                             sh 'cp $SECRET_FILE src/main/resources/application-secret.properties'
-                            sh './mvnw clean install -DskipTests'
+                            
+                            // Gán biến môi trường để backend dùng
+                            sh 'export GOOGLE_APPLICATION_CREDENTIALS=$GCP_CREDENTIALS_FILE && ./mvnw clean install -DskipTests'
                         }
                     }
                 }
