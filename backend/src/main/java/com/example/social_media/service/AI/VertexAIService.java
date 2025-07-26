@@ -26,9 +26,6 @@ public class VertexAIService {
     private static final String MODEL_ID = "gemini-2.5-flash-lite";
     private static final String PUBLISHER = "google";
 
-    @Value("${gcp.credentials.filepath}")
-    private String credentialsPath;
-
     private final ObjectMapper objectMapper;
     private final RestTemplate restTemplate = new RestTemplate();
 
