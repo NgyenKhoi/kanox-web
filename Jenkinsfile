@@ -22,7 +22,11 @@ pipeline {
                             sh 'chmod +x mvnw'
         
                             // Tạo thư mục tạm và copy file vào đó
-                            sh 'mkdir -p tmp && cp "$SECRET_FILE" tmp/application-secret.properties'
+                            sh '''
+                            rm -rf tmp
+                            mkdir tmp
+                            install -m 600 "$SECRET_FILE" tmp/application-secret.properties
+                        '''
         
                             withEnv(["GOOGLE_APPLICATION_CREDENTIALS=$GCP_CREDENTIALS_FILE"]) {
                                 // build với đường dẫn custom cho file cấu hình
