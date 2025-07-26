@@ -65,26 +65,34 @@ pipeline {
             }
         }
 
-        stage('Upload to standby') {
-            steps {
-                script {
-                    sh """
-                        ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} 'mkdir -p ${REMOTE_DIR}'
+                stage('Upload to standby') {
+                    steps {
+                        script {
+                            // Copy jar và secrets trước
+                            sh """
+                                ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} 'mkdir -p ${REMOTE_DIR}'
         
-                        scp -i ${SSH_KEY} backend/target/*.jar ${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_JAR}
+                                scp -i ${SSH_KEY} backend/target/*.jar ${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_JAR}
         
-                        scp -i ${SSH_KEY} backend/tmp/application-secret.properties ${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_DIR}/application-secret.properties
+                                scp -i ${SSH_KEY} backend/tmp/application-secret.properties ${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_DIR}/application-secret.properties
+                            """
         
-                        scp -i ${SSH_KEY} ${GCP_CREDENTIALS_FILE} ${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_DIR}/gcp-credentials.json
-
-                        ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} '
-                            chmod 600 ${REMOTE_DIR}/application-secret.properties ${REMOTE_DIR}/gcp-credentials.json
-                            chown ${REMOTE_USER}:${REMOTE_USER} ${REMOTE_DIR}/application-secret.properties ${REMOTE_DIR}/gcp-credentials.json
-                        '
-                    """
+                            // Sau đó copy GCP credentials trong withCredentials
+                            withCredentials([
+                                file(credentialsId: 'gcp-credentials', variable: 'GCP_CREDENTIALS_FILE')
+                            ]) {
+                                sh """
+                                    scp -i ${SSH_KEY} \$GCP_CREDENTIALS_FILE ${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_DIR}/gcp-credentials.json
+        
+                                    ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} '
+                                        chmod 600 ${REMOTE_DIR}/application-secret.properties ${REMOTE_DIR}/gcp-credentials.json
+                                        chown ${REMOTE_USER}:${REMOTE_USER} ${REMOTE_DIR}/application-secret.properties ${REMOTE_DIR}/gcp-credentials.json
+                                    '
+                                """
+                            }
+                        }
+                    }
                 }
-            }
-        }
 
         stage('Restart standby service') {
             steps {
