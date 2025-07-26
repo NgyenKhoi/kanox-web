@@ -19,6 +19,7 @@ pipeline {
                             file(credentialsId: 'application-secret', variable: 'APPLICATION_SECRET_FILE'),
                             file(credentialsId: 'gcp-credentials', variable: 'GCP_CREDENTIALS_FILE')
                         ]) {
+                            chmod +x ./mvnw
                             sh './mvnw clean package -DskipTests'
                             sh 'mkdir -p tmp'
                             sh 'cp "$APPLICATION_SECRET_FILE" tmp/application-secret.properties'
