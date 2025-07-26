@@ -23,7 +23,7 @@ public class GcsConfig {
     @Bean
     public Storage googleCloudStorage() throws IOException {
         GoogleCredentials credentials = GoogleCredentials
-                .fromStream(new FileInputStream(credentialsPath))
+                .getApplicationDefault() // ✅ Dùng mặc định từ GOOGLE_APPLICATION_CREDENTIALS
                 .createScoped(List.of("https://www.googleapis.com/auth/cloud-platform"));
 
         return StorageOptions.newBuilder()
