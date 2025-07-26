@@ -21,25 +21,25 @@ pipeline {
                         ]) {
                             sh 'chmod +x mvnw'
         
-                            // Tạo thư mục tạm và copy file vào đó
+                            // ✅ Copy file vào src/main/resources (đúng classpath Spring)
                             sh '''
-                            rm -rf tmp
-                            mkdir tmp
-                            install -m 600 "$SECRET_FILE" tmp/application-secret.properties
-                        '''
+                                rm -rf src/main/resources
+                                mkdir -p src/main/resources
+                                cp "$SECRET_FILE" src/main/resources/application-secret.properties
+                                cp "$GCP_CREDENTIALS_FILE" src/main/resources/gcp-credentials.json
+                            '''
         
-                            withEnv(["GOOGLE_APPLICATION_CREDENTIALS=$GCP_CREDENTIALS_FILE"]) {
-                                // build với đường dẫn custom cho file cấu hình
-                                sh './mvnw clean package -DskipTests'
-                            }
+                            // ✅ Không cần GOOGLE_APPLICATION_CREDENTIALS nếu file nằm trong classpath
+                            sh './mvnw clean package -DskipTests'
         
-                            // Dùng biến ở các stage sau
+                            // Gán lại để dùng ở stage sau
                             env.GCP_CREDENTIALS_FILE = GCP_CREDENTIALS_FILE
                         }
                     }
                 }
             }
         }
+
 
         stage('Determine Active/Standby Port') {
             steps {
