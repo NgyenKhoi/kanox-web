@@ -30,8 +30,12 @@ public class FriendSuggestionService {
     }
 
     public List<UserDto> getFriendSuggestions(Integer userId) {
+        System.out.println("Get suggestions for user: " + userId);
         List<FriendSuggestion> suggestions = friendSuggestionRepository.findByUserId(userId);
-
+        System.out.println("Suggestions size: " + suggestions.size());
+        suggestions.forEach(s -> {
+            System.out.println("Suggested: " + s.getId().getSuggestedUserId());
+        });
         return suggestions.stream()
                 .map(suggestion -> {
                     return userRepository.findById(suggestion.getId().getSuggestedUserId())

@@ -13,7 +13,9 @@ import java.util.List;
 
 @Repository
 public interface FriendSuggestionRepository extends JpaRepository<FriendSuggestion, FriendSuggestionId> {
-    List<FriendSuggestion> findByUserId(Integer userId);
+    @Query("SELECT f FROM FriendSuggestion f WHERE f.id.userId = :userId")
+    List<FriendSuggestion> findByUserId(@Param("userId") Integer userId);
+
 
     void deleteByUserId(Integer userId);
 
