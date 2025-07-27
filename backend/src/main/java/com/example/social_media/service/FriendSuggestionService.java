@@ -40,18 +40,29 @@ public class FriendSuggestionService {
             if (suggestedUser != null) {
                 List<UserDto> mutualFriends = new ArrayList<>();
                 if (suggestion.getMutualFriendIds() != null && !suggestion.getMutualFriendIds().isEmpty()) {
+                    System.out.println("Mutual friend IDs for user " + suggestedUser.getId() + ": " + suggestion.getMutualFriendIds());
                     String[] friendIds = suggestion.getMutualFriendIds().split(",");
                     for (String friendId : friendIds) {
                         try {
-                            Optional<User> friendOpt = userRepository.findById(Integer.parseInt(friendId));
+                            Optional<User> friendOpt = userRepository.findById(Integer.parseInt(friendId.trim()));
                             if (friendOpt.isPresent()) {
                                 User friend = friendOpt.get();
-                                mutualFriends.add(new UserDto(friend.getId(), friend.getUsername(), friend.getDisplayName()));
+                                mutualFriends.add(new UserDto(
+                                        friend.getId(),
+                                        friend.getUsername(),
+                                        friend.getDisplayName(),
+                                        friend.getGender(),
+                                        friend.getBio()
+                                ));
+                            } else {
+                                System.out.println("Friend not found for ID: " + friendId);
                             }
                         } catch (NumberFormatException e) {
-                            // Bỏ qua nếu ID không hợp lệ
+                            System.out.println("Invalid mutual friend ID: " + friendId);
                         }
                     }
+                } else {
+                    System.out.println("No mutual friend IDs for user " + suggestedUser.getId());
                 }
                 result.add(new UserDto(
                         suggestedUser.getId(),
@@ -62,6 +73,8 @@ public class FriendSuggestionService {
                         suggestion.getDistanceKm(),
                         mutualFriends
                 ));
+            } else {
+                System.out.println("Suggested user not found for ID: " + suggestion.getId().getSuggestedUserId());
             }
         }
         return result;
