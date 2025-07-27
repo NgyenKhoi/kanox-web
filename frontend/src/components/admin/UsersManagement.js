@@ -11,6 +11,8 @@ const UsersManagement = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [showUserModal, setShowUserModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
   const [editingUser, setEditingUser] = useState(null);
   const [editForm, setEditForm] = useState({
     displayName: '',
@@ -131,128 +133,138 @@ const UsersManagement = () => {
   };
 
   // Khóa tài khoản người dùng
-  const handleBan = async (id) => {
-    if (window.confirm(`Bạn có chắc muốn khóa người dùng ID: ${id}?`)) {
-      try {
-        console.log('=== BANNING USER DEBUG ===');
-        console.log('User ID:', id);
-        console.log('API URL:', `${process.env.REACT_APP_API_URL || 'http://localhost:8080'}/admin/users/${id}/status?status=false`);
-        
-        // Kiểm tra token trước khi gọi API
-        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-        if (!token) {
-          toast.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
-          return;
-        }
-        
-        console.log('Token exists:', !!token);
-        
-        // Gọi API khóa tài khoản
-        await adminService.updateUserStatus(id, false);
-        
-        // Thông báo thành công
-        toast.success("Đã khóa tài khoản người dùng thành công!");
-        
-        // Tải lại danh sách người dùng
-        await fetchUsers(currentPage, searchTerm);
-        
-      } catch (error) {
-        console.error('=== BAN ERROR DEBUG ===');
-        console.error('Error:', error);
-        
-        // Xử lý lỗi và hiển thị thông báo phù hợp
-        let errorMessage = "Có lỗi xảy ra khi khóa tài khoản";
-        
-        if (error.message && error.message.includes('token')) {
-          errorMessage = 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
-        } else if (error.message && error.message.includes('kết nối')) {
-          errorMessage = 'Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng.';
-        } else if (error.response) {
-          switch (error.response.status) {
-            case 401:
-              errorMessage = 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
-              break;
-            case 403:
-              errorMessage = 'Bạn không có quyền thực hiện hành động này.';
-              break;
-            case 404:
-              errorMessage = 'Không tìm thấy người dùng này.';
-              break;
-            case 500:
-              errorMessage = 'Lỗi server. Vui lòng thử lại sau.';
-              break;
-            default:
-              errorMessage = error.response.data?.message || error.response.data?.error || 'Có lỗi xảy ra khi khóa tài khoản';
+  const handleBan = (id) => {
+    const user = users.find(u => u.id === id);
+    setConfirmAction({
+      type: 'ban',
+      userId: id,
+      userName: user?.username || user?.email || `ID: ${id}`,
+      message: `Bạn có chắc muốn khóa tài khoản "${user?.username || user?.email || `ID: ${id}`}"?`,
+      action: async () => {
+        try {
+          console.log('=== BANNING USER DEBUG ===');
+          console.log('User ID:', id);
+          
+          // Kiểm tra token trước khi gọi API
+          const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+          if (!token) {
+            toast.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+            return;
           }
-        } else if (error.message) {
-          errorMessage = error.message;
+          
+          // Gọi API khóa tài khoản
+          await adminService.updateUserStatus(id, false);
+          
+          // Thông báo thành công
+          toast.success("Đã khóa tài khoản người dùng thành công!");
+          
+          // Tải lại danh sách người dùng
+          await fetchUsers(currentPage, searchTerm);
+          
+        } catch (error) {
+          console.error('=== BAN ERROR DEBUG ===');
+          console.error('Error:', error);
+          
+          // Xử lý lỗi và hiển thị thông báo phù hợp
+          let errorMessage = "Có lỗi xảy ra khi khóa tài khoản";
+          
+          if (error.message && error.message.includes('token')) {
+            errorMessage = 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+          } else if (error.message && error.message.includes('kết nối')) {
+            errorMessage = 'Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng.';
+          } else if (error.response) {
+            switch (error.response.status) {
+              case 401:
+                errorMessage = 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+                break;
+              case 403:
+                errorMessage = 'Bạn không có quyền thực hiện hành động này.';
+                break;
+              case 404:
+                errorMessage = 'Không tìm thấy người dùng này.';
+                break;
+              case 500:
+                errorMessage = 'Lỗi server. Vui lòng thử lại sau.';
+                break;
+              default:
+                errorMessage = error.response.data?.message || error.response.data?.error || 'Có lỗi xảy ra khi khóa tài khoản';
+            }
+          } else if (error.message) {
+            errorMessage = error.message;
+          }
+          
+          toast.error(errorMessage);
         }
-        
-        toast.error(errorMessage);
       }
-    }
+    });
+    setShowConfirmModal(true);
   };
 
-  const handleUnban = async (id) => {
-    if (window.confirm(`Bạn có chắc muốn mở khóa người dùng ID: ${id}?`)) {
-      try {
-        console.log('=== UNBANNING USER DEBUG ===');
-        console.log('User ID:', id);
-        console.log('API URL:', `${process.env.REACT_APP_API_URL || 'http://localhost:8080'}/admin/users/${id}/status?status=true`);
-        
-        // Kiểm tra token trước khi gọi API
-        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-        if (!token) {
-          toast.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
-          return;
-        }
-        
-        console.log('Token exists:', !!token);
-        
-        // Gọi API mở khóa tài khoản
-        await adminService.updateUserStatus(id, true);
-        
-        // Thông báo thành công
-        toast.success("Đã mở khóa tài khoản người dùng thành công!");
-        
-        // Tải lại danh sách người dùng
-        await fetchUsers(currentPage, searchTerm);
-        
-      } catch (error) {
-        console.error('=== UNBAN ERROR DEBUG ===');
-        console.error('Error:', error);
-        
-        // Xử lý lỗi và hiển thị thông báo phù hợp
-        let errorMessage = "Có lỗi xảy ra khi mở khóa tài khoản";
-        
-        if (error.message && error.message.includes('token')) {
-          errorMessage = 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
-        } else if (error.message && error.message.includes('kết nối')) {
-          errorMessage = 'Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng.';
-        } else if (error.response) {
-          switch (error.response.status) {
-            case 401:
-              errorMessage = 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
-              break;
-            case 403:
-              errorMessage = 'Bạn không có quyền thực hiện hành động này.';
-              break;
-            case 404:
-              errorMessage = 'Không tìm thấy người dùng này.';
-              break;
-            case 500:
-              errorMessage = 'Lỗi server. Vui lòng thử lại sau.';
-              break;
-            default:
-              errorMessage = error.response.data?.message || error.response.data?.error || 'Có lỗi xảy ra khi mở khóa tài khoản';
+  const handleUnban = (id) => {
+    const user = users.find(u => u.id === id);
+    setConfirmAction({
+      type: 'unban',
+      userId: id,
+      userName: user?.username || user?.email || `ID: ${id}`,
+      message: `Bạn có chắc muốn mở khóa tài khoản "${user?.username || user?.email || `ID: ${id}`}"?`,
+      action: async () => {
+        try {
+          console.log('=== UNBANNING USER DEBUG ===');
+          console.log('User ID:', id);
+          
+          // Kiểm tra token trước khi gọi API
+          const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+          if (!token) {
+            toast.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+            return;
           }
-        } else if (error.message) {
-          errorMessage = error.message;
+          
+          // Gọi API mở khóa tài khoản
+          await adminService.updateUserStatus(id, true);
+          
+          // Thông báo thành công
+          toast.success("Đã mở khóa tài khoản người dùng thành công!");
+          
+          // Tải lại danh sách người dùng
+          await fetchUsers(currentPage, searchTerm);
+          
+        } catch (error) {
+          console.error('=== UNBAN ERROR DEBUG ===');
+          console.error('Error:', error);
+          
+          // Xử lý lỗi và hiển thị thông báo phù hợp
+          let errorMessage = "Có lỗi xảy ra khi mở khóa tài khoản";
+          
+          if (error.message && error.message.includes('token')) {
+            errorMessage = 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+          } else if (error.message && error.message.includes('kết nối')) {
+            errorMessage = 'Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng.';
+          } else if (error.response) {
+            switch (error.response.status) {
+              case 401:
+                errorMessage = 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+                break;
+              case 403:
+                errorMessage = 'Bạn không có quyền thực hiện hành động này.';
+                break;
+              case 404:
+                errorMessage = 'Không tìm thấy người dùng này.';
+                break;
+              case 500:
+                errorMessage = 'Lỗi server. Vui lòng thử lại sau.';
+                break;
+              default:
+                errorMessage = error.response.data?.message || error.response.data?.error || 'Có lỗi xảy ra khi mở khóa tài khoản';
+            }
+          } else if (error.message) {
+            errorMessage = error.message;
+          }
+          
+          toast.error(errorMessage);
         }
-        
-        toast.error(errorMessage);
       }
-    }
+    });
+    setShowConfirmModal(true);
   };
 
 
@@ -634,6 +646,74 @@ const UsersManagement = () => {
                 className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors duration-200"
               >
                 Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Modal xác nhận hành động */}
+      {showConfirmModal && confirmAction && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-gray-800">
+                {confirmAction.type === 'ban' ? 'Xác nhận khóa tài khoản' : 'Xác nhận mở khóa tài khoản'}
+              </h3>
+              <button
+                onClick={() => {
+                  setShowConfirmModal(false);
+                  setConfirmAction(null);
+                }}
+                className="text-gray-500 hover:text-gray-700 text-2xl"
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className="mb-6">
+              <p className="text-gray-700 mb-4">{confirmAction.message}</p>
+              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm text-yellow-700">
+                      {confirmAction.type === 'ban' 
+                        ? 'Hành động này sẽ khóa tài khoản người dùng và họ sẽ không thể đăng nhập.' 
+                        : 'Hành động này sẽ mở khóa tài khoản và người dùng có thể đăng nhập trở lại.'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => {
+                  setShowConfirmModal(false);
+                  setConfirmAction(null);
+                }}
+                className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors duration-200"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={async () => {
+                  setShowConfirmModal(false);
+                  await confirmAction.action();
+                  setConfirmAction(null);
+                }}
+                className={`px-4 py-2 text-white rounded-lg transition-colors duration-200 ${
+                  confirmAction.type === 'ban' 
+                    ? 'bg-red-600 hover:bg-red-700' 
+                    : 'bg-green-600 hover:bg-green-700'
+                }`}
+              >
+                {confirmAction.type === 'ban' ? '🚫 Khóa tài khoản' : '✅ Mở khóa'}
               </button>
             </div>
           </div>

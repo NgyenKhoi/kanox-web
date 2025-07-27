@@ -349,16 +349,33 @@ public class ReportService {
                             User targetUser = userRepository.findById(userIdToBlock)
                                 .orElseThrow(() -> new UserNotFoundException("Target user not found with id: " + userIdToBlock));
                             
+                            System.out.println("[DEBUG] Found target user: " + targetUser.getUsername() + ", Status: " + targetUser.getStatus());
+                            
                             // Chỉ khóa nếu user chưa bị khóa
                             if (targetUser.getStatus()) {
+                                System.out.println("[DEBUG] Calling autoBlockUser stored procedure...");
+                                System.out.println("[DEBUG] Parameters: userIdToBlock=" + userIdToBlock + ", adminId=" + admin.getId());
+                                
                                 // Gọi stored procedure để auto-block user
                                 reportRepository.autoBlockUser(userIdToBlock, admin.getId());
                                 
-                                System.out.println("=== AUTO-BLOCK USER ====");
-                                System.out.println("User ID: " + userIdToBlock + " has been automatically blocked due to 3+ approved reports on target ID: " + report.getTargetId());
+                                System.out.println("=== AUTO-BLOCK USER SUCCESSFUL ====");
+                                System.out.println("User ID: " + userIdToBlock + " (" + targetUser.getUsername() + ") has been automatically blocked due to 3+ approved reports on target ID: " + report.getTargetId());
+                                
+                                // Kiểm tra lại status sau khi block
+                                User updatedUser = userRepository.findById(userIdToBlock).orElse(null);
+                                if (updatedUser != null) {
+                                    System.out.println("[DEBUG] User status after auto-block: " + updatedUser.getStatus());
+                                }
+                            } else {
+                                System.out.println("[DEBUG] User is already blocked, skipping auto-block");
                             }
                         } catch (Exception e) {
-                            System.err.println("Error auto-blocking user: " + e.getMessage());
+                            System.err.println("❌ ERROR auto-blocking user: " + e.getMessage());
+                            System.err.println("❌ Exception type: " + e.getClass().getSimpleName());
+                            if (e.getCause() != null) {
+                                System.err.println("❌ Root cause: " + e.getCause().getMessage());
+                            }
                             e.printStackTrace();
                         }
                     }
