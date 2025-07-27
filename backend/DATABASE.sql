@@ -907,6 +907,7 @@ GO
 			-- Xóa gợi ý hết hạn
 			DELETE FROM tblFriendSuggestion WHERE expiration_date <= GETDATE();
 
+			-- Tạo bảng FOAF suggestions
 			DECLARE @NewSuggestions TABLE (
 				user_id INT,
 				suggested_user_id INT,
@@ -914,30 +915,34 @@ GO
 				suggested_at DATETIME
 			);
 
+			-- Dùng CTE và ngay sau đó là INSERT
+			WITH AllFriends AS (
+				SELECT user_id, friend_id FROM tblFriendship WHERE friendship_status = 'accepted'
+				UNION
+				SELECT friend_id AS user_id, user_id AS friend_id FROM tblFriendship WHERE friendship_status = 'accepted'
+			)
 			INSERT INTO @NewSuggestions (user_id, suggested_user_id, mutual_friend_count, suggested_at)
 			SELECT
-				f1.user_id,
-				f2.friend_id AS suggested_user_id,
+				af1.user_id,
+				af2.friend_id AS suggested_user_id,
 				COUNT(*) AS mutual_friend_count,
 				GETDATE() AS suggested_at
-			FROM tblFriendship f1
-			JOIN tblFriendship f2 ON f1.friend_id = f2.user_id
+			FROM AllFriends af1
+			JOIN AllFriends af2 ON af1.friend_id = af2.user_id
 			WHERE
-				f1.friendship_status = 'accepted'
-				AND f2.friendship_status = 'accepted'
-				AND f1.user_id <> f2.friend_id
-				AND f1.user_id IN (SELECT id FROM tblUser WHERE status = 1)
-				AND f2.friend_id IN (SELECT id FROM tblUser WHERE status = 1)
-				AND f2.friend_id NOT IN (
+				af1.user_id <> af2.friend_id
+				AND af1.user_id IN (SELECT id FROM tblUser WHERE status = 1)
+				AND af2.friend_id IN (SELECT id FROM tblUser WHERE status = 1)
+				AND af2.friend_id NOT IN (
 					SELECT friend_id FROM tblFriendship
-					WHERE user_id = f1.user_id AND friendship_status = 'accepted'
+					WHERE user_id = af1.user_id AND friendship_status = 'accepted'
 				)
-				AND f2.friend_id NOT IN (
-					SELECT blocked_user_id FROM tblBlock WHERE user_id = f1.user_id AND status = 1
+				AND af2.friend_id NOT IN (
+					SELECT blocked_user_id FROM tblBlock WHERE user_id = af1.user_id AND status = 1
 					UNION
-					SELECT user_id FROM tblBlock WHERE blocked_user_id = f1.user_id AND status = 1
+					SELECT user_id FROM tblBlock WHERE blocked_user_id = af1.user_id AND status = 1
 				)
-			GROUP BY f1.user_id, f2.friend_id
+			GROUP BY af1.user_id, af2.friend_id
 			HAVING COUNT(*) >= 1;
 
 			-- Gợi ý dựa trên vị trí
@@ -980,7 +985,7 @@ GO
 					SELECT user_id FROM tblBlock WHERE blocked_user_id = ul1.user_id AND status = 1
 				);
 
-			-- Kết hợp gợi ý FOAF và vị trí vào tblFriendSuggestion
+			-- Gộp và merge
 			MERGE INTO tblFriendSuggestion AS target
 			USING (
 				SELECT user_id, suggested_user_id, mutual_friend_count, suggested_at
@@ -998,6 +1003,7 @@ GO
 			WHEN NOT MATCHED THEN
 				INSERT (user_id, suggested_user_id, mutual_friend_count, suggested_at, expiration_date)
 				VALUES (source.user_id, source.suggested_user_id, source.mutual_friend_count, source.suggested_at, DATEADD(DAY, 7, GETDATE()));
+
 		END TRY
 		BEGIN CATCH
 			DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
@@ -1008,8 +1014,10 @@ GO
 			VALUES (@ErrorMessage, GETDATE());
 
 			RAISERROR (@ErrorMessage, @ErrorSeverity, @ErrorState);
-		END CATCH;
+		END CATCH
 	END;
+
+	select * from tblUser
     -------------------
 
     CREATE TABLE tblFollow (
