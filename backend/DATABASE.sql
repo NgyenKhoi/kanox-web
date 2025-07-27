@@ -886,14 +886,16 @@ END;
 GO
 
 
-    CREATE TABLE tblFriendSuggestion (
-        user_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
-        suggested_user_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
-        mutual_friend_count INT NOT NULL,
-        suggested_at DATETIME DEFAULT GETDATE(),
-        expiration_date DATETIME NULL,
-        PRIMARY KEY (user_id, suggested_user_id)
-    );
+	CREATE TABLE tblFriendSuggestion (
+		user_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
+		suggested_user_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
+		mutual_friend_count INT NOT NULL,
+		suggested_at DATETIME DEFAULT GETDATE(),
+		expiration_date DATETIME NULL,
+		reason VARCHAR(50) NULL, -- Lưu lý do gợi ý: 'mutual_friends' hoặc 'location'
+		distance_km FLOAT NULL, -- Lưu khoảng cách nếu gợi ý dựa trên vị trí
+		PRIMARY KEY (user_id, suggested_user_id)
+	);
 
     ------------PROC FOR SUGGEST FRIEND
 
@@ -924,21 +926,25 @@ BEGIN
             user_id INT,
             suggested_user_id INT,
             mutual_friend_count INT,
-            suggested_at DATETIME
+            suggested_at DATETIME,
+            reason VARCHAR(50),
+            distance_km FLOAT
         );
 
-        -- Dùng CTE và ngay sau đó là INSERT
+        -- Dùng CTE và ngay sau đó là INSERT cho FOAF
         WITH AllFriends AS (
             SELECT user_id, friend_id FROM tblFriendship WHERE friendship_status = 'accepted'
             UNION
             SELECT friend_id AS user_id, user_id AS friend_id FROM tblFriendship WHERE friendship_status = 'accepted'
         )
-        INSERT INTO @NewSuggestions (user_id, suggested_user_id, mutual_friend_count, suggested_at)
+        INSERT INTO @NewSuggestions (user_id, suggested_user_id, mutual_friend_count, suggested_at, reason, distance_km)
         SELECT
             af1.user_id,
             af2.friend_id AS suggested_user_id,
             COUNT(*) AS mutual_friend_count,
-            GETDATE() AS suggested_at
+            GETDATE() AS suggested_at,
+            'mutual_friends' AS reason,
+            NULL AS distance_km
         FROM AllFriends af1
         JOIN AllFriends af2 ON af1.friend_id = af2.user_id
         WHERE
@@ -970,21 +976,25 @@ BEGIN
         DECLARE @LocationSuggestions TABLE (
             user_id INT,
             suggested_user_id INT,
-            distance_km FLOAT,
-            suggested_at DATETIME
+            mutual_friend_count INT,
+            suggested_at DATETIME,
+            reason VARCHAR(50),
+            distance_km FLOAT
         );
 
-        INSERT INTO @LocationSuggestions (user_id, suggested_user_id, distance_km, suggested_at)
+        INSERT INTO @LocationSuggestions (user_id, suggested_user_id, mutual_friend_count, suggested_at, reason, distance_km)
         SELECT
             ul1.user_id,
             ul2.user_id AS suggested_user_id,
+            0 AS mutual_friend_count,
+            GETDATE() AS suggested_at,
+            'location' AS reason,
             ROUND(
                 6371 * ACOS(
                     COS(RADIANS(ul1.latitude)) * COS(RADIANS(ul2.latitude)) * 
                     COS(RADIANS(ul2.longitude) - RADIANS(ul1.longitude)) + 
                     SIN(RADIANS(ul1.latitude)) * SIN(RADIANS(ul2.latitude))
-                ), 2) AS distance_km,
-            GETDATE() AS suggested_at
+                ), 2) AS distance_km
         FROM tblLocation ul1
         CROSS JOIN tblLocation ul2
         WHERE
@@ -1018,10 +1028,10 @@ BEGIN
         -- Gộp và merge
         MERGE INTO tblFriendSuggestion AS target
         USING (
-            SELECT user_id, suggested_user_id, mutual_friend_count, suggested_at
+            SELECT user_id, suggested_user_id, mutual_friend_count, suggested_at, reason, distance_km
             FROM @NewSuggestions
             UNION
-            SELECT user_id, suggested_user_id, 0 AS mutual_friend_count, suggested_at
+            SELECT user_id, suggested_user_id, mutual_friend_count, suggested_at, reason, distance_km
             FROM @LocationSuggestions
         ) AS source
         ON target.user_id = source.user_id AND target.suggested_user_id = source.suggested_user_id
@@ -1029,10 +1039,20 @@ BEGIN
             UPDATE SET
                 mutual_friend_count = source.mutual_friend_count,
                 suggested_at = source.suggested_at,
-                expiration_date = DATEADD(DAY, 7, GETDATE())
+                expiration_date = DATEADD(DAY, 7, GETDATE()),
+                reason = source.reason,
+                distance_km = source.distance_km
         WHEN NOT MATCHED THEN
-            INSERT (user_id, suggested_user_id, mutual_friend_count, suggested_at, expiration_date)
-            VALUES (source.user_id, source.suggested_user_id, source.mutual_friend_count, source.suggested_at, DATEADD(DAY, 7, GETDATE()));
+            INSERT (user_id, suggested_user_id, mutual_friend_count, suggested_at, expiration_date, reason, distance_km)
+            VALUES (
+                source.user_id,
+                source.suggested_user_id,
+                source.mutual_friend_count,
+                source.suggested_at,
+                DATEADD(DAY, 7, GETDATE()),
+                source.reason,
+                source.distance_km
+            );
 
     END TRY
     BEGIN CATCH

@@ -8,6 +8,8 @@ public class UserDto {
     private Short gender;
     private String bio;
     private Integer mutualFriendCount;
+    private String reason;
+    private Double distanceKm;
 
     public UserDto() {}
 
@@ -33,12 +35,16 @@ public class UserDto {
         this.displayName = displayName;
     }
 
-    public UserDto(Integer id, String username, String displayName, Integer mutualFriendCount) {
+    public UserDto(Integer id, String username, String displayName, Integer mutualFriendCount, String reason, Double distanceKm) {
         this.id = id;
         this.username = username;
         this.displayName = displayName;
         this.mutualFriendCount = mutualFriendCount;
+        this.reason = reason;
+        this.distanceKm = distanceKm;
     }
+
+
 
     // Getters and setters
 
@@ -88,6 +94,31 @@ public class UserDto {
 
     public void setMutualFriendCount(Integer mutualFriendCount) {
         this.mutualFriendCount = mutualFriendCount;
+    }
+
+    public String getReason() {
+        return reason;
+    }
+
+    public void setReason(String reason) {
+        this.reason = reason;
+    }
+
+    public Double getDistanceKm() {
+        return distanceKm;
+    }
+
+    public void setDistanceKm(Double distanceKm) {
+        this.distanceKm = distanceKm;
+    }
+
+    public String getReasonText() {
+        if ("mutual_friends".equals(reason) && mutualFriendCount > 0) {
+            return "Có " + mutualFriendCount + " bạn chung";
+        } else if ("location".equals(reason) && distanceKm != null) {
+            return "Sống cách bạn " + String.format("%.2f", distanceKm) + " km";
+        }
+        return "Gợi ý cho bạn";
     }
 }
 
