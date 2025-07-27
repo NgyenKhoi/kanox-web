@@ -897,127 +897,158 @@ GO
 
     ------------PROC FOR SUGGEST FRIEND
 
-	CREATE OR ALTER PROCEDURE sp_UpdateAllFriendSuggestions
-		@radius_km FLOAT = 10
-	AS
-	BEGIN
-		SET NOCOUNT ON;
+CREATE OR ALTER PROCEDURE sp_UpdateAllFriendSuggestions
+    @radius_km FLOAT = 10
+AS
+BEGIN
+    SET NOCOUNT ON;
 
-		BEGIN TRY
-			-- Xóa gợi ý hết hạn
-			DELETE FROM tblFriendSuggestion WHERE expiration_date <= GETDATE();
+    BEGIN TRY
+        -- Xóa gợi ý hết hạn
+        DELETE FROM tblFriendSuggestion WHERE expiration_date <= GETDATE();
 
-			-- Tạo bảng FOAF suggestions
-			DECLARE @NewSuggestions TABLE (
-				user_id INT,
-				suggested_user_id INT,
-				mutual_friend_count INT,
-				suggested_at DATETIME
-			);
+        -- Xóa gợi ý mà hai user đã là bạn bè
+        DELETE FROM tblFriendSuggestion
+        WHERE EXISTS (
+            SELECT 1 FROM tblFriendship f
+            WHERE f.friendship_status = 'accepted'
+            AND (
+                (f.user_id = tblFriendSuggestion.user_id AND f.friend_id = tblFriendSuggestion.suggested_user_id)
+                OR
+                (f.user_id = tblFriendSuggestion.suggested_user_id AND f.friend_id = tblFriendSuggestion.user_id)
+            )
+        );
 
-			-- Dùng CTE và ngay sau đó là INSERT
-			WITH AllFriends AS (
-				SELECT user_id, friend_id FROM tblFriendship WHERE friendship_status = 'accepted'
-				UNION
-				SELECT friend_id AS user_id, user_id AS friend_id FROM tblFriendship WHERE friendship_status = 'accepted'
-			)
-			INSERT INTO @NewSuggestions (user_id, suggested_user_id, mutual_friend_count, suggested_at)
-			SELECT
-				af1.user_id,
-				af2.friend_id AS suggested_user_id,
-				COUNT(*) AS mutual_friend_count,
-				GETDATE() AS suggested_at
-			FROM AllFriends af1
-			JOIN AllFriends af2 ON af1.friend_id = af2.user_id
-			WHERE
-				af1.user_id <> af2.friend_id
-				AND af1.user_id IN (SELECT id FROM tblUser WHERE status = 1)
-				AND af2.friend_id IN (SELECT id FROM tblUser WHERE status = 1)
-				AND af2.friend_id NOT IN (
-					SELECT friend_id FROM tblFriendship
-					WHERE user_id = af1.user_id AND friendship_status = 'accepted'
-				)
-				AND af2.friend_id NOT IN (
-					SELECT blocked_user_id FROM tblBlock WHERE user_id = af1.user_id AND status = 1
-					UNION
-					SELECT user_id FROM tblBlock WHERE blocked_user_id = af1.user_id AND status = 1
-				)
-			GROUP BY af1.user_id, af2.friend_id
-			HAVING COUNT(*) >= 1;
+        -- Tạo bảng FOAF suggestions
+        DECLARE @NewSuggestions TABLE (
+            user_id INT,
+            suggested_user_id INT,
+            mutual_friend_count INT,
+            suggested_at DATETIME
+        );
 
-			-- Gợi ý dựa trên vị trí
-			DECLARE @LocationSuggestions TABLE (
-				user_id INT,
-				suggested_user_id INT,
-				distance_km FLOAT,
-				suggested_at DATETIME
-			);
+        -- Dùng CTE và ngay sau đó là INSERT
+        WITH AllFriends AS (
+            SELECT user_id, friend_id FROM tblFriendship WHERE friendship_status = 'accepted'
+            UNION
+            SELECT friend_id AS user_id, user_id AS friend_id FROM tblFriendship WHERE friendship_status = 'accepted'
+        )
+        INSERT INTO @NewSuggestions (user_id, suggested_user_id, mutual_friend_count, suggested_at)
+        SELECT
+            af1.user_id,
+            af2.friend_id AS suggested_user_id,
+            COUNT(*) AS mutual_friend_count,
+            GETDATE() AS suggested_at
+        FROM AllFriends af1
+        JOIN AllFriends af2 ON af1.friend_id = af2.user_id
+        WHERE
+            af1.user_id <> af2.friend_id
+            AND af1.user_id IN (SELECT id FROM tblUser WHERE status = 1)
+            AND af2.friend_id IN (SELECT id FROM tblUser WHERE status = 1)
+            AND af2.friend_id NOT IN (
+                SELECT friend_id FROM tblFriendship
+                WHERE user_id = af1.user_id AND friendship_status = 'accepted'
+            )
+            AND NOT EXISTS (
+                SELECT 1 FROM tblFriendship f
+                WHERE f.friendship_status = 'accepted'
+                AND (
+                    (f.user_id = af1.user_id AND f.friend_id = af2.friend_id)
+                    OR
+                    (f.user_id = af2.friend_id AND f.friend_id = af1.user_id)
+                )
+            )
+            AND af2.friend_id NOT IN (
+                SELECT blocked_user_id FROM tblBlock WHERE user_id = af1.user_id AND status = 1
+                UNION
+                SELECT user_id FROM tblBlock WHERE blocked_user_id = af1.user_id AND status = 1
+            )
+        GROUP BY af1.user_id, af2.friend_id
+        HAVING COUNT(*) >= 1;
 
-			INSERT INTO @LocationSuggestions (user_id, suggested_user_id, distance_km, suggested_at)
-			SELECT
-				ul1.user_id,
-				ul2.user_id AS suggested_user_id,
-				ROUND(
-					6371 * ACOS(
-						COS(RADIANS(ul1.latitude)) * COS(RADIANS(ul2.latitude)) * 
-						COS(RADIANS(ul2.longitude) - RADIANS(ul1.longitude)) + 
-						SIN(RADIANS(ul1.latitude)) * SIN(RADIANS(ul2.latitude))
-					), 2) AS distance_km,
-				GETDATE() AS suggested_at
-			FROM tblLocation ul1
-			CROSS JOIN tblLocation ul2
-			WHERE
-				ul1.user_id <> ul2.user_id
-				AND ul1.user_id IN (SELECT id FROM tblUser WHERE status = 1)
-				AND ul2.user_id IN (SELECT id FROM tblUser WHERE status = 1)
-				AND 6371 * ACOS(
-					COS(RADIANS(ul1.latitude)) * COS(RADIANS(ul2.latitude)) * 
-					COS(RADIANS(ul2.longitude) - RADIANS(ul1.longitude)) + 
-					SIN(RADIANS(ul1.latitude)) * SIN(RADIANS(ul2.latitude))
-				) <= @radius_km
-				AND ul2.user_id NOT IN (
-					SELECT friend_id FROM tblFriendship
-					WHERE user_id = ul1.user_id AND friendship_status = 'accepted'
-				)
-				AND ul2.user_id NOT IN (
-					SELECT blocked_user_id FROM tblBlock WHERE user_id = ul1.user_id AND status = 1
-					UNION
-					SELECT user_id FROM tblBlock WHERE blocked_user_id = ul1.user_id AND status = 1
-				);
+        -- Gợi ý dựa trên vị trí
+        DECLARE @LocationSuggestions TABLE (
+            user_id INT,
+            suggested_user_id INT,
+            distance_km FLOAT,
+            suggested_at DATETIME
+        );
 
-			-- Gộp và merge
-			MERGE INTO tblFriendSuggestion AS target
-			USING (
-				SELECT user_id, suggested_user_id, mutual_friend_count, suggested_at
-				FROM @NewSuggestions
-				UNION
-				SELECT user_id, suggested_user_id, 0 AS mutual_friend_count, suggested_at
-				FROM @LocationSuggestions
-			) AS source
-			ON target.user_id = source.user_id AND target.suggested_user_id = source.suggested_user_id
-			WHEN MATCHED THEN
-				UPDATE SET
-					mutual_friend_count = source.mutual_friend_count,
-					suggested_at = source.suggested_at,
-					expiration_date = DATEADD(DAY, 7, GETDATE())
-			WHEN NOT MATCHED THEN
-				INSERT (user_id, suggested_user_id, mutual_friend_count, suggested_at, expiration_date)
-				VALUES (source.user_id, source.suggested_user_id, source.mutual_friend_count, source.suggested_at, DATEADD(DAY, 7, GETDATE()));
+        INSERT INTO @LocationSuggestions (user_id, suggested_user_id, distance_km, suggested_at)
+        SELECT
+            ul1.user_id,
+            ul2.user_id AS suggested_user_id,
+            ROUND(
+                6371 * ACOS(
+                    COS(RADIANS(ul1.latitude)) * COS(RADIANS(ul2.latitude)) * 
+                    COS(RADIANS(ul2.longitude) - RADIANS(ul1.longitude)) + 
+                    SIN(RADIANS(ul1.latitude)) * SIN(RADIANS(ul2.latitude))
+                ), 2) AS distance_km,
+            GETDATE() AS suggested_at
+        FROM tblLocation ul1
+        CROSS JOIN tblLocation ul2
+        WHERE
+            ul1.user_id <> ul2.user_id
+            AND ul1.user_id IN (SELECT id FROM tblUser WHERE status = 1)
+            AND ul2.user_id IN (SELECT id FROM tblUser WHERE status = 1)
+            AND 6371 * ACOS(
+                COS(RADIANS(ul1.latitude)) * COS(RADIANS(ul2.latitude)) * 
+                COS(RADIANS(ul2.longitude) - RADIANS(ul1.longitude)) + 
+                SIN(RADIANS(ul1.latitude)) * SIN(RADIANS(ul2.latitude))
+            ) <= @radius_km
+            AND ul2.user_id NOT IN (
+                SELECT friend_id FROM tblFriendship
+                WHERE user_id = ul1.user_id AND friendship_status = 'accepted'
+            )
+            AND NOT EXISTS (
+                SELECT 1 FROM tblFriendship f
+                WHERE f.friendship_status = 'accepted'
+                AND (
+                    (f.user_id = ul1.user_id AND f.friend_id = ul2.user_id)
+                    OR
+                    (f.user_id = ul2.user_id AND f.friend_id = ul1.user_id)
+                )
+            )
+            AND ul2.user_id NOT IN (
+                SELECT blocked_user_id FROM tblBlock WHERE user_id = ul1.user_id AND status = 1
+                UNION
+                SELECT user_id FROM tblBlock WHERE blocked_user_id = ul1.user_id AND status = 1
+            );
 
-		END TRY
-		BEGIN CATCH
-			DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
-			DECLARE @ErrorSeverity INT = ERROR_SEVERITY();
-			DECLARE @ErrorState INT = ERROR_STATE();
+        -- Gộp và merge
+        MERGE INTO tblFriendSuggestion AS target
+        USING (
+            SELECT user_id, suggested_user_id, mutual_friend_count, suggested_at
+            FROM @NewSuggestions
+            UNION
+            SELECT user_id, suggested_user_id, 0 AS mutual_friend_count, suggested_at
+            FROM @LocationSuggestions
+        ) AS source
+        ON target.user_id = source.user_id AND target.suggested_user_id = source.suggested_user_id
+        WHEN MATCHED THEN
+            UPDATE SET
+                mutual_friend_count = source.mutual_friend_count,
+                suggested_at = source.suggested_at,
+                expiration_date = DATEADD(DAY, 7, GETDATE())
+        WHEN NOT MATCHED THEN
+            INSERT (user_id, suggested_user_id, mutual_friend_count, suggested_at, expiration_date)
+            VALUES (source.user_id, source.suggested_user_id, source.mutual_friend_count, source.suggested_at, DATEADD(DAY, 7, GETDATE()));
 
-			INSERT INTO tblErrorLog (error_message, error_time)
-			VALUES (@ErrorMessage, GETDATE());
+    END TRY
+    BEGIN CATCH
+        DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+        DECLARE @ErrorSeverity INT = ERROR_SEVERITY();
+        DECLARE @ErrorState INT = ERROR_STATE();
 
-			RAISERROR (@ErrorMessage, @ErrorSeverity, @ErrorState);
-		END CATCH
-	END;
+        INSERT INTO tblErrorLog (error_message, error_time)
+        VALUES (@ErrorMessage, GETDATE());
 
-	select * from tblUser
+        RAISERROR (@ErrorMessage, @ErrorSeverity, @ErrorState);
+    END CATCH
+END;
+GO
+
+
     -------------------
 
     CREATE TABLE tblFollow (
