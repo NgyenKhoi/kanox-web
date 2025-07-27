@@ -38,10 +38,9 @@ public class PostController {
         this.jwtService = jwtService;
     }
 
-    @PostMapping(consumes = {"multipart/form-data", "application/json"})
+    @PostMapping(consumes = {"multipart/form-data"})
     public ResponseEntity<Map<String, Object>> createPost(
-            @RequestPart(value = "post", required = false) @Valid PostRequestDto dto,
-            @RequestBody(required = false) @Valid PostRequestDto jsonDto,
+            @RequestPart("post") @Valid PostRequestDto dto,
             @RequestPart(value = "media", required = false) List<MultipartFile> mediaFiles,
             @RequestHeader("Authorization") String authHeader) {
         try {
@@ -49,32 +48,27 @@ public class PostController {
             String username = jwtService.extractUsername(token);
             logger.debug("Tạo bài post cho người dùng: {}", username);
 
-            // Chọn DTO từ multipart hoặc JSON
-            PostRequestDto finalDto = dto != null ? dto : jsonDto;
-            if (finalDto == null) {
-                throw new IllegalArgumentException("Dữ liệu bài post không được cung cấp");
-            }
-
-            PostResponseDto responseDto = postService.createPost(finalDto, username, mediaFiles);
+            PostResponseDto responseDto = postService.createPost(dto, username, mediaFiles);
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Tạo bài post thành công");
             response.put("data", responseDto);
             return ResponseEntity.ok(response);
+
         } catch (IllegalArgumentException e) {
             logger.error("Lỗi khi tạo bài post: {}", e.getMessage());
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("status", "error");
-            errorResponse.put("message", e.getMessage());
-            errorResponse.put("errors", new HashMap<>());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+            return buildErrorResponse(HttpStatus.BAD_REQUEST, e.getMessage());
         } catch (Exception e) {
             logger.error("Lỗi hệ thống: {}", e.getMessage(), e);
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("status", "error");
-            errorResponse.put("message", "Lỗi hệ thống: " + e.getMessage());
-            errorResponse.put("errors", new HashMap<>());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+            return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi hệ thống: " + e.getMessage());
         }
+    }
+
+    private ResponseEntity<Map<String, Object>> buildErrorResponse(HttpStatus status, String message) {
+        Map<String, Object> errorResponse = new HashMap<>();
+        errorResponse.put("status", "error");
+        errorResponse.put("message", message);
+        errorResponse.put("errors", new HashMap<>());
+        return ResponseEntity.status(status).body(errorResponse);
     }
 
     @PutMapping("/{postId}")
