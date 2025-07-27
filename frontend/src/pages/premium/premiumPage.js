@@ -47,34 +47,31 @@ const PremiumPage = () => {
     setError("");
     setSuccess("");
 
+    // Map giá trị tiền cho từng gói
+    const planAmountMap = {
+      MONTHLY: 10000,
+      SEMI_ANNUALLY: 50000,
+      ANNUALLY: 100000,
+    };
+
     try {
-      const token =
-        localStorage.getItem("token") || sessionStorage.getItem("token");
-      const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/api/premium/subscribe`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ planType: planId }),
-        }
-      );
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/payment/create`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: planAmountMap[planId],
+          description: `Đăng ký gói ${planId}`,
+          returnUrl: "https://kanox-web.netlify.app/home",
+        }),
+      });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(
-          errorData.message || "Đăng ký không thành công. Vui lòng thử lại."
-        );
+        throw new Error(errorData.message || "Không tạo được link thanh toán.");
       }
 
       const result = await response.json();
-      setSuccess(
-        result.message ||
-          "Chúc mừng! Bạn đã nâng cấp tài khoản Premium thành công."
-      );
-      // Bạn có thể thêm logic để cập nhật lại trạng thái user trong AuthContext ở đây nếu cần
+      window.location.href = result.checkoutUrl; // redirect sang trang PayOS
     } catch (err) {
       setError(err.message);
     } finally {
