@@ -91,6 +91,9 @@ public class MessageService {
                 }
             }
 
+            List<MediaDto> savedMediaList = mediaService.getMediaByTargetDto(messageId, "MESSAGE", null, true);
+            messageDto.setMediaList(savedMediaList);
+
             messageDto.setSenderId(sender.getId());
             messageDto.setCreatedAt(Instant.now());
 
