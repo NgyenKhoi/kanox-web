@@ -30,8 +30,8 @@ public class FriendSuggestionService {
     }
 
     public List<UserDto> getFriendSuggestions(Integer userId) {
-        List<FriendSuggestion> suggestions = friendSuggestionRepository.findByUserIdAndExpirationDateAfter(
-                userId, Instant.now());
+        List<FriendSuggestion> suggestions = friendSuggestionRepository.findByUserId(userId);
+
         return suggestions.stream()
                 .map(suggestion -> {
                     return userRepository.findById(suggestion.getId().getSuggestedUserId())

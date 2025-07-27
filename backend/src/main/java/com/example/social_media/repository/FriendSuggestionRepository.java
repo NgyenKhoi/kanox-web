@@ -13,7 +13,7 @@ import java.util.List;
 
 @Repository
 public interface FriendSuggestionRepository extends JpaRepository<FriendSuggestion, FriendSuggestionId> {
-    List<FriendSuggestion> findByUserIdAndExpirationDateAfter(Integer userId, Instant expirationDate);
+    List<FriendSuggestion> findByUserId(Integer userId);
 
     void deleteByUserId(Integer userId);
 
