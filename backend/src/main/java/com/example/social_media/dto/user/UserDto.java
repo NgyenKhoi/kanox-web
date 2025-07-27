@@ -122,10 +122,7 @@ public class UserDto {
 
     public String getReasonText() {
         if ("mutual_friends".equals(reason) && mutualFriendCount > 0) {
-            String friendNames = mutualFriends.stream()
-                    .map(f -> f.getDisplayName() != null ? f.getDisplayName() : f.getUsername())
-                    .collect(Collectors.joining(", "));
-            return "Có " + mutualFriendCount + " bạn chung: " + friendNames;
+            return "Có " + mutualFriendCount + " bạn chung";
         } else if ("location".equals(reason) && distanceKm != null && distanceKm > 0) {
             return "Sống cách bạn " + String.format("%.2f", distanceKm) + " km";
         }
