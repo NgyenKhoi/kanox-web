@@ -11,6 +11,7 @@ import com.example.social_media.repository.post.PostAIModerationRepository;
 import com.example.social_media.repository.post.PostFlagRepository;
 import com.example.social_media.repository.post.PostRepository;
 import com.example.social_media.repository.report.*;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -150,7 +151,13 @@ public class ReportService {
         Page<Report> reportPage = reportRepository.findByTargetTypeIdAndProcessingStatusId(targetTypeId, processingStatusId, pageable);
         return reportPage.map(this::convertToReportResponseDto);
     }
-
+    @CacheEvict(
+            value = {
+                    "newsfeed", "postsByUsername", "communityFeed",
+                    "postsByGroup", "postsByUserInGroup", "savedPosts"
+            },
+            allEntries = true
+    )
     @Transactional
     public void updateReportStatus(Integer reportId, UpdateReportStatusRequestDto request) {
         String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
