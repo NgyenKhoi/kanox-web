@@ -10,6 +10,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import org.springframework.dao.DataAccessException;
 
 import java.time.Instant;
 
@@ -19,6 +22,9 @@ public class UserService {
     private final UserRepository userRepository;
     private final LocationRepository locationRepository;
     private final ActivityLogService activityLogService;
+    
+    @PersistenceContext
+    private EntityManager entityManager;
 
     public UserService(
             UserRepository userRepository,
@@ -97,9 +103,7 @@ public class UserService {
         }
         
         try {
-            // Sử dụng JPA repository để update thay vì native query
-            System.out.println("[DEBUG] Updating user status using JPA...");
-            
+            // Cập nhật status trực tiếp thông qua JPA
             user.setStatus(status);
             User updatedUser = userRepository.save(user);
             
