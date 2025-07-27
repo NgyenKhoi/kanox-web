@@ -32,7 +32,9 @@ public class VertexAIService {
     public Optional<FlagResultDto> analyzePost(String postContent) {
         try {
             // ✅ Load credentials từ file system
-            GoogleCredentials credentials = GoogleCredentials.getApplicationDefault()
+            InputStream credentialsStream = getClass().getClassLoader().getResourceAsStream("gcp-credentials.json");
+            GoogleCredentials credentials = GoogleCredentials
+                    .fromStream(credentialsStream)
                     .createScoped("https://www.googleapis.com/auth/cloud-platform");
             credentials.refreshIfExpired();
             AccessToken token = credentials.getAccessToken();
