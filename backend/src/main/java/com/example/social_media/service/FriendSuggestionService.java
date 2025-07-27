@@ -35,16 +35,16 @@ public class FriendSuggestionService {
             System.out.println("Suggested: " + s.getId().getSuggestedUserId());
         });
         return suggestions.stream()
-                .map(suggestion -> {
-                    return userRepository.findById(suggestion.getId().getSuggestedUserId())
-                            .map(user -> new UserDto(
-                                    user.getId(),
-                                    user.getUsername(),
-                                    user.getDisplayName(),
-                                    suggestion.getMutualFriendCount()
-                            ))
-                            .orElse(null);
-                })
+                .map(suggestion -> userRepository.findById(suggestion.getId().getSuggestedUserId())
+                        .map(user -> new UserDto(
+                                user.getId(),
+                                user.getUsername(),
+                                user.getDisplayName(),
+                                suggestion.getMutualFriendCount(),
+                                suggestion.getReason(),
+                                suggestion.getDistanceKm()
+                        ))
+                        .orElse(null))
                 .filter(userDto -> userDto != null)
                 .collect(Collectors.toList());
     }

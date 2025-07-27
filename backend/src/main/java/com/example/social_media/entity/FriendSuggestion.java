@@ -40,6 +40,12 @@ public class FriendSuggestion {
     @Column(name = "expiration_date")
     private Instant expirationDate;
 
+    @Column(name = "reason")
+    private String reason;
+
+    @Column(name = "distance_km")
+    private Double distanceKm;
+
     public FriendSuggestionId getId() {
         return id;
     }
@@ -88,4 +94,19 @@ public class FriendSuggestion {
         this.expirationDate = expirationDate;
     }
 
+    public String getReason() {
+        return reason;
+    }
+
+    public void setReason(String reason) {
+        this.reason = reason;
+    }
+
+    public Double getDistanceKm() {
+        return distanceKm;
+    }
+
+    public void setDistanceKm(Double distanceKm) {
+        this.distanceKm = distanceKm;
+    }
 }

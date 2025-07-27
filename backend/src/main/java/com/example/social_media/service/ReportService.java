@@ -309,65 +309,73 @@ public class ReportService {
                 default -> "Báo cáo của bạn (ID: " + reportId + ") đã được cập nhật bởi " + admin.getDisplayName();
             };
 
-            // Kiểm tra và thông báo nếu user bị tự động block (cho báo cáo được duyệt)
+            // Kiểm tra và thông báo nếu target bị tự động block (cho báo cáo được duyệt)
             if (request.getProcessingStatusId() == 3 && report.getTargetType() != null) {
-                final Integer targetUserId;
+                // Đếm số lần target_id này bị báo cáo và được duyệt
+                long approvedReportsForTarget = reportRepository.countByTargetIdAndTargetTypeIdAndProcessingStatusIdAndStatus(
+                        report.getTargetId(), 
+                        report.getTargetType().getId(), 
+                        3, // Approved status
+                        true
+                );
                 
-                // Xác định user ID cần kiểm tra dựa trên loại báo cáo
-                if (report.getTargetType().getId() == 4) {
-                    // Báo cáo user - dùng trực tiếp targetId
-                    targetUserId = report.getTargetId();
-                    System.out.println("=== [DEBUG] User report - Target User ID: " + targetUserId + " ===");
-                } else if (report.getTargetType().getId() == 1) {
-                    // Báo cáo post - lấy owner ID từ post
-                    try {
-                        Post post = postRepository.findById(report.getTargetId())
-                            .orElseThrow(() -> new IllegalArgumentException("Post not found with id: " + report.getTargetId()));
-                        targetUserId = post.getOwner().getId();
-                        System.out.println("=== [DEBUG] Post report - Post ID: " + report.getTargetId() + ", Owner ID: " + targetUserId + " ===");
-                    } catch (Exception e) {
-                        System.err.println("Error getting post owner: " + e.getMessage());
-                        return; // Không thể lấy owner, bỏ qua auto-block
-                    }
-                } else {
-                    targetUserId = null;
-                }
+                System.out.println("[DEBUG] Target ID: " + report.getTargetId());
+                System.out.println("[DEBUG] Target Type: " + report.getTargetType().getName());
+                System.out.println("[DEBUG] Approved reports for this target: " + approvedReportsForTarget);
                 
-                if (targetUserId != null) {
-                    System.out.println("=== [DEBUG] Checking auto-block for user ID: " + targetUserId + " ===");
+                // Nếu target này đã bị báo cáo và duyệt 3 lần
+                if (approvedReportsForTarget >= 3) {
+                    System.out.println("[DEBUG] Target has 3+ approved reports, proceeding with auto-block");
                     
-                    // Đếm số báo cáo được duyệt cho target user (bao gồm cả báo cáo user và post)
-                    long userReportsCount = reportRepository.countByTargetIdAndTargetTypeIdAndProcessingStatusIdAndStatus(
-                        targetUserId, 4, 3, true
-                    );
+                    // Chỉ auto-block nếu target là USER hoặc là POST (block chủ sở hữu post)
+                    final Integer userIdToBlock;
+                     
+                     if (report.getTargetType().getId() == 4) { // USER target
+                          userIdToBlock = report.getTargetId();
+                      } else if (report.getTargetType().getId() == 1) { // POST target
+                          // Tìm chủ sở hữu của post để block
+                           Post post = postRepository.findById(report.getTargetId()).orElse(null);
+                           if (post != null && post.getOwner() != null) {
+                               userIdToBlock = post.getOwner().getId();
+                           } else {
+                               userIdToBlock = null;
+                           }
+                      } else {
+                          userIdToBlock = null;
+                      }
                     
-                    // Đếm số báo cáo post được duyệt của user này
-                    long postReportsCount = reportRepository.countApprovedPostReportsByUserId(targetUserId);
-                    
-                    long totalApprovedReports = userReportsCount + postReportsCount;
-                    
-                    System.out.println("[DEBUG] User reports count: " + userReportsCount);
-                    System.out.println("[DEBUG] Post reports count: " + postReportsCount);
-                    System.out.println("[DEBUG] Total approved reports count: " + totalApprovedReports);
-                    
-                    if (totalApprovedReports >= 3) {
-                        System.out.println("[DEBUG] User has 3+ approved reports, proceeding with auto-block");
-                        // Thực sự khóa tài khoản user bằng stored procedure
+                    if (userIdToBlock != null) {
                         try {
-                            User targetUser = userRepository.findById(targetUserId)
-                                .orElseThrow(() -> new UserNotFoundException("Target user not found with id: " + targetUserId));
+                            User targetUser = userRepository.findById(userIdToBlock)
+                                .orElseThrow(() -> new UserNotFoundException("Target user not found with id: " + userIdToBlock));
+                            
+                            System.out.println("[DEBUG] Found target user: " + targetUser.getUsername() + ", Status: " + targetUser.getStatus());
                             
                             // Chỉ khóa nếu user chưa bị khóa
                             if (targetUser.getStatus()) {
+                                System.out.println("[DEBUG] Calling autoBlockUser stored procedure...");
+                                System.out.println("[DEBUG] Parameters: userIdToBlock=" + userIdToBlock + ", adminId=" + admin.getId());
+                                
                                 // Gọi stored procedure để auto-block user
-                                reportRepository.autoBlockUser(targetUserId, admin.getId());
+                                reportRepository.autoBlockUser(userIdToBlock, admin.getId());
                                 
-                                System.out.println("=== AUTO-BLOCK USER ====");
-                                System.out.println("User ID: " + targetUserId + " has been automatically blocked due to 3+ approved reports");
+                                System.out.println("=== AUTO-BLOCK USER SUCCESSFUL ====");
+                                System.out.println("User ID: " + userIdToBlock + " (" + targetUser.getUsername() + ") has been automatically blocked due to 3+ approved reports on target ID: " + report.getTargetId());
                                 
+                                // Kiểm tra lại status sau khi block
+                                User updatedUser = userRepository.findById(userIdToBlock).orElse(null);
+                                if (updatedUser != null) {
+                                    System.out.println("[DEBUG] User status after auto-block: " + updatedUser.getStatus());
+                                }
+                            } else {
+                                System.out.println("[DEBUG] User is already blocked, skipping auto-block");
                             }
                         } catch (Exception e) {
-                            System.err.println("Error auto-blocking user: " + e.getMessage());
+                            System.err.println("❌ ERROR auto-blocking user: " + e.getMessage());
+                            System.err.println("❌ Exception type: " + e.getClass().getSimpleName());
+                            if (e.getCause() != null) {
+                                System.err.println("❌ Root cause: " + e.getCause().getMessage());
+                            }
                             e.printStackTrace();
                         }
                     }

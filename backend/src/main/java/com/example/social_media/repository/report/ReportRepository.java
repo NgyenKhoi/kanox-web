@@ -84,7 +84,7 @@ public interface ReportRepository extends JpaRepository<Report, Integer> {
 
     @Procedure(procedureName = "sp_AutoBlockUser")
     void autoBlockUser(
-            @Param("target_user_id") Integer targetUserId,
+            @Param("user_id") Integer targetUserId,
             @Param("admin_id") Integer adminId
     );
 

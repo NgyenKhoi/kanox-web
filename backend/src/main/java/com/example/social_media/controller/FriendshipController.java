@@ -198,7 +198,7 @@ public class FriendshipController {
         try {
             String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
             User currentUser = customUserDetailsService.getUserByUsername(currentUsername);
-            friendSuggestionService.generateFriendSuggestions(currentUser.getId()); // Gọi để cập nhật gợi ý
+            friendSuggestionService.generateFriendSuggestions(currentUser.getId());
             List<UserDto> suggestions = friendSuggestionService.getFriendSuggestions(currentUser.getId());
             return ResponseEntity.ok(Map.of("message", "Friend suggestions retrieved successfully", "data", suggestions));
         } catch (IllegalArgumentException | UserNotFoundException e) {
