@@ -23,7 +23,6 @@ public class FriendSuggestionService {
 
     @Transactional
     public void generateFriendSuggestions(Integer userId) {
-        friendSuggestionRepository.deleteByUserId(userId);
         friendSuggestionRepository.updateAllFriendSuggestions(10.0);
     }
 
