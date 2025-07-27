@@ -91,48 +91,71 @@ public class UserService {
      */
     @Transactional
     public User updateUserStatus(Integer userId, Boolean status) {
+        System.out.println("[DEBUG] Starting updateUserStatus for userId: " + userId + ", status: " + status);
+        
         User user = getUserById(userId);
+        System.out.println("[DEBUG] Found user: " + user.getUsername() + ", current status: " + user.getStatus());
         
         try {
             // Thử cập nhật bằng JPA trước
             user.setStatus(status);
+            System.out.println("[DEBUG] Set new status: " + status + ", attempting to save...");
+            
             User savedUser = userRepository.save(user);
+            System.out.println("[DEBUG] User saved successfully with status: " + savedUser.getStatus());
             
             // Log activity
             String action = status ? "UNLOCK_USER" : "LOCK_USER";
             activityLogService.logUserActivity(userId, action, "Admin changed user status");
+            System.out.println("[DEBUG] Activity logged: " + action);
             
             return savedUser;
         } catch (DataAccessException e) {
+            System.err.println("[ERROR] DataAccessException occurred: " + e.getMessage());
+            e.printStackTrace();
+            
             // Nếu gặp lỗi trigger (tblStoryViewer), sử dụng native query
             if (e.getMessage() != null && e.getMessage().contains("tblStoryViewer")) {
+                System.out.println("[DEBUG] Using fallback method due to tblStoryViewer trigger issue");
                 try {
                     // Tạm thời disable trigger
+                    System.out.println("[DEBUG] Disabling trigger...");
                     entityManager.createNativeQuery("DISABLE TRIGGER trg_SoftDelete_User ON tblUser").executeUpdate();
                     
                     // Cập nhật trực tiếp bằng native query
+                    System.out.println("[DEBUG] Updating user status with native query...");
                     entityManager.createNativeQuery("UPDATE tblUser SET status = ? WHERE id = ?")
                         .setParameter(1, status ? 1 : 0)
                         .setParameter(2, userId)
                         .executeUpdate();
                     
                     // Enable lại trigger
+                    System.out.println("[DEBUG] Re-enabling trigger...");
                     entityManager.createNativeQuery("ENABLE TRIGGER trg_SoftDelete_User ON tblUser").executeUpdate();
                     
                     // Refresh entity
+                    System.out.println("[DEBUG] Refreshing entity...");
                     entityManager.refresh(user);
                     
                     // Log activity
                     String action = status ? "UNLOCK_USER" : "LOCK_USER";
                     activityLogService.logUserActivity(userId, action, "Admin changed user status (fallback method)");
+                    System.out.println("[DEBUG] Fallback method completed successfully");
                     
                     return user;
                 } catch (Exception fallbackException) {
+                    System.err.println("[ERROR] Fallback method failed: " + fallbackException.getMessage());
+                    fallbackException.printStackTrace();
                     throw new RuntimeException("Failed to update user status: " + fallbackException.getMessage(), fallbackException);
                 }
             } else {
+                System.err.println("[ERROR] Non-trigger related DataAccessException, rethrowing...");
                 throw e;
             }
+        } catch (Exception e) {
+            System.err.println("[ERROR] Unexpected exception in updateUserStatus: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
         }
     }
     

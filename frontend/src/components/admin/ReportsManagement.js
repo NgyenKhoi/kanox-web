@@ -144,15 +144,7 @@ const ReportsManagement = () => {
             return;
         }
 
-        // Cảnh báo khi duyệt báo cáo về người dùng
-        if (parseInt(statusId) === 3 && selectedReport?.targetTypeId === 4) {
-            const confirmApprove = window.confirm(
-                "⚠️ LƯU Ý: Khi duyệt báo cáo về người dùng, nếu người dùng này có 3 báo cáo được duyệt, tài khoản sẽ tự động bị khóa.\n\nBạn có chắc chắn muốn duyệt báo cáo này?"
-            );
-            if (!confirmApprove) {
-                return;
-            }
-        }
+
 
         try {
             const response = await fetch(`${process.env.REACT_APP_API_URL}/admin/${parseInt(reportId)}/status`, {
@@ -170,12 +162,7 @@ const ReportsManagement = () => {
                 throw new Error(data.message || "Lỗi khi cập nhật trạng thái");
             }
 
-            let successMessage = "Đã cập nhật trạng thái báo cáo!";
-            if (parseInt(statusId) === 3 && selectedReport?.targetTypeId === 4) {
-                successMessage += " Hệ thống sẽ tự động kiểm tra và khóa tài khoản nếu đạt 3 báo cáo được duyệt.";
-            }
-
-            toast.success(successMessage);
+            toast.success("Đã cập nhật trạng thái báo cáo!");
             setShowDetailModal(false);
             loadReports();
         } catch (error) {
@@ -435,12 +422,9 @@ const ReportsManagement = () => {
                 </>
             )}
 
-            <div
-                className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center transition-opacity duration-300 ${
-                    showDetailModal ? "opacity-100" : "opacity-0 pointer-events-none"
-                }`}
-            >
-                <div className="bg-gray-100 dark:bg-gray-800 rounded-lg shadow-lg w-full max-w-2xl p-6">
+            {showDetailModal && (
+                <div className="fixed inset-0 flex items-center justify-center z-50">
+                    <div className="bg-gray-100 dark:bg-gray-800 rounded-lg shadow-lg w-full max-w-2xl p-6 mx-4">
                     <div className="flex justify-between items-center mb-4">
                         <h3 className="text-xl font-bold text-text dark:text-white">Chi tiết Báo cáo</h3>
                         <button
@@ -530,8 +514,9 @@ const ReportsManagement = () => {
                     ) : (
                         <p className="text-gray-900 dark:text-gray-300">Không có thông tin báo cáo.</p>
                     )}
+                    </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 };
