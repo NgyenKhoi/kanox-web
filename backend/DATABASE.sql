@@ -44,6 +44,7 @@
 		FOREIGN KEY (user_id) REFERENCES tblUser(id)
 	);
 
+
 	CREATE NONCLUSTERED INDEX IX_tblLocation_user_id
 	ON tblLocation(user_id, latitude, longitude);
 
@@ -3431,7 +3432,8 @@ GO
 	('REVOKE_ADMIN', 'Admin revoked admin role from user'),
 	('ACTIVATE_BANNED_KEYWORD', 'Admin activated banned keyword'),
 	('DEACTIVATE_BANNED_KEYWORD', 'Admin deactivated banned keyword'),
-	('REPORT_ABUSE_WARNING', 'User received warning for report abuse');
+	('REPORT_ABUSE_WARNING', 'User received warning for report abuse'),
+	('UPDATE_LOCATION', 'User update location');
 
 	select * from tblTargetType
     -- tblNotificationType (Loại thông báo)
