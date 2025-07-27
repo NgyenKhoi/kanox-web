@@ -23,15 +23,18 @@ public class FriendSuggestionService {
 
     @Transactional
     public void generateFriendSuggestions(Integer userId) {
-        // Gọi stored procedure để cập nhật gợi ý
-        friendSuggestionRepository.updateAllFriendSuggestions(10.0); // radius_km = 10
-        // Xóa các gợi ý cũ của user nếu cần
         friendSuggestionRepository.deleteByUserId(userId);
+        friendSuggestionRepository.updateAllFriendSuggestions(10.0);
     }
 
-    public List<UserDto> getFriendSuggestions(Integer userId) {
-        List<FriendSuggestion> suggestions = friendSuggestionRepository.findByUserId(userId);
 
+    public List<UserDto> getFriendSuggestions(Integer userId) {
+        System.out.println("Get suggestions for user: " + userId);
+        List<FriendSuggestion> suggestions = friendSuggestionRepository.findByUserId(userId);
+        System.out.println("Suggestions size: " + suggestions.size());
+        suggestions.forEach(s -> {
+            System.out.println("Suggested: " + s.getId().getSuggestedUserId());
+        });
         return suggestions.stream()
                 .map(suggestion -> {
                     return userRepository.findById(suggestion.getId().getSuggestedUserId())
