@@ -7,6 +7,13 @@ import org.hibernate.annotations.ColumnDefault;
 import java.time.Instant;
 
 @Entity
+@NamedStoredProcedureQuery(
+        name = "sp_UpdateAllFriendSuggestions",
+        procedureName = "sp_UpdateAllFriendSuggestions",
+        parameters = {
+                @StoredProcedureParameter(mode = ParameterMode.IN, name = "radius_km", type = Double.class)
+        }
+)
 @Table(name = "tblFriendSuggestion", schema = "dbo")
 public class FriendSuggestion {
     @EmbeddedId
