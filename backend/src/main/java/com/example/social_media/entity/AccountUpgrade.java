@@ -2,10 +2,12 @@ package com.example.social_media.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
+import lombok.Data;
 import org.hibernate.annotations.ColumnDefault;
 
 import java.time.Instant;
 
+@Data
 @Entity
 @Table(name = "tblAccountUpgrade", schema = "dbo")
 public class AccountUpgrade {
