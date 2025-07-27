@@ -44,6 +44,22 @@
 		FOREIGN KEY (user_id) REFERENCES tblUser(id)
 	);
 
+	select * from tblFriendSuggestion
+
+		CREATE OR ALTER TRIGGER trg_UpdateLocation
+	ON tblLocation
+	AFTER UPDATE
+	AS
+	BEGIN
+		SET NOCOUNT ON;
+
+		-- Xóa các gợi ý dựa trên vị trí liên quan đến user_id vừa cập nhật
+		DELETE FROM tblFriendSuggestion
+		WHERE reason = 'location'
+		AND (user_id IN (SELECT user_id FROM inserted) OR suggested_user_id IN (SELECT user_id FROM inserted));
+	END;
+	GO
+
 
 	CREATE NONCLUSTERED INDEX IX_tblLocation_user_id
 	ON tblLocation(user_id, latitude, longitude);
@@ -1067,6 +1083,7 @@ BEGIN
     END CATCH
 END;
 GO
+
 
 
     -------------------
