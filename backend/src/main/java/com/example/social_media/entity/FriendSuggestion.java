@@ -33,6 +33,9 @@ public class FriendSuggestion {
     @Column(name = "mutual_friend_count", nullable = false)
     private Integer mutualFriendCount;
 
+    @Column(name = "mutual_friend_ids")
+    private String mutualFriendIds;
+
     @ColumnDefault("getdate()")
     @Column(name = "suggested_at")
     private Instant suggestedAt;
@@ -76,6 +79,14 @@ public class FriendSuggestion {
 
     public void setMutualFriendCount(Integer mutualFriendCount) {
         this.mutualFriendCount = mutualFriendCount;
+    }
+
+    public String getMutualFriendIds() {
+        return mutualFriendIds;
+    }
+
+    public void setMutualFriendIds(String mutualFriendIds) {
+        this.mutualFriendIds = mutualFriendIds;
     }
 
     public Instant getSuggestedAt() {
