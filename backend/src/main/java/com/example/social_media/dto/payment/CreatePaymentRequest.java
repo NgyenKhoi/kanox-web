@@ -7,4 +7,5 @@ public class CreatePaymentRequest {
     private int amount;
     private String description;
     private String returnUrl;
+    private String cancelUrl;
 }

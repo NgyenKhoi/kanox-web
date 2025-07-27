@@ -18,10 +18,10 @@ import java.util.UUID;
 public class PaymentController {
     private final PayOSService payOSService;
 
-    @PostMapping("/create")
+    @PostMapping("/premium/subscribe")
     public ResponseEntity<String> createPayment(@RequestBody CreatePaymentRequest request) throws Exception {
         String orderCode = UUID.randomUUID().toString();
-        CheckoutResponseData data = payOSService.createPaymentLink(orderCode, request.getAmount(), request.getDescription(), request.getReturnUrl());
+        CheckoutResponseData data = payOSService.createPaymentLink(orderCode, request.getAmount(), request.getDescription(), request.getReturnUrl(), request.getCancelUrl());
         return ResponseEntity.ok(data.getCheckoutUrl());
     }
 

@@ -14,7 +14,7 @@ import java.util.List;
 public class PayOSService {
     private final PayOS payOS;
 
-    public CheckoutResponseData createPaymentLink(String orderCode, int amount, String description, String returnUrl) throws Exception {
+    public CheckoutResponseData createPaymentLink(String orderCode, int amount, String description, String returnUrl, String cancelUrl) throws Exception {
 //        PaymentData paymentData = new PaymentData(
 //                orderCode,
 //                amount,
@@ -29,7 +29,7 @@ public class PayOSService {
                 .amount(amount)
                 .description(description)
                 .returnUrl(returnUrl)
-                .cancelUrl(returnUrl)
+                .cancelUrl(cancelUrl)
                 .items(List.of(ItemData.builder().name("Kanox prenium").price(2000).quantity(1).build())).build();
 
 
