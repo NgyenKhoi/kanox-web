@@ -141,7 +141,7 @@ public class ChatController {
     @PostMapping(URLConfig.SEND_MESSAGES_WITH_MEDIA)
     public MessageDto sendMessageWithMedia(
             @PathVariable Integer chatId,
-            @RequestPart("content") String content,
+            @RequestPart(value = "content", required = false) String content,
             @RequestPart(value = "media", required = false) List<MultipartFile> files
     ) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();

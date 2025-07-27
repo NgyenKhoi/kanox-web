@@ -20,11 +20,11 @@ public class JdbcMessageRepository {
             cs.setInt(1, chatId);
             cs.setInt(2, senderId);
             cs.setString(3, content);
-            cs.registerOutParameter(4, Types.INTEGER);
+            cs.registerOutParameter(4, Types.INTEGER); // @new_message_id
             return cs;
         }, (CallableStatement cs) -> {
             cs.execute();
-            return cs.getInt(4); // OUTPUT param
+            return cs.getInt(4); // Lấy giá trị của @new_message_id
         });
     }
 }

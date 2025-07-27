@@ -8,7 +8,6 @@ import com.example.social_media.entity.*;
 import com.example.social_media.exception.UserNotFoundException;
 import com.example.social_media.repository.*;
 import com.example.social_media.repository.post.PostAIModerationRepository;
-import com.example.social_media.repository.post.PostFlagHistoryRepository;
 import com.example.social_media.repository.post.PostFlagRepository;
 import com.example.social_media.repository.post.PostRepository;
 import com.example.social_media.repository.report.*;
@@ -23,8 +22,10 @@ import java.sql.SQLException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class ReportService {
@@ -39,8 +40,10 @@ public class ReportService {
     private final SimpMessagingTemplate messagingTemplate;
     private final NotificationService notificationService;
     private final PostFlagRepository postFlagRepository;
-    private final PostFlagHistoryRepository postFlagHistoryRepository;
     private final PostAIModerationRepository postAIModerationRepository;
+    private final MediaRepository mediaRepository;
+    private final CommentRepository  commentRepository;
+    private final ReactionRepository reactionRepository;
 
     private static final int MAX_REPORTS_PER_DAY = 3;
 
@@ -55,8 +58,10 @@ public class ReportService {
             SimpMessagingTemplate messagingTemplate,
             NotificationService notificationService,
             PostFlagRepository postFlagRepository,
-            PostFlagHistoryRepository postFlagHistoryRepository,
-            PostAIModerationRepository postAIModerationRepository
+            PostAIModerationRepository postAIModerationRepository,
+            MediaRepository mediaRepository,
+            CommentRepository commentRepository,
+            ReactionRepository reactionRepository
     ) {
         this.reportRepository = reportRepository;
         this.userRepository = userRepository;
@@ -68,8 +73,10 @@ public class ReportService {
         this.messagingTemplate = messagingTemplate;
         this.notificationService = notificationService;
         this.postFlagRepository = postFlagRepository;
-        this.postFlagHistoryRepository = postFlagHistoryRepository;
         this.postAIModerationRepository = postAIModerationRepository;
+        this.mediaRepository = mediaRepository;
+        this.commentRepository = commentRepository;
+        this.reactionRepository = reactionRepository;
     }
 
     @Transactional
@@ -121,15 +128,6 @@ public class ReportService {
     }
 
     @Transactional(readOnly = true)
-    public List<ReportResponseDto> getReports(Boolean status) {
-        try {
-            return reportRepository.getReports(status);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to retrieve reports: " + e.getMessage());
-        }
-    }
-
-    @Transactional(readOnly = true)
     public Page<ReportResponseDto> getReportsPaged(Boolean status, Pageable pageable) {
         Page<Report> reportPage = reportRepository.findByStatus(status, pageable);
         return reportPage.map(this::convertToReportResponseDto);
@@ -167,8 +165,6 @@ public class ReportService {
 
         Report report = reportRepository.findById(reportId)
                 .orElseThrow(() -> new IllegalArgumentException("Report not found with id: " + reportId));
-        ReportStatus status = reportStatusRepository.findById(request.getProcessingStatusId())
-                .orElseThrow(() -> new IllegalArgumentException("Report status not found with id: " + request.getProcessingStatusId()));
 
         try {
             System.out.println("=== [DEBUG] Calling sp_UpdateReportStatus ===");
@@ -194,7 +190,48 @@ public class ReportService {
                         postFlagRepository.findByPostId(reportedPost.getId()).ifPresent(postFlagRepository::delete);
                         postAIModerationRepository.findByPostId(reportedPost.getId()).ifPresent(postAIModerationRepository::delete);
 
+                        List<Integer> commentIds = commentRepository.findIdsByPostId(reportedPost.getId());
+                        if (!commentIds.isEmpty()) {
+                            reactionRepository.deleteAllByCommentIds(commentIds);
+                        }
+
+                        commentRepository.deleteAllByPostId(reportedPost.getId());
+
+                        reactionRepository.deleteAllByPostId(reportedPost.getId());
+
+                        mediaRepository.deleteAllPostMedia(reportedPost.getId());
+
                         postRepository.delete(reportedPost);
+                        String reasonContent = report.getReason() != null
+                                ? report.getReason().getDescription()
+                                : "vi phạm tiêu chuẩn cộng đồng";
+
+                        String ownerMessage = "Bài viết của bạn đã bị xóa do: \"" + reasonContent + "\". "
+                                + "Vui lòng đảm bảo các nội dung bạn đăng tuân thủ tiêu chuẩn cộng đồng của chúng tôi.";
+
+                        messagingTemplate.convertAndSend(
+                                "/topic/notifications/" + reportedPost.getOwner().getId(),
+                                Map.of(
+                                        "id", reportedPost.getId(),
+                                        "message", ownerMessage,
+                                        "type", "POST_REMOVED",
+                                        "targetId", reportedPost.getId(),
+                                        "targetType", "POST",
+                                        "adminId", admin.getId(),
+                                        "adminDisplayName", admin.getDisplayName(),
+                                        "createdAt", System.currentTimeMillis() / 1000,
+                                        "status", "unread"
+                                )
+                        );
+
+                        notificationService.sendNotification(
+                                reportedPost.getOwner().getId(),      // Người nhận thông báo
+                                "POST_REMOVED",                       // Loại thông báo
+                                ownerMessage,                         // Nội dung
+                                admin.getId(),                        // Người gửi (admin)
+                                "PROFILE",
+                                null
+                        );
                         System.out.println("✅ [AI MODERATION] Post " + reportedPost.getId() + " deleted by AI report approval.");
                     } catch (Exception e) {
                         System.err.println("❌ Error during AI auto-moderation delete: " + e.getMessage());
@@ -203,7 +240,53 @@ public class ReportService {
                 // Với báo cáo người dùng
                 else {
                     try {
+                        List<Integer> commentIds = commentRepository.findIdsByPostId(reportedPost.getId());
+                        if (!commentIds.isEmpty()) {
+                            reactionRepository.deleteAllByCommentIds(commentIds);
+                        }
+
+                        commentRepository.deleteAllByPostId(reportedPost.getId());
+
+                        reactionRepository.deleteAllByPostId(reportedPost.getId());
+
+                        mediaRepository.deleteAllPostMedia(reportedPost.getId());
+
+                        postFlagRepository.findByPostId(reportedPost.getId()).ifPresent(postFlagRepository::delete);
+
+                        postAIModerationRepository.findByPostId(reportedPost.getId()).ifPresent(postAIModerationRepository::delete);
+
                         postRepository.delete(reportedPost);
+
+                        String reasonContent = report.getReason() != null
+                                ? report.getReason().getDescription()
+                                : "vi phạm tiêu chuẩn cộng đồng";
+
+                        String ownerMessage = "Bài viết của bạn đã bị xóa do: \"" + reasonContent + "\". "
+                                + "Vui lòng đảm bảo các nội dung bạn đăng tuân thủ tiêu chuẩn cộng đồng của chúng tôi.";
+
+                        messagingTemplate.convertAndSend(
+                                "/topic/notifications/" + reportedPost.getOwner().getId(),
+                                Map.of(
+                                        "id", reportedPost.getId(),
+                                        "message", ownerMessage,
+                                        "type", "POST_REMOVED",
+                                        "targetId", reportedPost.getId(),
+                                        "targetType", "POST",
+                                        "adminId", admin.getId(),
+                                        "adminDisplayName", admin.getDisplayName(),
+                                        "createdAt", System.currentTimeMillis() / 1000,
+                                        "status", "unread"
+                                )
+                        );
+
+                        notificationService.sendNotification(
+                                reportedPost.getOwner().getId(),      // Người nhận
+                                "POST_REMOVED",                       // Type
+                                ownerMessage,                         // Nội dung
+                                admin.getId(),                        // Người gửi (admin)
+                                "PROFILE",                            // Target type
+                                null                                  // Avatar URL nếu cần
+                        );
                         System.out.println("✅ [USER MODERATION] Post " + reportedPost.getId() + " deleted by user report approval.");
                     } catch (Exception e) {
                         System.err.println("❌ Error during user report moderation delete: " + e.getMessage());
@@ -211,23 +294,13 @@ public class ReportService {
                 }
             }
 
-            String message;
-            switch (request.getProcessingStatusId()) {
-                case 1:
-                    message = "Báo cáo của bạn (ID: " + reportId + ") đang chờ xử lý bởi " + admin.getDisplayName();
-                    break;
-                case 2:
-                    message = "Báo cáo của bạn (ID: " + reportId + ") đang được xem xét bởi " + admin.getDisplayName();
-                    break;
-                case 3:
-                    message = "Báo cáo của bạn (ID: " + reportId + ") đã được duyệt bởi " + admin.getDisplayName();
-                    break;
-                case 4:
-                    message = "Báo cáo của bạn (ID: " + reportId + ") đã bị từ chối bởi " + admin.getDisplayName();
-                    break;
-                default:
-                    message = "Báo cáo của bạn (ID: " + reportId + ") đã được cập nhật bởi " + admin.getDisplayName();
-            }
+            String message = switch (request.getProcessingStatusId()) {
+                case 1 -> "Báo cáo của bạn (ID: " + reportId + ") đang chờ xử lý bởi " + admin.getDisplayName();
+                case 2 -> "Báo cáo của bạn (ID: " + reportId + ") đang được xem xét bởi " + admin.getDisplayName();
+                case 3 -> "Báo cáo của bạn (ID: " + reportId + ") đã được duyệt bởi " + admin.getDisplayName();
+                case 4 -> "Báo cáo của bạn (ID: " + reportId + ") đã bị từ chối bởi " + admin.getDisplayName();
+                default -> "Báo cáo của bạn (ID: " + reportId + ") đã được cập nhật bởi " + admin.getDisplayName();
+            };
 
             // Kiểm tra và thông báo nếu user bị tự động block (cho báo cáo được duyệt)
             if (request.getProcessingStatusId() == 3 && report.getTargetType() != null) {
@@ -285,8 +358,6 @@ public class ReportService {
                                 System.out.println("=== AUTO-BLOCK USER ====");
                                 System.out.println("User ID: " + targetUserId + " has been automatically blocked due to 3+ approved reports");
                                 
-                                // Refresh entity từ database
-                                targetUser = userRepository.findById(targetUserId).orElse(targetUser);
                             }
                         } catch (Exception e) {
                             System.err.println("Error auto-blocking user: " + e.getMessage());
@@ -439,6 +510,29 @@ public class ReportService {
         dto.setProcessingStatusName(report.getProcessingStatus() != null ? report.getProcessingStatus().getName() : null);
         dto.setReportTime(report.getReportTime());
         dto.setStatus(report.getStatus());
+
+        // Thêm logic để lấy content và imageUrls nếu là báo cáo bài viết
+        if (report.getTargetType() != null && report.getTargetType().getId() == 1) { // 1 = POST
+            Post post = postRepository.findById(report.getTargetId()).orElse(null);
+            if (post != null) {
+                dto.setContent(post.getContent());
+                // Lấy danh sách mediaUrl từ MediaRepository
+                List<String> imageUrls = mediaRepository
+                        .findByTargetIdAndTargetType_CodeAndMediaType_NameAndStatus(
+                                post.getId(), "POST", "image", true)
+                        .stream()
+                        .map(Media::getMediaUrl)
+                        .collect(Collectors.toList());
+                dto.setImageUrls(imageUrls);
+            } else {
+                dto.setContent(null);
+                dto.setImageUrls(Collections.emptyList());
+            }
+        } else {
+            dto.setContent(null);
+            dto.setImageUrls(Collections.emptyList());
+        }
+
         return dto;
     }
 

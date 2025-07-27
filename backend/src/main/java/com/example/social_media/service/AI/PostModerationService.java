@@ -14,6 +14,7 @@
     import com.example.social_media.service.NotificationService;
     import lombok.RequiredArgsConstructor;
     import lombok.extern.slf4j.Slf4j;
+    import org.springframework.data.domain.Pageable;
     import org.springframework.messaging.simp.SimpMessagingTemplate;
     import org.springframework.stereotype.Service;
     import org.springframework.transaction.annotation.Transactional;
@@ -63,7 +64,7 @@
             double confidenceScore = 1.0; // hoặc lấy từ result nếu có
 
             PostAIModeration moderation = new PostAIModeration();
-            moderation.setId(post.getId());
+            moderation.setPost(post);
             moderation.setChecked(true);
             moderation.setCheckedAt(Instant.now());
 
@@ -80,7 +81,7 @@
             String joinedReasons = String.join(", ", result.getViolationTypes());
             String primaryViolation = result.getViolationTypes().isEmpty()
                     ? "Nội dung không phù hợp"
-                    : result.getViolationTypes().get(0);
+                    : result.getViolationTypes().getFirst();
 
             ReportReason reason = reportReasonRepository.findByName(primaryViolation)
                     .orElseGet(() -> {
@@ -124,32 +125,27 @@
 
             postAIModerationRepository.save(moderation);
 
-            // ✅ Gửi realtime WebSocket cho admin
             sendReportToAdmin(report, systemUser, reason, status);
 
-            // Gửi thông báo hệ thống
             User aiUser = userRepository.findByEmail("ai@system.local")
                     .orElseThrow(() -> new IllegalStateException("AI user not found"));
 
             List<User> admins = userRepository.findAllByIsAdminTrue(); // giả sử bạn có hàm này
 
             for (User admin : admins) {
-                notificationService.sendNotification(
-                        admin.getId(),
-                        "REPORT",
-                        "🚨 {displayName} đã báo cáo bài viết của " + post.getOwner().getDisplayName() + " là vi phạm nội dung",
-                        post.getOwner().getId(),
-                        "USER",
-                        null
-                );
+                messagingTemplate.convertAndSend("/topic/admin/toast", Map.of(
+                        "type", "AI_FLAGGED_POST",
+                        "message", "🚨 AI đã gắn cờ bài viết của " + post.getOwner().getDisplayName()
+                ));
             }
+
 
             notificationService.sendNotification(
                     post.getOwner().getId(),
-                    "REPORT",
-                    "📣 Bài viết của bạn đã bị AI báo cáo là vi phạm nội dung. Vui lòng chờ xét duyệt.",
-                    post.getId(),
-                    "POST",
+                    "AI_FLAGGED_NOTICE",
+                    "📣 Bài viết của bạn đã bị AI gắn cờ do vi phạm: " + joinedReasons + ". Vui lòng chờ quản trị viên xem xét.",
+                    systemUser.getId(),
+                    "PROFILE",
                     mediaService.getAvatarUrlByUserId(aiUser.getId())
             );
             log.info("AI đã gắn cờ bài viết #{} vì vi phạm: {}. Viết vào hàng chờ xử lý cho admin.", postId, joinedReasons);
@@ -157,7 +153,8 @@
 
         @Transactional
         public void moderateUncheckedPosts() {
-            List<Post> uncheckedPosts = postRepository.findUncheckedPosts();
+            int batchSize = 3;
+            List<Post> uncheckedPosts = postRepository.findUncheckedPosts(Pageable.ofSize(batchSize));
 
             log.info("🔍 Bắt đầu kiểm duyệt {} bài viết chưa được AI kiểm duyệt", uncheckedPosts.size());
 
@@ -169,7 +166,7 @@
                 }
             }
 
-            log.info("✅ Đã kiểm duyệt xong tất cả bài viết chưa được xử lý.");
+            log.info("✅ Đã kiểm duyệt xong tất cả bài viết trong lô này.");
         }
 
         private void sendReportToAdmin(Report report, User reporter, ReportReason reason, ReportStatus status) {

@@ -3,8 +3,12 @@ package com.example.social_media.repository;
 import com.example.social_media.entity.Media;
 import com.example.social_media.entity.MediaType;
 import com.example.social_media.entity.TargetType;
+import io.lettuce.core.dynamic.annotation.Param;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -22,4 +26,11 @@ public interface MediaRepository extends JpaRepository<Media, Integer> {
     Optional<Media> findFirstByTargetIdAndTargetType_CodeAndMediaType_NameOrderByCreatedAtDesc(Integer userId, String profile, String image);
     List<Media> findByTargetIdAndTargetTypeCodeAndCaptionAndStatusTrue(Integer groupId, String group, String avatar);
     List<Media> findByTargetIdInAndTargetTypeIdAndStatus(List<Integer> targetIds, Integer targetTypeId, Boolean status);
+    List<Media> findByTargetIdAndTargetType_CodeAndMediaType_NameAndStatus(
+            Integer targetId, String targetTypeCode, String mediaTypeName, Boolean status);
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM Media m WHERE m.targetId = :targetId AND m.targetType.code = 'POST'")
+    void deleteAllPostMedia(@Param("targetId") Integer targetId);
 }

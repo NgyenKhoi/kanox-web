@@ -2370,85 +2370,80 @@ GO
 	END;
 	GO
 
-	CREATE OR ALTER PROCEDURE sp_SendMessage
-		@chat_id INT,
-		@sender_id INT,
-		@content NVARCHAR(MAX),
-		@media_url NVARCHAR(512) = NULL,
-		@media_type NVARCHAR(10) = NULL,
-		@new_message_id INT OUTPUT
-	AS
-	BEGIN
-		SET NOCOUNT ON;
-		DECLARE @ErrorMessage NVARCHAR(4000);
-		DECLARE @new_created_at DATETIMEOFFSET;
+CREATE OR ALTER PROCEDURE sp_SendMessage
+    @chat_id INT,
+    @sender_id INT,
+    @content NVARCHAR(MAX),
+    @new_message_id INT OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @ErrorMessage NVARCHAR(4000);
+    DECLARE @new_created_at DATETIME;
 
-		BEGIN TRY
-			-- Kiểm tra chat_id
-			IF NOT EXISTS (SELECT 1 FROM tblChat WHERE id = @chat_id AND status = 1)
-			BEGIN
-				SET @ErrorMessage = N'Chat không tồn tại hoặc đã bị xóa.';
-				THROW 50001, @ErrorMessage, 1;
-			END
+    BEGIN TRY
+        -- Kiểm tra chat_id
+        IF NOT EXISTS (SELECT 1 FROM tblChat WHERE id = @chat_id AND status = 1)
+            BEGIN
+                SET @ErrorMessage = N'Chat không tồn tại hoặc đã bị xóa.';
+                THROW 50001, @ErrorMessage, 1;
+            END
 
-			-- Kiểm tra sender_id
-			IF NOT EXISTS (SELECT 1 FROM tblUser WHERE id = @sender_id AND status = 1)
-			BEGIN
-				SET @ErrorMessage = N'Người gửi không tồn tại hoặc đã bị vô hiệu hóa.';
-				THROW 50002, @ErrorMessage, 1;
-			END
+        -- Kiểm tra sender_id
+        IF NOT EXISTS (SELECT 1 FROM tblUser WHERE id = @sender_id AND status = 1)
+            BEGIN
+                SET @ErrorMessage = N'Người gửi không tồn tại hoặc đã bị vô hiệu hóa.';
+                THROW 50002, @ErrorMessage, 1;
+            END
 
-			-- Kiểm tra quyền truy cập chat
-			IF NOT EXISTS (
-				SELECT 1 
-				FROM tblChatMember 
-				WHERE chat_id = @chat_id 
-				AND user_id = @sender_id 
-				AND status = 1
-			)
-			BEGIN
-				SET @ErrorMessage = N'Người dùng không có quyền truy cập vào chat này.';
-				THROW 50003, @ErrorMessage, 1;
-			END
+        -- Kiểm tra quyền truy cập chat
+        IF NOT EXISTS (
+            SELECT 1
+            FROM tblChatMember
+            WHERE chat_id = @chat_id
+              AND user_id = @sender_id
+              AND status = 1
+        )
+            BEGIN
+                SET @ErrorMessage = N'Người dùng không có quyền truy cập vào chat này.';
+                THROW 50003, @ErrorMessage, 1;
+            END
 
-			-- Kiểm tra trạng thái chặn
-			IF EXISTS (
-				SELECT 1 
-				FROM tblBlock 
-				WHERE (user_id = @sender_id OR blocked_user_id = @sender_id)
-				AND status = 1
-			)
-			BEGIN
-				SET @ErrorMessage = N'Người dùng bị chặn hoặc đã chặn người khác trong chat này.';
-				THROW 50004, @ErrorMessage, 1;
-			END
+        -- Kiểm tra trạng thái chặn
+        IF EXISTS (
+            SELECT 1
+            FROM tblBlock
+            WHERE (user_id = @sender_id OR blocked_user_id = @sender_id)
+              AND status = 1
+        )
+            BEGIN
+                SET @ErrorMessage = N'Người dùng bị chặn hoặc đã chặn người khác trong chat này.';
+                THROW 50004, @ErrorMessage, 1;
+            END
 
-			-- Thêm tin nhắn vào tblMessage (loại media bị loại bỏ ở đây)
-			INSERT INTO tblMessage (chat_id, sender_id, type_id, content, created_at, status)
-			VALUES (@chat_id, @sender_id, 1, @content, SYSDATETIMEOFFSET(), 1);
+        -- Thêm tin nhắn
+        INSERT INTO tblMessage (chat_id, sender_id, type_id, content, created_at, status)
+        VALUES (@chat_id, @sender_id, 1, @content, SYSDATETIMEOFFSET(), 1);
 
-			-- Lấy ID và created_at của tin nhắn vừa thêm
-			SET @new_message_id = SCOPE_IDENTITY();
-			SET @new_created_at = (SELECT created_at FROM tblMessage WHERE id = @new_message_id);
+        SET @new_message_id = SCOPE_IDENTITY();
+        SET @new_created_at = (SELECT created_at FROM tblMessage WHERE id = @new_message_id);
 
-			-- Thêm trạng thái tin nhắn cho các thành viên (trừ người gửi và những người đánh dấu người gửi là spam)
-			INSERT INTO tblMessageStatus (message_id, user_id, status, created_at)
-			SELECT @new_message_id, cm.user_id, 'unread', SYSDATETIMEOFFSET()
-			FROM tblChatMember cm
-			WHERE cm.chat_id = @chat_id 
-			AND cm.user_id != @sender_id 
-			AND cm.status = 1
-			AND cm.is_spam = 0;
+        -- Thêm trạng thái tin nhắn
+        INSERT INTO tblMessageStatus (message_id, user_id, status, created_at)
+        SELECT @new_message_id, cm.user_id, 'unread', SYSDATETIMEOFFSET()
+        FROM tblChatMember cm
+        WHERE cm.chat_id = @chat_id
+          AND cm.user_id != @sender_id
+          AND cm.status = 1
+          AND cm.is_spam = 0;
 
-			-- Trả về new_message_id và created_at
-			SELECT @new_message_id AS new_message_id, @new_created_at AS created_at;
-		END TRY
-		BEGIN CATCH
-			SET @ErrorMessage = ERROR_MESSAGE();
-			THROW 50000, @ErrorMessage, 1;
-		END CATCH
-	END;
-	GO
+        SELECT @new_message_id AS new_message_id, @new_created_at AS created_at;
+    END TRY
+    BEGIN CATCH
+        SET @ErrorMessage = ERROR_MESSAGE();
+        THROW 50000, @ErrorMessage, 1;
+    END CATCH
+END;
 
 	CREATE NONCLUSTERED INDEX idx_chat_member_is_spam
 	ON tblChatMember (chat_id, user_id, is_spam)
@@ -2855,18 +2850,6 @@ WHERE definition LIKE '%friendship%';
 				RAISERROR('Invalid target_id or target_type_id.', 16, 1);
 				RETURN;
 			END
-
-			-- Check content access
-			/*
-			DECLARE @has_access BIT;
-			EXEC sp_CheckContentAccess @reporter_id, @target_id, @target_type_id, @has_access OUTPUT;
-			IF @has_access = 0
-			BEGIN
-				RAISERROR('User does not have permission to report this content.', 16, 1);
-				RETURN;
-			END
-			*/
-			-- Get owner_id based on target_type_id
 			DECLARE @owner_id INT;
 			SELECT @owner_id =
 				CASE @target_type_id
@@ -3075,6 +3058,73 @@ WHERE definition LIKE '%friendship%';
 		FETCH NEXT @size ROWS ONLY;
 	END;
 
+        CREATE OR ALTER PROCEDURE sp_AutoBlockUser
+            @user_id INT,        -- User bị auto-block
+            @admin_id INT        -- Admin thực hiện auto-block
+        AS
+        BEGIN
+            SET NOCOUNT ON;
+            DECLARE @return_code INT = 0;
+
+            BEGIN TRY
+                BEGIN TRANSACTION;
+
+                -- Kiểm tra user_id tồn tại và chưa bị block
+                IF NOT EXISTS (SELECT 1 FROM tblUser WHERE id = @user_id AND status = 1)
+                    BEGIN
+                        SET @return_code = 1; -- User không tồn tại hoặc đã bị khóa
+                        ROLLBACK TRANSACTION;
+                        RETURN @return_code;
+                    END
+
+                -- Kiểm tra admin_id hợp lệ
+                IF NOT EXISTS (SELECT 1 FROM tblUser WHERE id = @admin_id AND is_admin = 1 AND status = 1)
+                    BEGIN
+                        SET @return_code = 2; -- Admin không hợp lệ
+                        ROLLBACK TRANSACTION;
+                        RETURN @return_code;
+                    END
+
+                -- Kiểm tra user đã bị block chưa
+                IF EXISTS (SELECT 1 FROM tblUser WHERE id = @user_id AND status = 0)
+                    BEGIN
+                        SET @return_code = 3; -- Đã bị khóa rồi
+                        ROLLBACK TRANSACTION;
+                        RETURN @return_code;
+                    END
+
+                -- Auto-block user
+                UPDATE tblUser
+                SET status = 0
+                WHERE id = @user_id;
+
+                -- Ghi log hoạt động auto-block
+                DECLARE @action_type_id INT;
+                SELECT @action_type_id = id FROM tblActionType WHERE name = 'AUTO_BLOCK_USER';
+
+                IF @action_type_id IS NULL
+                    BEGIN
+                        INSERT INTO tblActionType (name, description)
+                        VALUES ('AUTO_BLOCK_USER', 'User automatically blocked due to multiple reports');
+                        SET @action_type_id = SCOPE_IDENTITY();
+                    END
+
+                EXEC sp_LogActivity @admin_id, @action_type_id, NULL, NULL, 1, @user_id, 'USER';
+
+                COMMIT TRANSACTION;
+                RETURN @return_code; -- Trả về 0 nếu thành công
+            END TRY
+            BEGIN CATCH
+                IF @@TRANCOUNT > 0
+                    ROLLBACK TRANSACTION;
+
+                DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+                INSERT INTO tblErrorLog (error_message, error_time)
+                VALUES (@ErrorMessage, GETDATE());
+
+                RETURN 99; -- Unknown error
+            END CATCH
+        END;
     ---------------------------------------
 
     --REACTION
@@ -3421,7 +3471,11 @@ GO
     ('GROUP_JOIN_REQUEST', 'A user has requested to join your group', 1),
     ('GROUP_REQUEST_APPROVED', 'Your group join request has been approved', 1),
     ('GROUP_REQUEST_REJECTED', 'Your group join request has been rejected', 1),
-	('REPORT_ABUSE_WARNING', 'Warning for report abuse', 1);
+	('REPORT_ABUSE_WARNING', 'Warning for report abuse', 1),
+	('AI_FLAGGED_NOTICE', 'Your post was flagged by AI for review', 1),
+	('AI_FLAGGED_POST', 'A post was flagged by AI for review', 1),
+    ('POST_REMOVED', 'Your post was removed due to community standards violation', 1);
+
 
     -- tblReactionType (Loại phản hồi: Like, Love, Haha, v.v.)
 	INSERT INTO tblReactionType (name, description, emoji, status) VALUES
