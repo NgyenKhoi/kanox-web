@@ -20,7 +20,7 @@ pipeline {
             }
         }
 
-        stage('Determine Active/Standby Port') {
+                stage('Determine Active/Standby Port') {
             steps {
                 script {
                     def status9090 = sh(script: "ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} 'systemctl is-active kanox-9090.service || true'", returnStdout: true).trim()

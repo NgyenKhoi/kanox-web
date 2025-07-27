@@ -18,6 +18,6 @@ public class SocialMediaApplication {
 	}
 	@GetMapping("/")
 	public String home() {
-		return "Welcome to My social media web";
+		return "Welcome to My social media test again";
 	}
 }

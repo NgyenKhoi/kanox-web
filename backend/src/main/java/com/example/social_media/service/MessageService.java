@@ -68,69 +68,61 @@ public class MessageService {
                 .orElseThrow(() -> new IllegalArgumentException("Sender not found"));
 
         try {
-            String mediaUrl = null;
-            String mediaType = null;
-
-            // Nếu có media, lấy media đầu tiên (chỉ hỗ trợ 1 media trong stored procedure)
-            if (messageDto.getMediaList() != null && !messageDto.getMediaList().isEmpty()) {
-                MediaDto firstMedia = messageDto.getMediaList().get(0); // Lấy media đầu tiên
-                if (firstMedia.getUrl() != null && firstMedia.getType() != null) {
-                    mediaUrl = firstMedia.getUrl();
-                    mediaType = firstMedia.getType();
-                }
-            }
-
+            // Gửi tin nhắn
             Integer messageId = jdbcMessageRepository.sendMessage(
-                    messageDto.getChatId(), sender.getId(), messageDto.getContent(), mediaUrl, mediaType
+                    messageDto.getChatId(),
+                    sender.getId(),
+                    messageDto.getContent()
             );
             messageDto.setId(messageId);
+
+            // Lưu media nếu có
             if (messageDto.getMediaList() != null && !messageDto.getMediaList().isEmpty()) {
                 for (MediaDto media : messageDto.getMediaList()) {
                     if (media.getUrl() == null || media.getType() == null) continue;
-                    // Chỉ lưu media nếu chưa được lưu trong stored procedure
-                    if (!media.getUrl().equals(mediaUrl)) {
-                        mediaService.saveMediaWithUrl(
-                                sender.getId(),
-                                messageId,
-                                "MESSAGE",
-                                media.getType(),
-                                media.getUrl(),
-                                null // metadata
-                        );
-                    }
+                    mediaService.saveMediaWithUrl(
+                            sender.getId(),
+                            messageId,
+                            "MESSAGE",
+                            media.getType(),
+                            media.getUrl(),
+                            null
+                    );
                 }
             }
+
             messageDto.setSenderId(sender.getId());
             messageDto.setCreatedAt(Instant.now());
 
             messageQueueService.queueAndSendMessage(messageDto);
 
+            // Gửi thông báo đến các thành viên chat
             List<ChatMember> members = chatMemberRepository.findByChatId(messageDto.getChatId());
             for (ChatMember member : members) {
                 if (!member.getUser().getId().equals(sender.getId()) && !member.getStatus()) {
                     member.setStatus(true);
                     member.setJoinedAt(Instant.now());
                     chatMemberRepository.save(member);
-                    ChatDto chatDto = chatService.convertToDto(chatRepository.findById(messageDto.getChatId()).orElseThrow(), member.getUser().getId());
+                    ChatDto chatDto = chatService.convertToDto(
+                            chatRepository.findById(messageDto.getChatId()).orElseThrow(),
+                            member.getUser().getId()
+                    );
                     messagingTemplate.convertAndSend("/topic/chats/" + member.getUser().getId(), chatDto);
                 }
             }
 
-            // Kiểm tra xem sender có bị đánh dấu spam bởi người nhận không
             for (ChatMember member : members) {
                 if (!member.getUser().getId().equals(sender.getId())) {
-                    ChatMember senderMember = chatMemberRepository.findByChatIdAndUserId(messageDto.getChatId().intValue(), sender.getId())
-                            .orElseThrow(() -> new IllegalArgumentException("Sender not found in chat"));
+                    ChatMember senderMember = chatMemberRepository.findByChatIdAndUserId(
+                            messageDto.getChatId(), sender.getId()
+                    ).orElseThrow(() -> new IllegalArgumentException("Sender not found in chat"));
+
                     if (senderMember.getIsSpam()) {
-                        // Gửi tin nhắn đến topic spam-messages
                         messagingTemplate.convertAndSend("/topic/spam-messages/" + messageDto.getChatId(), messageDto);
-                        System.out.println("Sent spam message to /topic/spam-messages/" + messageDto.getChatId() + " for userId: " + member.getUser().getId());
                     } else {
-                        // Gửi tin nhắn đến topic messages thông thường
                         messagingTemplate.convertAndSend("/topic/messages/" + member.getUser().getId(), messageDto);
                         int updatedUnreadCount = messageStatusRepository.countUnreadChatsByUserId(member.getUser().getId());
                         messagingTemplate.convertAndSend("/topic/unread-count/" + member.getUser().getId(), Map.of("unreadCount", updatedUnreadCount));
-                        System.out.println("Sent unread chat count to /topic/unread-count/" + member.getUser().getId() + ": " + updatedUnreadCount);
                     }
                 }
             }
@@ -260,7 +252,7 @@ public class MessageService {
         }
 
         // ✅ Tạo message
-        Integer messageId = jdbcMessageRepository.sendMessage(chatId, senderId, content, mediaUrl, mediaType);
+        Integer messageId = jdbcMessageRepository.sendMessage(chatId, senderId, content);
 
         // ✅ Lưu media còn lại (nếu có)
         for (MediaDto media : uploadedMediaList) {

@@ -211,6 +211,7 @@ public class AuthService {
         verifiedEmail.setEmail(verificationToken.getEmail());
         verifiedEmail.setCreatedAt(Instant.now());
         verifiedEmail.setVerified(true);
+        verifiedEmail.setVerificationCode(UUID.randomUUID().toString().substring(0, 8));
         verifiedEmailRepository.save(verifiedEmail);
 
         verificationTokenRepository.delete(verificationToken);
@@ -245,6 +246,7 @@ public class AuthService {
                 verifiedEmail.setEmail(email);
                 verifiedEmail.setCreatedAt(Instant.now());
                 verifiedEmail.setVerified(true);
+                verifiedEmail.setVerificationCode(UUID.randomUUID().toString().substring(0, 8));
                 verifiedEmailRepository.save(verifiedEmail);
                 logger.info("Verified email added for existing user: {}", email);
             }
@@ -295,6 +297,7 @@ public class AuthService {
             verifiedEmail.setEmail(email);
             verifiedEmail.setCreatedAt(Instant.now());
             verifiedEmail.setVerified(true);
+            verifiedEmail.setVerificationCode(UUID.randomUUID().toString().substring(0, 8));
             verifiedEmailRepository.save(verifiedEmail);
             logger.info("Verified email added for new user: {}", email);
             logger.info("New user created: {}", savedUser.getUsername());
