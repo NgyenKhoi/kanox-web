@@ -327,6 +327,11 @@ public class ReportService {
 
             // Kiểm tra và thông báo nếu target bị tự động block (cho báo cáo được duyệt)
             if (request.getProcessingStatusId() == 3 && updatedReport.getTargetType() != null) {
+                System.out.println("[DEBUG] === AUTO-BLOCK LOGIC START ===");
+                System.out.println("[DEBUG] Target ID: " + updatedReport.getTargetId());
+                System.out.println("[DEBUG] Target Type ID: " + updatedReport.getTargetType().getId());
+                System.out.println("[DEBUG] Target Type Name: " + updatedReport.getTargetType().getName());
+                
                 // Đếm số lần target_id này bị báo cáo và được duyệt
                 long approvedReportsForTarget = reportRepository.countByTargetIdAndTargetTypeIdAndProcessingStatusIdAndStatus(
                         updatedReport.getTargetId(), 
@@ -335,9 +340,31 @@ public class ReportService {
                         true
                 );
                 
-                System.out.println("[DEBUG] Target ID: " + updatedReport.getTargetId());
-                System.out.println("[DEBUG] Target Type: " + updatedReport.getTargetType().getName());
                 System.out.println("[DEBUG] Approved reports for this target: " + approvedReportsForTarget);
+                
+                // Đặc biệt cho báo cáo người dùng: đếm tất cả báo cáo được duyệt về user này
+                if (updatedReport.getTargetType().getId() == 4) { // USER target
+                    System.out.println("[DEBUG] This is a USER report - counting all approved reports for user ID: " + updatedReport.getTargetId());
+                } else if (updatedReport.getTargetType().getId() == 1) { // POST target
+                    System.out.println("[DEBUG] This is a POST report - will check post owner for auto-block");
+                    Post reportedPost = postRepository.findById(updatedReport.getTargetId()).orElse(null);
+                    if (reportedPost != null && reportedPost.getOwner() != null) {
+                        System.out.println("[DEBUG] Post owner ID: " + reportedPost.getOwner().getId());
+                        System.out.println("[DEBUG] Post owner username: " + reportedPost.getOwner().getUsername());
+                        
+                        // Đếm tất cả báo cáo được duyệt về user này (cả USER và POST reports)
+                        long userReports = reportRepository.countByTargetIdAndTargetTypeIdAndProcessingStatusIdAndStatus(
+                                reportedPost.getOwner().getId(), 4, 3, true); // USER reports
+                        long postReports = reportRepository.countApprovedPostReportsByUserId(reportedPost.getOwner().getId()); // POST reports
+                        long totalApprovedReports = userReports + postReports;
+                        
+                        System.out.println("[DEBUG] User reports approved: " + userReports);
+                        System.out.println("[DEBUG] Post reports approved: " + postReports);
+                        System.out.println("[DEBUG] Total approved reports for user: " + totalApprovedReports);
+                        
+                        approvedReportsForTarget = totalApprovedReports;
+                    }
+                }
                 
                 // Nếu target này đã bị báo cáo và duyệt đúng 3 lần thì auto-block
                 if (approvedReportsForTarget == 3) {
