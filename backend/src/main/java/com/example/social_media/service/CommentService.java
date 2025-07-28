@@ -27,17 +27,20 @@ public class CommentService {
     private final PrivacyService privacyService;
     private final RedisTemplate<String, List<CommentResponseDto>> redisCommentTemplate;
     private final MediaService mediaService;
+    private final NotificationService notificationService; // Thêm dependency
 
     public CommentService(EntityManager entityManager,
                           CommentRepository commentRepository,
                           PrivacyService privacyService,
                           RedisTemplate<String, List<CommentResponseDto>> redisCommentTemplate,
-                          MediaService mediaService) {
+                          MediaService mediaService,
+                          NotificationService notificationService) { // Thêm vào constructor
         this.entityManager = entityManager;
         this.commentRepository = commentRepository;
         this.privacyService = privacyService;
         this.redisCommentTemplate = redisCommentTemplate;
         this.mediaService = mediaService;
+        this.notificationService = notificationService;
     }
 
     @Transactional
@@ -88,7 +91,7 @@ public class CommentService {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy bình luận vừa tạo"));
 
-        // ✅ Lưu media nếu có
+        // Lưu media nếu có
         List<MediaDto> mediaDtos = new ArrayList<>();
         if (mediaFiles != null && !mediaFiles.isEmpty()) {
             try {
@@ -104,7 +107,24 @@ public class CommentService {
             }
         }
 
+        // Xóa cache Redis
         redisCommentTemplate.delete("comments:post:" + postId);
+
+        // Gửi thông báo realtime nếu là bình luận cha
+        if (parentCommentId == null && !userId.equals(ownerId)) { // Chỉ gửi nếu là bình luận cha và không phải của chính chủ bài viết
+            User commenter = comment.getUser();
+            String displayName = commenter.getDisplayName() != null ? commenter.getDisplayName() : commenter.getUsername();
+            String message = "{displayName} đã bình luận bài viết của bạn";
+            String avatarUrl = mediaService.getAvatarUrlByUserId(userId);
+            notificationService.sendNotification(
+                    ownerId, // Gửi đến chủ bài viết
+                    "COMMENT", // Loại thông báo
+                    message, // Nội dung thông báo
+                    postId, // ID bài viết
+                    "POST", // Loại mục tiêu
+                    avatarUrl // Hình ảnh của người bình luận
+            );
+        }
 
         User user = comment.getUser();
         UserBasicDisplayDto userDto = new UserBasicDisplayDto(
@@ -208,7 +228,7 @@ public class CommentService {
         );
 
         List<CommentResponseDto> replies = repliesGrouped.getOrDefault(comment.getId(), List.of()).stream()
-                .map(reply -> mapToDtoWithReplies(reply, repliesGrouped, mediaMap)) // 👈 sửa chỗ này luôn
+                .map(reply -> mapToDtoWithReplies(reply, repliesGrouped, mediaMap))
                 .collect(Collectors.toList());
 
         List<MediaDto> mediaDtos = mediaMap.getOrDefault(comment.getId(), new ArrayList<>());
