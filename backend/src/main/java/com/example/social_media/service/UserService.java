@@ -6,6 +6,7 @@ import com.example.social_media.entity.User;
 import com.example.social_media.exception.UserNotFoundException;
 import com.example.social_media.repository.LocationRepository;
 import com.example.social_media.repository.UserRepository;
+import com.example.social_media.repository.report.ReportRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -19,14 +20,17 @@ public class UserService {
     private final UserRepository userRepository;
     private final LocationRepository locationRepository;
     private final ActivityLogService activityLogService;
+    private final ReportRepository reportRepository;
 
     public UserService(
             UserRepository userRepository,
             LocationRepository locationRepository,
-            ActivityLogService activityLogService) {
+            ActivityLogService activityLogService,
+            ReportRepository reportRepository) {
         this.userRepository = userRepository;
         this.locationRepository = locationRepository;
         this.activityLogService = activityLogService;
+        this.reportRepository = reportRepository;
     }
 
 
@@ -74,8 +78,8 @@ public class UserService {
     }
 
     @Transactional
-    public User updateUserStatus(Integer userId, Boolean status) {
-        System.out.println("[DEBUG] Starting updateUserStatus for userId: " + userId + ", status: " + status);
+    public User updateUserStatus(Integer userId, Boolean status, Integer adminId) {
+        System.out.println("[DEBUG] Starting updateUserStatus for userId: " + userId + ", status: " + status + ", adminId: " + adminId);
         
         User user = getUserById(userId);
         System.out.println("[DEBUG] Found user: " + user.getUsername() + ", current status: " + user.getStatus());
@@ -87,14 +91,14 @@ public class UserService {
         }
         
         try {
-            // Cập nhật status trực tiếp thông qua JPA
-            user.setStatus(status);
-            User updatedUser = userRepository.save(user);
+            // Sử dụng stored procedure sp_UpdateUserStatus
+            System.out.println("[DEBUG] Calling sp_UpdateUserStatus stored procedure...");
+            System.out.println("[DEBUG] Parameters: userId=" + userId + ", adminId=" + adminId + ", newStatus=" + status);
             
-            // Log activity
-            String action = status ? "UNLOCK_USER" : "LOCK_USER";
-            activityLogService.logUserActivity(userId, action, "Admin changed user status");
-            System.out.println("[DEBUG] Activity logged: " + action);
+            reportRepository.updateUserStatus(userId, adminId, status);
+            
+            // Refresh user object để lấy status mới nhất từ database
+            User updatedUser = getUserById(userId);
             System.out.println("[DEBUG] User status updated successfully to: " + updatedUser.getStatus());
             
             return updatedUser;

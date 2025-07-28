@@ -88,6 +88,13 @@ public interface ReportRepository extends JpaRepository<Report, Integer> {
             @Param("admin_id") Integer adminId
     );
 
+    @Procedure(procedureName = "sp_UpdateUserStatus")
+    void updateUserStatus(
+            @Param("user_id") Integer userId,
+            @Param("admin_id") Integer adminId,
+            @Param("new_status") Boolean newStatus
+    );
+
     @Query("SELECT r FROM Report r WHERE r.reporterType = 'AI' AND r.targetType.id = :targetTypeId AND (:processingStatusId IS NULL OR r.processingStatus.id = :processingStatusId)")
     Page<Report> findByReporterTypeAIAndTargetTypeId(@Param("targetTypeId") Integer targetTypeId, @Param("processingStatusId") Integer processingStatusId, Pageable pageable);
 }

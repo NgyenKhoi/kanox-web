@@ -133,7 +133,7 @@ public class AdminController {
             User admin = customUserDetailsService.getUserByUsername(currentUsername);
             System.out.println("Admin found: " + admin.getUsername());
 
-            User updatedUser = userService.updateUserStatus(userId, status);
+            User updatedUser = userService.updateUserStatus(userId, status, admin.getId());
             String statusMessage = status ? "unlocked" : "locked";
             
             System.out.println("=== [DEBUG] AdminController.updateUserStatus completed successfully ===");
