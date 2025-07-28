@@ -23,12 +23,9 @@ public class FriendSuggestionService {
     }
 
     @Transactional
-    public void updateFriendSuggestions(Integer userId) {
-        friendSuggestionRepository.updateFriendSuggestionsForUser(userId, 10.0);
-    }
-
-    @Transactional(readOnly = true)
     public List<UserDto> getFriendSuggestions(Integer userId) {
+        // Gọi stored procedure một lần
+        friendSuggestionRepository.updateAllFriendSuggestions(10.0);
         List<FriendSuggestion> suggestions = friendSuggestionRepository.findByUserId(userId);
         List<UserDto> result = new ArrayList<>();
         for (FriendSuggestion suggestion : suggestions) {
@@ -74,10 +71,5 @@ public class FriendSuggestionService {
             }
         }
         return result;
-    }
-
-    @Transactional
-    public void updateAllFriendSuggestions() {
-        friendSuggestionRepository.updateAllFriendSuggestions(10.0);
     }
 }

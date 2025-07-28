@@ -27,22 +27,19 @@ public class FriendshipService {
     private final UserRepository userRepository;
     private final NotificationService notificationService;
     private final PrivacyService privacyService;
-    private final FriendSuggestionService friendSuggestionService;
 
     public FriendshipService(
             FriendshipRepository friendshipRepository,
             CustomUserDetailsService customUserDetailsService,
             UserRepository userRepository,
             NotificationService notificationService,
-            PrivacyService privacyService,
-            FriendSuggestionService friendSuggestionService
+            PrivacyService privacyService
     ) {
         this.friendshipRepository = friendshipRepository;
         this.customUserDetailsService = customUserDetailsService;
         this.userRepository = userRepository;
         this.notificationService = notificationService;
         this.privacyService = privacyService;
-        this.friendSuggestionService = friendSuggestionService;
     }
 
     @Transactional
@@ -85,7 +82,6 @@ public class FriendshipService {
                 "PROFILE"
         );
     }
-
     @Caching(evict = {
             @CacheEvict(value = "newsfeed", key = "#requester.username"),
             @CacheEvict(value = "newsfeed", key = "#user.username")
@@ -107,8 +103,6 @@ public class FriendshipService {
         friendship.setFriendshipStatus("accepted");
         friendshipRepository.save(friendship);
 
-        System.out.println("Friendship accepted for userId: " + userId + ", requesterId: " + requesterId);
-
         notificationService.sendNotification(
                 requesterId,
                 "FRIEND_ACCEPTED",
@@ -116,16 +110,6 @@ public class FriendshipService {
                 userId,
                 "PROFILE"
         );
-
-        // Cập nhật gợi ý bạn bè
-        try {
-            friendSuggestionService.updateFriendSuggestions(userId);
-            friendSuggestionService.updateFriendSuggestions(requesterId);
-            System.out.println("Friend suggestions updated for userId: " + userId + ", requesterId: " + requesterId);
-        } catch (Exception e) {
-            System.err.println("Error updating friend suggestions: " + e.getMessage());
-            throw new RuntimeException("Failed to update friend suggestions", e);
-        }
     }
 
     @Transactional
@@ -169,6 +153,7 @@ public class FriendshipService {
         }
         Page<Friendship> friendships = friendshipRepository.findByUserOrFriendAndFriendshipStatusAndStatus(
                 userId, "accepted", true, pageable);
+        // Chuyển đổi sang UserTagDto
         List<UserTagDto> friendDtos = friendships.getContent().stream().map(friendship -> {
             User friend = friendship.getUser().getId().equals(userId) ?
                     friendship.getFriend() :

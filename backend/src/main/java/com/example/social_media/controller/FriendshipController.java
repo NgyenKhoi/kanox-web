@@ -61,18 +61,18 @@ public class FriendshipController {
     }
 
     @PutMapping(URLConfig.ACCEPT_FRIEND_REQUEST)
-    public ResponseEntity<?> acceptFriendRequest(
-            @PathVariable Integer requesterId
-    ) {
+    public ResponseEntity<?> acceptFriendRequest(@PathVariable Integer requesterId) {
         try {
             String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
             User currentUser = customUserDetailsService.getUserByUsername(currentUsername);
             friendshipService.acceptFriendRequest(currentUser.getId(), requesterId);
             return ResponseEntity.ok(Map.of("message", "Friend request accepted successfully"));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage()));
-        } catch (UserNotFoundException e) {
+        } catch (IllegalArgumentException | UserNotFoundException e) {
             return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage(), "errors", Map.of()));
+        } catch (Exception e) {
+            System.err.println("Unexpected error: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("status", "error", "message", "Unexpected error occurred", "errors", Map.of()));
         }
     }
 
