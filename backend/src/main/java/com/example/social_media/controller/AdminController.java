@@ -201,7 +201,25 @@ public class AdminController {
         try {
             System.out.println("=== [DEBUG] AdminController.updateReportStatus called ===");
             System.out.println("Report ID: " + reportId);
-            System.out.println("Request: " + request);
+            System.out.println("Request processingStatusId: " + (request != null ? request.getProcessingStatusId() : "null"));
+            
+            if (reportId == null || reportId <= 0) {
+                System.out.println("=== [ERROR] Invalid reportId: " + reportId + " ===");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of("message", "Invalid report ID", "error", "Report ID must be a positive integer"));
+            }
+            
+            if (request == null) {
+                System.out.println("=== [ERROR] Request is null ===");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of("message", "Request body is required", "error", "Request is null"));
+            }
+            
+            if (request.getProcessingStatusId() == null) {
+                System.out.println("=== [ERROR] ProcessingStatusId is null ===");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of("message", "Processing status ID is required", "error", "ProcessingStatusId is null"));
+            }
             
             reportService.updateReportStatus(reportId, request);
             
@@ -215,13 +233,24 @@ public class AdminController {
         } catch (IllegalArgumentException e) {
             System.out.println("=== [ERROR] IllegalArgumentException in AdminController: " + e.getMessage() + " ===");
             e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("message", "Unauthorized action", "error", e.getMessage()));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("message", "Invalid request", "error", e.getMessage()));
+        } catch (RuntimeException e) {
+            System.out.println("=== [ERROR] RuntimeException in AdminController: " + e.getMessage() + " ===");
+            e.printStackTrace();
+            if (e.getCause() != null) {
+                System.out.println("=== [ERROR] Root cause: " + e.getCause().getMessage() + " ===");
+            }
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Error updating report status", "error", e.getMessage(), "rootCause", e.getCause() != null ? e.getCause().getMessage() : "Unknown"));
         } catch (Exception e) {
             System.out.println("=== [ERROR] Exception in AdminController: " + e.getMessage() + " ===");
             e.printStackTrace();
+            if (e.getCause() != null) {
+                System.out.println("=== [ERROR] Root cause: " + e.getCause().getMessage() + " ===");
+            }
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("message", "Error updating report status", "error", e.getMessage()));
+                    .body(Map.of("message", "Error updating report status", "error", e.getMessage(), "rootCause", e.getCause() != null ? e.getCause().getMessage() : "Unknown"));
         }
     }
 
