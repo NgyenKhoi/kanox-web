@@ -185,16 +185,16 @@ public class ReportService {
             reportRepository.updateReportStatus(reportId, admin.getId(), request.getProcessingStatusId());
             
             // Refresh report object để lấy status mới nhất từ database
-            report = reportRepository.findById(reportId)
+            final Report updatedReport = reportRepository.findById(reportId)
                     .orElseThrow(() -> new IllegalArgumentException("Report not found after update with id: " + reportId));
 
             boolean isApproved = request.getProcessingStatusId() == 3;
-            boolean isPostReport = report.getTargetType() != null && report.getTargetType().getId() == 1;
-            boolean isReporterAI = report.getReporter() != null && Boolean.TRUE.equals(report.getReporter().getIsSystem());
+            boolean isPostReport = updatedReport.getTargetType() != null && updatedReport.getTargetType().getId() == 1;
+            boolean isReporterAI = updatedReport.getReporter() != null && Boolean.TRUE.equals(updatedReport.getReporter().getIsSystem());
 
             if (isApproved && isPostReport) {
-                Post reportedPost = postRepository.findById(report.getTargetId())
-                        .orElseThrow(() -> new IllegalArgumentException("Post not found with id: " + report.getTargetId()));
+                Post reportedPost = postRepository.findById(updatedReport.getTargetId())
+                        .orElseThrow(() -> new IllegalArgumentException("Post not found with id: " + updatedReport.getTargetId()));
 
                 // Với báo cáo từ AI
                 if (isReporterAI) {
@@ -214,8 +214,8 @@ public class ReportService {
                         mediaRepository.deleteAllPostMedia(reportedPost.getId());
 
                         postRepository.delete(reportedPost);
-                        String reasonContent = report.getReason() != null
-                                ? report.getReason().getDescription()
+                        String reasonContent = updatedReport.getReason() != null
+                                ? updatedReport.getReason().getDescription()
                                 : "vi phạm tiêu chuẩn cộng đồng";
 
                         String ownerMessage = "Bài viết của bạn đã bị xóa do: \"" + reasonContent + "\". "
@@ -269,8 +269,8 @@ public class ReportService {
 
                         postRepository.delete(reportedPost);
 
-                        String reasonContent = report.getReason() != null
-                                ? report.getReason().getDescription()
+                        String reasonContent = updatedReport.getReason() != null
+                                ? updatedReport.getReason().getDescription()
                                 : "vi phạm tiêu chuẩn cộng đồng";
 
                         String ownerMessage = "Bài viết của bạn đã bị xóa do: \"" + reasonContent + "\". "
@@ -315,17 +315,17 @@ public class ReportService {
             };
 
             // Kiểm tra và thông báo nếu target bị tự động block (cho báo cáo được duyệt)
-            if (request.getProcessingStatusId() == 3 && report.getTargetType() != null) {
+            if (request.getProcessingStatusId() == 3 && updatedReport.getTargetType() != null) {
                 // Đếm số lần target_id này bị báo cáo và được duyệt
                 long approvedReportsForTarget = reportRepository.countByTargetIdAndTargetTypeIdAndProcessingStatusIdAndStatus(
-                        report.getTargetId(), 
-                        report.getTargetType().getId(), 
+                        updatedReport.getTargetId(), 
+                        updatedReport.getTargetType().getId(), 
                         3, // Approved status
                         true
                 );
                 
-                System.out.println("[DEBUG] Target ID: " + report.getTargetId());
-                System.out.println("[DEBUG] Target Type: " + report.getTargetType().getName());
+                System.out.println("[DEBUG] Target ID: " + updatedReport.getTargetId());
+                System.out.println("[DEBUG] Target Type: " + updatedReport.getTargetType().getName());
                 System.out.println("[DEBUG] Approved reports for this target: " + approvedReportsForTarget);
                 
                 // Nếu target này đã bị báo cáo và duyệt đúng 3 lần thì auto-block
@@ -335,11 +335,11 @@ public class ReportService {
                     // Chỉ auto-block nếu target là USER hoặc là POST (block chủ sở hữu post)
                     final Integer userIdToBlock;
                      
-                     if (report.getTargetType().getId() == 4) { // USER target
-                          userIdToBlock = report.getTargetId();
-                      } else if (report.getTargetType().getId() == 1) { // POST target
+                     if (updatedReport.getTargetType().getId() == 4) { // USER target
+                          userIdToBlock = updatedReport.getTargetId();
+                      } else if (updatedReport.getTargetType().getId() == 1) { // POST target
                           // Tìm chủ sở hữu của post để block
-                           Post post = postRepository.findById(report.getTargetId()).orElse(null);
+                           Post post = postRepository.findById(updatedReport.getTargetId()).orElse(null);
                            if (post != null && post.getOwner() != null) {
                                userIdToBlock = post.getOwner().getId();
                            } else {
@@ -365,7 +365,7 @@ public class ReportService {
                                 reportRepository.autoBlockUser(userIdToBlock, admin.getId());
                                 
                                 System.out.println("=== AUTO-BLOCK USER SUCCESSFUL ====");
-                                System.out.println("User ID: " + userIdToBlock + " (" + targetUser.getUsername() + ") has been automatically blocked due to 3 approved reports on target ID: " + report.getTargetId());
+                                System.out.println("User ID: " + userIdToBlock + " (" + targetUser.getUsername() + ") has been automatically blocked due to 3 approved reports on target ID: " + updatedReport.getTargetId());
                                 
                                 // Kiểm tra lại status sau khi block
                                 User updatedUser = userRepository.findById(userIdToBlock).orElse(null);
@@ -391,7 +391,7 @@ public class ReportService {
 
             // Gửi thông báo WebSocket duy nhất
             messagingTemplate.convertAndSend(
-                    "/topic/notifications/" + report.getReporter().getId(),
+                    "/topic/notifications/" + updatedReport.getReporter().getId(),
                     Map.of(
                             "id", reportId,
                             "message", message,
@@ -407,7 +407,7 @@ public class ReportService {
 
             // Lưu thông báo vào database
             notificationService.sendNotification(
-                    report.getReporter().getId(),
+                    updatedReport.getReporter().getId(),
                     "REPORT_STATUS_UPDATED",
                     message,
                     admin.getId(),
@@ -420,19 +420,19 @@ public class ReportService {
                         .toInstant();
 
                 long rejectedCount = reportRepository.countByReporterIdAndProcessingStatusIdAndReportTime(
-                        report.getReporter().getId(), 4, startOfToday
+                        updatedReport.getReporter().getId(), 4, startOfToday
                 );
                 if (rejectedCount >= 3) {
                     String abuseMessage = "Bạn đã gửi quá nhiều báo cáo không hợp lệ hôm nay. Vui lòng kiểm tra lại hành vi báo cáo của bạn.";
                     notificationService.sendNotification(
-                            report.getReporter().getId(),
+                            updatedReport.getReporter().getId(),
                             "REPORT_ABUSE_WARNING",
                             abuseMessage,
                             admin.getId(),
                             "PROFILE"
                     );
                     messagingTemplate.convertAndSend(
-                            "/topic/notifications/" + report.getReporter().getId(),
+                            "/topic/notifications/" + updatedReport.getReporter().getId(),
                             Map.of(
                                     "id", reportId,
                                     "message", abuseMessage,
