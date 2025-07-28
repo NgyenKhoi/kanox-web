@@ -118,7 +118,7 @@ public class CommentService {
             String avatarUrl = mediaService.getAvatarUrlByUserId(userId);
             notificationService.sendNotification(
                     ownerId, // Gửi đến chủ bài viết
-                    "COMMENT", // Loại thông báo
+                    "POST_COMMENT", // Loại thông báo
                     message, // Nội dung thông báo
                     postId, // ID bài viết
                     "POST", // Loại mục tiêu
