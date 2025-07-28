@@ -11,7 +11,6 @@ import com.example.social_media.repository.message.JdbcMessageRepository;
 import com.example.social_media.repository.message.MessageRepository;
 import com.example.social_media.repository.UserRepository;
 import com.example.social_media.repository.message.MessageStatusRepository;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,7 +34,6 @@ public class MessageService {
     private final ChatMemberRepository chatMemberRepository;
     private final MessageStatusRepository messageStatusRepository;
     private final MessageQueueService messageQueueService;
-    private final JdbcTemplate jdbcTemplate;
     private final MediaService mediaService;
     private final GcsService gcsService;
     private final JdbcMessageRepository jdbcMessageRepository;
@@ -44,7 +42,7 @@ public class MessageService {
                           ChatRepository chatRepository, UserRepository userRepository,
                           SimpMessagingTemplate messagingTemplate, ChatService chatService,
                           ChatMemberRepository chatMemberRepository, MessageStatusRepository messageStatusRepository,
-                          MessageQueueService messageQueueService, JdbcTemplate jdbcTemplate,
+                          MessageQueueService messageQueueService,
                           MediaService mediaService, GcsService gcsService, JdbcMessageRepository jdbcMessageRepository) {
         this.messageRepository = messageRepository;
         this.chatRepository = chatRepository;
@@ -54,7 +52,6 @@ public class MessageService {
         this.chatMemberRepository = chatMemberRepository;
         this.messageStatusRepository = messageStatusRepository;
         this.messageQueueService = messageQueueService;
-        this.jdbcTemplate = jdbcTemplate;
         this.mediaService = mediaService;
         this.gcsService = gcsService;
         this.jdbcMessageRepository = jdbcMessageRepository;

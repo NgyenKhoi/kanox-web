@@ -1,7 +1,6 @@
 package com.example.social_media.mapper;
 import com.example.social_media.document.*;
 import com.example.social_media.dto.group.GroupDto;
-import com.example.social_media.dto.user.PageDto;
 import com.example.social_media.dto.user.UserDto;
 import com.example.social_media.entity.Group;
 import org.springframework.stereotype.Component;
@@ -35,26 +34,12 @@ public class DocumentMapper {
         );
     }
 
-    public PageDocument toPageDocument(com.example.social_media.entity.Page page) {
-        return new PageDocument(
-                String.valueOf(page.getId()),
-                page.getOwner().getId(),
-                page.getName(),
-                page.getDescription(),
-                convertInstantToLocalDateTime(page.getCreatedAt())
-        );
-    }
-
     public UserDto toUserDto(UserDocument doc) {
         return new UserDto(doc.getId(), doc.getUsername(), doc.getDisplayName(), doc.getGender(), doc.getBio());
     }
 
     public GroupDto toGroupDto(GroupDocument doc) {
         return new GroupDto(doc.getId(), doc.getName(), doc.getDescription());
-    }
-
-    public PageDto toPageDto(PageDocument doc) {
-        return new PageDto(doc.getId(), doc.getName(), doc.getDescription());
     }
 
     private LocalDateTime convertInstantToLocalDateTime(Instant instant) {

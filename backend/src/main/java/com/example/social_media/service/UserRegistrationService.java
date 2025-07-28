@@ -2,7 +2,6 @@ package com.example.social_media.service;
 
 import com.example.social_media.dto.user.UserRegistrationStatsDTO;
 import com.example.social_media.repository.UserRegistrationRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,8 +11,11 @@ import java.util.stream.Collectors;
 @Service
 public class UserRegistrationService {
 
-    @Autowired
-    private UserRegistrationRepository userRegistrationRepository;
+    private final UserRegistrationRepository userRegistrationRepository;
+
+    public UserRegistrationService(UserRegistrationRepository userRegistrationRepository) {
+        this.userRegistrationRepository = userRegistrationRepository;
+    }
 
     @Transactional(readOnly = true)
     public List<UserRegistrationStatsDTO> getUserRegistrationsByWeek(Integer startYear, Integer endYear) {

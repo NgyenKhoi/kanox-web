@@ -15,14 +15,6 @@ public class PayOSService {
     private final PayOS payOS;
 
     public CheckoutResponseData createPaymentLink(String orderCode, int amount, String description, String returnUrl, String cancelUrl) throws Exception {
-//        PaymentData paymentData = new PaymentData(
-//                orderCode,
-//                amount,
-//                description,
-//                returnUrl,
-//                "https://yourdomain.com/webhook", // optional: webhook
-//                List.of(new ItemData("Tour Booking", 1, amount)) // optional
-//        );
         long orderCode1 = System.currentTimeMillis();
         PaymentData paymentData = PaymentData.builder()
                 .orderCode(orderCode1)

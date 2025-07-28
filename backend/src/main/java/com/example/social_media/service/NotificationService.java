@@ -182,52 +182,6 @@ public class NotificationService {
         messagingTemplate.convertAndSend("/topic/notifications/" + userId, notificationDto);
     }
 
-    @Transactional
-    public void sendReportNotification(Integer userId, String notificationTypeName, String message, Integer adminId) {
-        NotificationType notificationType = notificationTypeRepository.findByNameAndStatus(notificationTypeName, true)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid notification type: " + notificationTypeName));
-
-        TargetType targetType = targetTypeRepository.findByCode("PROFILE")
-                .orElseThrow(() -> new IllegalArgumentException("Invalid target type: PROFILE"));
-
-        NotificationStatus status = notificationStatusRepository.findByName("unread")
-                .orElseThrow(() -> new IllegalArgumentException("Invalid notification status: unread"));
-
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
-
-        User admin = userRepository.findById(adminId)
-                .orElseThrow(() -> new UserNotFoundException("Admin not found with id: " + adminId));
-
-        String displayName = admin.getDisplayName() != null ? admin.getDisplayName() : admin.getUsername();
-        String username = admin.getUsername();
-        String notificationImage = mediaService.getAvatarUrlByUserId(adminId);
-
-        Notification notification = new Notification();
-        notification.setUser(user);
-        notification.setType(notificationType);
-        notification.setMessage(message.replace("{displayName}", displayName));
-        notification.setCreatedAt(Instant.now());
-        notification.setTargetId(adminId);
-        notification.setTargetType(targetType);
-        notification.setStatus(status);
-
-        Notification savedNotification = notificationRepository.save(notification);
-
-        NotificationDto notificationDto = new NotificationDto();
-        notificationDto.setId(savedNotification.getId());
-        notificationDto.setType(notificationType.getName());
-        notificationDto.setMessage(savedNotification.getMessage());
-        notificationDto.setTargetId(savedNotification.getTargetId());
-        notificationDto.setTargetType(targetType.getCode());
-        notificationDto.setDisplayName(displayName);
-        notificationDto.setUsername(username);
-        notificationDto.setCreatedAt(savedNotification.getCreatedAt());
-        notificationDto.setStatus(status.getName());
-        notificationDto.setImage(notificationImage);
-
-        messagingTemplate.convertAndSend("/topic/notifications/" + userId, notificationDto);
-    }
 
     @Transactional
     public void markAllAsRead(Integer userId) {

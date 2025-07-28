@@ -36,7 +36,6 @@ public class ReportService {
     private final ReportReasonRepository reportReasonRepository;
     private final ReportStatusRepository reportStatusRepository;
     private final ReportHistoryRepository reportHistoryRepository;
-    private final ReportLimitRepository reportLimitRepository;
     private final PostRepository postRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final NotificationService notificationService;
@@ -54,7 +53,6 @@ public class ReportService {
             ReportReasonRepository reportReasonRepository,
             ReportStatusRepository reportStatusRepository,
             ReportHistoryRepository reportHistoryRepository,
-            ReportLimitRepository reportLimitRepository,
             PostRepository postRepository,
             SimpMessagingTemplate messagingTemplate,
             NotificationService notificationService,
@@ -69,7 +67,6 @@ public class ReportService {
         this.reportReasonRepository = reportReasonRepository;
         this.reportStatusRepository = reportStatusRepository;
         this.reportHistoryRepository = reportHistoryRepository;
-        this.reportLimitRepository = reportLimitRepository;
         this.postRepository = postRepository;
         this.messagingTemplate = messagingTemplate;
         this.notificationService = notificationService;
@@ -406,10 +403,7 @@ public class ReportService {
                                 System.out.println("User ID: " + userIdToBlock + " (" + targetUser.getUsername() + ") has been automatically blocked due to 3 approved reports on target ID: " + updatedReport.getTargetId());
                                 
                                 // Kiểm tra lại status sau khi block
-                                User updatedUser = userRepository.findById(userIdToBlock).orElse(null);
-                                if (updatedUser != null) {
-                                    System.out.println("[DEBUG] User status after auto-block: " + updatedUser.getStatus());
-                                }
+                                userRepository.findById(userIdToBlock).ifPresent(updatedUser -> System.out.println("[DEBUG] User status after auto-block: " + updatedUser.getStatus()));
                             } else {
                                 System.out.println("[DEBUG] User is already blocked, skipping auto-block");
                             }
