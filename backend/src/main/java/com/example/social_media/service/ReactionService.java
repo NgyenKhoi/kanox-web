@@ -12,6 +12,7 @@ import com.example.social_media.repository.ReactionTypeRepository;
 import com.example.social_media.repository.TargetTypeRepository;
 import com.example.social_media.repository.UserRepository;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -111,7 +112,7 @@ public class ReactionService {
                 .filter(rt -> Boolean.TRUE.equals(rt.getStatus()))
                 .toList();
     }
-
+    @Cacheable(value = "mainReactions")
     public List<ReactionType> getMainReactions() {
         return reactionTypeRepository.findAll().stream()
                 .filter(rt -> MAIN_REACTIONS.contains(rt.getName().toLowerCase()))
@@ -145,7 +146,7 @@ public class ReactionService {
         return targetTypeRepository.findByCode(code.trim())
                 .orElseThrow(() -> new IllegalArgumentException("Loại đối tượng không hợp lệ: " + code));
     }
-
+    @Cacheable(value = "reactionsBatch", key = "#targetIds.toString() + ':' + #targetTypeCode")
     public Map<Integer, Map<ReactionType, Long>> countAllReactionsBatch(List<Integer> targetIds, String targetTypeCode) {
         List<Object[]> rows = reactionRepository.countAllByTargetIdsAndType(targetIds, targetTypeCode);
 
