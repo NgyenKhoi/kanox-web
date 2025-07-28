@@ -191,8 +191,19 @@ public class ReportService {
             boolean isApproved = request.getProcessingStatusId() == 3;
             boolean isPostReport = updatedReport.getTargetType() != null && updatedReport.getTargetType().getId() == 1;
             boolean isReporterAI = updatedReport.getReporter() != null && Boolean.TRUE.equals(updatedReport.getReporter().getIsSystem());
+            
+            System.out.println("[DEBUG] === REPORT STATUS UPDATE DEBUG ===");
+            System.out.println("[DEBUG] Processing Status ID: " + request.getProcessingStatusId());
+            System.out.println("[DEBUG] Is Approved: " + isApproved);
+            System.out.println("[DEBUG] Is Post Report: " + isPostReport);
+            System.out.println("[DEBUG] Target Type: " + (updatedReport.getTargetType() != null ? updatedReport.getTargetType().getName() : "null"));
+            System.out.println("[DEBUG] Is Reporter AI: " + isReporterAI);
 
             if (isApproved && isPostReport) {
+                System.out.println("[DEBUG] ✅ Report approved for POST - Starting post deletion process");
+                System.out.println("[DEBUG] Target ID: " + updatedReport.getTargetId());
+                System.out.println("[DEBUG] Is AI Reporter: " + isReporterAI);
+                
                 Post reportedPost = postRepository.findById(updatedReport.getTargetId())
                         .orElseThrow(() -> new IllegalArgumentException("Post not found with id: " + updatedReport.getTargetId()));
 
