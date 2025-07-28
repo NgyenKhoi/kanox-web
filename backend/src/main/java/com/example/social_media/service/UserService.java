@@ -103,49 +103,21 @@ public class UserService {
         }
         
         try {
-            // Sử dụng native query để tránh trigger conflicts
-            System.out.println("[DEBUG] Using native query to update user status...");
-            
-            // Tạm thời disable trigger để tránh conflicts
-            entityManager.createNativeQuery("DISABLE TRIGGER trg_SoftDelete_User ON tblUser").executeUpdate();
-            
-            // Cập nhật trực tiếp bằng native query
-            int updatedRows = entityManager.createNativeQuery("UPDATE tblUser SET status = ? WHERE id = ?")
-                .setParameter(1, status ? 1 : 0)
-                .setParameter(2, userId)
-                .executeUpdate();
-            
-            System.out.println("[DEBUG] Updated rows: " + updatedRows);
-            
-            // Enable lại trigger
-            entityManager.createNativeQuery("ENABLE TRIGGER trg_SoftDelete_User ON tblUser").executeUpdate();
-            
-            // Flush để đảm bảo changes được commit
-            entityManager.flush();
-            
-            // Refresh entity để lấy dữ liệu mới nhất
+            // Cập nhật status trực tiếp thông qua JPA
             user.setStatus(status);
-            entityManager.refresh(user);
+            User updatedUser = userRepository.save(user);
             
             // Log activity
             String action = status ? "UNLOCK_USER" : "LOCK_USER";
             activityLogService.logUserActivity(userId, action, "Admin changed user status");
             System.out.println("[DEBUG] Activity logged: " + action);
-            System.out.println("[DEBUG] User status updated successfully to: " + user.getStatus());
+            System.out.println("[DEBUG] User status updated successfully to: " + updatedUser.getStatus());
             
-            return user;
+            return updatedUser;
             
         } catch (Exception e) {
             System.err.println("[ERROR] Exception in updateUserStatus: " + e.getMessage());
             e.printStackTrace();
-            
-            // Đảm bảo trigger được enable lại ngay cả khi có lỗi
-            try {
-                entityManager.createNativeQuery("ENABLE TRIGGER trg_SoftDelete_User ON tblUser").executeUpdate();
-            } catch (Exception triggerException) {
-                System.err.println("[ERROR] Failed to re-enable trigger: " + triggerException.getMessage());
-            }
-            
             throw new RuntimeException("Failed to update user status: " + e.getMessage(), e);
         }
     }
