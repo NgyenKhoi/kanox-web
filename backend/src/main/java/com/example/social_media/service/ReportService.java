@@ -333,7 +333,7 @@ public class ReportService {
                     System.out.println("[DEBUG] Target has exactly 3 approved reports, proceeding with auto-block");
                     
                     // Chỉ auto-block nếu target là USER hoặc là POST (block chủ sở hữu post)
-                    Integer userIdToBlock = null;
+                    final Integer userIdToBlock;
                      
                      if (report.getTargetType().getId() == 4) { // USER target
                           userIdToBlock = report.getTargetId();
@@ -342,31 +342,33 @@ public class ReportService {
                            Post post = postRepository.findById(report.getTargetId()).orElse(null);
                            if (post != null && post.getOwner() != null) {
                                userIdToBlock = post.getOwner().getId();
+                           } else {
+                               userIdToBlock = null;
                            }
+                      } else {
+                          userIdToBlock = null;
                       }
                     
-                    final Integer finalUserIdToBlock = userIdToBlock;
-                    
-                    if (finalUserIdToBlock != null) {
+                    if (userIdToBlock != null) {
                         try {
-                            User targetUser = userRepository.findById(finalUserIdToBlock)
-                                .orElseThrow(() -> new UserNotFoundException("Target user not found with id: " + finalUserIdToBlock));
+                            User targetUser = userRepository.findById(userIdToBlock)
+                                .orElseThrow(() -> new UserNotFoundException("Target user not found with id: " + userIdToBlock));
                             
                             System.out.println("[DEBUG] Found target user: " + targetUser.getUsername() + ", Status: " + targetUser.getStatus());
                             
                             // Chỉ khóa nếu user chưa bị khóa
                             if (targetUser.getStatus()) {
                                 System.out.println("[DEBUG] Calling autoBlockUser stored procedure...");
-                                System.out.println("[DEBUG] Parameters: userIdToBlock=" + finalUserIdToBlock + ", adminId=" + admin.getId());
+                                System.out.println("[DEBUG] Parameters: userIdToBlock=" + userIdToBlock + ", adminId=" + admin.getId());
                                 
                                 // Gọi stored procedure để auto-block user
-                                reportRepository.autoBlockUser(finalUserIdToBlock, admin.getId());
+                                reportRepository.autoBlockUser(userIdToBlock, admin.getId());
                                 
                                 System.out.println("=== AUTO-BLOCK USER SUCCESSFUL ====");
-                                System.out.println("User ID: " + finalUserIdToBlock + " (" + targetUser.getUsername() + ") has been automatically blocked due to 3 approved reports on target ID: " + report.getTargetId());
+                                System.out.println("User ID: " + userIdToBlock + " (" + targetUser.getUsername() + ") has been automatically blocked due to 3 approved reports on target ID: " + report.getTargetId());
                                 
                                 // Kiểm tra lại status sau khi block
-                                User updatedUser = userRepository.findById(finalUserIdToBlock).orElse(null);
+                                User updatedUser = userRepository.findById(userIdToBlock).orElse(null);
                                 if (updatedUser != null) {
                                     System.out.println("[DEBUG] User status after auto-block: " + updatedUser.getStatus());
                                 }
