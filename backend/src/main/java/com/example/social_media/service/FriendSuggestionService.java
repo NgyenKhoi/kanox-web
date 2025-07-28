@@ -8,11 +8,9 @@ import com.example.social_media.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 public class FriendSuggestionService {
@@ -25,13 +23,8 @@ public class FriendSuggestionService {
     }
 
     @Transactional
-    public void generateFriendSuggestions(Integer userId) {
-        friendSuggestionRepository.updateAllFriendSuggestions(10.0);
-    }
-
-
-    @Transactional
     public List<UserDto> getFriendSuggestions(Integer userId) {
+        // Gọi stored procedure một lần
         friendSuggestionRepository.updateAllFriendSuggestions(10.0);
         List<FriendSuggestion> suggestions = friendSuggestionRepository.findByUserId(userId);
         List<UserDto> result = new ArrayList<>();

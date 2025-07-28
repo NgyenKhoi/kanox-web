@@ -44,14 +44,13 @@
 		FOREIGN KEY (user_id) REFERENCES tblUser(id)
 	);
 
-	select * from tblFriendSuggestion
-
-		CREATE OR ALTER TRIGGER trg_UpdateLocation
+	CREATE OR ALTER TRIGGER trg_UpdateLocation
 	ON tblLocation
 	AFTER UPDATE
 	AS
 	BEGIN
 		SET NOCOUNT ON;
+		SET TRANSACTION ISOLATION LEVEL READ COMMITTED; -- Giảm deadlock
 
 		-- Xóa các gợi ý dựa trên vị trí liên quan đến user_id vừa cập nhật
 		DELETE FROM tblFriendSuggestion
@@ -909,9 +908,11 @@ GO
 		suggested_at DATETIME DEFAULT GETDATE(),
 		expiration_date DATETIME NULL,
 		reason VARCHAR(50) NULL, -- Lưu lý do gợi ý: 'mutual_friends' hoặc 'location'
-		distance_km FLOAT NULL, -- Lưu khoảng cách nếu gợi ý dựa trên vị trí
+		distance_km FLOAT NULL,
+		mutual_friend_ids VARCHAR(MAX),-- Lưu khoảng cách nếu gợi ý dựa trên vị trí
 		PRIMARY KEY (user_id, suggested_user_id)
 	);
+
 
     ------------PROC FOR SUGGEST FRIEND
 
@@ -920,6 +921,7 @@ CREATE OR ALTER PROCEDURE sp_UpdateAllFriendSuggestions
 AS
 BEGIN
     SET NOCOUNT ON;
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED; -- Giảm nguy cơ deadlock
 
     BEGIN TRY
         -- Xóa gợi ý hết hạn
@@ -942,6 +944,7 @@ BEGIN
             user_id INT,
             suggested_user_id INT,
             mutual_friend_count INT,
+            mutual_friend_ids VARCHAR(MAX),
             suggested_at DATETIME,
             reason VARCHAR(50),
             distance_km FLOAT
@@ -952,64 +955,83 @@ BEGIN
             SELECT user_id, friend_id FROM tblFriendship WHERE friendship_status = 'accepted'
             UNION
             SELECT friend_id AS user_id, user_id AS friend_id FROM tblFriendship WHERE friendship_status = 'accepted'
+        ),
+        MutualFriends AS (
+            SELECT
+                af1.user_id,
+                af2.friend_id AS suggested_user_id,
+                COUNT(*) AS mutual_friend_count,
+                STRING_AGG(CAST(af1.friend_id AS VARCHAR), ',') AS mutual_friend_ids
+            FROM AllFriends af1
+            JOIN AllFriends af2 ON af1.friend_id = af2.user_id
+            WHERE
+                af1.user_id <> af2.friend_id
+                AND af1.user_id IN (SELECT id FROM tblUser WHERE status = 1)
+                AND af2.friend_id IN (SELECT id FROM tblUser WHERE status = 1)
+                AND af2.friend_id NOT IN (
+                    SELECT friend_id FROM tblFriendship
+                    WHERE user_id = af1.user_id AND friendship_status = 'accepted'
+                )
+                AND NOT EXISTS (
+                    SELECT 1 FROM tblFriendship f
+                    WHERE f.friendship_status = 'accepted'
+                    AND (
+                        (f.user_id = af1.user_id AND f.friend_id = af2.friend_id)
+                        OR
+                        (f.user_id = af2.friend_id AND f.friend_id = af1.user_id)
+                    )
+                )
+                AND af2.friend_id NOT IN (
+                    SELECT blocked_user_id FROM tblBlock WHERE user_id = af1.user_id AND status = 1
+                    UNION
+                    SELECT user_id FROM tblBlock WHERE blocked_user_id = af1.user_id AND status = 1
+                )
+            GROUP BY af1.user_id, af2.friend_id
+            HAVING COUNT(*) >= 1
         )
-        INSERT INTO @NewSuggestions (user_id, suggested_user_id, mutual_friend_count, suggested_at, reason, distance_km)
-        SELECT
-            af1.user_id,
-            af2.friend_id AS suggested_user_id,
-            COUNT(*) AS mutual_friend_count,
+        INSERT INTO @NewSuggestions (user_id, suggested_user_id, mutual_friend_count, mutual_friend_ids, suggested_at, reason, distance_km)
+        SELECT TOP 100 -- Giới hạn số lượng gợi ý
+            user_id,
+            suggested_user_id,
+            mutual_friend_count,
+            mutual_friend_ids,
             GETDATE() AS suggested_at,
             'mutual_friends' AS reason,
             NULL AS distance_km
-        FROM AllFriends af1
-        JOIN AllFriends af2 ON af1.friend_id = af2.user_id
-        WHERE
-            af1.user_id <> af2.friend_id
-            AND af1.user_id IN (SELECT id FROM tblUser WHERE status = 1)
-            AND af2.friend_id IN (SELECT id FROM tblUser WHERE status = 1)
-            AND af2.friend_id NOT IN (
-                SELECT friend_id FROM tblFriendship
-                WHERE user_id = af1.user_id AND friendship_status = 'accepted'
-            )
-            AND NOT EXISTS (
-                SELECT 1 FROM tblFriendship f
-                WHERE f.friendship_status = 'accepted'
-                AND (
-                    (f.user_id = af1.user_id AND f.friend_id = af2.friend_id)
-                    OR
-                    (f.user_id = af2.friend_id AND f.friend_id = af1.user_id)
-                )
-            )
-            AND af2.friend_id NOT IN (
-                SELECT blocked_user_id FROM tblBlock WHERE user_id = af1.user_id AND status = 1
-                UNION
-                SELECT user_id FROM tblBlock WHERE blocked_user_id = af1.user_id AND status = 1
-            )
-        GROUP BY af1.user_id, af2.friend_id
-        HAVING COUNT(*) >= 1;
+        FROM MutualFriends;
 
         -- Gợi ý dựa trên vị trí
         DECLARE @LocationSuggestions TABLE (
             user_id INT,
             suggested_user_id INT,
             mutual_friend_count INT,
+            mutual_friend_ids VARCHAR(MAX),
             suggested_at DATETIME,
             reason VARCHAR(50),
             distance_km FLOAT
         );
 
-        INSERT INTO @LocationSuggestions (user_id, suggested_user_id, mutual_friend_count, suggested_at, reason, distance_km)
-        SELECT
+        INSERT INTO @LocationSuggestions (user_id, suggested_user_id, mutual_friend_count, mutual_friend_ids, suggested_at, reason, distance_km)
+        SELECT TOP 100 -- Giới hạn số lượng gợi ý
             ul1.user_id,
             ul2.user_id AS suggested_user_id,
             0 AS mutual_friend_count,
+            NULL AS mutual_friend_ids,
             GETDATE() AS suggested_at,
             'location' AS reason,
             ROUND(
                 6371 * ACOS(
-                    COS(RADIANS(ul1.latitude)) * COS(RADIANS(ul2.latitude)) * 
-                    COS(RADIANS(ul2.longitude) - RADIANS(ul1.longitude)) + 
-                    SIN(RADIANS(ul1.latitude)) * SIN(RADIANS(ul2.latitude))
+                    CASE 
+                        WHEN COS(RADIANS(ul1.latitude)) * COS(RADIANS(ul2.latitude)) * 
+                             COS(RADIANS(ul2.longitude) - RADIANS(ul1.longitude)) + 
+                             SIN(RADIANS(ul1.latitude)) * SIN(RADIANS(ul2.latitude)) > 1 THEN 1
+                        WHEN COS(RADIANS(ul1.latitude)) * COS(RADIANS(ul2.latitude)) * 
+                             COS(RADIANS(ul2.longitude) - RADIANS(ul1.longitude)) + 
+                             SIN(RADIANS(ul1.latitude)) * SIN(RADIANS(ul2.latitude)) < -1 THEN -1
+                        ELSE COS(RADIANS(ul1.latitude)) * COS(RADIANS(ul2.latitude)) * 
+                             COS(RADIANS(ul2.longitude) - RADIANS(ul1.longitude)) + 
+                             SIN(RADIANS(ul1.latitude)) * SIN(RADIANS(ul2.latitude))
+                    END
                 ), 2) AS distance_km
         FROM tblLocation ul1
         CROSS JOIN tblLocation ul2
@@ -1017,10 +1039,27 @@ BEGIN
             ul1.user_id <> ul2.user_id
             AND ul1.user_id IN (SELECT id FROM tblUser WHERE status = 1)
             AND ul2.user_id IN (SELECT id FROM tblUser WHERE status = 1)
+            AND ul1.latitude IS NOT NULL
+            AND ul2.latitude IS NOT NULL
+            AND ul1.longitude IS NOT NULL
+            AND ul2.longitude IS NOT NULL
+            AND ul1.latitude BETWEEN -90 AND 90
+            AND ul2.latitude BETWEEN -90 AND 90
+            AND ul1.longitude BETWEEN -180 AND 180
+            AND ul2.longitude BETWEEN -180 AND 180
+            AND (ul1.latitude <> ul2.latitude OR ul1.longitude <> ul2.longitude)
             AND 6371 * ACOS(
-                COS(RADIANS(ul1.latitude)) * COS(RADIANS(ul2.latitude)) * 
-                COS(RADIANS(ul2.longitude) - RADIANS(ul1.longitude)) + 
-                SIN(RADIANS(ul1.latitude)) * SIN(RADIANS(ul2.latitude))
+                CASE 
+                    WHEN COS(RADIANS(ul1.latitude)) * COS(RADIANS(ul2.latitude)) * 
+                         COS(RADIANS(ul2.longitude) - RADIANS(ul1.longitude)) + 
+                         SIN(RADIANS(ul1.latitude)) * SIN(RADIANS(ul2.latitude)) > 1 THEN 1
+                    WHEN COS(RADIANS(ul1.latitude)) * COS(RADIANS(ul2.latitude)) * 
+                         COS(RADIANS(ul2.longitude) - RADIANS(ul1.longitude)) + 
+                         SIN(RADIANS(ul1.latitude)) * SIN(RADIANS(ul2.latitude)) < -1 THEN -1
+                    ELSE COS(RADIANS(ul1.latitude)) * COS(RADIANS(ul2.latitude)) * 
+                         COS(RADIANS(ul2.longitude) - RADIANS(ul1.longitude)) + 
+                         SIN(RADIANS(ul1.latitude)) * SIN(RADIANS(ul2.latitude))
+                END
             ) <= @radius_km
             AND ul2.user_id NOT IN (
                 SELECT friend_id FROM tblFriendship
@@ -1044,26 +1083,28 @@ BEGIN
         -- Gộp và merge
         MERGE INTO tblFriendSuggestion AS target
         USING (
-            SELECT user_id, suggested_user_id, mutual_friend_count, suggested_at, reason, distance_km
+            SELECT user_id, suggested_user_id, mutual_friend_count, mutual_friend_ids, suggested_at, reason, distance_km
             FROM @NewSuggestions
             UNION
-            SELECT user_id, suggested_user_id, mutual_friend_count, suggested_at, reason, distance_km
+            SELECT user_id, suggested_user_id, mutual_friend_count, mutual_friend_ids, suggested_at, reason, distance_km
             FROM @LocationSuggestions
         ) AS source
         ON target.user_id = source.user_id AND target.suggested_user_id = source.suggested_user_id
         WHEN MATCHED THEN
             UPDATE SET
                 mutual_friend_count = source.mutual_friend_count,
+                mutual_friend_ids = source.mutual_friend_ids,
                 suggested_at = source.suggested_at,
                 expiration_date = DATEADD(DAY, 7, GETDATE()),
                 reason = source.reason,
                 distance_km = source.distance_km
         WHEN NOT MATCHED THEN
-            INSERT (user_id, suggested_user_id, mutual_friend_count, suggested_at, expiration_date, reason, distance_km)
+            INSERT (user_id, suggested_user_id, mutual_friend_count, mutual_friend_ids, suggested_at, expiration_date, reason, distance_km)
             VALUES (
                 source.user_id,
                 source.suggested_user_id,
                 source.mutual_friend_count,
+                source.mutual_friend_ids,
                 source.suggested_at,
                 DATEADD(DAY, 7, GETDATE()),
                 source.reason,
@@ -1083,6 +1124,7 @@ BEGIN
     END CATCH
 END;
 GO
+
 
 
 
