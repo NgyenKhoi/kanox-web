@@ -24,7 +24,7 @@ public class FriendSuggestionService {
 
     @Transactional
     public void updateFriendSuggestions(Integer userId) {
-        friendSuggestionRepository.updateAllFriendSuggestions(10.0);
+        friendSuggestionRepository.updateFriendSuggestionsForUser(userId, 10.0);
     }
 
     @Transactional(readOnly = true)
@@ -74,5 +74,10 @@ public class FriendSuggestionService {
             }
         }
         return result;
+    }
+
+    @Transactional
+    public void updateAllFriendSuggestions() {
+        friendSuggestionRepository.updateAllFriendSuggestions(10.0);
     }
 }

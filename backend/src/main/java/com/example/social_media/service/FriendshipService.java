@@ -107,6 +107,8 @@ public class FriendshipService {
         friendship.setFriendshipStatus("accepted");
         friendshipRepository.save(friendship);
 
+        System.out.println("Friendship accepted for userId: " + userId + ", requesterId: " + requesterId);
+
         notificationService.sendNotification(
                 requesterId,
                 "FRIEND_ACCEPTED",
@@ -115,9 +117,15 @@ public class FriendshipService {
                 "PROFILE"
         );
 
-        // Cập nhật gợi ý bạn bè sau khi chấp nhận kết bạn
-        friendSuggestionService.updateFriendSuggestions(userId);
-        friendSuggestionService.updateFriendSuggestions(requesterId);
+        // Cập nhật gợi ý bạn bè
+        try {
+            friendSuggestionService.updateFriendSuggestions(userId);
+            friendSuggestionService.updateFriendSuggestions(requesterId);
+            System.out.println("Friend suggestions updated for userId: " + userId + ", requesterId: " + requesterId);
+        } catch (Exception e) {
+            System.err.println("Error updating friend suggestions: " + e.getMessage());
+            throw new RuntimeException("Failed to update friend suggestions", e);
+        }
     }
 
     @Transactional

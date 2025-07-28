@@ -931,7 +931,7 @@ BEGIN
         -- Xóa gợi ý mà hai user đã là bạn bè
         DELETE FROM tblFriendSuggestion
         WHERE EXISTS (
-            SELECT 1 FROM tblFriendship f WITH (NOLOCK)
+            SELECT 1 FROM tblFriendship f
             WHERE f.friendship_status = 'accepted'
             AND (
                 (f.user_id = tblFriendSuggestion.user_id AND f.friend_id = tblFriendSuggestion.suggested_user_id)
@@ -953,9 +953,9 @@ BEGIN
 
         -- Dùng CTE và ngay sau đó là INSERT cho FOAF
         WITH AllFriends AS (
-            SELECT user_id, friend_id FROM tblFriendship WITH (NOLOCK) WHERE friendship_status = 'accepted'
+            SELECT user_id, friend_id FROM tblFriendship WHERE friendship_status = 'accepted'
             UNION
-            SELECT friend_id AS user_id, user_id AS friend_id FROM tblFriendship WITH (NOLOCK) WHERE friendship_status = 'accepted'
+            SELECT friend_id AS user_id, user_id AS friend_id FROM tblFriendship WHERE friendship_status = 'accepted'
         ),
         MutualFriends AS (
             SELECT
@@ -967,14 +967,14 @@ BEGIN
             JOIN AllFriends af2 ON af1.friend_id = af2.user_id
             WHERE
                 af1.user_id <> af2.friend_id
-                AND af1.user_id IN (SELECT id FROM tblUser WITH (NOLOCK) WHERE status = 1)
-                AND af2.friend_id IN (SELECT id FROM tblUser WITH (NOLOCK) WHERE status = 1)
+                AND af1.user_id IN (SELECT id FROM tblUser WHERE status = 1)
+                AND af2.friend_id IN (SELECT id FROM tblUser WHERE status = 1)
                 AND af2.friend_id NOT IN (
-                    SELECT friend_id FROM tblFriendship WITH (NOLOCK)
+                    SELECT friend_id FROM tblFriendship
                     WHERE user_id = af1.user_id AND friendship_status = 'accepted'
                 )
                 AND NOT EXISTS (
-                    SELECT 1 FROM tblFriendship f WITH (NOLOCK)
+                    SELECT 1 FROM tblFriendship f
                     WHERE f.friendship_status = 'accepted'
                     AND (
                         (f.user_id = af1.user_id AND f.friend_id = af2.friend_id)
@@ -983,9 +983,9 @@ BEGIN
                     )
                 )
                 AND af2.friend_id NOT IN (
-                    SELECT blocked_user_id FROM tblBlock WITH (NOLOCK) WHERE user_id = af1.user_id AND status = 1
+                    SELECT blocked_user_id FROM tblBlock WHERE user_id = af1.user_id AND status = 1
                     UNION
-                    SELECT user_id FROM tblBlock WITH (NOLOCK) WHERE blocked_user_id = af1.user_id AND status = 1
+                    SELECT user_id FROM tblBlock WHERE blocked_user_id = af1.user_id AND status = 1
                 )
             GROUP BY af1.user_id, af2.friend_id
             HAVING COUNT(*) >= 1
@@ -1034,12 +1034,12 @@ BEGIN
                              SIN(RADIANS(ul1.latitude)) * SIN(RADIANS(ul2.latitude))
                     END
                 ), 2) AS distance_km
-        FROM tblLocation ul1 WITH (NOLOCK)
-        CROSS JOIN tblLocation ul2 WITH (NOLOCK)
+        FROM tblLocation ul1
+        CROSS JOIN tblLocation ul2
         WHERE
             ul1.user_id <> ul2.user_id
-            AND ul1.user_id IN (SELECT id FROM tblUser WITH (NOLOCK) WHERE status = 1)
-            AND ul2.user_id IN (SELECT id FROM tblUser WITH (NOLOCK) WHERE status = 1)
+            AND ul1.user_id IN (SELECT id FROM tblUser WHERE status = 1)
+            AND ul2.user_id IN (SELECT id FROM tblUser WHERE status = 1)
             AND ul1.latitude IS NOT NULL
             AND ul2.latitude IS NOT NULL
             AND ul1.longitude IS NOT NULL
@@ -1062,12 +1062,8 @@ BEGIN
                          SIN(RADIANS(ul1.latitude)) * SIN(RADIANS(ul2.latitude))
                 END
             ) <= @radius_km
-            AND ul2.user_id NOT IN (
-                SELECT friend_id FROM tblFriendship WITH (NOLOCK)
-                WHERE user_id = ul1.user_id AND friendship_status = 'accepted'
-            )
             AND NOT EXISTS (
-                SELECT 1 FROM tblFriendship f WITH (NOLOCK)
+                SELECT 1 FROM tblFriendship f
                 WHERE f.friendship_status = 'accepted'
                 AND (
                     (f.user_id = ul1.user_id AND f.friend_id = ul2.user_id)
@@ -1076,9 +1072,9 @@ BEGIN
                 )
             )
             AND ul2.user_id NOT IN (
-                SELECT blocked_user_id FROM tblBlock WITH (NOLOCK) WHERE user_id = ul1.user_id AND status = 1
+                SELECT blocked_user_id FROM tblBlock WHERE user_id = ul1.user_id AND status = 1
                 UNION
-                SELECT user_id FROM tblBlock WITH (NOLOCK) WHERE blocked_user_id = ul1.user_id AND status = 1
+                SELECT user_id FROM tblBlock WHERE blocked_user_id = ul1.user_id AND status = 1
             );
 
         -- Gộp và loại bỏ trùng lặp, ưu tiên gợi ý mutual_friends
@@ -1134,6 +1130,18 @@ BEGIN
                 source.distance_km
             );
 
+        -- Xóa lại các gợi ý mà hai user đã là bạn bè (đề phòng trường hợp gợi ý mới được thêm vào)
+        DELETE FROM tblFriendSuggestion
+        WHERE EXISTS (
+            SELECT 1 FROM tblFriendship f
+            WHERE f.friendship_status = 'accepted'
+            AND (
+                (f.user_id = tblFriendSuggestion.user_id AND f.friend_id = tblFriendSuggestion.suggested_user_id)
+                OR
+                (f.user_id = tblFriendSuggestion.suggested_user_id AND f.friend_id = tblFriendSuggestion.user_id)
+            )
+        );
+
     END TRY
     BEGIN CATCH
         DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
@@ -1148,9 +1156,249 @@ BEGIN
 END;
 GO
 
+WHERE EXISTS (
+    SELECT 1 FROM tblFriendship f
+    WHERE f.friendship_status = 'accepted'
+    AND (
+        (f.user_id = tblFriendSuggestion.user_id AND f.friend_id = tblFriendSuggestion.suggested_user_id)
+        OR
+        (f.user_id = tblFriendSuggestion.suggested_user_id AND f.friend_id = tblFriendSuggestion.user_id)
+    )
+);
 
+CREATE OR ALTER PROCEDURE sp_UpdateFriendSuggestionsForUser
+    @user_id INT,
+    @radius_km FLOAT = 10
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
 
+    BEGIN TRY
+        -- Xóa gợi ý hiện tại của user
+        DELETE FROM tblFriendSuggestion 
+        WHERE user_id = @user_id;
 
+        -- Tạo bảng tạm để lưu gợi ý
+        DECLARE @NewSuggestions TABLE (
+            user_id INT,
+            suggested_user_id INT,
+            mutual_friend_count INT,
+            mutual_friend_ids VARCHAR(MAX),
+            suggested_at DATETIME,
+            reason VARCHAR(50),
+            distance_km FLOAT
+        );
+
+        -- Gợi ý dựa trên bạn chung (FOAF)
+        WITH AllFriends AS (
+            SELECT user_id, friend_id FROM tblFriendship WHERE friendship_status = 'accepted'
+            UNION
+            SELECT friend_id AS user_id, user_id AS friend_id FROM tblFriendship WHERE friendship_status = 'accepted'
+        ),
+        MutualFriends AS (
+            SELECT
+                af1.user_id,
+                af2.friend_id AS suggested_user_id,
+                COUNT(*) AS mutual_friend_count,
+                STRING_AGG(CAST(af1.friend_id AS VARCHAR), ',') AS mutual_friend_ids
+            FROM AllFriends af1
+            JOIN AllFriends af2 ON af1.friend_id = af2.user_id
+            WHERE
+                af1.user_id = @user_id
+                AND af1.user_id <> af2.friend_id
+                AND af2.friend_id IN (SELECT id FROM tblUser WHERE status = 1)
+                AND af2.friend_id NOT IN (
+                    SELECT friend_id FROM tblFriendship
+                    WHERE user_id = af1.user_id AND friendship_status = 'accepted'
+                )
+                AND NOT EXISTS (
+                    SELECT 1 FROM tblFriendship f
+                    WHERE f.friendship_status = 'accepted'
+                    AND (
+                        (f.user_id = af1.user_id AND f.friend_id = af2.friend_id)
+                        OR
+                        (f.user_id = af2.friend_id AND f.friend_id = af1.user_id)
+                    )
+                )
+                AND af2.friend_id NOT IN (
+                    SELECT blocked_user_id FROM tblBlock WHERE user_id = af1.user_id AND status = 1
+                    UNION
+                    SELECT user_id FROM tblBlock WHERE blocked_user_id = af1.user_id AND status = 1
+                )
+            GROUP BY af1.user_id, af2.friend_id
+            HAVING COUNT(*) >= 1
+        )
+        INSERT INTO @NewSuggestions (user_id, suggested_user_id, mutual_friend_count, mutual_friend_ids, suggested_at, reason, distance_km)
+        SELECT TOP 50
+            user_id,
+            suggested_user_id,
+            mutual_friend_count,
+            mutual_friend_ids,
+            GETDATE() AS suggested_at,
+            'mutual_friends' AS reason,
+            NULL AS distance_km
+        FROM MutualFriends;
+
+        -- Gợi ý dựa trên vị trí
+        DECLARE @LocationSuggestions TABLE (
+            user_id INT,
+            suggested_user_id INT,
+            mutual_friend_count INT,
+            mutual_friend_ids VARCHAR(MAX),
+            suggested_at DATETIME,
+            reason VARCHAR(50),
+            distance_km FLOAT
+        );
+
+        INSERT INTO @LocationSuggestions (user_id, suggested_user_id, mutual_friend_count, mutual_friend_ids, suggested_at, reason, distance_km)
+        SELECT TOP 50
+            ul1.user_id,
+            ul2.user_id AS suggested_user_id,
+            0 AS mutual_friend_count,
+            NULL AS mutual_friend_ids,
+            GETDATE() AS suggested_at,
+            'location' AS reason,
+            ROUND(
+                6371 * ACOS(
+                    CASE 
+                        WHEN COS(RADIANS(ul1.latitude)) * COS(RADIANS(ul2.latitude)) * 
+                             COS(RADIANS(ul2.longitude) - RADIANS(ul1.longitude)) + 
+                             SIN(RADIANS(ul1.latitude)) * SIN(RADIANS(ul2.latitude)) > 1 THEN 1
+                        WHEN COS(RADIANS(ul1.latitude)) * COS(RADIANS(ul2.latitude)) * 
+                             COS(RADIANS(ul2.longitude) - RADIANS(ul1.longitude)) + 
+                             SIN(RADIANS(ul1.latitude)) * SIN(RADIANS(ul2.latitude)) < -1 THEN -1
+                        ELSE COS(RADIANS(ul1.latitude)) * COS(RADIANS(ul2.latitude)) * 
+                             COS(RADIANS(ul2.longitude) - RADIANS(ul1.longitude)) + 
+                             SIN(RADIANS(ul1.latitude)) * SIN(RADIANS(ul2.latitude))
+                    END
+                ), 2) AS distance_km
+        FROM tblLocation ul1
+        CROSS JOIN tblLocation ul2
+        WHERE
+            ul1.user_id = @user_id
+            AND ul1.user_id <> ul2.user_id
+            AND ul2.user_id IN (SELECT id FROM tblUser WHERE status = 1)
+            AND ul1.latitude IS NOT NULL
+            AND ul2.latitude IS NOT NULL
+            AND ul1.longitude IS NOT NULL
+            AND ul2.longitude IS NOT NULL
+            AND ul1.latitude BETWEEN -90 AND 90
+            AND ul2.latitude BETWEEN -90 AND 90
+            AND ul1.longitude BETWEEN -180 AND 180
+            AND ul2.longitude BETWEEN -180 AND 180
+            AND (ul1.latitude <> ul2.latitude OR ul1.longitude <> ul2.longitude)
+            AND 6371 * ACOS(
+                CASE 
+                    WHEN COS(RADIANS(ul1.latitude)) * COS(RADIANS(ul2.latitude)) * 
+                         COS(RADIANS(ul2.longitude) - RADIANS(ul1.longitude)) + 
+                         SIN(RADIANS(ul1.latitude)) * SIN(RADIANS(ul2.latitude)) > 1 THEN 1
+                    WHEN COS(RADIANS(ul1.latitude)) * COS(RADIANS(ul2.latitude)) * 
+                         COS(RADIANS(ul2.longitude) - RADIANS(ul1.longitude)) + 
+                         SIN(RADIANS(ul1.latitude)) * SIN(RADIANS(ul2.latitude)) < -1 THEN -1
+                    ELSE COS(RADIANS(ul1.latitude)) * COS(RADIANS(ul2.latitude)) * 
+                         COS(RADIANS(ul2.longitude) - RADIANS(ul1.longitude)) + 
+                         SIN(RADIANS(ul1.latitude)) * SIN(RADIANS(ul2.latitude))
+                END
+            ) <= @radius_km
+            AND NOT EXISTS (
+                SELECT 1 FROM tblFriendship f
+                WHERE f.friendship_status = 'accepted'
+                AND (
+                    (f.user_id = ul1.user_id AND f.friend_id = ul2.user_id)
+                    OR
+                    (f.user_id = ul2.user_id AND f.friend_id = ul1.user_id)
+                )
+            )
+            AND ul2.user_id NOT IN (
+                SELECT blocked_user_id FROM tblBlock WHERE user_id = ul1.user_id AND status = 1
+                UNION
+                SELECT user_id FROM tblBlock WHERE blocked_user_id = ul1.user_id AND status = 1
+            );
+
+        -- Gộp và loại bỏ trùng lặp, ưu tiên gợi ý mutual_friends
+        MERGE INTO tblFriendSuggestion AS target
+        USING (
+            SELECT 
+                user_id, 
+                suggested_user_id, 
+                mutual_friend_count, 
+                mutual_friend_ids, 
+                suggested_at, 
+                reason, 
+                distance_km
+            FROM (
+                SELECT 
+                    user_id, 
+                    suggested_user_id, 
+                    mutual_friend_count, 
+                    mutual_friend_ids, 
+                    suggested_at, 
+                    reason, 
+                    distance_km,
+                    ROW_NUMBER() OVER (PARTITION BY user_id, suggested_user_id ORDER BY CASE WHEN reason = 'mutual_friends' THEN 1 ELSE 2 END) AS rn
+                FROM (
+                    SELECT user_id, suggested_user_id, mutual_friend_count, mutual_friend_ids, suggested_at, reason, distance_km
+                    FROM @NewSuggestions
+                    UNION ALL
+                    SELECT user_id, suggested_user_id, mutual_friend_count, mutual_friend_ids, suggested_at, reason, distance_km
+                    FROM @LocationSuggestions
+                ) AS combined
+            ) AS ranked
+            WHERE rn = 1
+        ) AS source
+        ON target.user_id = source.user_id AND target.suggested_user_id = source.suggested_user_id
+        WHEN MATCHED THEN
+            UPDATE SET
+                mutual_friend_count = source.mutual_friend_count,
+                mutual_friend_ids = source.mutual_friend_ids,
+                suggested_at = source.suggested_at,
+                expiration_date = DATEADD(DAY, 7, GETDATE()),
+                reason = source.reason,
+                distance_km = source.distance_km
+        WHEN NOT MATCHED THEN
+            INSERT (user_id, suggested_user_id, mutual_friend_count, mutual_friend_ids, suggested_at, expiration_date, reason, distance_km)
+            VALUES (
+                source.user_id,
+                source.suggested_user_id,
+                source.mutual_friend_count,
+                source.mutual_friend_ids,
+                source.suggested_at,
+                DATEADD(DAY, 7, GETDATE()),
+                source.reason,
+                source.distance_km
+            );
+
+        -- Xóa lại các gợi ý mà hai user đã là bạn bè (đề phòng)
+        DELETE FROM tblFriendSuggestion
+        WHERE user_id = @user_id
+        AND EXISTS (
+            SELECT 1 FROM tblFriendship f
+            WHERE f.friendship_status = 'accepted'
+            AND (
+                (f.user_id = tblFriendSuggestion.user_id AND f.friend_id = tblFriendSuggestion.suggested_user_id)
+                OR
+                (f.user_id = tblFriendSuggestion.suggested_user_id AND f.friend_id = tblFriendSuggestion.user_id)
+            )
+        );
+
+    END TRY
+    BEGIN CATCH
+        DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+        DECLARE @ErrorSeverity INT = ERROR_SEVERITY();
+        DECLARE @ErrorState INT = ERROR_STATE();
+
+        INSERT INTO tblErrorLog (error_message, error_time)
+        VALUES (@ErrorMessage, GETDATE());
+
+        RAISERROR (@ErrorMessage, @ErrorSeverity, @ErrorState);
+    END CATCH
+END;
+GO
+EXEC sp_UpdateAllFriendSuggestions @radius_km = 10;
+select * from tblUser
+select * from tblFriendSuggestion
+select * from tblFriendship
     -------------------
 
     CREATE TABLE tblFollow (

@@ -13,15 +13,12 @@ import java.util.List;
 
 @Repository
 public interface FriendSuggestionRepository extends JpaRepository<FriendSuggestion, FriendSuggestionId> {
-    @Query("SELECT f FROM FriendSuggestion f WHERE f.id.userId = :userId")
-    List<FriendSuggestion> findByUserId(@Param("userId") Integer userId);
+    @Query("SELECT fs FROM FriendSuggestion fs WHERE fs.user.id = :userId")
+    List<FriendSuggestion> findByUserId(Integer userId);
 
+    @Procedure(procedureName = "sp_UpdateAllFriendSuggestions")
+    void updateAllFriendSuggestions(Double radiusKm);
 
-    void deleteByUserId(Integer userId);
-
-    // Thêm phương thức gọi stored procedure
-    @Procedure(name = "sp_UpdateAllFriendSuggestions")
-    void updateAllFriendSuggestions(@Param("radius_km") Double radiusKm);
-
-
+    @Procedure(procedureName = "sp_UpdateFriendSuggestionsForUser")
+    void updateFriendSuggestionsForUser(Integer userId, Double radiusKm);
 }
