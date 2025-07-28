@@ -27,19 +27,22 @@ public class FriendshipService {
     private final UserRepository userRepository;
     private final NotificationService notificationService;
     private final PrivacyService privacyService;
+    private final FriendSuggestionService friendSuggestionService;
 
     public FriendshipService(
             FriendshipRepository friendshipRepository,
             CustomUserDetailsService customUserDetailsService,
             UserRepository userRepository,
             NotificationService notificationService,
-            PrivacyService privacyService
+            PrivacyService privacyService,
+            FriendSuggestionService friendSuggestionService
     ) {
         this.friendshipRepository = friendshipRepository;
         this.customUserDetailsService = customUserDetailsService;
         this.userRepository = userRepository;
         this.notificationService = notificationService;
         this.privacyService = privacyService;
+        this.friendSuggestionService = friendSuggestionService;
     }
 
     @Transactional
@@ -82,6 +85,7 @@ public class FriendshipService {
                 "PROFILE"
         );
     }
+
     @Caching(evict = {
             @CacheEvict(value = "newsfeed", key = "#requester.username"),
             @CacheEvict(value = "newsfeed", key = "#user.username")
@@ -110,6 +114,10 @@ public class FriendshipService {
                 userId,
                 "PROFILE"
         );
+
+        // Cập nhật gợi ý bạn bè sau khi chấp nhận kết bạn
+        friendSuggestionService.updateFriendSuggestions(userId);
+        friendSuggestionService.updateFriendSuggestions(requesterId);
     }
 
     @Transactional
@@ -153,7 +161,6 @@ public class FriendshipService {
         }
         Page<Friendship> friendships = friendshipRepository.findByUserOrFriendAndFriendshipStatusAndStatus(
                 userId, "accepted", true, pageable);
-        // Chuyển đổi sang UserTagDto
         List<UserTagDto> friendDtos = friendships.getContent().stream().map(friendship -> {
             User friend = friendship.getUser().getId().equals(userId) ?
                     friendship.getFriend() :

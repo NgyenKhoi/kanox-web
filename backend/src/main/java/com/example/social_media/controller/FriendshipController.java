@@ -29,7 +29,7 @@ public class FriendshipController {
     private final CustomUserDetailsService customUserDetailsService;
     private final UserRepository userRepository;
     private final FriendshipRepository friendshipRepository;
-    private final FriendSuggestionService friendSuggestionService; // Thêm FriendSuggestionService
+    private final FriendSuggestionService friendSuggestionService;
 
     public FriendshipController(
             FriendshipService friendshipService,
@@ -190,6 +190,7 @@ public class FriendshipController {
             return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage(), "errors", Map.of()));
         }
     }
+
     @GetMapping("/suggestions")
     public ResponseEntity<?> getFriendSuggestions(
             @RequestParam(defaultValue = "0") int page,
@@ -203,7 +204,7 @@ public class FriendshipController {
         } catch (IllegalArgumentException | UserNotFoundException e) {
             return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage(), "errors", Map.of()));
         } catch (Exception e) {
-            e.printStackTrace(); // Debug stack trace
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("status", "error", "message", "Lỗi hệ thống: " + e.getMessage()));
         }

@@ -44,16 +44,17 @@
 		FOREIGN KEY (user_id) REFERENCES tblUser(id)
 	);
 
+
 	CREATE OR ALTER TRIGGER trg_UpdateLocation
 	ON tblLocation
 	AFTER UPDATE
 	AS
 	BEGIN
 		SET NOCOUNT ON;
-		SET TRANSACTION ISOLATION LEVEL READ COMMITTED; -- Giảm deadlock
+		SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
 
 		-- Xóa các gợi ý dựa trên vị trí liên quan đến user_id vừa cập nhật
-		DELETE FROM tblFriendSuggestion
+		DELETE FROM tblFriendSuggestion WITH (ROWLOCK)
 		WHERE reason = 'location'
 		AND (user_id IN (SELECT user_id FROM inserted) OR suggested_user_id IN (SELECT user_id FROM inserted));
 	END;
@@ -921,7 +922,7 @@ CREATE OR ALTER PROCEDURE sp_UpdateAllFriendSuggestions
 AS
 BEGIN
     SET NOCOUNT ON;
-    SET TRANSACTION ISOLATION LEVEL READ COMMITTED; -- Giảm nguy cơ deadlock
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
 
     BEGIN TRY
         -- Xóa gợi ý hết hạn
@@ -930,7 +931,7 @@ BEGIN
         -- Xóa gợi ý mà hai user đã là bạn bè
         DELETE FROM tblFriendSuggestion
         WHERE EXISTS (
-            SELECT 1 FROM tblFriendship f
+            SELECT 1 FROM tblFriendship f WITH (NOLOCK)
             WHERE f.friendship_status = 'accepted'
             AND (
                 (f.user_id = tblFriendSuggestion.user_id AND f.friend_id = tblFriendSuggestion.suggested_user_id)
@@ -952,9 +953,9 @@ BEGIN
 
         -- Dùng CTE và ngay sau đó là INSERT cho FOAF
         WITH AllFriends AS (
-            SELECT user_id, friend_id FROM tblFriendship WHERE friendship_status = 'accepted'
+            SELECT user_id, friend_id FROM tblFriendship WITH (NOLOCK) WHERE friendship_status = 'accepted'
             UNION
-            SELECT friend_id AS user_id, user_id AS friend_id FROM tblFriendship WHERE friendship_status = 'accepted'
+            SELECT friend_id AS user_id, user_id AS friend_id FROM tblFriendship WITH (NOLOCK) WHERE friendship_status = 'accepted'
         ),
         MutualFriends AS (
             SELECT
@@ -966,14 +967,14 @@ BEGIN
             JOIN AllFriends af2 ON af1.friend_id = af2.user_id
             WHERE
                 af1.user_id <> af2.friend_id
-                AND af1.user_id IN (SELECT id FROM tblUser WHERE status = 1)
-                AND af2.friend_id IN (SELECT id FROM tblUser WHERE status = 1)
+                AND af1.user_id IN (SELECT id FROM tblUser WITH (NOLOCK) WHERE status = 1)
+                AND af2.friend_id IN (SELECT id FROM tblUser WITH (NOLOCK) WHERE status = 1)
                 AND af2.friend_id NOT IN (
-                    SELECT friend_id FROM tblFriendship
+                    SELECT friend_id FROM tblFriendship WITH (NOLOCK)
                     WHERE user_id = af1.user_id AND friendship_status = 'accepted'
                 )
                 AND NOT EXISTS (
-                    SELECT 1 FROM tblFriendship f
+                    SELECT 1 FROM tblFriendship f WITH (NOLOCK)
                     WHERE f.friendship_status = 'accepted'
                     AND (
                         (f.user_id = af1.user_id AND f.friend_id = af2.friend_id)
@@ -982,15 +983,15 @@ BEGIN
                     )
                 )
                 AND af2.friend_id NOT IN (
-                    SELECT blocked_user_id FROM tblBlock WHERE user_id = af1.user_id AND status = 1
+                    SELECT blocked_user_id FROM tblBlock WITH (NOLOCK) WHERE user_id = af1.user_id AND status = 1
                     UNION
-                    SELECT user_id FROM tblBlock WHERE blocked_user_id = af1.user_id AND status = 1
+                    SELECT user_id FROM tblBlock WITH (NOLOCK) WHERE blocked_user_id = af1.user_id AND status = 1
                 )
             GROUP BY af1.user_id, af2.friend_id
             HAVING COUNT(*) >= 1
         )
         INSERT INTO @NewSuggestions (user_id, suggested_user_id, mutual_friend_count, mutual_friend_ids, suggested_at, reason, distance_km)
-        SELECT TOP 100 -- Giới hạn số lượng gợi ý
+        SELECT TOP 50
             user_id,
             suggested_user_id,
             mutual_friend_count,
@@ -1012,7 +1013,7 @@ BEGIN
         );
 
         INSERT INTO @LocationSuggestions (user_id, suggested_user_id, mutual_friend_count, mutual_friend_ids, suggested_at, reason, distance_km)
-        SELECT TOP 100 -- Giới hạn số lượng gợi ý
+        SELECT TOP 50
             ul1.user_id,
             ul2.user_id AS suggested_user_id,
             0 AS mutual_friend_count,
@@ -1033,12 +1034,12 @@ BEGIN
                              SIN(RADIANS(ul1.latitude)) * SIN(RADIANS(ul2.latitude))
                     END
                 ), 2) AS distance_km
-        FROM tblLocation ul1
-        CROSS JOIN tblLocation ul2
+        FROM tblLocation ul1 WITH (NOLOCK)
+        CROSS JOIN tblLocation ul2 WITH (NOLOCK)
         WHERE
             ul1.user_id <> ul2.user_id
-            AND ul1.user_id IN (SELECT id FROM tblUser WHERE status = 1)
-            AND ul2.user_id IN (SELECT id FROM tblUser WHERE status = 1)
+            AND ul1.user_id IN (SELECT id FROM tblUser WITH (NOLOCK) WHERE status = 1)
+            AND ul2.user_id IN (SELECT id FROM tblUser WITH (NOLOCK) WHERE status = 1)
             AND ul1.latitude IS NOT NULL
             AND ul2.latitude IS NOT NULL
             AND ul1.longitude IS NOT NULL
@@ -1062,11 +1063,11 @@ BEGIN
                 END
             ) <= @radius_km
             AND ul2.user_id NOT IN (
-                SELECT friend_id FROM tblFriendship
+                SELECT friend_id FROM tblFriendship WITH (NOLOCK)
                 WHERE user_id = ul1.user_id AND friendship_status = 'accepted'
             )
             AND NOT EXISTS (
-                SELECT 1 FROM tblFriendship f
+                SELECT 1 FROM tblFriendship f WITH (NOLOCK)
                 WHERE f.friendship_status = 'accepted'
                 AND (
                     (f.user_id = ul1.user_id AND f.friend_id = ul2.user_id)
@@ -1075,19 +1076,41 @@ BEGIN
                 )
             )
             AND ul2.user_id NOT IN (
-                SELECT blocked_user_id FROM tblBlock WHERE user_id = ul1.user_id AND status = 1
+                SELECT blocked_user_id FROM tblBlock WITH (NOLOCK) WHERE user_id = ul1.user_id AND status = 1
                 UNION
-                SELECT user_id FROM tblBlock WHERE blocked_user_id = ul1.user_id AND status = 1
+                SELECT user_id FROM tblBlock WITH (NOLOCK) WHERE blocked_user_id = ul1.user_id AND status = 1
             );
 
-        -- Gộp và merge
+        -- Gộp và loại bỏ trùng lặp, ưu tiên gợi ý mutual_friends
         MERGE INTO tblFriendSuggestion AS target
         USING (
-            SELECT user_id, suggested_user_id, mutual_friend_count, mutual_friend_ids, suggested_at, reason, distance_km
-            FROM @NewSuggestions
-            UNION
-            SELECT user_id, suggested_user_id, mutual_friend_count, mutual_friend_ids, suggested_at, reason, distance_km
-            FROM @LocationSuggestions
+            SELECT 
+                user_id, 
+                suggested_user_id, 
+                mutual_friend_count, 
+                mutual_friend_ids, 
+                suggested_at, 
+                reason, 
+                distance_km
+            FROM (
+                SELECT 
+                    user_id, 
+                    suggested_user_id, 
+                    mutual_friend_count, 
+                    mutual_friend_ids, 
+                    suggested_at, 
+                    reason, 
+                    distance_km,
+                    ROW_NUMBER() OVER (PARTITION BY user_id, suggested_user_id ORDER BY CASE WHEN reason = 'mutual_friends' THEN 1 ELSE 2 END) AS rn
+                FROM (
+                    SELECT user_id, suggested_user_id, mutual_friend_count, mutual_friend_ids, suggested_at, reason, distance_km
+                    FROM @NewSuggestions
+                    UNION ALL
+                    SELECT user_id, suggested_user_id, mutual_friend_count, mutual_friend_ids, suggested_at, reason, distance_km
+                    FROM @LocationSuggestions
+                ) AS combined
+            ) AS ranked
+            WHERE rn = 1
         ) AS source
         ON target.user_id = source.user_id AND target.suggested_user_id = source.suggested_user_id
         WHEN MATCHED THEN

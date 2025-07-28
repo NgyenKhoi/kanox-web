@@ -23,9 +23,12 @@ public class FriendSuggestionService {
     }
 
     @Transactional
-    public List<UserDto> getFriendSuggestions(Integer userId) {
-        // Gọi stored procedure một lần
+    public void updateFriendSuggestions(Integer userId) {
         friendSuggestionRepository.updateAllFriendSuggestions(10.0);
+    }
+
+    @Transactional(readOnly = true)
+    public List<UserDto> getFriendSuggestions(Integer userId) {
         List<FriendSuggestion> suggestions = friendSuggestionRepository.findByUserId(userId);
         List<UserDto> result = new ArrayList<>();
         for (FriendSuggestion suggestion : suggestions) {
