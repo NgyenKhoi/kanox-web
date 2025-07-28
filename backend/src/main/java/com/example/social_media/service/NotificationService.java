@@ -136,13 +136,26 @@ public class NotificationService {
             String displayName;
             String username;
             String image;
-            if ("GROUP".equals(notification.getTargetType().getCode())) {
+
+            String targetType = notification.getTargetType().getCode();
+
+            if ("GROUP".equals(targetType)) {
                 Group group = groupRepository.findById(notification.getTargetId())
                         .orElseThrow(() -> new IllegalArgumentException("Group not found with id: " + notification.getTargetId()));
                 displayName = group.getName();
                 username = group.getOwner().getUsername();
                 image = mediaService.getGroupAvatarUrl(notification.getTargetId());
-            } else {
+
+            } else if ("POST".equals(targetType)) {
+                Post post = postRepository.findById(notification.getTargetId())
+                        .orElseThrow(() -> new IllegalArgumentException("Post not found with id: " + notification.getTargetId()));
+                User owner = post.getOwner();
+
+                displayName = owner.getDisplayName() != null ? owner.getDisplayName() : owner.getUsername();
+                username = owner.getUsername();
+                image = mediaService.getAvatarUrlByUserId(owner.getId());
+
+            } else { // Mặc định là USER
                 User targetUser = userRepository.findById(notification.getTargetId())
                         .orElseThrow(() -> new UserNotFoundException("User not found with id: " + notification.getTargetId()));
                 displayName = targetUser.getDisplayName() != null ? targetUser.getDisplayName() : targetUser.getUsername();
