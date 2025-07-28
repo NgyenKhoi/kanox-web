@@ -194,7 +194,9 @@ public class PostService {
         mediaMap.putAll(mediaService.getMediaByTargetIds(List.of(newPostId), "POST", "image", true));
         mediaMap.putAll(mediaService.getMediaByTargetIds(List.of(newPostId), "POST", "video", true));
 
-        Map<Integer, Map<ReactionType, Long>> reactionCountMap = reactionService.countAllReactionsBatch(List.of(newPostId), "POST");
+        Map<Integer, Map<ReactionType, Long>> reactionCountMap = Map.of(
+                newPostId, reactionService.countAllReactions(newPostId, "POST")
+        );
 
         return convertToDto(latestPost, user.getId(), savedPostIds, Map.of(newPostId, postTags), mediaMap, reactionCountMap);
     }
@@ -406,7 +408,11 @@ public class PostService {
                 .flatMap(postId -> postTagRepository.findByPostIdAndStatusTrue(postId).stream())
                 .collect(Collectors.groupingBy(pt -> pt.getPost().getId()));
 
-        Map<Integer, List<MediaDto>> mediaMap = mediaService.getMediaByTargetIds(postIds, "POST", null, true);
+        Map<Integer, List<MediaDto>> mediaMap = new HashMap<>();
+        if (!postIds.isEmpty()) {
+            mediaMap.putAll(mediaService.getMediaByTargetIds(postIds, "POST", "image", true));
+            mediaMap.putAll(mediaService.getMediaByTargetIds(postIds, "POST", "video", true));
+        }
 
         Map<Integer, Map<ReactionType, Long>> reactionCountMap = postIds.stream()
                 .collect(Collectors.toMap(
@@ -450,7 +456,11 @@ public class PostService {
                 .collect(Collectors.groupingBy(pt -> pt.getPost().getId()));
 
         // ✅ Media
-        Map<Integer, List<MediaDto>> mediaMap = mediaService.getMediaByTargetIds(postIds, "POST", null, true);
+        Map<Integer, List<MediaDto>> mediaMap = new HashMap<>();
+        if (!postIds.isEmpty()) {
+            mediaMap.putAll(mediaService.getMediaByTargetIds(postIds, "POST", "image", true));
+            mediaMap.putAll(mediaService.getMediaByTargetIds(postIds, "POST", "video", true));
+        }
 
         // ✅ Reaction
         Map<Integer, Map<ReactionType, Long>> reactionCountMap = postIds.stream()
@@ -507,7 +517,11 @@ public class PostService {
                 .flatMap(postId -> postTagRepository.findByPostIdAndStatusTrue(postId).stream())
                 .collect(Collectors.groupingBy(pt -> pt.getPost().getId()));
 
-        Map<Integer, List<MediaDto>> mediaMap = mediaService.getMediaByTargetIds(postIds, "POST", null, true);
+        Map<Integer, List<MediaDto>> mediaMap = new HashMap<>();
+        if (!postIds.isEmpty()) {
+            mediaMap.putAll(mediaService.getMediaByTargetIds(postIds, "POST", "image", true));
+            mediaMap.putAll(mediaService.getMediaByTargetIds(postIds, "POST", "video", true));
+        }
 
         Map<Integer, Map<ReactionType, Long>> reactionCountMap = postIds.stream()
                 .collect(Collectors.toMap(
@@ -560,7 +574,11 @@ public class PostService {
                 .flatMap(postId -> postTagRepository.findByPostIdAndStatusTrue(postId).stream())
                 .collect(Collectors.groupingBy(pt -> pt.getPost().getId()));
 
-        Map<Integer, List<MediaDto>> mediaMap = mediaService.getMediaByTargetIds(postIds, "POST", null, true);
+        Map<Integer, List<MediaDto>> mediaMap = new HashMap<>();
+        if (!postIds.isEmpty()) {
+            mediaMap.putAll(mediaService.getMediaByTargetIds(postIds, "POST", "image", true));
+            mediaMap.putAll(mediaService.getMediaByTargetIds(postIds, "POST", "video", true));
+        }
 
         Map<Integer, Map<ReactionType, Long>> reactionCountMap = postIds.stream()
                 .collect(Collectors.toMap(
@@ -661,7 +679,11 @@ public class PostService {
                 .flatMap(postId -> postTagRepository.findByPostIdAndStatusTrue(postId).stream())
                 .collect(Collectors.groupingBy(pt -> pt.getPost().getId()));
 
-        Map<Integer, List<MediaDto>> mediaMap = mediaService.getMediaByTargetIds(postIds, "POST", null, true);
+        Map<Integer, List<MediaDto>> mediaMap = new HashMap<>();
+        if (!postIds.isEmpty()) {
+            mediaMap.putAll(mediaService.getMediaByTargetIds(postIds, "POST", "image", true));
+            mediaMap.putAll(mediaService.getMediaByTargetIds(postIds, "POST", "video", true));
+        }
 
         Map<Integer, Map<ReactionType, Long>> reactionCountMap = postIds.stream()
                 .collect(Collectors.toMap(
