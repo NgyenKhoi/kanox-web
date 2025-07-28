@@ -30,39 +30,63 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             FilterChain filterChain) throws ServletException, IOException {
 
         String path = request.getRequestURI();
+        System.out.println("[JWT Filter] Processing request: " + request.getMethod() + " " + path);
+        
         if (path.startsWith("/api/auth/") || path.startsWith("/ws")) {
+            System.out.println("[JWT Filter] Skipping authentication for path: " + path);
             filterChain.doFilter(request, response);
             return;
         }
 
         final String authHeader = request.getHeader("Authorization");
+        System.out.println("[JWT Filter] Authorization header: " + (authHeader != null ? "Present" : "Missing"));
         String username = null;
         String jwt = null;
 
         try {
             if (authHeader != null && authHeader.startsWith("Bearer ")) {
                 jwt = authHeader.substring(7);
+                System.out.println("[JWT Filter] Extracted JWT token (first 20 chars): " + jwt.substring(0, Math.min(20, jwt.length())) + "...");
                 username = jwtService.extractUsername(jwt);
+                System.out.println("[JWT Filter] Extracted username: " + username);
 
                 if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                     UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+                    System.out.println("[JWT Filter] Loaded user details for: " + username);
 
-                    if (jwtService.isTokenValid(jwt, userDetails)) {
+                    boolean isTokenValid = jwtService.isTokenValid(jwt, userDetails);
+                    System.out.println("[JWT Filter] Token valid: " + isTokenValid);
+                    
+                    if (isTokenValid) {
                         setAuthentication(userDetails, request);
-
-                        System.out.println("JWT valid: " + jwtService.isTokenValid(jwt, userDetails));
+                        System.out.println("[JWT Filter] Authentication set successfully");
                         userDetails.getAuthorities()
-                                .forEach(auth -> System.out.println("Authority: " + auth.getAuthority()));
+                                .forEach(auth -> System.out.println("[JWT Filter] Authority: " + auth.getAuthority()));
+                    } else {
+                        System.out.println("[JWT Filter] Token is invalid, authentication not set");
                     }
+                } else if (username == null) {
+                    System.out.println("[JWT Filter] Username is null from token");
+                } else {
+                    System.out.println("[JWT Filter] Authentication already exists in SecurityContext");
                 }
+            } else {
+                System.out.println("[JWT Filter] No valid Authorization header found");
             }
 
+            System.out.println("[JWT Filter] Proceeding with filter chain");
             filterChain.doFilter(request, response);
 
         } catch (io.jsonwebtoken.ExpiredJwtException e) {
+            System.out.println("[JWT Filter] Token expired: " + e.getMessage());
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token expired");
         } catch (io.jsonwebtoken.JwtException e) {
+            System.out.println("[JWT Filter] Invalid token: " + e.getMessage());
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid token");
+        } catch (Exception e) {
+            System.out.println("[JWT Filter] Unexpected error: " + e.getMessage());
+            e.printStackTrace();
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Authentication error");
         }
     }
 
