@@ -16,7 +16,6 @@ import PrivateRoute from "./components/common/PrivateRoute/PrivateRoute";
 import { EmojiProvider } from "./context/EmojiContext";
 import { definePlaceAutocomplete } from "./components/location/googleMapsInit";
 
-
 import SidebarLeft from "./components/layout/SidebarLeft/SidebarLeft";
 import { ThemeContext, ThemeProvider } from "./context/ThemeContext";
 import { AuthContext, AuthProvider } from "./context/AuthContext";
@@ -456,13 +455,7 @@ function AppContent() {
               path="/admin"
               element={
                 <PrivateRoute>
-                  <MainLayout
-                    onShowCreatePost={() => setShowCreatePost(true)}
-                    onToggleDarkMode={toggleDarkMode}
-                    isDarkMode={isDarkMode}
-                  >
-                    <AdminPage />
-                  </MainLayout>
+                  <AdminPage />
                 </PrivateRoute>
               }
             />

@@ -55,8 +55,6 @@ function EditProfileModal({
     }
   }, [formData.locationName]);
 
-
-
   const validateForm = () => {
     const newErrors = {};
     if (formData.displayName.length > 50) {
@@ -68,10 +66,16 @@ function EditProfileModal({
     if (formData.locationName && formData.locationName.length > 255) {
       newErrors.locationName = "Địa điểm không được vượt quá 255 ký tự.";
     }
-    if (formData.latitude && (formData.latitude < -90 || formData.latitude > 90)) {
+    if (
+      formData.latitude &&
+      (formData.latitude < -90 || formData.latitude > 90)
+    ) {
       newErrors.latitude = "Latitude phải nằm trong khoảng -90 đến 90.";
     }
-    if (formData.longitude && (formData.longitude < -180 || formData.longitude > 180)) {
+    if (
+      formData.longitude &&
+      (formData.longitude < -180 || formData.longitude > 180)
+    ) {
       newErrors.longitude = "Longitude phải nằm trong khoảng -180 đến 180.";
     }
     setErrors(newErrors);
@@ -118,8 +122,8 @@ function EditProfileModal({
 
       const form = new FormData();
       form.append(
-          "data",
-          new Blob([JSON.stringify(payload)], { type: "application/json" })
+        "data",
+        new Blob([JSON.stringify(payload)], { type: "application/json" })
       );
 
       if (avatarFile) {
@@ -249,7 +253,9 @@ function EditProfileModal({
             </div>
           </div>
 
-          <h6 className="fw-bold mb-3 text-[var(--text-color)]">Thông tin cá nhân</h6>
+          <h6 className="fw-bold mb-3 text-[var(--text-color)]">
+            Thông tin cá nhân
+          </h6>
           <Form className="mb-4">
             <Form.Group className="mb-3" controlId="formDisplayName">
               <Form.Label className="text-[var(--muted-text-color)] small mb-1">
@@ -270,7 +276,9 @@ function EditProfileModal({
             </Form.Group>
 
             <Form.Group className="mb-3" controlId="formBio">
-              <Form.Label className="text-[var(--muted-text-color)] small mb-1">Tiểu sử</Form.Label>
+              <Form.Label className="text-[var(--muted-text-color)] small mb-1">
+                Tiểu sử
+              </Form.Label>
               <Form.Control
                 as="textarea"
                 rows={3}
@@ -319,16 +327,16 @@ function EditProfileModal({
                 Địa điểm
               </Form.Label>
               <PlaceAutocomplete
-                  ref={placeInputRef}
-                  onPlaceSelect={(place) => {
-                    if (!place || !place.geometry) return;
-                    setFormData((prev) => ({
-                      ...prev,
-                      locationName: place.formattedAddress || "",
-                      latitude: place.latitude,
-                      longitude: place.longitude,
-                    }));
-                  }}
+                ref={placeInputRef}
+                onPlaceSelect={(place) => {
+                  if (!place || !place.geometry) return;
+                  setFormData((prev) => ({
+                    ...prev,
+                    locationName: place.formattedAddress || "",
+                    latitude: place.latitude,
+                    longitude: place.longitude,
+                  }));
+                }}
               />
               <Form.Control.Feedback type="invalid">
                 {errors.locationName}
