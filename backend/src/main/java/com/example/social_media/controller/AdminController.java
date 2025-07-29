@@ -165,7 +165,7 @@ public class AdminController {
         }
     }
 
-    @PatchMapping("/admin/users/{userId}/lock")
+    @PatchMapping(URLConfig.UPDATE_USER_LOCK_STATUS)
     public ResponseEntity<?> updateUserLockStatus(
             @PathVariable Integer userId,
             @RequestParam Boolean isLocked
