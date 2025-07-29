@@ -191,7 +191,7 @@ public class GroupService {
 
         notificationService.sendNotification(
                 targetUserId,
-                "KICKED_FROM_GROUP",
+                "GROUP_USER_KICKED",
                 "Bạn đã bị Admin xóa khỏi nhóm",
                 groupId,
                 "GROUP"
