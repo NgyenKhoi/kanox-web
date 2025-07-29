@@ -287,15 +287,27 @@ public class ReportService {
         if (report.getTargetType() != null && report.getTargetType().getId() == 1) { // Báo cáo bài viết
             Post post = postRepository.findById(report.getTargetId())
                     .orElseThrow(() -> new IllegalArgumentException("Post not found with id: " + report.getTargetId()));
+
             if (post.getGroup() != null) {
                 groupId = post.getGroup().getId();
-                isGroupAdmin = groupMemberRepository.isGroupAdmin(groupId, admin.getId()) ||
-                        post.getGroup().getOwner().getId().equals(admin.getId());
-            }
-        }
+                isGroupAdmin = groupMemberRepository.isGroupAdmin(groupId, admin.getId())
+                        || post.getGroup().getOwner().getId().equals(admin.getId());
 
-        if (!isSystemAdmin && !isGroupAdmin) {
-            throw new UnauthorizedException("Bạn không có quyền xử lý báo cáo này");
+                // Nếu bài viết thuộc group -> chỉ admin group được xử lý
+                if (!isGroupAdmin) {
+                    throw new UnauthorizedException("Bạn không có quyền xử lý báo cáo bài viết trong group này");
+                }
+            } else {
+                // Nếu bài viết không thuộc group -> chỉ admin hệ thống được xử lý
+                if (!isSystemAdmin) {
+                    throw new UnauthorizedException("Bạn không có quyền xử lý báo cáo này");
+                }
+            }
+        } else {
+            // Các loại report khác (User, Page, v.v...) -> chỉ admin hệ thống được xử lý
+            if (!isSystemAdmin) {
+                throw new UnauthorizedException("Bạn không có quyền xử lý báo cáo này");
+            }
         }
 
         try {
@@ -601,6 +613,7 @@ public class ReportService {
         dto.setTargetId(report.getTargetId());
         dto.setTargetTypeId(report.getTargetType() != null ? report.getTargetType().getId() : null);
         dto.setTargetTypeName(report.getTargetType() != null ? report.getTargetType().getName() : null);
+
         if (report.getReason() != null) {
             ReportReasonDto reasonDto = new ReportReasonDto();
             reasonDto.setId(report.getReason().getId());
@@ -609,15 +622,15 @@ public class ReportService {
             reasonDto.setStatus(report.getReason().getStatus());
             dto.setReason(reasonDto);
         }
+
         dto.setProcessingStatusId(report.getProcessingStatus() != null ? report.getProcessingStatus().getId() : null);
         dto.setProcessingStatusName(report.getProcessingStatus() != null ? report.getProcessingStatus().getName() : null);
         dto.setReportTime(report.getReportTime());
         dto.setStatus(report.getStatus());
 
-        // Thêm logic để lấy content, imageUrls và thông tin nhóm nếu là báo cáo bài viết
-        if (report.getTargetType() != null && report.getTargetType().getId() == 1) { // 1 = POST
-            Post post = postRepository.findById(report.getTargetId()).orElse(null);
-            if (post != null) {
+        // ✅ Nếu report là bài viết
+        if (report.getTargetType() != null && report.getTargetType().getId() == 1) {
+            postRepository.findById(report.getTargetId()).ifPresent(post -> {
                 dto.setContent(post.getContent());
                 List<String> imageUrls = mediaRepository
                         .findByTargetIdAndTargetType_CodeAndMediaType_NameAndStatus(
@@ -626,14 +639,12 @@ public class ReportService {
                         .map(Media::getMediaUrl)
                         .collect(Collectors.toList());
                 dto.setImageUrls(imageUrls);
+
                 if (post.getGroup() != null) {
                     dto.setGroupId(post.getGroup().getId());
                     dto.setGroupName(post.getGroup().getName());
                 }
-            } else {
-                dto.setContent(null);
-                dto.setImageUrls(Collections.emptyList());
-            }
+            });
         } else {
             dto.setContent(null);
             dto.setImageUrls(Collections.emptyList());

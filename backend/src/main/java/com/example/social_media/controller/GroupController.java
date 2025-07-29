@@ -104,14 +104,19 @@ public class GroupController {
         return ResponseEntity.ok().build();
     }
 
-    @PostMapping(URLConfig.REMOVE_MEMBER)
-    public ResponseEntity<Void> removeMember(
+    @DeleteMapping(URLConfig.REMOVE_MEMBER)
+    public ResponseEntity<?> removeMember(
             @PathVariable Integer groupId,
             @RequestParam Integer targetUserId,
-            @RequestParam String requesterUsername) {
+            @RequestHeader("Authorization") String authHeader) {
+
+        String token = authHeader.startsWith("Bearer ") ? authHeader.substring(7) : authHeader;
+        String requesterUsername = jwtService.extractUsername(token);
+
         groupService.removeMember(groupId, targetUserId, requesterUsername);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(Map.of("message", "Xóa thành viên thành công"));
     }
+
     @PostMapping(URLConfig.ASSIGN_ROLE)
     public ResponseEntity<?> assignRole(
             @PathVariable Integer groupId,

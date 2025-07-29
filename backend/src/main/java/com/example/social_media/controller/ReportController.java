@@ -100,6 +100,22 @@ public class ReportController {
         }
     }
 
+    @GetMapping(URLConfig.GET_REPORTS_BY_GROUP)
+    public ResponseEntity<?> getReportsByGroup(
+            @PathVariable Integer groupId,
+            @RequestParam(required = false) Boolean status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        try {
+            return ResponseEntity.ok(reportService.getReportsByGroupId(groupId, status,
+                    org.springframework.data.domain.PageRequest.of(page, size)));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("status", "error", "message", "Lỗi khi lấy danh sách báo cáo: " + e.getMessage()));
+        }
+    }
+
     private ReportReasonDto convertToReportReasonDto(ReportReason reason) {
         ReportReasonDto dto = new ReportReasonDto();
         dto.setId(reason.getId());
