@@ -303,19 +303,7 @@ public class AdminController {
         }
     }
 
-    @DeleteMapping(URLConfig.MANAGE_REPORT_BY_ID)
-    public ResponseEntity<?> deleteReport(@PathVariable Integer reportId) {
-        try {
-            reportService.deleteReport(reportId);
-            return ResponseEntity.ok(Map.of("message", "Report deleted successfully"));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("message", "Report not found", "error", e.getMessage()));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("message", "Error deleting report", "error", e.getMessage()));
-        }
-    }
+
 
     @GetMapping(URLConfig.GET_REPORT_HISTORY)
     public ResponseEntity<?> getReportHistory(@PathVariable Integer reportId) {

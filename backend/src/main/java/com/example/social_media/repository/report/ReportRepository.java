@@ -29,12 +29,10 @@ public interface ReportRepository extends JpaRepository<Report, Integer> {
     @Procedure(procedureName = "sp_GetReports")
     List<ReportResponseDto> getReports(@Param("status") Boolean status);
 
-    @Procedure(procedureName = "sp_UpdateReportStatus")
-    void updateReportStatus(
-            @Param("report_id") Integer reportId,
-            @Param("admin_id") Integer adminId,
-            @Param("processing_status_id") Integer processingStatusId
-    );
+    @Query(value = "UPDATE tblReport SET processing_status_id = ?3 WHERE id = ?1 AND status = 1", nativeQuery = true)
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
+    void updateReportStatus(Integer reportId, Integer adminId, Integer processingStatusId);
 
     @EntityGraph(attributePaths = {"reporter", "targetType", "reason", "processingStatus"})
     Page<Report> findByStatus(Boolean status, Pageable pageable);

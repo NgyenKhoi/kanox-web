@@ -13,11 +13,12 @@ import org.springframework.web.bind.annotation.RestController;
 @EnableScheduling
 public class SocialMediaApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(SocialMediaApplication.class, args);
-	}
-	@GetMapping("/")
-	public String home() {
-		return "Welcome to My social media test again";
-	}
+    public static void main(String[] args) {
+        SpringApplication.run(SocialMediaApplication.class, args);
+    }
+
+    @GetMapping("/")
+    public String home() {
+        return "Welcome to My social media test again";
+    }
 }
