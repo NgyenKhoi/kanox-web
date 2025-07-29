@@ -216,10 +216,7 @@ public class MessageService {
         List<MediaDto> uploadedMediaList = new ArrayList<>();
 
         if (files != null && !files.isEmpty()) {
-            MultipartFile file = files.get(0);
-            if (file.isEmpty()) {
-                throw new IllegalArgumentException("File rỗng");
-            }// Chỉ lấy file đầu tiên để lưu qua stored procedure
+            MultipartFile file = files.get(0); // Chỉ lấy file đầu tiên để lưu qua stored procedure
             mediaService.validateFileTypeByTarget("MESSAGE", file);
             try {
                 mediaUrl = gcsService.uploadFile(file);
@@ -293,3 +290,4 @@ public class MessageService {
         return dto;
     }
 }
+
