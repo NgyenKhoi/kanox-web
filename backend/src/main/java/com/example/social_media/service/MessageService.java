@@ -204,92 +204,92 @@ public class MessageService {
         messageStatusRepository.markAllAsReadByChatIdAndUserId(chatId, userId);
     }
 
-    @Transactional
-    public MessageDto sendMessageWithMedia(Integer chatId, Integer senderId, String content, List<MultipartFile> files) {
-        // ✅ Validate user
-        User sender = userRepository.findById(senderId)
-                .orElseThrow(() -> new IllegalArgumentException("Người gửi không tồn tại"));
-
-        // ✅ Upload và phân loại media
-        String mediaUrl = null;
-        String mediaType = null;
-        List<MediaDto> uploadedMediaList = new ArrayList<>();
-
-        if (files != null && !files.isEmpty()) {
-            MultipartFile file = files.get(0);
-            if (file.isEmpty()) {
-                throw new IllegalArgumentException("File rỗng");
-            }// Chỉ lấy file đầu tiên để lưu qua stored procedure
-            mediaService.validateFileTypeByTarget("MESSAGE", file);
-            try {
-                mediaUrl = gcsService.uploadFile(file);
-                String contentType = file.getContentType();
-                if (contentType == null) throw new IllegalArgumentException("Không xác định loại media");
-
-                if (contentType.startsWith("image/")) mediaType = "image";
-                else if (contentType.startsWith("video/")) mediaType = "video";
-                else if (contentType.startsWith("audio/")) mediaType = "audio";
-                else throw new IllegalArgumentException("Media không hợp lệ: " + contentType);
-
-                uploadedMediaList.add(new MediaDto(null, mediaUrl, mediaType, null, "MESSAGE", true));
-
-                // Upload các file còn lại (nếu có)
-                for (int i = 1; i < files.size(); i++) {
-                    MultipartFile additionalFile = files.get(i);
-                    mediaService.validateFileTypeByTarget("MESSAGE", additionalFile);
-                    String additionalUrl = gcsService.uploadFile(additionalFile);
-                    String additionalContentType = additionalFile.getContentType();
-                    String additionalMediaType;
-
-                    if (additionalContentType == null) throw new IllegalArgumentException("Không xác định loại media");
-                    if (additionalContentType.startsWith("image/")) additionalMediaType = "image";
-                    else if (additionalContentType.startsWith("video/")) additionalMediaType = "video";
-                    else if (additionalContentType.startsWith("audio/")) additionalMediaType = "audio";
-                    else throw new IllegalArgumentException("Media không hợp lệ: " + additionalContentType);
-
-                    uploadedMediaList.add(new MediaDto(null, additionalUrl, additionalMediaType, null, "MESSAGE", true));
-                }
-            } catch (IOException e) {
-                throw new RuntimeException("Lỗi khi upload media", e);
-            }
-        }
-
-        // ✅ Tạo message
-        Integer messageId = jdbcMessageRepository.sendMessage(chatId, senderId, content);
-
-        // ✅ Lưu media còn lại (nếu có)
-        for (MediaDto media : uploadedMediaList) {
-            if (media.getUrl() == null || media.getType() == null) continue;
-            // Chỉ lưu media nếu chưa được lưu trong stored procedure
-            if (!media.getUrl().equals(mediaUrl)) {
-                mediaService.saveMediaWithUrl(
-                        senderId,
-                        messageId,
-                        "MESSAGE",
-                        media.getType(),
-                        media.getUrl(),
-                        null
-                );
-            }
-        }
-
-        // ✅ Tạo MessageDto để gửi realtime
-        MessageDto dto = new MessageDto(messageId, chatId, senderId, content, null, Instant.now(), uploadedMediaList);
-
-        // ✅ Đưa vào hàng đợi gửi + gửi WebSocket nếu cần
-        messageQueueService.queueAndSendMessage(dto);
-
-        // ✅ Gửi WebSocket đến các thành viên khác
-        List<ChatMember> members = chatMemberRepository.findByChatId(chatId);
-        for (ChatMember member : members) {
-            if (!member.getUser().getId().equals(senderId)) {
-                messagingTemplate.convertAndSend("/topic/messages/" + member.getUser().getId(), dto);
-
-                int unreadCount = messageStatusRepository.countUnreadChatsByUserId(member.getUser().getId());
-                messagingTemplate.convertAndSend("/topic/unread-count/" + member.getUser().getId(), Map.of("unreadCount", unreadCount));
-            }
-        }
-
-        return dto;
-    }
+//    @Transactional
+//    public MessageDto sendMessageWithMedia(Integer chatId, Integer senderId, String content, List<MultipartFile> files) {
+//        // ✅ Validate user
+//        User sender = userRepository.findById(senderId)
+//                .orElseThrow(() -> new IllegalArgumentException("Người gửi không tồn tại"));
+//
+//        // ✅ Upload và phân loại media
+//        String mediaUrl = null;
+//        String mediaType = null;
+//        List<MediaDto> uploadedMediaList = new ArrayList<>();
+//
+//        if (files != null && !files.isEmpty()) {
+//            MultipartFile file = files.get(0);
+//            if (file.isEmpty()) {
+//                throw new IllegalArgumentException("File rỗng");
+//            }// Chỉ lấy file đầu tiên để lưu qua stored procedure
+//            mediaService.validateFileTypeByTarget("MESSAGE", file);
+//            try {
+//                mediaUrl = gcsService.uploadFile(file);
+//                String contentType = file.getContentType();
+//                if (contentType == null) throw new IllegalArgumentException("Không xác định loại media");
+//
+//                if (contentType.startsWith("image/")) mediaType = "image";
+//                else if (contentType.startsWith("video/")) mediaType = "video";
+//                else if (contentType.startsWith("audio/")) mediaType = "audio";
+//                else throw new IllegalArgumentException("Media không hợp lệ: " + contentType);
+//
+//                uploadedMediaList.add(new MediaDto(null, mediaUrl, mediaType, null, "MESSAGE", true));
+//
+//                // Upload các file còn lại (nếu có)
+//                for (int i = 1; i < files.size(); i++) {
+//                    MultipartFile additionalFile = files.get(i);
+//                    mediaService.validateFileTypeByTarget("MESSAGE", additionalFile);
+//                    String additionalUrl = gcsService.uploadFile(additionalFile);
+//                    String additionalContentType = additionalFile.getContentType();
+//                    String additionalMediaType;
+//
+//                    if (additionalContentType == null) throw new IllegalArgumentException("Không xác định loại media");
+//                    if (additionalContentType.startsWith("image/")) additionalMediaType = "image";
+//                    else if (additionalContentType.startsWith("video/")) additionalMediaType = "video";
+//                    else if (additionalContentType.startsWith("audio/")) additionalMediaType = "audio";
+//                    else throw new IllegalArgumentException("Media không hợp lệ: " + additionalContentType);
+//
+//                    uploadedMediaList.add(new MediaDto(null, additionalUrl, additionalMediaType, null, "MESSAGE", true));
+//                }
+//            } catch (IOException e) {
+//                throw new RuntimeException("Lỗi khi upload media", e);
+//            }
+//        }
+//
+//        // ✅ Tạo message
+//        Integer messageId = jdbcMessageRepository.sendMessage(chatId, senderId, content);
+//
+//        // ✅ Lưu media còn lại (nếu có)
+//        for (MediaDto media : uploadedMediaList) {
+//            if (media.getUrl() == null || media.getType() == null) continue;
+//            // Chỉ lưu media nếu chưa được lưu trong stored procedure
+//            if (!media.getUrl().equals(mediaUrl)) {
+//                mediaService.saveMediaWithUrl(
+//                        senderId,
+//                        messageId,
+//                        "MESSAGE",
+//                        media.getType(),
+//                        media.getUrl(),
+//                        null
+//                );
+//            }
+//        }
+//
+//        // ✅ Tạo MessageDto để gửi realtime
+//        MessageDto dto = new MessageDto(messageId, chatId, senderId, content, null, Instant.now(), uploadedMediaList);
+//
+//        // ✅ Đưa vào hàng đợi gửi + gửi WebSocket nếu cần
+//        messageQueueService.queueAndSendMessage(dto);
+//
+//        // ✅ Gửi WebSocket đến các thành viên khác
+//        List<ChatMember> members = chatMemberRepository.findByChatId(chatId);
+//        for (ChatMember member : members) {
+//            if (!member.getUser().getId().equals(senderId)) {
+//                messagingTemplate.convertAndSend("/topic/messages/" + member.getUser().getId(), dto);
+//
+//                int unreadCount = messageStatusRepository.countUnreadChatsByUserId(member.getUser().getId());
+//                messagingTemplate.convertAndSend("/topic/unread-count/" + member.getUser().getId(), Map.of("unreadCount", unreadCount));
+//            }
+//        }
+//
+//        return dto;
+//    }
 }
