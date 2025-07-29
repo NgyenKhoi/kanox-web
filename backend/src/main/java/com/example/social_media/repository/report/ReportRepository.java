@@ -29,10 +29,12 @@ public interface ReportRepository extends JpaRepository<Report, Integer> {
     @Procedure(procedureName = "sp_GetReports")
     List<ReportResponseDto> getReports(@Param("status") Boolean status);
 
-    @Query(value = "UPDATE tblReport SET processing_status_id = ?3 WHERE id = ?1 AND status = 1", nativeQuery = true)
-    @org.springframework.data.jpa.repository.Modifying
-    @org.springframework.transaction.annotation.Transactional
-    void updateReportStatus(Integer reportId, Integer adminId, Integer processingStatusId);
+    @Procedure(procedureName = "sp_UpdateReportStatus")
+    void updateReportStatus(
+            @Param("report_id") Integer reportId,
+            @Param("admin_id") Integer adminId,
+            @Param("processing_status_id") Integer processingStatusId
+    );
 
     @EntityGraph(attributePaths = {"reporter", "targetType", "reason", "processingStatus"})
     Page<Report> findByStatus(Boolean status, Pageable pageable);
@@ -95,11 +97,4 @@ public interface ReportRepository extends JpaRepository<Report, Integer> {
 
     @Query("SELECT r FROM Report r WHERE r.reporterType = 'AI' AND r.targetType.id = :targetTypeId AND (:processingStatusId IS NULL OR r.processingStatus.id = :processingStatusId)")
     Page<Report> findByReporterTypeAIAndTargetTypeId(@Param("targetTypeId") Integer targetTypeId, @Param("processingStatusId") Integer processingStatusId, Pageable pageable);
-
-    @EntityGraph(attributePaths = {"reporter", "targetType", "reason", "processingStatus"})
-    @Query("SELECT r FROM Report r JOIN Post p ON r.targetId = p.id " +
-            "WHERE p.group.id = :groupId AND r.targetType.id = 1 AND r.status = :status")
-    Page<Report> findByGroupIdAndTargetTypeId(@Param("groupId") Integer groupId,
-                                              @Param("status") Boolean status,
-                                              Pageable pageable);
 }
