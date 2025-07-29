@@ -68,9 +68,9 @@ public class AuthService {
             logger.warn("Email or password is null");
             throw new IllegalArgumentException("Email hoặc mật khẩu không được để trống");
         }
-        Optional<User> userOpt = userRepository.findByEmailAndStatusTrue(email);
+        Optional<User> userOpt = userRepository.findByEmailAndStatusTrueAndIsLockedFalseOrIsLockedIsNull(email);
         if (userOpt.isEmpty()) {
-            throw new UserNotFoundException("Người dùng không tồn tại hoặc bị vô hiệu hóa");
+            throw new UserNotFoundException("Người dùng không tồn tại, bị vô hiệu hóa hoặc bị khóa bởi quản trị viên");
         }
         User user = userOpt.get();
         if (!passwordEncoder.matches(rawPassword, user.getPassword())) {
@@ -84,9 +84,9 @@ public class AuthService {
             logger.warn("Username or password is null");
             throw new IllegalArgumentException("Tên người dùng hoặc mật khẩu không được để trống");
         }
-        Optional<User> userOpt = userRepository.findByUsernameAndStatusTrue(username);
+        Optional<User> userOpt = userRepository.findByUsernameAndStatusTrueAndIsLockedFalseOrIsLockedIsNull(username);
         if (userOpt.isEmpty()) {
-            throw new UserNotFoundException("Người dùng không tồn tại hoặc bị vô hiệu hóa");
+            throw new UserNotFoundException("Người dùng không tồn tại, bị vô hiệu hóa hoặc bị khóa bởi quản trị viên");
         }
         User user = userOpt.get();
         if (!passwordEncoder.matches(rawPassword, user.getPassword())) {
@@ -127,12 +127,11 @@ public class AuthService {
     }
 
     public Optional<User> getUser(Integer userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException("Người dùng không tồn tại"));
-        if (!user.getStatus()) {
-            throw new UserNotFoundException("Tài khoản đã bị khóa");
+        Optional<User> userOpt = userRepository.findByIdAndStatusTrueAndIsLockedFalseOrIsLockedIsNull(userId);
+        if (userOpt.isEmpty()) {
+            throw new UserNotFoundException("Người dùng không tồn tại, bị vô hiệu hóa hoặc bị khóa bởi quản trị viên");
         }
-        return Optional.of(user);
+        return userOpt;
     }
 
     public User register(RegisterRequestDto dto) {
@@ -221,8 +220,8 @@ public class AuthService {
     public User loginOrRegisterGoogleUser(String googleId, String email, String name) {
         logger.info("Processing Google login for email: {}, googleId: {}", email, googleId);
 
-        // Kiểm tra user với status = true
-        Optional<User> userOpt = userRepository.findByEmailAndStatusTrue(email);
+        // Kiểm tra user với status = true và không bị khóa
+        Optional<User> userOpt = userRepository.findByEmailAndStatusTrueAndIsLockedFalseOrIsLockedIsNull(email);
         if (userOpt.isPresent()) {
             User existingUser = userOpt.get();
             logger.info("Active user found with email: {}, username: {}", email, existingUser.getUsername());
@@ -253,13 +252,17 @@ public class AuthService {
             return existingUser;
         }
 
-        // Kiểm tra user với status = false (không cho phép đăng nhập)
-        Optional<User> inactiveUserOpt = userRepository.findByEmail(email);
-        if (inactiveUserOpt.isPresent()) {
-            User inactiveUser = inactiveUserOpt.get();
-            if (!inactiveUser.getStatus()) {
-                logger.warn("Blocked user attempted to login with email: {}", email);
-                throw new IllegalStateException("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.");
+        // Kiểm tra user bị vô hiệu hóa hoặc bị khóa
+        Optional<User> blockedUserOpt = userRepository.findByEmail(email);
+        if (blockedUserOpt.isPresent()) {
+            User blockedUser = blockedUserOpt.get();
+            if (!blockedUser.getStatus()) {
+                logger.warn("Disabled user attempted Google login with email: {}", email);
+                throw new IllegalStateException("Tài khoản của bạn đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên.");
+            }
+            if (blockedUser.getIsLocked() != null && blockedUser.getIsLocked()) {
+                logger.warn("Locked user attempted Google login with email: {}", email);
+                throw new IllegalStateException("Tài khoản của bạn đã bị khóa bởi quản trị viên. Vui lòng liên hệ quản trị viên.");
             }
         }
 
