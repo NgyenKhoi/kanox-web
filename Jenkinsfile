@@ -14,6 +14,13 @@ pipeline {
         stage('Clone & Build') {
             steps {
                 dir('backend') {
+                    // Lấy các file cấu hình từ VM
+                    sh """
+                        mkdir -p src/main/resources
+                        scp -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST}:/var/lib/jenkins/secrets/kanox/application.properties src/main/resources/
+                        scp -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST}:/var/lib/jenkins/secrets/kanox/gcp-credentials.json src/main/resources/
+                    """
+        
                     sh 'chmod +x mvnw'
                     sh './mvnw clean install -DskipTests'
                 }
