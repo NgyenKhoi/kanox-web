@@ -90,7 +90,7 @@ public interface ReportRepository extends JpaRepository<Report, Integer> {
 
 
 
-    @Procedure(procedureName = "sp_UpdateUserLockStatus")
+    @Procedure(procedureName = "sp_UpdateUserLockStatus", outputParameterName = "return_code")
     Integer updateUserLockStatus(
             @Param("user_id") Integer userId,
             @Param("admin_id") Integer adminId,
