@@ -1,4 +1,4 @@
-﻿/*
+/*
 	USE master
     IF EXISTS(select * from sys.databases where name='SOCIAL-MEDIA-PROJECT')
     BEGIN
@@ -43,6 +43,22 @@
 		updated_at DATETIME DEFAULT GETDATE(),
 		FOREIGN KEY (user_id) REFERENCES tblUser(id)
 	);
+
+
+	CREATE OR ALTER TRIGGER trg_UpdateLocation
+	ON tblLocation
+	AFTER UPDATE
+	AS
+	BEGIN
+		SET NOCOUNT ON;
+		SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
+
+		-- Xóa các gợi ý dựa trên vị trí liên quan đến user_id vừa cập nhật
+		DELETE FROM tblFriendSuggestion WITH (ROWLOCK)
+		WHERE reason = 'location'
+		AND (user_id IN (SELECT user_id FROM inserted) OR suggested_user_id IN (SELECT user_id FROM inserted));
+	END;
+	GO
 
 
 	CREATE NONCLUSTERED INDEX IX_tblLocation_user_id
@@ -893,9 +909,11 @@ GO
 		suggested_at DATETIME DEFAULT GETDATE(),
 		expiration_date DATETIME NULL,
 		reason VARCHAR(50) NULL, -- Lưu lý do gợi ý: 'mutual_friends' hoặc 'location'
-		distance_km FLOAT NULL, -- Lưu khoảng cách nếu gợi ý dựa trên vị trí
+		distance_km FLOAT NULL,
+		mutual_friend_ids VARCHAR(MAX),-- Lưu khoảng cách nếu gợi ý dựa trên vị trí
 		PRIMARY KEY (user_id, suggested_user_id)
 	);
+
 
     ------------PROC FOR SUGGEST FRIEND
 
@@ -904,6 +922,7 @@ CREATE OR ALTER PROCEDURE sp_UpdateAllFriendSuggestions
 AS
 BEGIN
     SET NOCOUNT ON;
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
 
     BEGIN TRY
         -- Xóa gợi ý hết hạn
@@ -926,6 +945,7 @@ BEGIN
             user_id INT,
             suggested_user_id INT,
             mutual_friend_count INT,
+            mutual_friend_ids VARCHAR(MAX),
             suggested_at DATETIME,
             reason VARCHAR(50),
             distance_km FLOAT
@@ -936,64 +956,83 @@ BEGIN
             SELECT user_id, friend_id FROM tblFriendship WHERE friendship_status = 'accepted'
             UNION
             SELECT friend_id AS user_id, user_id AS friend_id FROM tblFriendship WHERE friendship_status = 'accepted'
+        ),
+        MutualFriends AS (
+            SELECT
+                af1.user_id,
+                af2.friend_id AS suggested_user_id,
+                COUNT(*) AS mutual_friend_count,
+                STRING_AGG(CAST(af1.friend_id AS VARCHAR), ',') AS mutual_friend_ids
+            FROM AllFriends af1
+            JOIN AllFriends af2 ON af1.friend_id = af2.user_id
+            WHERE
+                af1.user_id <> af2.friend_id
+                AND af1.user_id IN (SELECT id FROM tblUser WHERE status = 1)
+                AND af2.friend_id IN (SELECT id FROM tblUser WHERE status = 1)
+                AND af2.friend_id NOT IN (
+                    SELECT friend_id FROM tblFriendship
+                    WHERE user_id = af1.user_id AND friendship_status = 'accepted'
+                )
+                AND NOT EXISTS (
+                    SELECT 1 FROM tblFriendship f
+                    WHERE f.friendship_status = 'accepted'
+                    AND (
+                        (f.user_id = af1.user_id AND f.friend_id = af2.friend_id)
+                        OR
+                        (f.user_id = af2.friend_id AND f.friend_id = af1.user_id)
+                    )
+                )
+                AND af2.friend_id NOT IN (
+                    SELECT blocked_user_id FROM tblBlock WHERE user_id = af1.user_id AND status = 1
+                    UNION
+                    SELECT user_id FROM tblBlock WHERE blocked_user_id = af1.user_id AND status = 1
+                )
+            GROUP BY af1.user_id, af2.friend_id
+            HAVING COUNT(*) >= 1
         )
-        INSERT INTO @NewSuggestions (user_id, suggested_user_id, mutual_friend_count, suggested_at, reason, distance_km)
-        SELECT
-            af1.user_id,
-            af2.friend_id AS suggested_user_id,
-            COUNT(*) AS mutual_friend_count,
+        INSERT INTO @NewSuggestions (user_id, suggested_user_id, mutual_friend_count, mutual_friend_ids, suggested_at, reason, distance_km)
+        SELECT TOP 50
+            user_id,
+            suggested_user_id,
+            mutual_friend_count,
+            mutual_friend_ids,
             GETDATE() AS suggested_at,
             'mutual_friends' AS reason,
             NULL AS distance_km
-        FROM AllFriends af1
-        JOIN AllFriends af2 ON af1.friend_id = af2.user_id
-        WHERE
-            af1.user_id <> af2.friend_id
-            AND af1.user_id IN (SELECT id FROM tblUser WHERE status = 1)
-            AND af2.friend_id IN (SELECT id FROM tblUser WHERE status = 1)
-            AND af2.friend_id NOT IN (
-                SELECT friend_id FROM tblFriendship
-                WHERE user_id = af1.user_id AND friendship_status = 'accepted'
-            )
-            AND NOT EXISTS (
-                SELECT 1 FROM tblFriendship f
-                WHERE f.friendship_status = 'accepted'
-                AND (
-                    (f.user_id = af1.user_id AND f.friend_id = af2.friend_id)
-                    OR
-                    (f.user_id = af2.friend_id AND f.friend_id = af1.user_id)
-                )
-            )
-            AND af2.friend_id NOT IN (
-                SELECT blocked_user_id FROM tblBlock WHERE user_id = af1.user_id AND status = 1
-                UNION
-                SELECT user_id FROM tblBlock WHERE blocked_user_id = af1.user_id AND status = 1
-            )
-        GROUP BY af1.user_id, af2.friend_id
-        HAVING COUNT(*) >= 1;
+        FROM MutualFriends;
 
         -- Gợi ý dựa trên vị trí
         DECLARE @LocationSuggestions TABLE (
             user_id INT,
             suggested_user_id INT,
             mutual_friend_count INT,
+            mutual_friend_ids VARCHAR(MAX),
             suggested_at DATETIME,
             reason VARCHAR(50),
             distance_km FLOAT
         );
 
-        INSERT INTO @LocationSuggestions (user_id, suggested_user_id, mutual_friend_count, suggested_at, reason, distance_km)
-        SELECT
+        INSERT INTO @LocationSuggestions (user_id, suggested_user_id, mutual_friend_count, mutual_friend_ids, suggested_at, reason, distance_km)
+        SELECT TOP 50
             ul1.user_id,
             ul2.user_id AS suggested_user_id,
             0 AS mutual_friend_count,
+            NULL AS mutual_friend_ids,
             GETDATE() AS suggested_at,
             'location' AS reason,
             ROUND(
                 6371 * ACOS(
-                    COS(RADIANS(ul1.latitude)) * COS(RADIANS(ul2.latitude)) * 
-                    COS(RADIANS(ul2.longitude) - RADIANS(ul1.longitude)) + 
-                    SIN(RADIANS(ul1.latitude)) * SIN(RADIANS(ul2.latitude))
+                    CASE 
+                        WHEN COS(RADIANS(ul1.latitude)) * COS(RADIANS(ul2.latitude)) * 
+                             COS(RADIANS(ul2.longitude) - RADIANS(ul1.longitude)) + 
+                             SIN(RADIANS(ul1.latitude)) * SIN(RADIANS(ul2.latitude)) > 1 THEN 1
+                        WHEN COS(RADIANS(ul1.latitude)) * COS(RADIANS(ul2.latitude)) * 
+                             COS(RADIANS(ul2.longitude) - RADIANS(ul1.longitude)) + 
+                             SIN(RADIANS(ul1.latitude)) * SIN(RADIANS(ul2.latitude)) < -1 THEN -1
+                        ELSE COS(RADIANS(ul1.latitude)) * COS(RADIANS(ul2.latitude)) * 
+                             COS(RADIANS(ul2.longitude) - RADIANS(ul1.longitude)) + 
+                             SIN(RADIANS(ul1.latitude)) * SIN(RADIANS(ul2.latitude))
+                    END
                 ), 2) AS distance_km
         FROM tblLocation ul1
         CROSS JOIN tblLocation ul2
@@ -1001,15 +1040,28 @@ BEGIN
             ul1.user_id <> ul2.user_id
             AND ul1.user_id IN (SELECT id FROM tblUser WHERE status = 1)
             AND ul2.user_id IN (SELECT id FROM tblUser WHERE status = 1)
+            AND ul1.latitude IS NOT NULL
+            AND ul2.latitude IS NOT NULL
+            AND ul1.longitude IS NOT NULL
+            AND ul2.longitude IS NOT NULL
+            AND ul1.latitude BETWEEN -90 AND 90
+            AND ul2.latitude BETWEEN -90 AND 90
+            AND ul1.longitude BETWEEN -180 AND 180
+            AND ul2.longitude BETWEEN -180 AND 180
+            AND (ul1.latitude <> ul2.latitude OR ul1.longitude <> ul2.longitude)
             AND 6371 * ACOS(
-                COS(RADIANS(ul1.latitude)) * COS(RADIANS(ul2.latitude)) * 
-                COS(RADIANS(ul2.longitude) - RADIANS(ul1.longitude)) + 
-                SIN(RADIANS(ul1.latitude)) * SIN(RADIANS(ul2.latitude))
+                CASE 
+                    WHEN COS(RADIANS(ul1.latitude)) * COS(RADIANS(ul2.latitude)) * 
+                         COS(RADIANS(ul2.longitude) - RADIANS(ul1.longitude)) + 
+                         SIN(RADIANS(ul1.latitude)) * SIN(RADIANS(ul2.latitude)) > 1 THEN 1
+                    WHEN COS(RADIANS(ul1.latitude)) * COS(RADIANS(ul2.latitude)) * 
+                         COS(RADIANS(ul2.longitude) - RADIANS(ul1.longitude)) + 
+                         SIN(RADIANS(ul1.latitude)) * SIN(RADIANS(ul2.latitude)) < -1 THEN -1
+                    ELSE COS(RADIANS(ul1.latitude)) * COS(RADIANS(ul2.latitude)) * 
+                         COS(RADIANS(ul2.longitude) - RADIANS(ul1.longitude)) + 
+                         SIN(RADIANS(ul1.latitude)) * SIN(RADIANS(ul2.latitude))
+                END
             ) <= @radius_km
-            AND ul2.user_id NOT IN (
-                SELECT friend_id FROM tblFriendship
-                WHERE user_id = ul1.user_id AND friendship_status = 'accepted'
-            )
             AND NOT EXISTS (
                 SELECT 1 FROM tblFriendship f
                 WHERE f.friendship_status = 'accepted'
@@ -1025,34 +1077,70 @@ BEGIN
                 SELECT user_id FROM tblBlock WHERE blocked_user_id = ul1.user_id AND status = 1
             );
 
-        -- Gộp và merge
+        -- Gộp và loại bỏ trùng lặp, ưu tiên gợi ý mutual_friends
         MERGE INTO tblFriendSuggestion AS target
         USING (
-            SELECT user_id, suggested_user_id, mutual_friend_count, suggested_at, reason, distance_km
-            FROM @NewSuggestions
-            UNION
-            SELECT user_id, suggested_user_id, mutual_friend_count, suggested_at, reason, distance_km
-            FROM @LocationSuggestions
+            SELECT 
+                user_id, 
+                suggested_user_id, 
+                mutual_friend_count, 
+                mutual_friend_ids, 
+                suggested_at, 
+                reason, 
+                distance_km
+            FROM (
+                SELECT 
+                    user_id, 
+                    suggested_user_id, 
+                    mutual_friend_count, 
+                    mutual_friend_ids, 
+                    suggested_at, 
+                    reason, 
+                    distance_km,
+                    ROW_NUMBER() OVER (PARTITION BY user_id, suggested_user_id ORDER BY CASE WHEN reason = 'mutual_friends' THEN 1 ELSE 2 END) AS rn
+                FROM (
+                    SELECT user_id, suggested_user_id, mutual_friend_count, mutual_friend_ids, suggested_at, reason, distance_km
+                    FROM @NewSuggestions
+                    UNION ALL
+                    SELECT user_id, suggested_user_id, mutual_friend_count, mutual_friend_ids, suggested_at, reason, distance_km
+                    FROM @LocationSuggestions
+                ) AS combined
+            ) AS ranked
+            WHERE rn = 1
         ) AS source
         ON target.user_id = source.user_id AND target.suggested_user_id = source.suggested_user_id
         WHEN MATCHED THEN
             UPDATE SET
                 mutual_friend_count = source.mutual_friend_count,
+                mutual_friend_ids = source.mutual_friend_ids,
                 suggested_at = source.suggested_at,
                 expiration_date = DATEADD(DAY, 7, GETDATE()),
                 reason = source.reason,
                 distance_km = source.distance_km
         WHEN NOT MATCHED THEN
-            INSERT (user_id, suggested_user_id, mutual_friend_count, suggested_at, expiration_date, reason, distance_km)
+            INSERT (user_id, suggested_user_id, mutual_friend_count, mutual_friend_ids, suggested_at, expiration_date, reason, distance_km)
             VALUES (
                 source.user_id,
                 source.suggested_user_id,
                 source.mutual_friend_count,
+                source.mutual_friend_ids,
                 source.suggested_at,
                 DATEADD(DAY, 7, GETDATE()),
                 source.reason,
                 source.distance_km
             );
+
+        -- Xóa lại các gợi ý mà hai user đã là bạn bè (đề phòng trường hợp gợi ý mới được thêm vào)
+        DELETE FROM tblFriendSuggestion
+        WHERE EXISTS (
+            SELECT 1 FROM tblFriendship f
+            WHERE f.friendship_status = 'accepted'
+            AND (
+                (f.user_id = tblFriendSuggestion.user_id AND f.friend_id = tblFriendSuggestion.suggested_user_id)
+                OR
+                (f.user_id = tblFriendSuggestion.suggested_user_id AND f.friend_id = tblFriendSuggestion.user_id)
+            )
+        );
 
     END TRY
     BEGIN CATCH
@@ -1067,8 +1155,6 @@ BEGIN
     END CATCH
 END;
 GO
-
-
     -------------------
 
     CREATE TABLE tblFollow (
@@ -2470,12 +2556,20 @@ BEGIN
             END
 
         -- Kiểm tra trạng thái chặn
-        IF EXISTS (
-            SELECT 1
-            FROM tblBlock
-            WHERE (user_id = @sender_id OR blocked_user_id = @sender_id)
-              AND status = 1
-        )
+		IF EXISTS (
+			SELECT 1
+			FROM tblChatMember cm
+			JOIN tblBlock b
+			  ON (
+					(b.user_id = @sender_id AND b.blocked_user_id = cm.user_id)
+				 OR (b.user_id = cm.user_id AND b.blocked_user_id = @sender_id)
+				 )
+			WHERE cm.chat_id = @chat_id
+			  AND cm.user_id != @sender_id
+			  AND cm.status = 1
+			  AND b.status = 1
+		)
+
             BEGIN
                 SET @ErrorMessage = N'Người dùng bị chặn hoặc đã chặn người khác trong chat này.';
                 THROW 50004, @ErrorMessage, 1;
@@ -3058,6 +3152,37 @@ WHERE definition LIKE '%friendship%';
 				END
 			END
 
+			-- Kiểm tra auto-block user nếu báo cáo được duyệt (approved)
+			IF @processing_status_id = (SELECT id FROM tblReportStatus WHERE name = 'Approved')
+			BEGIN
+				DECLARE @target_user_id INT;
+				SELECT @target_user_id = target_id 
+				FROM tblReport 
+				WHERE id = @report_id AND target_type_id = (SELECT id FROM tblTargetType WHERE name = 'USER');
+
+				IF @target_user_id IS NOT NULL
+				BEGIN
+					-- Đếm số báo cáo được duyệt cho user này
+					DECLARE @approved_reports_count INT;
+					SELECT @approved_reports_count = COUNT(*)
+					FROM tblReport r
+					WHERE r.target_id = @target_user_id 
+					AND r.target_type_id = (SELECT id FROM tblTargetType WHERE name = 'USER')
+					AND r.processing_status_id = (SELECT id FROM tblReportStatus WHERE name = 'Approved')
+					AND r.status = 1;
+
+					-- Nếu đạt 3 báo cáo được duyệt, tự động block user
+					IF @approved_reports_count >= 3
+					BEGIN
+						-- Kiểm tra user chưa bị block
+						IF EXISTS (SELECT 1 FROM tblUser WHERE id = @target_user_id AND status = 1)
+						BEGIN
+							EXEC sp_AutoBlockUser @target_user_id, @admin_id;
+						END
+					END
+				END
+			END
+
 			-- Log activity
 			DECLARE @action_type_id_status INT;
 			SELECT @action_type_id_status = id FROM tblActionType WHERE name = 'REPORT_STATUS_UPDATED';
@@ -3118,6 +3243,82 @@ WHERE definition LIKE '%friendship%';
 		FETCH NEXT @size ROWS ONLY;
 	END;
 
+        -- Stored procedure để block/unblock user
+        CREATE OR ALTER PROCEDURE sp_UpdateUserStatus
+            @user_id INT,
+            @admin_id INT,
+            @new_status BIT  -- 1 = active, 0 = blocked
+        AS
+        BEGIN
+            SET NOCOUNT ON;
+            DECLARE @return_code INT = 0;
+
+            BEGIN TRY
+                BEGIN TRANSACTION;
+
+                -- Kiểm tra user_id tồn tại
+                IF NOT EXISTS (SELECT 1 FROM tblUser WHERE id = @user_id)
+                    BEGIN
+                        SET @return_code = 1; -- User không tồn tại
+                        ROLLBACK TRANSACTION;
+                        RETURN @return_code;
+                    END
+
+                -- Kiểm tra admin_id hợp lệ
+                IF NOT EXISTS (SELECT 1 FROM tblUser WHERE id = @admin_id AND is_admin = 1 AND status = 1)
+                    BEGIN
+                        SET @return_code = 2; -- Admin không hợp lệ
+                        ROLLBACK TRANSACTION;
+                        RETURN @return_code;
+                    END
+
+                -- Cập nhật trạng thái user
+                UPDATE tblUser
+                SET status = @new_status
+                WHERE id = @user_id;
+
+                -- Ghi log hoạt động
+                DECLARE @action_type_id INT;
+                DECLARE @action_name NVARCHAR(50);
+                
+                IF @new_status = 0
+                    SET @action_name = 'BLOCK_USER';
+                ELSE
+                    SET @action_name = 'UNBLOCK_USER';
+
+                SELECT @action_type_id = id FROM tblActionType WHERE name = @action_name;
+
+                IF @action_type_id IS NULL
+                    BEGIN
+                        DECLARE @description NVARCHAR(255);
+                        IF @new_status = 0
+                            SET @description = 'Admin blocked user account';
+                        ELSE
+                            SET @description = 'Admin unblocked user account';
+                            
+                        INSERT INTO tblActionType (name, description)
+                        VALUES (@action_name, @description);
+                        SET @action_type_id = SCOPE_IDENTITY();
+                    END
+
+                EXEC sp_LogActivity @admin_id, @action_type_id, NULL, NULL, 1, @user_id, 'USER';
+
+                COMMIT TRANSACTION;
+                RETURN @return_code; -- Trả về 0 nếu thành công
+            END TRY
+            BEGIN CATCH
+                IF @@TRANCOUNT > 0
+                    ROLLBACK TRANSACTION;
+
+                DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+                INSERT INTO tblErrorLog (error_message, error_time)
+                VALUES (@ErrorMessage, GETDATE());
+
+                RETURN 99; -- Unknown error
+            END CATCH;
+        END;
+
+        -- Stored procedure để auto-block user sau 3 báo cáo được duyệt
         CREATE OR ALTER PROCEDURE sp_AutoBlockUser
             @user_id INT,        -- User bị auto-block
             @admin_id INT        -- Admin thực hiện auto-block
@@ -3145,14 +3346,6 @@ WHERE definition LIKE '%friendship%';
                         RETURN @return_code;
                     END
 
-                -- Kiểm tra user đã bị block chưa
-                IF EXISTS (SELECT 1 FROM tblUser WHERE id = @user_id AND status = 0)
-                    BEGIN
-                        SET @return_code = 3; -- Đã bị khóa rồi
-                        ROLLBACK TRANSACTION;
-                        RETURN @return_code;
-                    END
-
                 -- Auto-block user
                 UPDATE tblUser
                 SET status = 0
@@ -3165,7 +3358,7 @@ WHERE definition LIKE '%friendship%';
                 IF @action_type_id IS NULL
                     BEGIN
                         INSERT INTO tblActionType (name, description)
-                        VALUES ('AUTO_BLOCK_USER', 'User automatically blocked due to multiple reports');
+                        VALUES ('AUTO_BLOCK_USER', 'User automatically blocked due to multiple approved reports');
                         SET @action_type_id = SCOPE_IDENTITY();
                     END
 
@@ -3183,6 +3376,8 @@ WHERE definition LIKE '%friendship%';
                 VALUES (@ErrorMessage, GETDATE());
 
                 RETURN 99; -- Unknown error
+            END CATCH;
+        END;
             END CATCH
         END;
     ---------------------------------------
@@ -3515,6 +3710,10 @@ GO
 	('ACTIVATE_BANNED_KEYWORD', 'Admin activated banned keyword'),
 	('DEACTIVATE_BANNED_KEYWORD', 'Admin deactivated banned keyword'),
 	('REPORT_ABUSE_WARNING', 'User received warning for report abuse'),
+    ('MARK_CHAT_SPAM', 'User marked a chat as spam'),
+    ('UNMARK_CHAT_SPAM', 'User unmarked a chat as spam'),
+    ('REPORT_SUBMITTED', 'User submitted a report'),
+    ('REPORT_STATUS_UPDATED', 'Admin updated the status of a report'),
 	('UPDATE_LOCATION', 'User update location');
 
 	select * from tblTargetType
@@ -3535,6 +3734,7 @@ GO
 	('REPORT_ABUSE_WARNING', 'Warning for report abuse', 1),
 	('AI_FLAGGED_NOTICE', 'Your post was flagged by AI for review', 1),
 	('AI_FLAGGED_POST', 'A post was flagged by AI for review', 1),
+    ('GROUP_USER_KICKED', 'You have been removed from the group', 1),
     ('POST_REMOVED', 'Your post was removed due to community standards violation', 1);
 
 

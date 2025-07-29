@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 
 @Service
 public class MediaService {
+
     private final MediaRepository mediaRepository;
     private final UserRepository userRepository;
     private final MediaTypeRepository mediaTypeRepository;
@@ -33,9 +34,9 @@ public class MediaService {
     private static final Duration AVATAR_CACHE_TTL = Duration.ofMinutes(5);
 
     public MediaService(MediaRepository mediaRepository, UserRepository userRepository, MediaTypeRepository mediaTypeRepository,
-                        TargetTypeRepository targetTypeRepository, GcsService gcsService,
-                        RedisTemplate<String, String> redisAvatarTemplate, RedisTemplate<String, String> redisMediaTemplate,
-                        ObjectMapper objectMapper) {
+            TargetTypeRepository targetTypeRepository, GcsService gcsService,
+            RedisTemplate<String, String> redisAvatarTemplate, RedisTemplate<String, String> redisMediaTemplate,
+            ObjectMapper objectMapper) {
         this.mediaRepository = mediaRepository;
         this.userRepository = userRepository;
         this.mediaTypeRepository = mediaTypeRepository;
@@ -256,7 +257,9 @@ public class MediaService {
     public String getAvatarUrlByUserId(Integer userId) {
         String cacheKey = "avatar:" + userId;
         String cachedUrl = redisAvatarTemplate.opsForValue().get(cacheKey);
-        if (cachedUrl != null) return cachedUrl;
+        if (cachedUrl != null) {
+            return cachedUrl;
+        }
 
         Optional<Media> mediaOpt = mediaRepository.findFirstByTargetIdAndTargetType_CodeAndMediaType_NameOrderByCreatedAtDesc(
                 userId, "PROFILE", "image"
@@ -276,7 +279,8 @@ public class MediaService {
         try {
             String json = redisMediaTemplate.opsForValue().get(cacheKey);
             if (json != null) {
-                List<MediaDto> cachedList = objectMapper.readValue(json, new TypeReference<>() {});
+                List<MediaDto> cachedList = objectMapper.readValue(json, new TypeReference<>() {
+                });
                 return cachedList.stream().collect(Collectors.groupingBy(MediaDto::getTargetId));
             }
         } catch (Exception e) {
@@ -313,7 +317,9 @@ public class MediaService {
     public String getGroupAvatarUrl(Integer groupId) {
         String cacheKey = "groupAvatar:" + groupId;
         String cachedUrl = redisAvatarTemplate.opsForValue().get(cacheKey);
-        if (cachedUrl != null) return cachedUrl;
+        if (cachedUrl != null) {
+            return cachedUrl;
+        }
 
         Optional<Media> mediaOpt = mediaRepository
                 .findFirstByTargetIdAndTargetType_CodeAndMediaType_NameOrderByCreatedAtDesc(
@@ -341,4 +347,55 @@ public class MediaService {
         mediaRepository.saveAll(oldAvatars);
     }
 
+    /**
+     * Upload một file đơn lẻ và trả về DTO của media đã upload. Phương thức này
+     * sẽ tự động xác định loại file và lưu vào DB.
+     *
+     * @param userId ID của người dùng sở hữu media
+     * @param targetId ID của target (ví dụ: bài viết, bình luận)
+     * @param targetTypeCode Mã loại target (ví dụ: "POST", "COMMENT")
+     * @param mediaTypeName Tên loại media (ví dụ: "image", "video")
+     * @param file File cần upload
+     * @param caption Chú thích cho media (có thể null)
+     * @return DTO của media đã upload
+     * @throws IOException nếu upload thất bại
+     */
+    @Transactional
+    public MediaDto uploadSingleMediaFile(Integer userId, Integer targetId, String targetTypeCode, String mediaTypeName, MultipartFile file, String caption) throws IOException {
+        // 1. Kiểm tra loại file có hợp lệ cho target này không
+        validateFileTypeByTarget(targetTypeCode, file);
+
+        // 2. Lấy các thông tin cần thiết từ DB
+        User owner = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Người dùng không tồn tại với ID: " + userId));
+        TargetType targetType = targetTypeRepository.findByCode(targetTypeCode)
+                .orElseThrow(() -> new IllegalArgumentException("Loại target không hợp lệ: " + targetTypeCode));
+        MediaType mediaType = mediaTypeRepository.findByName(mediaTypeName)
+                .orElseThrow(() -> new IllegalArgumentException("Loại media không hợp lệ: " + mediaTypeName));
+
+        // 3. Upload file lên Google Cloud Storage và lấy URL
+        String mediaUrl = gcsService.uploadFile(file);
+
+        // 4. Tạo đối tượng Media mới để lưu vào DB
+        Media media = new Media();
+        media.setOwner(owner);
+        media.setTargetId(targetId);
+        media.setTargetType(targetType);
+        media.setMediaType(mediaType);
+        media.setMediaUrl(mediaUrl);
+        media.setCaption(caption);
+        media.setCreatedAt(Instant.now());
+        media.setStatus(true);
+
+        // 5. Lưu vào DB
+        Media savedMedia = mediaRepository.save(media);
+
+        // (Tùy chọn) Xóa cache liên quan nếu cần. Ví dụ, nếu đây là upload avatar mới.
+        if ("PROFILE".equals(targetTypeCode)) {
+            redisAvatarTemplate.delete("avatar:" + userId);
+        }
+
+        // 6. Chuyển đổi sang DTO và trả về
+        return toDto(savedMedia);
+    }
 }

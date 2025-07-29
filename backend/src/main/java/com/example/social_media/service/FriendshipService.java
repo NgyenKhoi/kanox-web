@@ -82,10 +82,7 @@ public class FriendshipService {
                 "PROFILE"
         );
     }
-    @Caching(evict = {
-            @CacheEvict(value = "newsfeed", key = "#requester.username"),
-            @CacheEvict(value = "newsfeed", key = "#user.username")
-    })
+
     @Transactional
     public void acceptFriendRequest(Integer userId, Integer requesterId) {
         String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();

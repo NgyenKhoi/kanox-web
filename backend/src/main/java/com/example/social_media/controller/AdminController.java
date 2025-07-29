@@ -111,22 +111,57 @@ public class AdminController {
             @RequestParam Boolean status
     ) {
         try {
+            System.out.println("=== [DEBUG] AdminController.updateUserStatus called ===");
+            System.out.println("User ID: " + userId);
+            System.out.println("Status: " + status);
+            
+            if (userId == null || userId <= 0) {
+                System.out.println("=== [ERROR] Invalid userId: " + userId + " ===");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of("message", "Invalid user ID", "error", "User ID must be a positive integer"));
+            }
+            
+            if (status == null) {
+                System.out.println("=== [ERROR] Status is null ===");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of("message", "Status is required", "error", "Status cannot be null"));
+            }
+            
             String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+            System.out.println("Current admin username: " + currentUsername);
+            
             User admin = customUserDetailsService.getUserByUsername(currentUsername);
+            System.out.println("Admin found: " + admin.getUsername());
 
-            User updatedUser = userService.updateUserStatus(userId, status);
+            User updatedUser = userService.updateUserStatus(userId, status, admin.getId());
             String statusMessage = status ? "unlocked" : "locked";
-
+            
+            System.out.println("=== [DEBUG] AdminController.updateUserStatus completed successfully ===");
             return ResponseEntity.ok(Map.of(
                     "message", "User account " + statusMessage + " successfully",
                     "data", updatedUser
             ));
         } catch (UserNotFoundException e) {
+            System.out.println("=== [ERROR] UserNotFoundException in AdminController: " + e.getMessage() + " ===");
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("message", "User not found", "error", e.getMessage()));
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
+            System.out.println("=== [ERROR] RuntimeException in AdminController: " + e.getMessage() + " ===");
+            e.printStackTrace();
+            if (e.getCause() != null) {
+                System.out.println("=== [ERROR] Root cause: " + e.getCause().getMessage() + " ===");
+            }
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("message", "Error updating user status", "error", e.getMessage()));
+                    .body(Map.of("message", "Error updating user status", "error", e.getMessage(), "rootCause", e.getCause() != null ? e.getCause().getMessage() : "Unknown"));
+        } catch (Exception e) {
+            System.out.println("=== [ERROR] Exception in AdminController: " + e.getMessage() + " ===");
+            e.printStackTrace();
+            if (e.getCause() != null) {
+                System.out.println("=== [ERROR] Root cause: " + e.getCause().getMessage() + " ===");
+            }
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Error updating user status", "error", e.getMessage(), "rootCause", e.getCause() != null ? e.getCause().getMessage() : "Unknown"));
         }
     }
 
@@ -199,17 +234,58 @@ public class AdminController {
             @RequestBody UpdateReportStatusRequestDto request
     ) {
         try {
+            System.out.println("=== [DEBUG] AdminController.updateReportStatus called ===");
+            System.out.println("Report ID: " + reportId);
+            System.out.println("Request processingStatusId: " + (request != null ? request.getProcessingStatusId() : "null"));
+            
+            if (reportId == null || reportId <= 0) {
+                System.out.println("=== [ERROR] Invalid reportId: " + reportId + " ===");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of("message", "Invalid report ID", "error", "Report ID must be a positive integer"));
+            }
+            
+            if (request == null) {
+                System.out.println("=== [ERROR] Request is null ===");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of("message", "Request body is required", "error", "Request is null"));
+            }
+            
+            if (request.getProcessingStatusId() == null) {
+                System.out.println("=== [ERROR] ProcessingStatusId is null ===");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of("message", "Processing status ID is required", "error", "ProcessingStatusId is null"));
+            }
+            
             reportService.updateReportStatus(reportId, request);
+            
+            System.out.println("=== [DEBUG] AdminController.updateReportStatus completed successfully ===");
             return ResponseEntity.ok(Map.of("message", "Report status updated successfully"));
         } catch (UserNotFoundException e) {
+            System.out.println("=== [ERROR] UserNotFoundException in AdminController: " + e.getMessage() + " ===");
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("message", "Admin not found", "error", e.getMessage()));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("message", "Unauthorized action", "error", e.getMessage()));
-        } catch (Exception e) {
+            System.out.println("=== [ERROR] IllegalArgumentException in AdminController: " + e.getMessage() + " ===");
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("message", "Invalid request", "error", e.getMessage()));
+        } catch (RuntimeException e) {
+            System.out.println("=== [ERROR] RuntimeException in AdminController: " + e.getMessage() + " ===");
+            e.printStackTrace();
+            if (e.getCause() != null) {
+                System.out.println("=== [ERROR] Root cause: " + e.getCause().getMessage() + " ===");
+            }
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("message", "Error updating report status", "error", e.getMessage()));
+                    .body(Map.of("message", "Error updating report status", "error", e.getMessage(), "rootCause", e.getCause() != null ? e.getCause().getMessage() : "Unknown"));
+        } catch (Exception e) {
+            System.out.println("=== [ERROR] Exception in AdminController: " + e.getMessage() + " ===");
+            e.printStackTrace();
+            if (e.getCause() != null) {
+                System.out.println("=== [ERROR] Root cause: " + e.getCause().getMessage() + " ===");
+            }
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Error updating report status", "error", e.getMessage(), "rootCause", e.getCause() != null ? e.getCause().getMessage() : "Unknown"));
         }
     }
 
@@ -227,19 +303,7 @@ public class AdminController {
         }
     }
 
-    @DeleteMapping(URLConfig.MANAGE_REPORT_BY_ID)
-    public ResponseEntity<?> deleteReport(@PathVariable Integer reportId) {
-        try {
-            reportService.deleteReport(reportId);
-            return ResponseEntity.ok(Map.of("message", "Report deleted successfully"));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("message", "Report not found", "error", e.getMessage()));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("message", "Error deleting report", "error", e.getMessage()));
-        }
-    }
+
 
     @GetMapping(URLConfig.GET_REPORT_HISTORY)
     public ResponseEntity<?> getReportHistory(@PathVariable Integer reportId) {

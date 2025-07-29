@@ -13,17 +13,13 @@ import java.util.Optional;
 @Repository
 public interface UserRepository extends JpaRepository<User, Integer> {
     Optional<User> findByEmailAndStatusTrue(String email);
-    Optional<User> findByPersistentCookie(String persistentCookie);
-    Optional<User> findByGoogleId(String googleId);
     Optional<User> findByUsernameAndStatusTrue(String username);
     Optional<User> findByEmail(String email);
     Optional<User> findByUsername(String username);
     Optional<User> findById(Integer id);
     boolean existsByEmail(String email);
     boolean existsByUsername(String username);
-    Optional<User> findByIdAndStatusTrue(Integer id);
-    
-    // Search method for Admin user management
+
     Page<User> findByEmailContainingOrUsernameContainingOrDisplayNameContaining(
             String email, String username, String displayName, Pageable pageable);
 

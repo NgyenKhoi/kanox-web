@@ -7,13 +7,23 @@ import org.hibernate.annotations.ColumnDefault;
 import java.time.Instant;
 
 @Entity
-@NamedStoredProcedureQuery(
-        name = "sp_UpdateAllFriendSuggestions",
-        procedureName = "sp_UpdateAllFriendSuggestions",
-        parameters = {
-                @StoredProcedureParameter(mode = ParameterMode.IN, name = "radius_km", type = Double.class)
-        }
-)
+@NamedStoredProcedureQueries({
+        @NamedStoredProcedureQuery(
+                name = "sp_UpdateAllFriendSuggestions",
+                procedureName = "sp_UpdateAllFriendSuggestions",
+                parameters = {
+                        @StoredProcedureParameter(mode = ParameterMode.IN, name = "radius_km", type = Double.class)
+                }
+        ),
+        @NamedStoredProcedureQuery(
+                name = "sp_UpdateFriendSuggestionsForUser",
+                procedureName = "sp_UpdateFriendSuggestionsForUser",
+                parameters = {
+                        @StoredProcedureParameter(mode = ParameterMode.IN, name = "user_id", type = Integer.class),
+                        @StoredProcedureParameter(mode = ParameterMode.IN, name = "radius_km", type = Double.class)
+                }
+        )
+})
 @Table(name = "tblFriendSuggestion", schema = "dbo")
 public class FriendSuggestion {
     @EmbeddedId
@@ -32,6 +42,9 @@ public class FriendSuggestion {
     @NotNull
     @Column(name = "mutual_friend_count", nullable = false)
     private Integer mutualFriendCount;
+
+    @Column(name = "mutual_friend_ids")
+    private String mutualFriendIds;
 
     @ColumnDefault("getdate()")
     @Column(name = "suggested_at")
@@ -76,6 +89,14 @@ public class FriendSuggestion {
 
     public void setMutualFriendCount(Integer mutualFriendCount) {
         this.mutualFriendCount = mutualFriendCount;
+    }
+
+    public String getMutualFriendIds() {
+        return mutualFriendIds;
+    }
+
+    public void setMutualFriendIds(String mutualFriendIds) {
+        this.mutualFriendIds = mutualFriendIds;
     }
 
     public Instant getSuggestedAt() {

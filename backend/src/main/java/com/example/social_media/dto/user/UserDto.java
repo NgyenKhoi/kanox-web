@@ -1,6 +1,12 @@
 package com.example.social_media.dto.user;
 
 
+import com.example.social_media.entity.User;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
 public class UserDto {
     private Integer id;
     private String username;
@@ -10,6 +16,7 @@ public class UserDto {
     private Integer mutualFriendCount;
     private String reason;
     private Double distanceKm;
+    private List<UserDto> mutualFriends;
 
     public UserDto() {}
 
@@ -35,13 +42,14 @@ public class UserDto {
         this.displayName = displayName;
     }
 
-    public UserDto(Integer id, String username, String displayName, Integer mutualFriendCount, String reason, Double distanceKm) {
+    public UserDto(Integer id, String username, String displayName, String reason, Integer mutualFriendCount, Double distanceKm, List<UserDto> mutualFriends) {
         this.id = id;
         this.username = username;
         this.displayName = displayName;
-        this.mutualFriendCount = mutualFriendCount;
         this.reason = reason;
+        this.mutualFriendCount = mutualFriendCount;
         this.distanceKm = distanceKm;
+        this.mutualFriends = mutualFriends != null ? mutualFriends : new ArrayList<>();
     }
 
 
@@ -115,7 +123,7 @@ public class UserDto {
     public String getReasonText() {
         if ("mutual_friends".equals(reason) && mutualFriendCount > 0) {
             return "Có " + mutualFriendCount + " bạn chung";
-        } else if ("location".equals(reason) && distanceKm != null) {
+        } else if ("location".equals(reason) && distanceKm != null && distanceKm > 0) {
             return "Sống cách bạn " + String.format("%.2f", distanceKm) + " km";
         }
         return "Gợi ý cho bạn";

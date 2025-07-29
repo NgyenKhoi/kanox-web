@@ -445,11 +445,9 @@ public class PostService {
         Map<Integer, Boolean> accessMap = privacyService.checkContentAccessBatch(userId, postIds, "post");
 
         // ✅ Bài viết đã lưu
-        Set<Integer> savedPostIdSet = savedPostRepository.findByUserIdAndStatusTrue(userId).stream()
-                .map(sp -> sp.getPost().getId())
-                .collect(Collectors.toSet());
 
-        List<Integer> savedPostIds = new ArrayList<>(savedPostIdSet);
+        List<Integer> savedPostIds = savedPostRepository.findByUserIdAndStatusTrue(userId).stream()
+                .map(sp -> sp.getPost().getId()).distinct().collect(Collectors.toList());
 
         // ✅ Gắn tag bài viết
         Map<Integer, List<PostTag>> postTagsMap = postTagRepository.findAllByPostIdInAndStatusTrue(postIds).stream()

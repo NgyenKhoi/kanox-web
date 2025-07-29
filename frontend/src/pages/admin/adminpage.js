@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Container, Row, Col, Navbar, Tab, Button } from "react-bootstrap";
+import { Container, Row, Col, Tab, Button } from "react-bootstrap"; // Removed Navbar as it's not used directly here for layout
 import "bootstrap/dist/css/bootstrap.min.css";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -20,11 +20,14 @@ const AdminDashboardApp = () => {
 
   useEffect(() => {
     if (newReport) {
-      toast.info(`Báo cáo mới từ ${newReport.reporterUsername}: ${newReport.reason}`);
+      toast.info(
+        `Báo cáo mới từ ${newReport.reporterUsername}: ${newReport.reason}`
+      );
       // Tự động chuyển sang tab Reports nếu có báo cáo mới
       setActiveTab("reports");
     }
   }, [newReport]);
+
   // Hàm render nội dung dựa trên tab đang hoạt động
   const renderContent = () => {
     switch (activeTab) {
@@ -46,38 +49,53 @@ const AdminDashboardApp = () => {
   };
 
   return (
-      <div className="min-h-screen bg-light">
-        <Container fluid>
-          <Row>
-            <Col md={3}>
-              <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
-            </Col>
-            <Col md={9}>
-              <Tab.Container
-                  activeKey={activeTab}
-                  onSelect={(k) => setActiveTab(k)}
-                  className="h-full"
-              >
-                <Tab.Content className="p-4">{renderContent()}</Tab.Content>
-              </Tab.Container>
-            </Col>
-          </Row>
-        </Container>
-        <Container className="text-center mt-4">
-          <p className="text-muted">Quản lý hệ thống mạng xã hội KaNox.</p>
-        </Container>
-        <ToastContainer
-            position="top-right"
-            autoClose={3000}
-            hideProgressBar={false}
-            newestOnTop={false}
-            closeOnClick
-            rtl={false}
-            pauseOnFocusLoss
-            draggable
-            pauseOnHover
-        />
-      </div>
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white">
+      {" "}
+      {/* Added dark mode classes */}
+      <Container fluid className="py-4">
+        {" "}
+        {/* Added padding */}
+        <Row>
+          <Col md={3} className="pr-md-0">
+            {" "}
+            {/* Adjusted column spacing */}
+            <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+          </Col>
+          <Col md={9} className="pl-md-4">
+            {" "}
+            {/* Adjusted column spacing */}
+            <Tab.Container
+              activeKey={activeTab}
+              onSelect={(k) => setActiveTab(k)}
+              className="h-full"
+            >
+              <Tab.Content className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md min-h-[calc(100vh-64px)]">
+                {" "}
+                {/* Added styling for content area */}
+                {renderContent()}
+              </Tab.Content>
+            </Tab.Container>
+          </Col>
+        </Row>
+      </Container>
+      <Container className="text-center mt-4">
+        <p className="text-muted dark:text-gray-400">
+          Quản lý hệ thống mạng xã hội KaNox.
+        </p>
+      </Container>
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light" // Can be 'dark' or 'colored' as well
+      />
+    </div>
   );
 };
 
