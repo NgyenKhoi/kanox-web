@@ -79,20 +79,18 @@ public class PrivacyService {
                     ? setting.getProfileViewer()
                     : "public";
 
-            switch (privacySetting) {
-                case "public":
-                    return true;
-                case "friends":
+            return switch (privacySetting) {
+                case "public" -> true;
+                case "friends" -> {
                     boolean isFriend = friendshipRepository.findByUserIdAndFriendIdAndFriendshipStatusAndStatus(
                             viewer.getId(), owner.getId(), "accepted", true).isPresent()
                             || friendshipRepository.findByUserIdAndFriendIdAndFriendshipStatusAndStatus(
                             owner.getId(), viewer.getId(), "accepted", true).isPresent();
-                    return isFriend;
-                case "only_me":
-                    return false;
-                default:
-                    return true;
-            }
+                    yield isFriend;
+                }
+                case "only_me" -> false;
+                default -> true;
+            };
         }
 
         ContentPrivacy contentPrivacy = contentPrivacyRepository.findByContentIdAndContentTypeId(contentId, targetType.getId())
@@ -127,28 +125,27 @@ public class PrivacyService {
             logger.debug("Content-specific privacy found: {}", privacySetting);
         }
 
-        switch (privacySetting) {
-            case "public":
-                return true;
-            case "friends":
+        return switch (privacySetting) {
+            case "public" -> true;
+            case "friends" -> {
                 boolean isFriend = friendshipRepository.findByUserIdAndFriendIdAndFriendshipStatusAndStatus(
                         viewer.getId(), owner.getId(), "accepted", true).isPresent() ||
                         friendshipRepository.findByUserIdAndFriendIdAndFriendshipStatusAndStatus(
                                 owner.getId(), viewer.getId(), "accepted", true).isPresent();
-                return isFriend;
-            case "custom":
+                yield isFriend;
+            }
+            case "custom" -> {
                 if (contentPrivacy != null && contentPrivacy.getCustomList() != null) {
                     boolean isInCustomList = customPrivacyListMemberRepository
                             .findByListIdAndMemberUser(contentPrivacy.getCustomList().getId(), viewer)
                             .isPresent();
-                    return isInCustomList;
+                    yield isInCustomList;
                 }
-                return false;
-            case "only_me":
-                return false;
-            default:
-                return true;
-        }
+                yield false;
+            }
+            case "only_me" -> false;
+            default -> true;
+        };
     }
 
 
@@ -199,8 +196,6 @@ public class PrivacyService {
     @Transactional
     public List<CustomListMemberDto> getCustomListMembers(Integer userId, Integer listId) {
         logger.debug("Fetching custom list members for userId: {}, listId: {}", userId, listId);
-        CustomPrivacyList customList = customPrivacyListRepository.findByIdAndUserIdAndStatus(listId, userId, true)
-                .orElseThrow(() -> new IllegalArgumentException("Danh sách không tồn tại hoặc bạn không có quyền"));
 
         List<CustomPrivacyListMember> members = customPrivacyListMemberRepository.findAllByListIdAndStatus(listId, true);
         return members.stream()
@@ -298,7 +293,7 @@ public class PrivacyService {
                 privacySettingRepository.findByUserIdIn(ownerIds);
         Map<Integer, String> ownerPrivacyMap = ownerPrivacySettings.stream()
                 .collect(Collectors.toMap(
-                        ps -> ps.getId(),
+                        PrivacySetting::getId,
                         ps -> Optional.ofNullable(ps.getPostViewer()).orElse("public"),
                         (p1, p2) -> p1
                 ));

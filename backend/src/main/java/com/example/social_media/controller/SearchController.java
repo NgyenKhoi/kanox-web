@@ -2,11 +2,9 @@ package com.example.social_media.controller;
 
 import com.example.social_media.config.URLConfig;
 import com.example.social_media.document.GroupDocument;
-import com.example.social_media.document.PageDocument;
 import com.example.social_media.document.UserDocument;
 import com.example.social_media.dto.search.SearchResponseDto;
 import com.example.social_media.dto.group.GroupDto;
-import com.example.social_media.dto.user.PageDto;
 import com.example.social_media.dto.user.UserDto;
 import com.example.social_media.mapper.DocumentMapper;
 import com.example.social_media.service.DataSyncService;
@@ -64,19 +62,6 @@ public class SearchController {
         }
     }
 
-    @GetMapping(URLConfig.SEARCH_PAGE)
-    public ResponseEntity<List<PageDto>> searchPages(@RequestParam("keyword") String keyword) {
-        try {
-            List<PageDocument> pages = searchService.searchPages(keyword);
-            List<PageDto> pageDtos = pages != null ? pages.stream()
-                    .map(documentMapper::toPageDto)
-                    .collect(Collectors.toList()) : Collections.emptyList();
-            return ResponseEntity.ok(pageDtos);
-        } catch (Exception e) {
-            logger.error("Error searching pages with keyword '{}': {}", keyword, e.getMessage(), e);
-            return ResponseEntity.status(500).body(Collections.emptyList());
-        }
-    }
 
     @PostMapping(URLConfig.SEARCH_SYNC)
     public ResponseEntity<String> syncAllData() {
@@ -101,16 +86,11 @@ public class SearchController {
                     .map(documentMapper::toGroupDto)
                     .collect(Collectors.toList());
 
-            List<PageDto> pageDtos = searchService.searchPages(keyword).stream()
-                    .map(documentMapper::toPageDto)
-                    .collect(Collectors.toList());
-
-            SearchResponseDto result = new SearchResponseDto(userDtos, groupDtos, pageDtos);
+            SearchResponseDto result = new SearchResponseDto(userDtos, groupDtos);
             return ResponseEntity.ok(result);
         } catch (Exception e) {
             logger.error("Error searching all with keyword '{}': {}", keyword, e.getMessage(), e);
             return ResponseEntity.status(500).body(new SearchResponseDto(
-                    Collections.emptyList(),
                     Collections.emptyList(),
                     Collections.emptyList()
             ));

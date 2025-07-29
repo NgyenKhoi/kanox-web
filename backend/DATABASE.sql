@@ -1,4 +1,4 @@
-﻿/*
+/*
 	USE master
     IF EXISTS(select * from sys.databases where name='SOCIAL-MEDIA-PROJECT')
     BEGIN
@@ -3152,6 +3152,37 @@ WHERE definition LIKE '%friendship%';
 				END
 			END
 
+			-- Kiểm tra auto-block user nếu báo cáo được duyệt (approved)
+			IF @processing_status_id = (SELECT id FROM tblReportStatus WHERE name = 'Approved')
+			BEGIN
+				DECLARE @target_user_id INT;
+				SELECT @target_user_id = target_id 
+				FROM tblReport 
+				WHERE id = @report_id AND target_type_id = (SELECT id FROM tblTargetType WHERE name = 'USER');
+
+				IF @target_user_id IS NOT NULL
+				BEGIN
+					-- Đếm số báo cáo được duyệt cho user này
+					DECLARE @approved_reports_count INT;
+					SELECT @approved_reports_count = COUNT(*)
+					FROM tblReport r
+					WHERE r.target_id = @target_user_id 
+					AND r.target_type_id = (SELECT id FROM tblTargetType WHERE name = 'USER')
+					AND r.processing_status_id = (SELECT id FROM tblReportStatus WHERE name = 'Approved')
+					AND r.status = 1;
+
+					-- Nếu đạt 3 báo cáo được duyệt, tự động block user
+					IF @approved_reports_count >= 3
+					BEGIN
+						-- Kiểm tra user chưa bị block
+						IF EXISTS (SELECT 1 FROM tblUser WHERE id = @target_user_id AND status = 1)
+						BEGIN
+							EXEC sp_AutoBlockUser @target_user_id, @admin_id;
+						END
+					END
+				END
+			END
+
 			-- Log activity
 			DECLARE @action_type_id_status INT;
 			SELECT @action_type_id_status = id FROM tblActionType WHERE name = 'REPORT_STATUS_UPDATED';
@@ -3212,6 +3243,82 @@ WHERE definition LIKE '%friendship%';
 		FETCH NEXT @size ROWS ONLY;
 	END;
 
+        -- Stored procedure để block/unblock user
+        CREATE OR ALTER PROCEDURE sp_UpdateUserStatus
+            @user_id INT,
+            @admin_id INT,
+            @new_status BIT  -- 1 = active, 0 = blocked
+        AS
+        BEGIN
+            SET NOCOUNT ON;
+            DECLARE @return_code INT = 0;
+
+            BEGIN TRY
+                BEGIN TRANSACTION;
+
+                -- Kiểm tra user_id tồn tại
+                IF NOT EXISTS (SELECT 1 FROM tblUser WHERE id = @user_id)
+                    BEGIN
+                        SET @return_code = 1; -- User không tồn tại
+                        ROLLBACK TRANSACTION;
+                        RETURN @return_code;
+                    END
+
+                -- Kiểm tra admin_id hợp lệ
+                IF NOT EXISTS (SELECT 1 FROM tblUser WHERE id = @admin_id AND is_admin = 1 AND status = 1)
+                    BEGIN
+                        SET @return_code = 2; -- Admin không hợp lệ
+                        ROLLBACK TRANSACTION;
+                        RETURN @return_code;
+                    END
+
+                -- Cập nhật trạng thái user
+                UPDATE tblUser
+                SET status = @new_status
+                WHERE id = @user_id;
+
+                -- Ghi log hoạt động
+                DECLARE @action_type_id INT;
+                DECLARE @action_name NVARCHAR(50);
+                
+                IF @new_status = 0
+                    SET @action_name = 'BLOCK_USER';
+                ELSE
+                    SET @action_name = 'UNBLOCK_USER';
+
+                SELECT @action_type_id = id FROM tblActionType WHERE name = @action_name;
+
+                IF @action_type_id IS NULL
+                    BEGIN
+                        DECLARE @description NVARCHAR(255);
+                        IF @new_status = 0
+                            SET @description = 'Admin blocked user account';
+                        ELSE
+                            SET @description = 'Admin unblocked user account';
+                            
+                        INSERT INTO tblActionType (name, description)
+                        VALUES (@action_name, @description);
+                        SET @action_type_id = SCOPE_IDENTITY();
+                    END
+
+                EXEC sp_LogActivity @admin_id, @action_type_id, NULL, NULL, 1, @user_id, 'USER';
+
+                COMMIT TRANSACTION;
+                RETURN @return_code; -- Trả về 0 nếu thành công
+            END TRY
+            BEGIN CATCH
+                IF @@TRANCOUNT > 0
+                    ROLLBACK TRANSACTION;
+
+                DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+                INSERT INTO tblErrorLog (error_message, error_time)
+                VALUES (@ErrorMessage, GETDATE());
+
+                RETURN 99; -- Unknown error
+            END CATCH;
+        END;
+
+        -- Stored procedure để auto-block user sau 3 báo cáo được duyệt
         CREATE OR ALTER PROCEDURE sp_AutoBlockUser
             @user_id INT,        -- User bị auto-block
             @admin_id INT        -- Admin thực hiện auto-block
@@ -3239,14 +3346,6 @@ WHERE definition LIKE '%friendship%';
                         RETURN @return_code;
                     END
 
-                -- Kiểm tra user đã bị block chưa
-                IF EXISTS (SELECT 1 FROM tblUser WHERE id = @user_id AND status = 0)
-                    BEGIN
-                        SET @return_code = 3; -- Đã bị khóa rồi
-                        ROLLBACK TRANSACTION;
-                        RETURN @return_code;
-                    END
-
                 -- Auto-block user
                 UPDATE tblUser
                 SET status = 0
@@ -3259,7 +3358,7 @@ WHERE definition LIKE '%friendship%';
                 IF @action_type_id IS NULL
                     BEGIN
                         INSERT INTO tblActionType (name, description)
-                        VALUES ('AUTO_BLOCK_USER', 'User automatically blocked due to multiple reports');
+                        VALUES ('AUTO_BLOCK_USER', 'User automatically blocked due to multiple approved reports');
                         SET @action_type_id = SCOPE_IDENTITY();
                     END
 
@@ -3277,6 +3376,8 @@ WHERE definition LIKE '%friendship%';
                 VALUES (@ErrorMessage, GETDATE());
 
                 RETURN 99; -- Unknown error
+            END CATCH;
+        END;
             END CATCH
         END;
     ---------------------------------------
@@ -3609,6 +3710,10 @@ GO
 	('ACTIVATE_BANNED_KEYWORD', 'Admin activated banned keyword'),
 	('DEACTIVATE_BANNED_KEYWORD', 'Admin deactivated banned keyword'),
 	('REPORT_ABUSE_WARNING', 'User received warning for report abuse'),
+    ('MARK_CHAT_SPAM', 'User marked a chat as spam'),
+    ('UNMARK_CHAT_SPAM', 'User unmarked a chat as spam'),
+    ('REPORT_SUBMITTED', 'User submitted a report'),
+    ('REPORT_STATUS_UPDATED', 'Admin updated the status of a report'),
 	('UPDATE_LOCATION', 'User update location');
 
 	select * from tblTargetType
@@ -3629,6 +3734,7 @@ GO
 	('REPORT_ABUSE_WARNING', 'Warning for report abuse', 1),
 	('AI_FLAGGED_NOTICE', 'Your post was flagged by AI for review', 1),
 	('AI_FLAGGED_POST', 'A post was flagged by AI for review', 1),
+    ('GROUP_USER_KICKED', 'You have been removed from the group', 1),
     ('POST_REMOVED', 'Your post was removed due to community standards violation', 1);
 
 

@@ -6,13 +6,11 @@ import com.example.social_media.entity.User;
 import com.example.social_media.exception.UserNotFoundException;
 import com.example.social_media.repository.LocationRepository;
 import com.example.social_media.repository.UserRepository;
+import com.example.social_media.repository.report.ReportRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
-import org.springframework.dao.DataAccessException;
 
 import java.time.Instant;
 
@@ -22,22 +20,20 @@ public class UserService {
     private final UserRepository userRepository;
     private final LocationRepository locationRepository;
     private final ActivityLogService activityLogService;
-    
-    @PersistenceContext
-    private EntityManager entityManager;
+    private final ReportRepository reportRepository;
 
     public UserService(
             UserRepository userRepository,
             LocationRepository locationRepository,
-            ActivityLogService activityLogService) {
+            ActivityLogService activityLogService,
+            ReportRepository reportRepository) {
         this.userRepository = userRepository;
         this.locationRepository = locationRepository;
         this.activityLogService = activityLogService;
+        this.reportRepository = reportRepository;
     }
 
-    /**
-     * Lấy danh sách người dùng với phân trang và tìm kiếm
-     */
+
     public Page<User> getAllUsers(Pageable pageable, String search) {
         if (search != null && !search.isEmpty()) {
             // Search by email, username or displayName
@@ -47,17 +43,12 @@ public class UserService {
         return userRepository.findAll(pageable);
     }
 
-    /**
-     * Lấy thông tin người dùng theo ID
-     */
+
     public User getUserById(Integer userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found with ID: " + userId));
     }
 
-    /**
-     * Cập nhật thông tin người dùng
-     */
     @Transactional
     public User updateUser(Integer userId, User userUpdate) {
         User existingUser = getUserById(userId);
@@ -86,12 +77,9 @@ public class UserService {
         return userRepository.save(existingUser);
     }
 
-    /**
-     * Cập nhật trạng thái người dùng (khóa/mở khóa)
-     */
     @Transactional
-    public User updateUserStatus(Integer userId, Boolean status) {
-        System.out.println("[DEBUG] Starting updateUserStatus for userId: " + userId + ", status: " + status);
+    public User updateUserStatus(Integer userId, Boolean status, Integer adminId) {
+        System.out.println("[DEBUG] Starting updateUserStatus for userId: " + userId + ", status: " + status + ", adminId: " + adminId);
         
         User user = getUserById(userId);
         System.out.println("[DEBUG] Found user: " + user.getUsername() + ", current status: " + user.getStatus());
@@ -103,14 +91,14 @@ public class UserService {
         }
         
         try {
-            // Cập nhật status trực tiếp thông qua JPA
-            user.setStatus(status);
-            User updatedUser = userRepository.save(user);
+            // Sử dụng stored procedure sp_UpdateUserStatus
+            System.out.println("[DEBUG] Calling sp_UpdateUserStatus stored procedure...");
+            System.out.println("[DEBUG] Parameters: userId=" + userId + ", adminId=" + adminId + ", newStatus=" + status);
             
-            // Log activity
-            String action = status ? "UNLOCK_USER" : "LOCK_USER";
-            activityLogService.logUserActivity(userId, action, "Admin changed user status");
-            System.out.println("[DEBUG] Activity logged: " + action);
+            reportRepository.updateUserStatus(userId, adminId, status);
+            
+            // Refresh user object để lấy status mới nhất từ database
+            User updatedUser = getUserById(userId);
             System.out.println("[DEBUG] User status updated successfully to: " + updatedUser.getStatus());
             
             return updatedUser;
@@ -121,25 +109,7 @@ public class UserService {
             throw new RuntimeException("Failed to update user status: " + e.getMessage(), e);
         }
     }
-    
-    /**
-     * Cập nhật quyền admin cho người dùng
-     */
-    @Transactional
-    public User updateAdminRole(Integer userId, Boolean isAdmin) {
-        User user = getUserById(userId);
-        user.setIsAdmin(isAdmin);
-        
-        // Log activity
-        String action = isAdmin ? "GRANT_ADMIN" : "REVOKE_ADMIN";
-        activityLogService.logUserActivity(userId, action, "Admin role updated");
-        
-        return userRepository.save(user);
-    }
 
-    /**
-     * Cập nhật vị trí quê quán của người dùng
-     */
     @Transactional
     public void updateUserLocation(Integer userId, UserLocationDto locationDto) {
         User user = getUserById(userId);

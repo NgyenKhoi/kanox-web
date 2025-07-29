@@ -5,7 +5,6 @@ import com.example.social_media.entity.*;
 import com.example.social_media.mapper.DocumentMapper;
 import com.example.social_media.repository.*;
 import com.example.social_media.repository.document.GroupDocumentRepository;
-import com.example.social_media.repository.document.PageDocumentRepository;
 import com.example.social_media.repository.document.UserDocumentRepository;
 import org.springframework.stereotype.Service;
 
@@ -17,31 +16,25 @@ public class DataSyncService {
 
     private final UserRepository userRepo;
     private final GroupRepository groupRepo;
-    private final PageRepository pageRepo;
     private final GroupMemberRepository groupMemberRepo;
 
     private final UserDocumentRepository userDocRepo;
     private final GroupDocumentRepository groupDocRepo;
-    private final PageDocumentRepository pageDocRepo;
 
     private final DocumentMapper mapper;
 
     public DataSyncService(
             UserRepository userRepo,
             GroupRepository groupRepo,
-            PageRepository pageRepo,
             UserDocumentRepository userDocRepo,
             GroupDocumentRepository groupDocRepo,
-            PageDocumentRepository pageDocRepo,
             DocumentMapper mapper,
             GroupMemberRepository groupMemberRepo
     ) {
         this.userRepo = userRepo;
         this.groupRepo = groupRepo;
-        this.pageRepo = pageRepo;
         this.userDocRepo = userDocRepo;
         this.groupDocRepo = groupDocRepo;
-        this.pageDocRepo = pageDocRepo;
         this.mapper = mapper;
         this.groupMemberRepo = groupMemberRepo;
     }
@@ -75,15 +68,6 @@ public class DataSyncService {
         System.out.println("Đã đồng bộ " + docs.size() + " groups sang Elasticsearch.");
     }
 
-    public void syncAllPagesToElasticsearch() {
-        List<Page> allPages = pageRepo.findAll();
-        List<PageDocument> docs = allPages.stream()
-                .map(mapper::toPageDocument)
-                .collect(Collectors.toList());
-        pageDocRepo.saveAll(docs);
-        System.out.println("Đã đồng bộ " + docs.size() + " pages sang Elasticsearch.");
-    }
-
     public void syncUserToElasticsearch(Integer userId) {
         userRepo.findById(userId).ifPresent(user -> {
             if (Boolean.TRUE.equals(user.getIsSystem())) {
@@ -112,6 +96,5 @@ public class DataSyncService {
     public void syncAllToElasticsearch() {
         syncAllUsersToElasticsearch();
         syncAllGroupsToElasticsearch();
-        syncAllPagesToElasticsearch();
     }
 }

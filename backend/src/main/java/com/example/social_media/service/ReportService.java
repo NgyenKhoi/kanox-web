@@ -5,6 +5,8 @@ import com.example.social_media.dto.report.ReportResponseDto;
 import com.example.social_media.dto.report.UpdateReportStatusRequestDto;
 import com.example.social_media.dto.report.ReportReasonDto;
 import com.example.social_media.entity.*;
+import com.example.social_media.exception.NotFoundException;
+import com.example.social_media.exception.UnauthorizedException;
 import com.example.social_media.exception.UserNotFoundException;
 import com.example.social_media.repository.*;
 import com.example.social_media.repository.post.PostAIModerationRepository;
@@ -36,7 +38,6 @@ public class ReportService {
     private final ReportReasonRepository reportReasonRepository;
     private final ReportStatusRepository reportStatusRepository;
     private final ReportHistoryRepository reportHistoryRepository;
-    private final ReportLimitRepository reportLimitRepository;
     private final PostRepository postRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final NotificationService notificationService;
@@ -45,6 +46,9 @@ public class ReportService {
     private final MediaRepository mediaRepository;
     private final CommentRepository  commentRepository;
     private final ReactionRepository reactionRepository;
+    private final GroupRepository groupRepository;
+    private final GroupMemberRepository groupMemberRepository;
+    private final MediaService mediaService;
 
     private static final int MAX_REPORTS_PER_DAY = 3;
 
@@ -54,7 +58,6 @@ public class ReportService {
             ReportReasonRepository reportReasonRepository,
             ReportStatusRepository reportStatusRepository,
             ReportHistoryRepository reportHistoryRepository,
-            ReportLimitRepository reportLimitRepository,
             PostRepository postRepository,
             SimpMessagingTemplate messagingTemplate,
             NotificationService notificationService,
@@ -62,14 +65,16 @@ public class ReportService {
             PostAIModerationRepository postAIModerationRepository,
             MediaRepository mediaRepository,
             CommentRepository commentRepository,
-            ReactionRepository reactionRepository
+            ReactionRepository reactionRepository,
+            GroupRepository groupRepository,
+            GroupMemberRepository groupMemberRepository,
+            MediaService mediaService
     ) {
         this.reportRepository = reportRepository;
         this.userRepository = userRepository;
         this.reportReasonRepository = reportReasonRepository;
         this.reportStatusRepository = reportStatusRepository;
         this.reportHistoryRepository = reportHistoryRepository;
-        this.reportLimitRepository = reportLimitRepository;
         this.postRepository = postRepository;
         this.messagingTemplate = messagingTemplate;
         this.notificationService = notificationService;
@@ -78,19 +83,50 @@ public class ReportService {
         this.mediaRepository = mediaRepository;
         this.commentRepository = commentRepository;
         this.reactionRepository = reactionRepository;
+        this.groupRepository = groupRepository;
+        this.groupMemberRepository = groupMemberRepository;
+        this.mediaService = mediaService;
+    }
+
+    @Transactional(readOnly = true)
+    public Page<ReportResponseDto> getReportsByGroupId(Integer groupId, Boolean status, Pageable pageable) {
+        Group group = groupRepository.findById(groupId)
+                .orElseThrow(() -> new NotFoundException("Nhóm không tồn tại"));
+        Page<Report> reportPage = reportRepository.findByGroupIdAndTargetTypeId(groupId, status, pageable);
+        return reportPage.map(this::convertToReportResponseDto);
     }
 
     @Transactional
     public void createReport(CreateReportRequestDto request) {
         User reporter = userRepository.findById(request.getReporterId())
-                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + request.getReporterId()));
+                .orElseThrow(() -> new UserNotFoundException("Người dùng không tồn tại với id: " + request.getReporterId()));
 
         ReportReason reason = reportReasonRepository.findById(request.getReasonId())
-                .orElseThrow(() -> new IllegalArgumentException("Report reason not found with id: " + request.getReasonId()));
+                .orElseThrow(() -> new IllegalArgumentException("Lý do báo cáo không tồn tại với id: " + request.getReasonId()));
+
+        // Kiểm tra báo cáo trùng lặp
+        boolean reportExists = reportRepository.existsByReporterIdAndTargetIdAndTargetTypeIdAndStatus(
+                request.getReporterId(), request.getTargetId(), request.getTargetTypeId(), true);
+        if (reportExists) {
+            throw new IllegalArgumentException("Bạn đã báo cáo nội dung này trước đó");
+        }
+
+        // Kiểm tra quyền báo cáo bài viết trong nhóm private
+        if (request.getTargetTypeId() == 1) {
+            Post post = postRepository.findById(request.getTargetId())
+                    .orElseThrow(() -> new IllegalArgumentException("Bài viết không tồn tại với id: " + request.getTargetId()));
+            if (post.getGroup() != null && "private".equalsIgnoreCase(post.getGroup().getPrivacyLevel())) {
+                boolean isMember = groupMemberRepository.existsById_GroupIdAndId_UserIdAndStatusTrueAndInviteStatus(
+                        post.getGroup().getId(), reporter.getId(), "ACCEPTED");
+                if (!isMember) {
+                    throw new UnauthorizedException("Bạn không có quyền báo cáo bài viết trong nhóm private này");
+                }
+            }
+        }
 
         try {
             ReportStatus status = reportStatusRepository.findById(1)
-                    .orElseThrow(() -> new IllegalArgumentException("Report status not found with id: 1"));
+                    .orElseThrow(() -> new IllegalArgumentException("Trạng thái báo cáo không tồn tại với id: 1"));
 
             Integer reportId = reportRepository.addReport(
                     request.getReporterId(),
@@ -102,18 +138,93 @@ public class ReportService {
             );
 
             Report report = reportRepository.findById(reportId)
-                    .orElseThrow(() -> new IllegalArgumentException("Report not found with id: " + reportId));
+                    .orElseThrow(() -> new IllegalArgumentException("Báo cáo không tồn tại với id: " + reportId));
 
-            messagingTemplate.convertAndSend("/topic/admin/reports", Map.of(
-                    "id", reportId,
-                    "targetId", request.getTargetId(),
-                    "targetTypeId", request.getTargetTypeId(),
-                    "reporterUsername", reporter.getUsername(),
-                    "reason", reason.getName(),
-                    "createdAt", System.currentTimeMillis() / 1000,
-                    "processingStatusId", status.getId(),
-                    "processingStatusName", status.getName()
-            ));
+            // Kiểm tra nếu báo cáo là bài viết
+            if (request.getTargetTypeId() == 1) {
+                Post post = postRepository.findById(request.getTargetId())
+                        .orElseThrow(() -> new IllegalArgumentException("Bài viết không tồn tại với id: " + request.getTargetId()));
+
+                if (post.getGroup() != null) {
+                    Integer groupId = post.getGroup().getId();
+                    List<GroupMember> admins = groupMemberRepository.findById_GroupIdAndIsAdminTrue(groupId);
+                    for (GroupMember admin : admins) {
+                        String message = "Bài viết trong nhóm " + post.getGroup().getName() + " đã bị báo cáo bởi " + reporter.getUsername() +
+                                " với lý do: " + reason.getName();
+                        notificationService.sendNotification(
+                                admin.getUser().getId(),
+                                "GROUP_POST_REPORT",
+                                message,
+                                groupId,
+                                "GROUP",
+                                mediaService.getGroupAvatarUrl(groupId)
+                        );
+                        messagingTemplate.convertAndSend(
+                                "/topic/notifications/" + admin.getUser().getId(),
+                                Map.of(
+                                        "id", reportId,
+                                        "message", message,
+                                        "type", "GROUP_POST_REPORT",
+                                        "targetId", request.getTargetId(),
+                                        "targetType", "POST",
+                                        "groupId", groupId,
+                                        "groupName", post.getGroup().getName(),
+                                        "createdAt", System.currentTimeMillis() / 1000,
+                                        "status", "unread"
+                                )
+                        );
+                    }
+                    // Gửi thông báo tới owner nhóm nếu owner không nằm trong danh sách admin
+                    if (!admins.stream().anyMatch(admin -> admin.getUser().getId().equals(post.getGroup().getOwner().getId()))) {
+                        String message = "Bài viết trong nhóm " + post.getGroup().getName() + " đã bị báo cáo bởi " + reporter.getUsername() +
+                                " với lý do: " + reason.getName();
+                        notificationService.sendNotification(
+                                post.getGroup().getOwner().getId(),
+                                "GROUP_POST_REPORT",
+                                message,
+                                groupId,
+                                "GROUP",
+                                mediaService.getGroupAvatarUrl(groupId)
+                        );
+                        messagingTemplate.convertAndSend(
+                                "/topic/notifications/" + post.getGroup().getOwner().getId(),
+                                Map.of(
+                                        "id", reportId,
+                                        "message", message,
+                                        "type", "GROUP_POST_REPORT",
+                                        "targetId", request.getTargetId(),
+                                        "targetType", "POST",
+                                        "groupId", groupId,
+                                        "groupName", post.getGroup().getName(),
+                                        "createdAt", System.currentTimeMillis() / 1000,
+                                        "status", "unread"
+                                )
+                        );
+                    }
+                } else {
+                    messagingTemplate.convertAndSend("/topic/admin/reports", Map.of(
+                            "id", reportId,
+                            "targetId", request.getTargetId(),
+                            "targetTypeId", request.getTargetTypeId(),
+                            "reporterUsername", reporter.getUsername(),
+                            "reason", reason.getName(),
+                            "createdAt", System.currentTimeMillis() / 1000,
+                            "processingStatusId", status.getId(),
+                            "processingStatusName", status.getName()
+                    ));
+                }
+            } else {
+                messagingTemplate.convertAndSend("/topic/admin/reports", Map.of(
+                        "id", reportId,
+                        "targetId", request.getTargetId(),
+                        "targetTypeId", request.getTargetTypeId(),
+                        "reporterUsername", reporter.getUsername(),
+                        "reason", reason.getName(),
+                        "createdAt", System.currentTimeMillis() / 1000,
+                        "processingStatusId", status.getId(),
+                        "processingStatusName", status.getName()
+                ));
+            }
 
             ReportHistory history = new ReportHistory();
             history.setReporter(reporter);
@@ -152,10 +263,7 @@ public class ReportService {
         return reportPage.map(this::convertToReportResponseDto);
     }
     @CacheEvict(
-            value = {
-                    "newsfeed", "postsByUsername", "communityFeed",
-                    "postsByGroup", "postsByUserInGroup", "savedPosts"
-            },
+            value = {"newsfeed", "postsByUsername", "communityFeed", "postsByGroup", "postsByUserInGroup", "savedPosts"},
             allEntries = true
     )
     @Transactional
@@ -164,14 +272,31 @@ public class ReportService {
         if (currentUsername == null) {
             throw new IllegalStateException("No authenticated user found");
         }
+
         User admin = userRepository.findByUsername(currentUsername)
                 .orElseThrow(() -> new UserNotFoundException("Admin not found with username: " + currentUsername));
-        if (!admin.getIsAdmin()) {
-            throw new IllegalArgumentException("User is not an admin");
-        }
 
         Report report = reportRepository.findById(reportId)
                 .orElseThrow(() -> new IllegalArgumentException("Report not found with id: " + reportId));
+
+        // Kiểm tra quyền xử lý báo cáo
+        boolean isSystemAdmin = admin.getIsAdmin();
+        boolean isGroupAdmin = false;
+        Integer groupId = null;
+
+        if (report.getTargetType() != null && report.getTargetType().getId() == 1) { // Báo cáo bài viết
+            Post post = postRepository.findById(report.getTargetId())
+                    .orElseThrow(() -> new IllegalArgumentException("Post not found with id: " + report.getTargetId()));
+            if (post.getGroup() != null) {
+                groupId = post.getGroup().getId();
+                isGroupAdmin = groupMemberRepository.isGroupAdmin(groupId, admin.getId()) ||
+                        post.getGroup().getOwner().getId().equals(admin.getId());
+            }
+        }
+
+        if (!isSystemAdmin && !isGroupAdmin) {
+            throw new UnauthorizedException("Bạn không có quyền xử lý báo cáo này");
+        }
 
         try {
             System.out.println("=== [DEBUG] Calling sp_UpdateReportStatus ===");
@@ -181,192 +306,183 @@ public class ReportService {
             System.out.println("report.getTargetType() = " + (report.getTargetType() != null ? report.getTargetType().getId() : "null"));
             System.out.println("report.getTargetId() = " + report.getTargetId());
 
+            // Gọi stored procedure để cập nhật status và auto-block nếu cần
             reportRepository.updateReportStatus(reportId, admin.getId(), request.getProcessingStatusId());
 
+            // Refresh report object để lấy status mới nhất từ database
+            final Report updatedReport = reportRepository.findById(reportId)
+                    .orElseThrow(() -> new IllegalArgumentException("Report not found after update with id: " + reportId));
+
             boolean isApproved = request.getProcessingStatusId() == 3;
-            boolean isPostReport = report.getTargetType() != null && report.getTargetType().getId() == 1;
-            boolean isReporterAI = report.getReporter() != null && Boolean.TRUE.equals(report.getReporter().getIsSystem());
+            boolean isPostReport = updatedReport.getTargetType() != null && updatedReport.getTargetType().getId() == 1;
+            boolean isReporterAI = updatedReport.getReporter() != null && Boolean.TRUE.equals(updatedReport.getReporter().getIsSystem());
+
+            System.out.println("[DEBUG] === REPORT STATUS UPDATE DEBUG ===");
+            System.out.println("[DEBUG] Processing Status ID: " + request.getProcessingStatusId());
+            System.out.println("[DEBUG] Is Approved: " + isApproved);
+            System.out.println("[DEBUG] Is Post Report: " + isPostReport);
+            System.out.println("[DEBUG] Target Type: " + (updatedReport.getTargetType() != null ? updatedReport.getTargetType().getName() : "null"));
+            System.out.println("[DEBUG] Is Reporter AI: " + isReporterAI);
 
             if (isApproved && isPostReport) {
-                Post reportedPost = postRepository.findById(report.getTargetId())
-                        .orElseThrow(() -> new IllegalArgumentException("Post not found with id: " + report.getTargetId()));
+                System.out.println("[DEBUG] ✅ Report approved for POST - Starting post deletion process");
+                System.out.println("[DEBUG] Target ID: " + updatedReport.getTargetId());
+                System.out.println("[DEBUG] Is AI Reporter: " + isReporterAI);
 
-                // Với báo cáo từ AI
-                if (isReporterAI) {
-                    try {
-                        postFlagRepository.findByPostId(reportedPost.getId()).ifPresent(postFlagRepository::delete);
-                        postAIModerationRepository.findByPostId(reportedPost.getId()).ifPresent(postAIModerationRepository::delete);
+                Post reportedPost = postRepository.findById(updatedReport.getTargetId())
+                        .orElseThrow(() -> new IllegalArgumentException("Post not found with id: " + updatedReport.getTargetId()));
 
-                        List<Integer> commentIds = commentRepository.findIdsByPostId(reportedPost.getId());
-                        if (!commentIds.isEmpty()) {
-                            reactionRepository.deleteAllByCommentIds(commentIds);
-                        }
+                // Xóa bài viết và các dữ liệu liên quan
+                try {
+                    postFlagRepository.findByPostId(reportedPost.getId()).ifPresent(postFlagRepository::delete);
+                    postAIModerationRepository.findByPostId(reportedPost.getId()).ifPresent(postAIModerationRepository::delete);
 
-                        commentRepository.deleteAllByPostId(reportedPost.getId());
-
-                        reactionRepository.deleteAllByPostId(reportedPost.getId());
-
-                        mediaRepository.deleteAllPostMedia(reportedPost.getId());
-
-                        postRepository.delete(reportedPost);
-                        String reasonContent = report.getReason() != null
-                                ? report.getReason().getDescription()
-                                : "vi phạm tiêu chuẩn cộng đồng";
-
-                        String ownerMessage = "Bài viết của bạn đã bị xóa do: \"" + reasonContent + "\". "
-                                + "Vui lòng đảm bảo các nội dung bạn đăng tuân thủ tiêu chuẩn cộng đồng của chúng tôi.";
-
-                        messagingTemplate.convertAndSend(
-                                "/topic/notifications/" + reportedPost.getOwner().getId(),
-                                Map.of(
-                                        "id", reportedPost.getId(),
-                                        "message", ownerMessage,
-                                        "type", "POST_REMOVED",
-                                        "targetId", reportedPost.getId(),
-                                        "targetType", "POST",
-                                        "adminId", admin.getId(),
-                                        "adminDisplayName", admin.getDisplayName(),
-                                        "createdAt", System.currentTimeMillis() / 1000,
-                                        "status", "unread"
-                                )
-                        );
-
-                        notificationService.sendNotification(
-                                reportedPost.getOwner().getId(),      // Người nhận thông báo
-                                "POST_REMOVED",                       // Loại thông báo
-                                ownerMessage,                         // Nội dung
-                                admin.getId(),                        // Người gửi (admin)
-                                "PROFILE",
-                                null
-                        );
-                        System.out.println("✅ [AI MODERATION] Post " + reportedPost.getId() + " deleted by AI report approval.");
-                    } catch (Exception e) {
-                        System.err.println("❌ Error during AI auto-moderation delete: " + e.getMessage());
+                    List<Integer> commentIds = commentRepository.findIdsByPostId(reportedPost.getId());
+                    if (!commentIds.isEmpty()) {
+                        reactionRepository.deleteAllByCommentIds(commentIds);
                     }
-                }
-                // Với báo cáo người dùng
-                else {
-                    try {
-                        List<Integer> commentIds = commentRepository.findIdsByPostId(reportedPost.getId());
-                        if (!commentIds.isEmpty()) {
-                            reactionRepository.deleteAllByCommentIds(commentIds);
+
+                    commentRepository.deleteAllByPostId(reportedPost.getId());
+                    reactionRepository.deleteAllByPostId(reportedPost.getId());
+                    mediaRepository.deleteAllPostMedia(reportedPost.getId());
+                    postRepository.delete(reportedPost);
+
+                    String reasonContent = updatedReport.getReason() != null
+                            ? updatedReport.getReason().getDescription()
+                            : "vi phạm tiêu chuẩn cộng đồng";
+
+                    String ownerMessage = "Bài viết của bạn" + (groupId != null ? " trong nhóm " + reportedPost.getGroup().getName() : "") +
+                            " đã bị xóa do: \"" + reasonContent + "\". " +
+                            "Vui lòng đảm bảo các nội dung bạn đăng tuân thủ tiêu chuẩn cộng đồng của chúng tôi.";
+
+                    // Gửi thông báo tới chủ bài viết
+                    messagingTemplate.convertAndSend(
+                            "/topic/notifications/" + reportedPost.getOwner().getId(),
+                            Map.of(
+                                    "id", reportedPost.getId(),
+                                    "message", ownerMessage,
+                                    "type", "POST_REMOVED",
+                                    "targetId", reportedPost.getId(),
+                                    "targetType", "POST",
+                                    "adminId", admin.getId(),
+                                    "adminDisplayName", admin.getDisplayName(),
+                                    "groupId", groupId,
+                                    "createdAt", System.currentTimeMillis() / 1000,
+                                    "status", "unread"
+                            )
+                    );
+
+                    notificationService.sendNotification(
+                            reportedPost.getOwner().getId(),
+                            "POST_REMOVED",
+                            ownerMessage,
+                            admin.getId(),
+                            "PROFILE",
+                            null
+                    );
+
+                    // Gửi thông báo tới admin nhóm (bao gồm owner)
+                    if (groupId != null) {
+                        List<GroupMember> admins = groupMemberRepository.findById_GroupIdAndIsAdminTrue(groupId);
+                        for (GroupMember groupAdmin : admins) {
+                            String adminMessage = "Bài viết trong nhóm " + reportedPost.getGroup().getName() +
+                                    " đã bị xóa do: \"" + reasonContent + "\" bởi " + admin.getDisplayName();
+                            notificationService.sendNotification(
+                                    groupAdmin.getUser().getId(),
+                                    "GROUP_POST_REMOVED",
+                                    adminMessage,
+                                    groupId,
+                                    "GROUP",
+                                    mediaService.getGroupAvatarUrl(groupId)
+                            );
+                            messagingTemplate.convertAndSend(
+                                    "/topic/notifications/" + groupAdmin.getUser().getId(),
+                                    Map.of(
+                                            "id", reportedPost.getId(),
+                                            "message", adminMessage,
+                                            "type", "GROUP_POST_REMOVED",
+                                            "targetId", reportedPost.getId(),
+                                            "targetType", "POST",
+                                            "groupId", groupId,
+                                            "createdAt", System.currentTimeMillis() / 1000,
+                                            "status", "unread"
+                                    )
+                            );
                         }
-
-                        commentRepository.deleteAllByPostId(reportedPost.getId());
-
-                        reactionRepository.deleteAllByPostId(reportedPost.getId());
-
-                        mediaRepository.deleteAllPostMedia(reportedPost.getId());
-
-                        postFlagRepository.findByPostId(reportedPost.getId()).ifPresent(postFlagRepository::delete);
-
-                        postAIModerationRepository.findByPostId(reportedPost.getId()).ifPresent(postAIModerationRepository::delete);
-
-                        postRepository.delete(reportedPost);
-
-                        String reasonContent = report.getReason() != null
-                                ? report.getReason().getDescription()
-                                : "vi phạm tiêu chuẩn cộng đồng";
-
-                        String ownerMessage = "Bài viết của bạn đã bị xóa do: \"" + reasonContent + "\". "
-                                + "Vui lòng đảm bảo các nội dung bạn đăng tuân thủ tiêu chuẩn cộng đồng của chúng tôi.";
-
-                        messagingTemplate.convertAndSend(
-                                "/topic/notifications/" + reportedPost.getOwner().getId(),
-                                Map.of(
-                                        "id", reportedPost.getId(),
-                                        "message", ownerMessage,
-                                        "type", "POST_REMOVED",
-                                        "targetId", reportedPost.getId(),
-                                        "targetType", "POST",
-                                        "adminId", admin.getId(),
-                                        "adminDisplayName", admin.getDisplayName(),
-                                        "createdAt", System.currentTimeMillis() / 1000,
-                                        "status", "unread"
-                                )
-                        );
-
-                        notificationService.sendNotification(
-                                reportedPost.getOwner().getId(),      // Người nhận
-                                "POST_REMOVED",                       // Type
-                                ownerMessage,                         // Nội dung
-                                admin.getId(),                        // Người gửi (admin)
-                                "PROFILE",                            // Target type
-                                null                                  // Avatar URL nếu cần
-                        );
-                        System.out.println("✅ [USER MODERATION] Post " + reportedPost.getId() + " deleted by user report approval.");
-                    } catch (Exception e) {
-                        System.err.println("❌ Error during user report moderation delete: " + e.getMessage());
                     }
+
+                    System.out.println("✅ [" + (isReporterAI ? "AI" : "USER") + " MODERATION] Post " + reportedPost.getId() + " deleted.");
+                } catch (Exception e) {
+                    System.err.println("❌ Error during " + (isReporterAI ? "AI" : "user") + " moderation delete: " + e.getMessage());
                 }
             }
 
-            String message = switch (request.getProcessingStatusId()) {
-                case 1 -> "Báo cáo của bạn (ID: " + reportId + ") đang chờ xử lý bởi " + admin.getDisplayName();
-                case 2 -> "Báo cáo của bạn (ID: " + reportId + ") đang được xem xét bởi " + admin.getDisplayName();
-                case 3 -> "Báo cáo của bạn (ID: " + reportId + ") đã được duyệt bởi " + admin.getDisplayName();
-                case 4 -> "Báo cáo của bạn (ID: " + reportId + ") đã bị từ chối bởi " + admin.getDisplayName();
-                default -> "Báo cáo của bạn (ID: " + reportId + ") đã được cập nhật bởi " + admin.getDisplayName();
-            };
+            // Kiểm tra và thông báo nếu target bị tự động block
+            if (request.getProcessingStatusId() == 3 && updatedReport.getTargetType() != null) {
+                System.out.println("[DEBUG] === AUTO-BLOCK LOGIC START ===");
+                System.out.println("[DEBUG] Target ID: " + updatedReport.getTargetId());
+                System.out.println("[DEBUG] Target Type ID: " + updatedReport.getTargetType().getId());
+                System.out.println("[DEBUG] Target Type Name: " + updatedReport.getTargetType().getName());
 
-            // Kiểm tra và thông báo nếu target bị tự động block (cho báo cáo được duyệt)
-            if (request.getProcessingStatusId() == 3 && report.getTargetType() != null) {
-                // Đếm số lần target_id này bị báo cáo và được duyệt
                 long approvedReportsForTarget = reportRepository.countByTargetIdAndTargetTypeIdAndProcessingStatusIdAndStatus(
-                        report.getTargetId(), 
-                        report.getTargetType().getId(), 
-                        3, // Approved status
+                        updatedReport.getTargetId(),
+                        updatedReport.getTargetType().getId(),
+                        3,
                         true
                 );
-                
-                System.out.println("[DEBUG] Target ID: " + report.getTargetId());
-                System.out.println("[DEBUG] Target Type: " + report.getTargetType().getName());
+
                 System.out.println("[DEBUG] Approved reports for this target: " + approvedReportsForTarget);
-                
-                // Nếu target này đã bị báo cáo và duyệt 3 lần
-                if (approvedReportsForTarget >= 3) {
-                    System.out.println("[DEBUG] Target has 3+ approved reports, proceeding with auto-block");
-                    
-                    // Chỉ auto-block nếu target là USER hoặc là POST (block chủ sở hữu post)
+
+                if (updatedReport.getTargetType().getId() == 4) { // USER target
+                    System.out.println("[DEBUG] This is a USER report - counting all approved reports for user ID: " + updatedReport.getTargetId());
+                } else if (updatedReport.getTargetType().getId() == 1) { // POST target
+                    System.out.println("[DEBUG] This is a POST report - will check post owner for auto-block");
+                    Post reportedPost = postRepository.findById(updatedReport.getTargetId()).orElse(null);
+                    if (reportedPost != null && reportedPost.getOwner() != null) {
+                        System.out.println("[DEBUG] Post owner ID: " + reportedPost.getOwner().getId());
+                        System.out.println("[DEBUG] Post owner username: " + reportedPost.getOwner().getUsername());
+
+                        long userReports = reportRepository.countByTargetIdAndTargetTypeIdAndProcessingStatusIdAndStatus(
+                                reportedPost.getOwner().getId(), 4, 3, true);
+                        long postReports = reportRepository.countApprovedPostReportsByUserId(reportedPost.getOwner().getId());
+                        long totalApprovedReports = userReports + postReports;
+
+                        System.out.println("[DEBUG] User reports approved: " + userReports);
+                        System.out.println("[DEBUG] Post reports approved: " + postReports);
+                        System.out.println("[DEBUG] Total approved reports for user: " + totalApprovedReports);
+
+                        approvedReportsForTarget = totalApprovedReports;
+                    }
+                }
+
+                if (approvedReportsForTarget == 3) {
+                    System.out.println("[DEBUG] Target has exactly 3 approved reports, proceeding with auto-block");
+
                     final Integer userIdToBlock;
-                     
-                     if (report.getTargetType().getId() == 4) { // USER target
-                          userIdToBlock = report.getTargetId();
-                      } else if (report.getTargetType().getId() == 1) { // POST target
-                          // Tìm chủ sở hữu của post để block
-                           Post post = postRepository.findById(report.getTargetId()).orElse(null);
-                           if (post != null && post.getOwner() != null) {
-                               userIdToBlock = post.getOwner().getId();
-                           } else {
-                               userIdToBlock = null;
-                           }
-                      } else {
-                          userIdToBlock = null;
-                      }
-                    
+                    if (updatedReport.getTargetType().getId() == 4) { // USER target
+                        userIdToBlock = updatedReport.getTargetId();
+                    } else if (updatedReport.getTargetType().getId() == 1) { // POST target
+                        Post post = postRepository.findById(updatedReport.getTargetId()).orElse(null);
+                        userIdToBlock = (post != null && post.getOwner() != null) ? post.getOwner().getId() : null;
+                    } else {
+                        userIdToBlock = null;
+                    }
+
                     if (userIdToBlock != null) {
                         try {
                             User targetUser = userRepository.findById(userIdToBlock)
-                                .orElseThrow(() -> new UserNotFoundException("Target user not found with id: " + userIdToBlock));
-                            
+                                    .orElseThrow(() -> new UserNotFoundException("Target user not found with id: " + userIdToBlock));
+
                             System.out.println("[DEBUG] Found target user: " + targetUser.getUsername() + ", Status: " + targetUser.getStatus());
-                            
-                            // Chỉ khóa nếu user chưa bị khóa
+
                             if (targetUser.getStatus()) {
                                 System.out.println("[DEBUG] Calling autoBlockUser stored procedure...");
-                                System.out.println("[DEBUG] Parameters: userIdToBlock=" + userIdToBlock + ", adminId=" + admin.getId());
-                                
-                                // Gọi stored procedure để auto-block user
                                 reportRepository.autoBlockUser(userIdToBlock, admin.getId());
-                                
+
                                 System.out.println("=== AUTO-BLOCK USER SUCCESSFUL ====");
-                                System.out.println("User ID: " + userIdToBlock + " (" + targetUser.getUsername() + ") has been automatically blocked due to 3+ approved reports on target ID: " + report.getTargetId());
-                                
-                                // Kiểm tra lại status sau khi block
-                                User updatedUser = userRepository.findById(userIdToBlock).orElse(null);
-                                if (updatedUser != null) {
-                                    System.out.println("[DEBUG] User status after auto-block: " + updatedUser.getStatus());
-                                }
+                                System.out.println("User ID: " + userIdToBlock + " (" + targetUser.getUsername() + ") has been automatically blocked due to 3 approved reports on target ID: " + updatedReport.getTargetId());
+
+                                userRepository.findById(userIdToBlock).ifPresent(updatedUser -> System.out.println("[DEBUG] User status after auto-block: " + updatedUser.getStatus()));
                             } else {
                                 System.out.println("[DEBUG] User is already blocked, skipping auto-block");
                             }
@@ -379,12 +495,24 @@ public class ReportService {
                             e.printStackTrace();
                         }
                     }
+                } else {
+                    System.out.println("[DEBUG] Target has " + approvedReportsForTarget + " approved reports - no auto-block needed");
                 }
             }
 
-            // Gửi thông báo WebSocket duy nhất
+            // Auto-block logic is now handled by the stored procedure sp_UpdateReportStatus
+            System.out.println("[DEBUG] Auto-block logic handled by stored procedure");
+
+            String message = switch (request.getProcessingStatusId()) {
+                case 1 -> "Báo cáo của bạn (ID: " + reportId + ") đang chờ xử lý bởi " + admin.getDisplayName();
+                case 2 -> "Báo cáo của bạn (ID: " + reportId + ") đang được xem xét bởi " + admin.getDisplayName();
+                case 3 -> "Báo cáo của bạn (ID: " + reportId + ") đã được duyệt bởi " + admin.getDisplayName();
+                case 4 -> "Báo cáo của bạn (ID: " + reportId + ") đã bị từ chối bởi " + admin.getDisplayName();
+                default -> "Báo cáo của bạn (ID: " + reportId + ") đã được cập nhật bởi " + admin.getDisplayName();
+            };
+
             messagingTemplate.convertAndSend(
-                    "/topic/notifications/" + report.getReporter().getId(),
+                    "/topic/notifications/" + updatedReport.getReporter().getId(),
                     Map.of(
                             "id", reportId,
                             "message", message,
@@ -398,34 +526,34 @@ public class ReportService {
                     )
             );
 
-            // Lưu thông báo vào database
             notificationService.sendNotification(
-                    report.getReporter().getId(),
+                    updatedReport.getReporter().getId(),
                     "REPORT_STATUS_UPDATED",
                     message,
                     admin.getId(),
                     "PROFILE"
             );
 
-            if (request.getProcessingStatusId() == 4) { // Rejected
+            // Kiểm tra báo cáo bị từ chối
+            if (request.getProcessingStatusId() == 4) {
                 Instant startOfToday = LocalDate.now()
                         .atStartOfDay(ZoneId.systemDefault())
                         .toInstant();
 
                 long rejectedCount = reportRepository.countByReporterIdAndProcessingStatusIdAndReportTime(
-                        report.getReporter().getId(), 4, startOfToday
+                        updatedReport.getReporter().getId(), 4, startOfToday
                 );
                 if (rejectedCount >= 3) {
                     String abuseMessage = "Bạn đã gửi quá nhiều báo cáo không hợp lệ hôm nay. Vui lòng kiểm tra lại hành vi báo cáo của bạn.";
                     notificationService.sendNotification(
-                            report.getReporter().getId(),
+                            updatedReport.getReporter().getId(),
                             "REPORT_ABUSE_WARNING",
                             abuseMessage,
                             admin.getId(),
                             "PROFILE"
                     );
                     messagingTemplate.convertAndSend(
-                            "/topic/notifications/" + report.getReporter().getId(),
+                            "/topic/notifications/" + updatedReport.getReporter().getId(),
                             Map.of(
                                     "id", reportId,
                                     "message", abuseMessage,
@@ -438,66 +566,26 @@ public class ReportService {
                     );
                 }
             }
+
+            // Lưu lịch sử báo cáo
+            ReportHistory history = new ReportHistory();
+            history.setReporter(admin);
+            history.setReport(updatedReport);
+            history.setProcessingStatus(reportStatusRepository.findById(request.getProcessingStatusId())
+                    .orElseThrow(() -> new IllegalArgumentException("Trạng thái báo cáo không tồn tại")));
+            history.setActionTime(Instant.now());
+            history.setStatus(true);
+            reportHistoryRepository.save(history);
         } catch (Exception e) {
-            e.printStackTrace(); // In chi tiết lỗi ra console
+            e.printStackTrace();
             String message = e.getCause() instanceof SQLException
                     ? e.getCause().getMessage()
                     : e.getMessage();
-
             throw new RuntimeException("❌ Lỗi khi cập nhật trạng thái báo cáo: " + message);
         }
     }
 
-    @Transactional
-    public void deleteReport(Integer reportId) {
-        Report report = reportRepository.findById(reportId)
-                .orElseThrow(() -> new IllegalArgumentException("Report not found with id: " + reportId));
-        ReportStatus status = reportStatusRepository.findById(4)
-                .orElseThrow(() -> new IllegalArgumentException("Report status not found with id: 4"));
 
-        try {
-            ReportHistory history = new ReportHistory();
-            String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-            User admin = userRepository.findByUsername(currentUsername)
-                    .orElseThrow(() -> new UserNotFoundException("Admin not found"));
-            history.setReporter(admin);
-            history.setReport(report);
-            history.setProcessingStatus(status);
-            history.setActionTime(Instant.now());
-            history.setStatus(true);
-            reportHistoryRepository.save(history);
-
-            String message = "Báo cáo của bạn (ID: " + reportId + ") đã bị xóa bởi " + admin.getDisplayName();
-            messagingTemplate.convertAndSend(
-                    "/topic/notifications/" + report.getReporter().getId(),
-                    Map.of(
-                            "id", reportId,
-                            "message", message,
-                            "type", "REPORT_DELETED",
-                            "targetId", admin.getId(),
-                            "targetType", "PROFILE", // Sửa: Gửi targetType dạng chuỗi
-                            "adminId", admin.getId(),
-                            "adminDisplayName", admin.getDisplayName() != null ? admin.getDisplayName() : admin.getUsername(),
-                            "createdAt", System.currentTimeMillis() / 1000,
-                            "status", "unread"
-                    )
-            );
-
-            notificationService.sendNotification(
-                    report.getReporter().getId(),
-                    "REPORT_DELETED",
-                    message,
-                    admin.getId(),
-                    "PROFILE"
-            );
-
-            report.setStatus(false);
-            reportRepository.save(report);
-            reportRepository.delete(report);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to delete report: " + e.getMessage());
-        }
-    }
 
     public ReportResponseDto getReportById(Integer reportId) {
         Report report = reportRepository.findById(reportId)
@@ -526,12 +614,11 @@ public class ReportService {
         dto.setReportTime(report.getReportTime());
         dto.setStatus(report.getStatus());
 
-        // Thêm logic để lấy content và imageUrls nếu là báo cáo bài viết
+        // Thêm logic để lấy content, imageUrls và thông tin nhóm nếu là báo cáo bài viết
         if (report.getTargetType() != null && report.getTargetType().getId() == 1) { // 1 = POST
             Post post = postRepository.findById(report.getTargetId()).orElse(null);
             if (post != null) {
                 dto.setContent(post.getContent());
-                // Lấy danh sách mediaUrl từ MediaRepository
                 List<String> imageUrls = mediaRepository
                         .findByTargetIdAndTargetType_CodeAndMediaType_NameAndStatus(
                                 post.getId(), "POST", "image", true)
@@ -539,6 +626,10 @@ public class ReportService {
                         .map(Media::getMediaUrl)
                         .collect(Collectors.toList());
                 dto.setImageUrls(imageUrls);
+                if (post.getGroup() != null) {
+                    dto.setGroupId(post.getGroup().getId());
+                    dto.setGroupName(post.getGroup().getName());
+                }
             } else {
                 dto.setContent(null);
                 dto.setImageUrls(Collections.emptyList());

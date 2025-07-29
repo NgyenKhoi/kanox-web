@@ -1,5 +1,4 @@
 package com.example.social_media.service;
-
 import com.google.cloud.storage.Acl;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
@@ -29,20 +28,24 @@ public class GcsService {
         this.storage = storage;
     }
 
+
     public String uploadFile(MultipartFile file) throws IOException {
         if (file.isEmpty()) {
             logger.error("File is empty");
             throw new IllegalArgumentException("File không được để trống");
         }
 
+
         String objectName = UUID.randomUUID() + "_" + file.getOriginalFilename();
         logger.info("Uploading file to GCS: bucket={}, objectName={}", bucketName, objectName);
+
 
         BlobId blobId = BlobId.of(bucketName, objectName);
         BlobInfo blobInfo = BlobInfo.newBuilder(blobId)
                 .setContentType(file.getContentType())
                 .setAcl(Arrays.asList(Acl.of(Acl.User.ofAllUsers(), Acl.Role.READER)))
                 .build();
+
 
         try {
             storage.create(blobInfo, file.getBytes());

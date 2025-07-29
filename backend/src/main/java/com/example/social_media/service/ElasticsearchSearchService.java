@@ -95,10 +95,6 @@ public class ElasticsearchSearchService {
         return searchWithPrefixAndSort("groups", "name", keyword, GroupDocument.class);
     }
 
-    public List<PageDocument> searchPages(String keyword) throws IOException {
-        return searchWithPrefixAndSort("pages", "name", keyword, PageDocument.class);
-    }
-
     public Map<String, List<?>> searchAll(String keyword) {
         Map<String, List<?>> result = new HashMap<>();
         try {
@@ -112,13 +108,6 @@ public class ElasticsearchSearchService {
             result.put("groups", searchGroups(keyword));
         } catch (Exception e) {
             result.put("groups", Collections.emptyList());
-            e.printStackTrace();
-        }
-
-        try {
-            result.put("pages", searchPages(keyword));
-        } catch (Exception e) {
-            result.put("pages", Collections.emptyList());
             e.printStackTrace();
         }
 

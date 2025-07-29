@@ -175,12 +175,36 @@ public class GroupService {
             throw new UnauthorizedException("Chỉ admin hoặc owner được xóa thành viên");
         }
 
+        if (group.getOwner().getId().equals(targetUserId)) {
+            throw new IllegalArgumentException("Không thể xóa chủ nhóm");
+        }
+
         GroupMember member = groupMemberRepository.findById_GroupIdAndId_UserId(groupId, targetUserId)
                 .orElseThrow(() -> new IllegalArgumentException("Thành viên không tồn tại"));
 
+        if (!member.getStatus()) {
+            throw new IllegalStateException("Thành viên này đã bị xóa khỏi nhóm");
+        }
+
         member.setStatus(false);
         groupMemberRepository.save(member);
+
+        notificationService.sendNotification(
+                targetUserId,
+                "KICKED_FROM_GROUP",
+                "Bạn đã bị Admin xóa khỏi nhóm",
+                groupId,
+                "GROUP"
+        );
     }
+
+    public boolean isGroupAdminOrOwner(Integer groupId, Integer userId) {
+        Group group = groupRepository.findById(groupId)
+                .orElseThrow(() -> new NotFoundException("Nhóm không tồn tại"));
+        return group.getOwner().getId().equals(userId) ||
+                groupMemberRepository.isGroupAdmin(groupId, userId);
+    }
+
 
     public Map<String, Object> getGroupMembers(Integer groupId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
@@ -603,10 +627,6 @@ public class GroupService {
 
     public Optional<Group> getGroupById(Integer id) {
         return groupRepository.findById(id);
-    }
-
-    public void deleteGroup(Integer id) {
-        groupRepository.deleteById(id);
     }
 
     private GroupSummaryDto mapToSummaryDto(Group group) {
