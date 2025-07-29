@@ -23,6 +23,7 @@ public class MessageQueueService {
     public void queueAndSendMessage(MessageDto messageDto) {
         // Lưu tin nhắn vào Redis với key là chatId
         String key = "chat:" + messageDto.getChatId() + ":messages";
+        System.out.println("Queuing message for chatId: " + messageDto.getChatId() + ", content: " + messageDto.getContent());
         redisTemplate.opsForList().rightPush(key, messageDto);
 
         // Giới hạn số tin nhắn lưu (ví dụ: 100 tin nhắn gần nhất)
