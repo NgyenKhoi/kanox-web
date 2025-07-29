@@ -45,134 +45,20 @@
 	);
 
 
-CREATE OR ALTER TRIGGER trg_UpdateLocation
-ON tblLocation
-AFTER UPDATE
-AS
-BEGIN
-    SET NOCOUNT ON;
-    SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
+	CREATE OR ALTER TRIGGER trg_UpdateLocation
+	ON tblLocation
+	AFTER UPDATE
+	AS
+	BEGIN
+		SET NOCOUNT ON;
+		SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
 
-    BEGIN TRY
-        -- Xóa các gợi ý dựa trên vị trí liên quan đến user_id vừa cập nhật
-        DELETE FROM tblFriendSuggestion WITH (ROWLOCK)
-        WHERE reason = 'location'
-        AND (user_id IN (SELECT user_id FROM inserted) OR suggested_user_id IN (SELECT user_id FROM inserted));
-
-        -- Log xóa gợi ý
-        INSERT INTO tblErrorLog (error_message, error_time)
-        VALUES ('trg_UpdateLocation: Deleted location-based suggestions for user_id: ' + 
-                (SELECT STRING_AGG(CAST(user_id AS NVARCHAR(10)), ',') FROM inserted), GETDATE());
-
-        -- Tạo bảng tạm để lưu gợi ý vị trí mới
-        DECLARE @LocationSuggestions TABLE (
-            user_id INT,
-            suggested_user_id INT,
-            mutual_friend_count INT,
-            mutual_friend_ids VARCHAR(MAX),
-            suggested_at DATETIME,
-            reason VARCHAR(50),
-            distance_km FLOAT
-        );
-
-        -- Tạo gợi ý vị trí mới
-        INSERT INTO @LocationSuggestions (user_id, suggested_user_id, mutual_friend_count, mutual_friend_ids, suggested_at, reason, distance_km)
-        SELECT TOP 50
-            ul1.user_id,
-            ul2.user_id AS suggested_user_id,
-            0 AS mutual_friend_count,
-            NULL AS mutual_friend_ids,
-            GETDATE() AS suggested_at,
-            'location' AS reason,
-            ROUND(
-                6371 * ACOS(
-                    CASE 
-                        WHEN COS(RADIANS(ul1.latitude)) * COS(RADIANS(ul2.latitude)) * 
-                             COS(RADIANS(ul2.longitude) - RADIANS(ul1.longitude)) + 
-                             SIN(RADIANS(ul1.latitude)) * SIN(RADIANS(ul2.latitude)) > 1 THEN 1
-                        WHEN COS(RADIANS(ul1.latitude)) * COS(RADIANS(ul2.latitude)) * 
-                             COS(RADIANS(ul2.longitude) - RADIANS(ul1.longitude)) + 
-                             SIN(RADIANS(ul1.latitude)) * SIN(RADIANS(ul2.latitude)) < -1 THEN -1
-                        ELSE COS(RADIANS(ul1.latitude)) * COS(RADIANS(ul2.latitude)) * 
-                             COS(RADIANS(ul2.longitude) - RADIANS(ul1.longitude)) + 
-                             SIN(RADIANS(ul1.latitude)) * SIN(RADIANS(ul2.latitude))
-                    END
-                ), 2) AS distance_km
-        FROM tblLocation ul1
-        CROSS JOIN tblLocation ul2
-        WHERE
-            ul1.user_id IN (SELECT user_id FROM inserted)
-            AND ul1.user_id <> ul2.user_id
-            AND ul2.user_id IN (SELECT id FROM tblUser WHERE status = 1)
-            AND ul1.latitude IS NOT NULL
-            AND ul2.latitude IS NOT NULL
-            AND ul1.longitude IS NOT NULL
-            AND ul2.longitude IS NOT NULL
-            AND ul1.latitude BETWEEN -90 AND 90
-            AND ul2.latitude BETWEEN -90 AND 90
-            AND ul1.longitude BETWEEN -180 AND 180
-            AND ul2.longitude BETWEEN -180 AND 180
-            AND (ul1.latitude <> ul2.latitude OR ul1.longitude <> ul2.longitude)
-            AND 6371 * ACOS(
-                CASE 
-                    WHEN COS(RADIANS(ul1.latitude)) * COS(RADIANS(ul2.latitude)) * 
-                         COS(RADIANS(ul2.longitude) - RADIANS(ul1.longitude)) + 
-                         SIN(RADIANS(ul1.latitude)) * SIN(RADIANS(ul2.latitude)) > 1 THEN 1
-                    WHEN COS(RADIANS(ul1.latitude)) * COS(RADIANS(ul2.latitude)) * 
-                         COS(RADIANS(ul2.longitude) - RADIANS(ul1.longitude)) + 
-                         SIN(RADIANS(ul1.latitude)) * SIN(RADIANS(ul2.latitude)) < -1 THEN -1
-                    ELSE COS(RADIANS(ul1.latitude)) * COS(RADIANS(ul2.latitude)) * 
-                         COS(RADIANS(ul2.longitude) - RADIANS(ul1.longitude)) + 
-                         SIN(RADIANS(ul1.latitude)) * SIN(RADIANS(ul2.latitude))
-                END
-            ) <= 10
-            AND NOT EXISTS (
-                SELECT 1 FROM tblFriendship f
-                WHERE f.friendship_status = 'accepted'
-                AND (
-                    (f.user_id = ul1.user_id AND f.friend_id = ul2.user_id)
-                    OR
-                    (f.user_id = ul2.user_id AND f.friend_id = ul1.user_id)
-                )
-            )
-            AND ul2.user_id NOT IN (
-                SELECT blocked_user_id FROM tblBlock WHERE user_id = ul1.user_id AND status = 1
-                UNION
-                SELECT user_id FROM tblBlock WHERE blocked_user_id = ul1.user_id AND status = 1
-            );
-
-        -- Chèn gợi ý mới vào tblFriendSuggestion
-        INSERT INTO tblFriendSuggestion (user_id, suggested_user_id, mutual_friend_count, mutual_friend_ids, suggested_at, expiration_date, reason, distance_km)
-        SELECT
-            user_id,
-            suggested_user_id,
-            mutual_friend_count,
-            mutual_friend_ids,
-            suggested_at,
-            DATEADD(DAY, 7, GETDATE()),
-            reason,
-            distance_km
-        FROM @LocationSuggestions;
-
-        -- Log thêm gợi ý mới
-        INSERT INTO tblErrorLog (error_message, error_time)
-        VALUES ('trg_UpdateLocation: Added new location-based suggestions for user_id: ' + 
-                (SELECT STRING_AGG(CAST(user_id AS NVARCHAR(10)), ',') FROM inserted), GETDATE());
-
-    END TRY
-    BEGIN CATCH
-        DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
-        DECLARE @ErrorSeverity INT = ERROR_SEVERITY();
-        DECLARE @ErrorState INT = ERROR_STATE();
-
-        INSERT INTO tblErrorLog (error_message, error_time)
-        VALUES ('Error in trg_UpdateLocation for user_id: ' + 
-                (SELECT STRING_AGG(CAST(user_id AS NVARCHAR(10)), ',') FROM inserted) + ': ' + @ErrorMessage, GETDATE());
-
-        RAISERROR (@ErrorMessage, @ErrorSeverity, @ErrorState);
-    END CATCH
-END;
-GO
+		-- Xóa các gợi ý dựa trên vị trí liên quan đến user_id vừa cập nhật
+		DELETE FROM tblFriendSuggestion WITH (ROWLOCK)
+		WHERE reason = 'location'
+		AND (user_id IN (SELECT user_id FROM inserted) OR suggested_user_id IN (SELECT user_id FROM inserted));
+	END;
+	GO
 
 
 	CREATE NONCLUSTERED INDEX IX_tblLocation_user_id
@@ -1269,240 +1155,6 @@ BEGIN
     END CATCH
 END;
 GO
-
-CREATE OR ALTER PROCEDURE sp_UpdateFriendSuggestionsForUser
-    @user_id INT,
-    @radius_km FLOAT = 10
-AS
-BEGIN
-    SET NOCOUNT ON;
-    SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
-
-    BEGIN TRY
-        -- Log khởi đầu
-        INSERT INTO tblErrorLog (error_message, error_time)
-        VALUES ('Starting sp_UpdateFriendSuggestionsForUser for user_id: ' + CAST(@user_id AS NVARCHAR(10)), GETDATE());
-
-        -- Xóa gợi ý hiện tại của user và các gợi ý liên quan
-        DELETE FROM tblFriendSuggestion 
-        WHERE user_id = @user_id 
-        OR suggested_user_id = @user_id;
-
-        -- Tạo bảng tạm để lưu gợi ý
-        DECLARE @NewSuggestions TABLE (
-            user_id INT,
-            suggested_user_id INT,
-            mutual_friend_count INT,
-            mutual_friend_ids VARCHAR(MAX),
-            suggested_at DATETIME,
-            reason VARCHAR(50),
-            distance_km FLOAT
-        );
-
-        -- Gợi ý dựa trên bạn chung (FOAF)
-        WITH AllFriends AS (
-            SELECT user_id, friend_id FROM tblFriendship WHERE friendship_status = 'accepted'
-            UNION
-            SELECT friend_id AS user_id, user_id AS friend_id FROM tblFriendship WHERE friendship_status = 'accepted'
-        ),
-        MutualFriends AS (
-            SELECT
-                af1.user_id,
-                af2.friend_id AS suggested_user_id,
-                COUNT(*) AS mutual_friend_count,
-                STRING_AGG(CAST(af1.friend_id AS VARCHAR), ',') AS mutual_friend_ids
-            FROM AllFriends af1
-            JOIN AllFriends af2 ON af1.friend_id = af2.user_id
-            WHERE
-                af1.user_id = @user_id
-                AND af1.user_id <> af2.friend_id
-                AND af2.friend_id IN (SELECT id FROM tblUser WHERE status = 1)
-                AND af2.friend_id NOT IN (
-                    SELECT friend_id FROM tblFriendship
-                    WHERE user_id = af1.user_id AND friendship_status = 'accepted'
-                    UNION
-                    SELECT user_id FROM tblFriendship
-                    WHERE friend_id = af1.user_id AND friendship_status = 'accepted'
-                )
-                AND af2.friend_id NOT IN (
-                    SELECT blocked_user_id FROM tblBlock WHERE user_id = af1.user_id AND status = 1
-                    UNION
-                    SELECT user_id FROM tblBlock WHERE blocked_user_id = af1.user_id AND status = 1
-                )
-            GROUP BY af1.user_id, af2.friend_id
-            HAVING COUNT(*) >= 1
-        )
-        INSERT INTO @NewSuggestions (user_id, suggested_user_id, mutual_friend_count, mutual_friend_ids, suggested_at, reason, distance_km)
-        SELECT TOP 50
-            user_id,
-            suggested_user_id,
-            mutual_friend_count,
-            mutual_friend_ids,
-            GETDATE() AS suggested_at,
-            'mutual_friends' AS reason,
-            NULL AS distance_km
-        FROM MutualFriends;
-
-        -- Gợi ý dựa trên vị trí
-        DECLARE @LocationSuggestions TABLE (
-            user_id INT,
-            suggested_user_id INT,
-            mutual_friend_count INT,
-            mutual_friend_ids VARCHAR(MAX),
-            suggested_at DATETIME,
-            reason VARCHAR(50),
-            distance_km FLOAT
-        );
-
-        INSERT INTO @LocationSuggestions (user_id, suggested_user_id, mutual_friend_count, mutual_friend_ids, suggested_at, reason, distance_km)
-        SELECT TOP 50
-            ul1.user_id,
-            ul2.user_id AS suggested_user_id,
-            0 AS mutual_friend_count,
-            NULL AS mutual_friend_ids,
-            GETDATE() AS suggested_at,
-            'location' AS reason,
-            ROUND(
-                6371 * ACOS(
-                    CASE 
-                        WHEN COS(RADIANS(ul1.latitude)) * COS(RADIANS(ul2.latitude)) * 
-                             COS(RADIANS(ul2.longitude) - RADIANS(ul1.longitude)) + 
-                             SIN(RADIANS(ul1.latitude)) * SIN(RADIANS(ul2.latitude)) > 1 THEN 1
-                        WHEN COS(RADIANS(ul1.latitude)) * COS(RADIANS(ul2.latitude)) * 
-                             COS(RADIANS(ul2.longitude) - RADIANS(ul1.longitude)) + 
-                             SIN(RADIANS(ul1.latitude)) * SIN(RADIANS(ul2.latitude)) < -1 THEN -1
-                        ELSE COS(RADIANS(ul1.latitude)) * COS(RADIANS(ul2.latitude)) * 
-                             COS(RADIANS(ul2.longitude) - RADIANS(ul1.longitude)) + 
-                             SIN(RADIANS(ul1.latitude)) * SIN(RADIANS(ul2.latitude))
-                    END
-                ), 2) AS distance_km
-        FROM tblLocation ul1
-        CROSS JOIN tblLocation ul2
-        WHERE
-            ul1.user_id = @user_id
-            AND ul1.user_id <> ul2.user_id
-            AND ul2.user_id IN (SELECT id FROM tblUser WHERE status = 1)
-            AND ul1.latitude IS NOT NULL
-            AND ul2.latitude IS NOT NULL
-            AND ul1.longitude IS NOT NULL
-            AND ul2.longitude IS NOT NULL
-            AND ul1.latitude BETWEEN -90 AND 90
-            AND ul2.latitude BETWEEN -90 AND 90
-            AND ul1.longitude BETWEEN -180 AND 180
-            AND ul2.longitude BETWEEN -180 AND 180
-            AND (ul1.latitude <> ul2.latitude OR ul1.longitude <> ul2.longitude)
-            AND 6371 * ACOS(
-                CASE 
-                    WHEN COS(RADIANS(ul1.latitude)) * COS(RADIANS(ul2.latitude)) * 
-                         COS(RADIANS(ul2.longitude) - RADIANS(ul1.longitude)) + 
-                         SIN(RADIANS(ul1.latitude)) * SIN(RADIANS(ul2.latitude)) > 1 THEN 1
-                    WHEN COS(RADIANS(ul1.latitude)) * COS(RADIANS(ul2.latitude)) * 
-                         COS(RADIANS(ul2.longitude) - RADIANS(ul1.longitude)) + 
-                         SIN(RADIANS(ul1.latitude)) * SIN(RADIANS(ul2.latitude)) < -1 THEN -1
-                    ELSE COS(RADIANS(ul1.latitude)) * COS(RADIANS(ul2.latitude)) * 
-                         COS(RADIANS(ul2.longitude) - RADIANS(ul1.longitude)) + 
-                         SIN(RADIANS(ul1.latitude)) * SIN(RADIANS(ul2.latitude))
-                END
-            ) <= @radius_km
-            AND NOT EXISTS (
-                SELECT 1 FROM tblFriendship f
-                WHERE f.friendship_status = 'accepted'
-                AND (
-                    (f.user_id = ul1.user_id AND f.friend_id = ul2.user_id)
-                    OR
-                    (f.user_id = ul2.user_id AND f.friend_id = ul1.user_id)
-                )
-            )
-            AND ul2.user_id NOT IN (
-                SELECT blocked_user_id FROM tblBlock WHERE user_id = ul1.user_id AND status = 1
-                UNION
-                SELECT user_id FROM tblBlock WHERE blocked_user_id = ul1.user_id AND status = 1
-            );
-
-        -- Gộp và loại bỏ trùng lặp, ưu tiên gợi ý mutual_friends
-        MERGE INTO tblFriendSuggestion AS target
-        USING (
-            SELECT 
-                user_id, 
-                suggested_user_id, 
-                mutual_friend_count, 
-                mutual_friend_ids, 
-                suggested_at, 
-                reason, 
-                distance_km
-            FROM (
-                SELECT 
-                    user_id, 
-                    suggested_user_id, 
-                    mutual_friend_count, 
-                    mutual_friend_ids, 
-                    suggested_at, 
-                    reason, 
-                    distance_km,
-                    ROW_NUMBER() OVER (PARTITION BY user_id, suggested_user_id ORDER BY CASE WHEN reason = 'mutual_friends' THEN 1 ELSE 2 END) AS rn
-                FROM (
-                    SELECT user_id, suggested_user_id, mutual_friend_count, mutual_friend_ids, suggested_at, reason, distance_km
-                    FROM @NewSuggestions
-                    UNION ALL
-                    SELECT user_id, suggested_user_id, mutual_friend_count, mutual_friend_ids, suggested_at, reason, distance_km
-                    FROM @LocationSuggestions
-                ) AS combined
-            ) AS ranked
-            WHERE rn = 1
-        ) AS source
-        ON target.user_id = source.user_id AND target.suggested_user_id = source.suggested_user_id
-        WHEN MATCHED THEN
-            UPDATE SET
-                mutual_friend_count = source.mutual_friend_count,
-                mutual_friend_ids = source.mutual_friend_ids,
-                suggested_at = source.suggested_at,
-                expiration_date = DATEADD(DAY, 7, GETDATE()),
-                reason = source.reason,
-                distance_km = source.distance_km
-        WHEN NOT MATCHED THEN
-            INSERT (user_id, suggested_user_id, mutual_friend_count, mutual_friend_ids, suggested_at, expiration_date, reason, distance_km)
-            VALUES (
-                source.user_id,
-                source.suggested_user_id,
-                source.mutual_friend_count,
-                source.mutual_friend_ids,
-                source.suggested_at,
-                DATEADD(DAY, 7, GETDATE()),
-                source.reason,
-                source.distance_km
-            );
-
-        -- Xóa lại các gợi ý mà hai user đã là bạn bè (cả hai chiều)
-        DELETE FROM tblFriendSuggestion
-        WHERE (user_id = @user_id OR suggested_user_id = @user_id)
-        AND EXISTS (
-            SELECT 1 FROM tblFriendship f
-            WHERE f.friendship_status = 'accepted'
-            AND (
-                (f.user_id = tblFriendSuggestion.user_id AND f.friend_id = tblFriendSuggestion.suggested_user_id)
-                OR
-                (f.user_id = tblFriendSuggestion.suggested_user_id AND f.friend_id = tblFriendSuggestion.user_id)
-            )
-        );
-
-        -- Log hoàn tất
-        INSERT INTO tblErrorLog (error_message, error_time)
-        VALUES ('Completed sp_UpdateFriendSuggestionsForUser for user_id: ' + CAST(@user_id AS NVARCHAR(10)), GETDATE());
-
-    END TRY
-    BEGIN CATCH
-        DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
-        DECLARE @ErrorSeverity INT = ERROR_SEVERITY();
-        DECLARE @ErrorState INT = ERROR_STATE();
-
-        INSERT INTO tblErrorLog (error_message, error_time)
-        VALUES ('Error in sp_UpdateFriendSuggestionsForUser for user_id: ' + CAST(@user_id AS NVARCHAR(10)) + ': ' + @ErrorMessage, GETDATE());
-
-        RAISERROR (@ErrorMessage, @ErrorSeverity, @ErrorState);
-    END CATCH
-END;
-GO
-
     -------------------
 
     CREATE TABLE tblFollow (
@@ -2904,12 +2556,20 @@ BEGIN
             END
 
         -- Kiểm tra trạng thái chặn
-        IF EXISTS (
-            SELECT 1
-            FROM tblBlock
-            WHERE (user_id = @sender_id OR blocked_user_id = @sender_id)
-              AND status = 1
-        )
+		IF EXISTS (
+			SELECT 1
+			FROM tblChatMember cm
+			JOIN tblBlock b
+			  ON (
+					(b.user_id = @sender_id AND b.blocked_user_id = cm.user_id)
+				 OR (b.user_id = cm.user_id AND b.blocked_user_id = @sender_id)
+				 )
+			WHERE cm.chat_id = @chat_id
+			  AND cm.user_id != @sender_id
+			  AND cm.status = 1
+			  AND b.status = 1
+		)
+
             BEGIN
                 SET @ErrorMessage = N'Người dùng bị chặn hoặc đã chặn người khác trong chat này.';
                 THROW 50004, @ErrorMessage, 1;
