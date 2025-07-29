@@ -77,22 +77,22 @@ public class MessageService {
             messageDto.setId(messageId);
 
             // Lưu media nếu có
-            if (messageDto.getMediaList() != null && !messageDto.getMediaList().isEmpty()) {
-                for (MediaDto media : messageDto.getMediaList()) {
-                    if (media.getUrl() == null || media.getType() == null) continue;
-                    mediaService.saveMediaWithUrl(
-                            sender.getId(),
-                            messageId,
-                            "MESSAGE",
-                            media.getType(),
-                            media.getUrl(),
-                            null
-                    );
-                }
-            }
-
-            List<MediaDto> savedMediaList = mediaService.getMediaByTargetDto(messageId, "MESSAGE", null, true);
-            messageDto.setMediaList(savedMediaList);
+//            if (messageDto.getMediaList() != null && !messageDto.getMediaList().isEmpty()) {
+//                for (MediaDto media : messageDto.getMediaList()) {
+//                    if (media.getUrl() == null || media.getType() == null) continue;
+//                    mediaService.saveMediaWithUrl(
+//                            sender.getId(),
+//                            messageId,
+//                            "MESSAGE",
+//                            media.getType(),
+//                            media.getUrl(),
+//                            null
+//                    );
+//                }
+//            }
+//
+//            List<MediaDto> savedMediaList = mediaService.getMediaByTargetDto(messageId, "MESSAGE", null, true);
+//            messageDto.setMediaList(savedMediaList);
 
             messageDto.setSenderId(sender.getId());
             messageDto.setCreatedAt(Instant.now());
