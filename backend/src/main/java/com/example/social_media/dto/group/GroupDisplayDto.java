@@ -20,6 +20,7 @@ public class GroupDisplayDto {
     private String privacyLevel;
     private String inviteStatus;
     private List<UserBasicDisplayDto> mutualFriendsInGroup;
+    private Boolean status;
 
     public GroupDisplayDto() {
     }
@@ -30,7 +31,7 @@ public class GroupDisplayDto {
                            boolean isAdmin, boolean isOwner,
                            boolean isMember,
                            String privacyLevel, String inviteStatus,
-                           List<UserBasicDisplayDto> mutualFriendsInGroup) {
+                           List<UserBasicDisplayDto> mutualFriendsInGroup, Boolean status) {
         this.id = id;
         this.name = name;
         this.avatarUrl = avatarUrl;
@@ -46,6 +47,7 @@ public class GroupDisplayDto {
         this.privacyLevel = privacyLevel;
         this.inviteStatus = inviteStatus;
         this.mutualFriendsInGroup = mutualFriendsInGroup;
+        this.status = status;
     }
 
     public Integer getId() {
@@ -166,5 +168,12 @@ public class GroupDisplayDto {
 
     public void setMutualFriendsInGroup(List<UserBasicDisplayDto> mutualFriendsInGroup) {
         this.mutualFriendsInGroup = mutualFriendsInGroup;
+    }
+    public Boolean getStatus() {
+        return status;
+    }
+
+    public void setStatus(Boolean status) {
+        this.status = status;
     }
 }

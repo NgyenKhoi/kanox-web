@@ -158,5 +158,6 @@ public class URLConfig {
     public static final String REPORT_BASE = "/api/reports";
     public static final String CREATE_REPORT = "/create";
     public static final String REPORT_REASON = "report-reasons";
+    public static final String GET_REPORTS_BY_GROUP = "/group/{groupId}";
 
 }

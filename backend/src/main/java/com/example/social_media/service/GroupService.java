@@ -569,7 +569,8 @@ public class GroupService {
                 isMember,
                 group.getPrivacyLevel(),
                 inviteStatus,
-                mutualFriends
+                mutualFriends,
+                group.getStatus()
         );
     }
 
@@ -598,7 +599,8 @@ public class GroupService {
                             true, // ✅ isMember = true
                             group.getPrivacyLevel(),
                             member.getInviteStatus(),
-                            List.of()
+                            List.of(),
+                            group.getStatus()
                     );
                 })
                 .collect(Collectors.toList());
