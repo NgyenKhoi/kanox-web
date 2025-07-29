@@ -17,8 +17,8 @@ pipeline {
                     // Lấy các file cấu hình từ VM
                     sh """
                         mkdir -p src/main/resources
-                        scp -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST}:/var/lib/jenkins/secrets/kanox/application.properties src/main/resources/
-                        scp -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST}:/var/lib/jenkins/secrets/kanox/gcp-credentials.json src/main/resources/
+                        scp -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST}:/home/vunguyenkhoi47/jenkins-secrets/application.properties src/main/resources/
+                        scp -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST}:/home/vunguyenkhoi47/jenkins-secrets/gcp-credentials.json src/main/resources/
                     """
         
                     sh 'chmod +x mvnw'
