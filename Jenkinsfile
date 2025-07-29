@@ -14,8 +14,18 @@ pipeline {
         stage('Clone & Build') {
             steps {
                 dir('backend') {
+                    // Lấy các file cấu hình từ VM
+                    sh """
+                        mkdir -p src/main/resources
+                        scp -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST}:/home/vunguyenkhoi47/jenkins-secrets/application.properties src/main/resources/
+                        scp -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST}:/home/vunguyenkhoi47/jenkins-secrets/gcp-credentials.json src/main/resources/
+                    """
+        
                     sh 'chmod +x mvnw'
                     sh './mvnw clean install -DskipTests'
+
+                    sh 'rm -f src/main/resources/application.properties'
+                    sh 'rm -f src/main/resources/gcp-credentials.json'
                 }
             }
         }
