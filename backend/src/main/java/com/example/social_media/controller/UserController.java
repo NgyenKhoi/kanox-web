@@ -65,7 +65,24 @@ public class UserController {
             @RequestPart("data") UserUpdateProfileDto updateDto,
             @RequestPart(value = "avatar", required = false) MultipartFile avatarFile) {
         try {
+            // ✅ Log username nhận từ URL
+            System.out.println("DEBUG - Username path variable: " + username);
+
+            // ✅ Log thông tin từ SecurityContext
             String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+            System.out.println("DEBUG - Current authenticated username: " + currentUsername);
+
+            // ✅ Log payload updateDto
+            System.out.println("DEBUG - Update DTO: " + updateDto);
+
+            // ✅ Log avatar nếu có
+            if (avatarFile != null) {
+                System.out.println("DEBUG - Avatar received: " + avatarFile.getOriginalFilename() +
+                        ", size: " + avatarFile.getSize());
+            } else {
+                System.out.println("DEBUG - No avatar uploaded");
+            }
+
             if (!username.equals(currentUsername)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Không thể chỉnh sửa profile người khác.");
             }
@@ -73,11 +90,18 @@ public class UserController {
             UserProfileDto updatedProfile = userProfileService.updateUserProfile(username, updateDto, avatarFile);
             return ResponseEntity.ok(updatedProfile);
         } catch (UserNotFoundException e) {
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
         } catch (IOException e) {
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to upload avatar");
+        } catch (Exception e) {
+            // ✅ Log tất cả các lỗi còn lại
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Operation failed: " + e.getMessage());
         }
     }
+
 
     // Lấy thông tin dạng tag (dùng để mention/tag user)
     @GetMapping("/username/{username}")
