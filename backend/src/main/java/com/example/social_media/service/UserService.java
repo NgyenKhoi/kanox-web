@@ -111,6 +111,39 @@ public class UserService {
     }
 
     @Transactional
+    public User updateUserLockStatus(Integer userId, Boolean isLocked, Integer adminId) {
+        System.out.println("[DEBUG] Starting updateUserLockStatus for userId: " + userId + ", isLocked: " + isLocked + ", adminId: " + adminId);
+        
+        User user = getUserById(userId);
+        System.out.println("[DEBUG] Found user: " + user.getUsername() + ", current lock status: " + user.getIsLocked());
+        
+        // Kiểm tra nếu lock status đã giống rồi thì không cần update
+        if (user.getIsLocked() != null && user.getIsLocked().equals(isLocked)) {
+            System.out.println("[DEBUG] Lock status already matches, no update needed");
+            return user;
+        }
+        
+        try {
+            // Sử dụng stored procedure sp_UpdateUserLockStatus
+            System.out.println("[DEBUG] Calling sp_UpdateUserLockStatus stored procedure...");
+            System.out.println("[DEBUG] Parameters: userId=" + userId + ", adminId=" + adminId + ", isLocked=" + isLocked);
+            
+            reportRepository.updateUserLockStatus(userId, adminId, isLocked);
+            
+            // Refresh user object để lấy lock status mới nhất từ database
+            User updatedUser = getUserById(userId);
+            System.out.println("[DEBUG] User lock status updated successfully to: " + updatedUser.getIsLocked());
+            
+            return updatedUser;
+            
+        } catch (Exception e) {
+            System.err.println("[ERROR] Exception in updateUserLockStatus: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Failed to update user lock status: " + e.getMessage(), e);
+        }
+    }
+
+    @Transactional
     public void updateUserLocation(Integer userId, UserLocationDto locationDto) {
         User user = getUserById(userId);
         Location location = locationRepository.findByUserId(userId)
