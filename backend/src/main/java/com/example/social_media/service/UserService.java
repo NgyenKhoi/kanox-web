@@ -77,59 +77,7 @@ public class UserService {
         return userRepository.save(existingUser);
     }
 
-    @Transactional
-    public User updateUserStatus(Integer userId, Boolean status, Integer adminId) {
-        System.out.println("[DEBUG] Starting updateUserStatus for userId: " + userId + ", status: " + status + ", adminId: " + adminId);
-        
-        User user = getUserById(userId);
-        System.out.println("[DEBUG] Found user: " + user.getUsername() + ", current status: " + user.getStatus());
-        
-        // Kiểm tra nếu status đã giống rồi thì không cần update
-        if (user.getStatus().equals(status)) {
-            System.out.println("[DEBUG] Status already matches, no update needed");
-            return user;
-        }
-        
-        try {
-            // Sử dụng stored procedure sp_UpdateUserStatus
-            System.out.println("[DEBUG] Calling sp_UpdateUserStatus stored procedure...");
-            System.out.println("[DEBUG] Parameters: userId=" + userId + ", adminId=" + adminId + ", newStatus=" + status);
-            
-            Integer returnCode = reportRepository.updateUserStatus(userId, adminId, status);
-            System.out.println("[DEBUG] Stored procedure return code: " + returnCode);
-            
-            // Kiểm tra return code từ stored procedure
-            if (returnCode != null && returnCode != 0) {
-                String errorMessage;
-                switch (returnCode) {
-                    case 1:
-                        errorMessage = "User not found";
-                        break;
-                    case 2:
-                        errorMessage = "Admin not found or insufficient permissions";
-                        break;
-                    case 99:
-                        errorMessage = "Database error occurred";
-                        break;
-                    default:
-                        errorMessage = "Unknown error occurred (code: " + returnCode + ")";
-                }
-                System.err.println("[ERROR] Stored procedure failed: " + errorMessage);
-                throw new RuntimeException(errorMessage);
-            }
-            
-            // Refresh user object để lấy status mới nhất từ database
-            User updatedUser = getUserById(userId);
-            System.out.println("[DEBUG] User status updated successfully to: " + updatedUser.getStatus());
-            
-            return updatedUser;
-            
-        } catch (Exception e) {
-            System.err.println("[ERROR] Exception in updateUserStatus: " + e.getMessage());
-            e.printStackTrace();
-            throw new RuntimeException("Failed to update user status: " + e.getMessage(), e);
-        }
-    }
+
 
     @Transactional
     public User updateUserLockStatus(Integer userId, Boolean isLocked, Integer adminId) {

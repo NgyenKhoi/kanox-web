@@ -105,65 +105,7 @@ public class AdminController {
         }
     }
 
-    @PatchMapping(URLConfig.UPDATE_USER_STATUS)
-    public ResponseEntity<?> updateUserStatus(
-            @PathVariable Integer userId,
-            @RequestParam Boolean status
-    ) {
-        try {
-            System.out.println("=== [DEBUG] AdminController.updateUserStatus called ===");
-            System.out.println("User ID: " + userId);
-            System.out.println("Status: " + status);
-            
-            if (userId == null || userId <= 0) {
-                System.out.println("=== [ERROR] Invalid userId: " + userId + " ===");
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body(Map.of("message", "Invalid user ID", "error", "User ID must be a positive integer"));
-            }
-            
-            if (status == null) {
-                System.out.println("=== [ERROR] Status is null ===");
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body(Map.of("message", "Status is required", "error", "Status cannot be null"));
-            }
-            
-            String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-            System.out.println("Current admin username: " + currentUsername);
-            
-            User admin = customUserDetailsService.getUserByUsername(currentUsername);
-            System.out.println("Admin found: " + admin.getUsername());
 
-            User updatedUser = userService.updateUserStatus(userId, status, admin.getId());
-            String statusMessage = status ? "unlocked" : "locked";
-            
-            System.out.println("=== [DEBUG] AdminController.updateUserStatus completed successfully ===");
-            return ResponseEntity.ok(Map.of(
-                    "message", "User account " + statusMessage + " successfully",
-                    "data", updatedUser
-            ));
-        } catch (UserNotFoundException e) {
-            System.out.println("=== [ERROR] UserNotFoundException in AdminController: " + e.getMessage() + " ===");
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("message", "User not found", "error", e.getMessage()));
-        } catch (RuntimeException e) {
-            System.out.println("=== [ERROR] RuntimeException in AdminController: " + e.getMessage() + " ===");
-            e.printStackTrace();
-            if (e.getCause() != null) {
-                System.out.println("=== [ERROR] Root cause: " + e.getCause().getMessage() + " ===");
-            }
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("message", "Error updating user status", "error", e.getMessage(), "rootCause", e.getCause() != null ? e.getCause().getMessage() : "Unknown"));
-        } catch (Exception e) {
-            System.out.println("=== [ERROR] Exception in AdminController: " + e.getMessage() + " ===");
-            e.printStackTrace();
-            if (e.getCause() != null) {
-                System.out.println("=== [ERROR] Root cause: " + e.getCause().getMessage() + " ===");
-            }
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("message", "Error updating user status", "error", e.getMessage(), "rootCause", e.getCause() != null ? e.getCause().getMessage() : "Unknown"));
-        }
-    }
 
     @PatchMapping(URLConfig.UPDATE_USER_LOCK_STATUS)
     public ResponseEntity<?> updateUserLockStatus(
