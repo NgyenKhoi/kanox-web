@@ -63,7 +63,7 @@ const CreateStoryPage = () => {
       xhr.open(
         "POST",
         // Đảm bảo endpoint của bạn có thể xử lý multipart/form-data
-        `${process.env.REACT_APP_API_URL}/api/stories`,
+        `${process.env.REACT_APP_API_URL}/stories`,
         true
       );
       xhr.setRequestHeader("Authorization", `Bearer ${token}`);
