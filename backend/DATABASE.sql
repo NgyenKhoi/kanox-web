@@ -4050,6 +4050,10 @@ GO
 	('ACTIVATE_BANNED_KEYWORD', 'Admin activated banned keyword'),
 	('DEACTIVATE_BANNED_KEYWORD', 'Admin deactivated banned keyword'),
 	('REPORT_ABUSE_WARNING', 'User received warning for report abuse'),
+    ('MARK_CHAT_SPAM', 'User marked a chat as spam'),
+    ('UNMARK_CHAT_SPAM', 'User unmarked a chat as spam'),
+    ('REPORT_SUBMITTED', 'User submitted a report'),
+    ('REPORT_STATUS_UPDATED', 'Admin updated the status of a report'),
 	('UPDATE_LOCATION', 'User update location');
 
 	select * from tblTargetType
