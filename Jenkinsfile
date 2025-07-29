@@ -23,6 +23,9 @@ pipeline {
         
                     sh 'chmod +x mvnw'
                     sh './mvnw clean install -DskipTests'
+
+                    sh 'rm -f src/main/resources/application.properties'
+                    sh 'rm -f src/main/resources/gcp-credentials.json'
                 }
             }
         }
