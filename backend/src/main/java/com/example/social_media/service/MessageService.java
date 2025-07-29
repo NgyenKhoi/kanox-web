@@ -59,11 +59,13 @@ public class MessageService {
 
     @Transactional
     public MessageDto sendMessage(MessageDto messageDto, String username) {
+        System.out.println("Processing sendMessage for chatId: " + messageDto.getChatId() + ", username: " + username);
         chatService.checkChatAccess(messageDto.getChatId(), username);
 
         User sender = userRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("Sender not found"));
 
+        System.out.println("Sender found: " + sender.getId());
         try {
             // Gửi tin nhắn
             Integer messageId = jdbcMessageRepository.sendMessage(
@@ -71,6 +73,7 @@ public class MessageService {
                     sender.getId(),
                     messageDto.getContent()
             );
+            System.out.println("Message saved with ID: " + messageId);
             messageDto.setId(messageId);
 
             // Lưu media nếu có
