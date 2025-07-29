@@ -77,6 +77,11 @@ public class User {
     @Column(name = "status", nullable = false)
     private Boolean status = true;
 
+    @NotNull
+    @ColumnDefault("0")
+    @Column(name = "is_locked", nullable = false)
+    private Boolean isLocked = false;
+
 
 
     public User() {}
@@ -204,6 +209,14 @@ public class User {
 
     public void setStatus(Boolean status) {
         this.status = status;
+    }
+
+    public Boolean getIsLocked() {
+        return isLocked;
+    }
+
+    public void setIsLocked(Boolean isLocked) {
+        this.isLocked = isLocked;
     }
 
 }
