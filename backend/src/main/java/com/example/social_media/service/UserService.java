@@ -95,7 +95,28 @@ public class UserService {
             System.out.println("[DEBUG] Calling sp_UpdateUserStatus stored procedure...");
             System.out.println("[DEBUG] Parameters: userId=" + userId + ", adminId=" + adminId + ", newStatus=" + status);
             
-            reportRepository.updateUserStatus(userId, adminId, status);
+            Integer returnCode = reportRepository.updateUserStatus(userId, adminId, status);
+            System.out.println("[DEBUG] Stored procedure return code: " + returnCode);
+            
+            // Kiểm tra return code từ stored procedure
+            if (returnCode != null && returnCode != 0) {
+                String errorMessage;
+                switch (returnCode) {
+                    case 1:
+                        errorMessage = "User not found";
+                        break;
+                    case 2:
+                        errorMessage = "Admin not found or insufficient permissions";
+                        break;
+                    case 99:
+                        errorMessage = "Database error occurred";
+                        break;
+                    default:
+                        errorMessage = "Unknown error occurred (code: " + returnCode + ")";
+                }
+                System.err.println("[ERROR] Stored procedure failed: " + errorMessage);
+                throw new RuntimeException(errorMessage);
+            }
             
             // Refresh user object để lấy status mới nhất từ database
             User updatedUser = getUserById(userId);
@@ -128,7 +149,28 @@ public class UserService {
             System.out.println("[DEBUG] Calling sp_UpdateUserLockStatus stored procedure...");
             System.out.println("[DEBUG] Parameters: userId=" + userId + ", adminId=" + adminId + ", isLocked=" + isLocked);
             
-            reportRepository.updateUserLockStatus(userId, adminId, isLocked);
+            Integer returnCode = reportRepository.updateUserLockStatus(userId, adminId, isLocked);
+            System.out.println("[DEBUG] Stored procedure return code: " + returnCode);
+            
+            // Kiểm tra return code từ stored procedure
+            if (returnCode != null && returnCode != 0) {
+                String errorMessage;
+                switch (returnCode) {
+                    case 1:
+                        errorMessage = "User not found";
+                        break;
+                    case 2:
+                        errorMessage = "Admin not found or insufficient permissions";
+                        break;
+                    case 99:
+                        errorMessage = "Database error occurred";
+                        break;
+                    default:
+                        errorMessage = "Unknown error occurred (code: " + returnCode + ")";
+                }
+                System.err.println("[ERROR] Stored procedure failed: " + errorMessage);
+                throw new RuntimeException(errorMessage);
+            }
             
             // Refresh user object để lấy lock status mới nhất từ database
             User updatedUser = getUserById(userId);

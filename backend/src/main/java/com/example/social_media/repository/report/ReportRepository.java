@@ -89,14 +89,14 @@ public interface ReportRepository extends JpaRepository<Report, Integer> {
     );
 
     @Procedure(procedureName = "sp_UpdateUserStatus")
-    void updateUserStatus(
+    Integer updateUserStatus(
             @Param("user_id") Integer userId,
             @Param("admin_id") Integer adminId,
             @Param("new_status") Boolean newStatus
     );
 
     @Procedure(procedureName = "sp_UpdateUserLockStatus")
-    void updateUserLockStatus(
+    Integer updateUserLockStatus(
             @Param("user_id") Integer userId,
             @Param("admin_id") Integer adminId,
             @Param("is_locked") Boolean isLocked
