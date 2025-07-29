@@ -138,18 +138,18 @@ public class ChatController {
         }
     }
 
-    @PostMapping(URLConfig.SEND_MESSAGES_WITH_MEDIA)
-    public MessageDto sendMessageWithMedia(
-            @PathVariable Integer chatId,
-            @RequestPart(value = "content", required = false) String content,
-            @RequestPart(value = "media", required = false) List<MultipartFile> files
-    ) {
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        Integer senderId = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("User not found")).getId();
-
-        return messageService.sendMessageWithMedia(chatId, senderId, content, files);
-    }
+//    @PostMapping(URLConfig.SEND_MESSAGES_WITH_MEDIA)
+//    public MessageDto sendMessageWithMedia(
+//            @PathVariable Integer chatId,
+//            @RequestPart(value = "content", required = false) String content,
+//            @RequestPart(value = "media", required = false) List<MultipartFile> files
+//    ) {
+//        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+//        Integer senderId = userRepository.findByUsername(username)
+//                .orElseThrow(() -> new IllegalArgumentException("User not found")).getId();
+//
+//        return messageService.sendMessageWithMedia(chatId, senderId, content, files);
+//    }
 
     @MessageMapping(URLConfig.TYPING)
     public void handleTyping(@Payload Map<String, Object> typingData) {
