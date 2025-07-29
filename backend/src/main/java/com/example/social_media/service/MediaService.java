@@ -398,17 +398,4 @@ public class MediaService {
         // 6. Chuyển đổi sang DTO và trả về
         return toDto(savedMedia);
     }
-
-    /**
-     * Upload một file lên GCS và chỉ trả về URL công khai của nó. Phương thức
-     * này không tương tác với database.
-     *
-     * @param file File cần upload
-     * @param subfolder Thư mục con trên GCS (ví dụ: "stories", "avatars")
-     * @return URL của file đã upload.
-     * @throws IOException nếu upload thất bại.
-     */
-    public String uploadFileAndGetUrl(MultipartFile file, String subfolder) throws IOException {
-        return gcsService.uploadFile(file, subfolder);
-    }
 }
