@@ -97,4 +97,11 @@ public interface ReportRepository extends JpaRepository<Report, Integer> {
 
     @Query("SELECT r FROM Report r WHERE r.reporterType = 'AI' AND r.targetType.id = :targetTypeId AND (:processingStatusId IS NULL OR r.processingStatus.id = :processingStatusId)")
     Page<Report> findByReporterTypeAIAndTargetTypeId(@Param("targetTypeId") Integer targetTypeId, @Param("processingStatusId") Integer processingStatusId, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"reporter", "targetType", "reason", "processingStatus"})
+    @Query("SELECT r FROM Report r JOIN Post p ON r.targetId = p.id " +
+            "WHERE p.group.id = :groupId AND r.targetType.id = 1 AND r.status = :status")
+    Page<Report> findByGroupIdAndTargetTypeId(@Param("groupId") Integer groupId,
+                                              @Param("status") Boolean status,
+                                              Pageable pageable);
 }
