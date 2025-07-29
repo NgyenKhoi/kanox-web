@@ -3735,7 +3735,8 @@ GO
 	('AI_FLAGGED_NOTICE', 'Your post was flagged by AI for review', 1),
 	('AI_FLAGGED_POST', 'A post was flagged by AI for review', 1),
     ('GROUP_USER_KICKED', 'You have been removed from the group', 1),
-    ('POST_REMOVED', 'Your post was removed due to community standards violation', 1);
+    ('POST_REMOVED', 'Your post was removed due to community standards violation', 1),
+    ('GROUP_POST_REPORT', 'Your post was reported', 1);
 
 
     -- tblReactionType (Loại phản hồi: Like, Love, Haha, v.v.)

@@ -179,15 +179,11 @@ public class GroupService {
             throw new IllegalArgumentException("Không thể xóa chủ nhóm");
         }
 
-        GroupMember member = groupMemberRepository.findById_GroupIdAndId_UserId(groupId, targetUserId)
+        GroupMemberId id = new GroupMemberId(groupId, targetUserId);
+        GroupMember member = groupMemberRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Thành viên không tồn tại"));
 
-        if (!member.getStatus()) {
-            throw new IllegalStateException("Thành viên này đã bị xóa khỏi nhóm");
-        }
-
-        member.setStatus(false);
-        groupMemberRepository.save(member);
+        groupMemberRepository.delete(member); // ✅ Xóa hoàn toàn bản ghi
 
         notificationService.sendNotification(
                 targetUserId,
@@ -393,7 +389,8 @@ public class GroupService {
 
         GroupMemberId id = new GroupMemberId(groupId, user.getId());
 
-        if (groupMemberRepository.existsById(id)) {
+        Optional<GroupMember> optionalMember = groupMemberRepository.findById(id);
+        if (optionalMember.isPresent() && optionalMember.get().getStatus()) {
             throw new IllegalArgumentException("Bạn đã yêu cầu hoặc đã tham gia nhóm này");
         }
 
