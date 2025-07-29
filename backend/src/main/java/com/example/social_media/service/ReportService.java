@@ -391,56 +391,7 @@ public class ReportService {
         }
     }
 
-    @Transactional
-    public void deleteReport(Integer reportId) {
-        Report report = reportRepository.findById(reportId)
-                .orElseThrow(() -> new IllegalArgumentException("Report not found with id: " + reportId));
-        ReportStatus status = reportStatusRepository.findById(4)
-                .orElseThrow(() -> new IllegalArgumentException("Report status not found with id: 4"));
 
-        try {
-            ReportHistory history = new ReportHistory();
-            String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-            User admin = userRepository.findByUsername(currentUsername)
-                    .orElseThrow(() -> new UserNotFoundException("Admin not found"));
-            history.setReporter(admin);
-            history.setReport(report);
-            history.setProcessingStatus(status);
-            history.setActionTime(Instant.now());
-            history.setStatus(true);
-            reportHistoryRepository.save(history);
-
-            String message = "Báo cáo của bạn (ID: " + reportId + ") đã bị xóa bởi " + admin.getDisplayName();
-            messagingTemplate.convertAndSend(
-                    "/topic/notifications/" + report.getReporter().getId(),
-                    Map.of(
-                            "id", reportId,
-                            "message", message,
-                            "type", "REPORT_DELETED",
-                            "targetId", admin.getId(),
-                            "targetType", "PROFILE", // Sửa: Gửi targetType dạng chuỗi
-                            "adminId", admin.getId(),
-                            "adminDisplayName", admin.getDisplayName() != null ? admin.getDisplayName() : admin.getUsername(),
-                            "createdAt", System.currentTimeMillis() / 1000,
-                            "status", "unread"
-                    )
-            );
-
-            notificationService.sendNotification(
-                    report.getReporter().getId(),
-                    "REPORT_DELETED",
-                    message,
-                    admin.getId(),
-                    "PROFILE"
-            );
-
-            report.setStatus(false);
-            reportRepository.save(report);
-            reportRepository.delete(report);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to delete report: " + e.getMessage());
-        }
-    }
 
     public ReportResponseDto getReportById(Integer reportId) {
         Report report = reportRepository.findById(reportId)
