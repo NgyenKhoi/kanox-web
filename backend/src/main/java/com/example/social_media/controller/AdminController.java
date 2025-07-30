@@ -105,7 +105,78 @@ public class AdminController {
         }
     }
 
+    // Endpoint để khớp với frontend - nhận tham số status
+    @PatchMapping(URLConfig.UPDATE_USER_STATUS)
+    public ResponseEntity<?> updateUserStatus(
+            @PathVariable Integer userId,
+            @RequestParam String status
+    ) {
+        try {
+            System.out.println("=== [DEBUG] AdminController.updateUserStatus called ===");
+            System.out.println("User ID: " + userId);
+            System.out.println("Status: " + status);
+            
+            if (userId == null || userId <= 0) {
+                System.out.println("=== [ERROR] Invalid userId: " + userId + " ===");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of("message", "Invalid user ID", "error", "User ID must be a positive integer"));
+            }
+            
+            if (status == null || status.trim().isEmpty()) {
+                System.out.println("=== [ERROR] status is null or empty ===");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of("message", "Status is required", "error", "status cannot be null or empty"));
+            }
+            
+            // Chuyển đổi status thành boolean
+            Boolean isLocked;
+            if ("false".equalsIgnoreCase(status.trim())) {
+                isLocked = true; // status=false nghĩa là khóa tài khoản
+            } else if ("true".equalsIgnoreCase(status.trim())) {
+                isLocked = false; // status=true nghĩa là mở khóa tài khoản
+            } else {
+                System.out.println("=== [ERROR] Invalid status value: " + status + " ===");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of("message", "Invalid status value", "error", "Status must be 'true' or 'false'"));
+            }
+            
+            String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+            System.out.println("Current admin username: " + currentUsername);
+            
+            User admin = customUserDetailsService.getUserByUsername(currentUsername);
+            System.out.println("Admin found: " + admin.getUsername());
 
+            User updatedUser = userService.updateUserLockStatus(userId, isLocked, admin.getId());
+            String lockMessage = isLocked ? "locked" : "unlocked";
+            
+            System.out.println("=== [DEBUG] AdminController.updateUserStatus completed successfully ===");
+            return ResponseEntity.ok(Map.of(
+                    "message", "User account " + lockMessage + " successfully",
+                    "data", updatedUser
+            ));
+        } catch (UserNotFoundException e) {
+            System.out.println("=== [ERROR] UserNotFoundException in AdminController: " + e.getMessage() + " ===");
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("message", "User not found", "error", e.getMessage()));
+        } catch (RuntimeException e) {
+            System.out.println("=== [ERROR] RuntimeException in AdminController: " + e.getMessage() + " ===");
+            e.printStackTrace();
+            if (e.getCause() != null) {
+                System.out.println("=== [ERROR] Root cause: " + e.getCause().getMessage() + " ===");
+            }
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Error updating user status", "error", e.getMessage(), "rootCause", e.getCause() != null ? e.getCause().getMessage() : "Unknown"));
+        } catch (Exception e) {
+            System.out.println("=== [ERROR] Exception in AdminController: " + e.getMessage() + " ===");
+            e.printStackTrace();
+            if (e.getCause() != null) {
+                System.out.println("=== [ERROR] Root cause: " + e.getCause().getMessage() + " ===");
+            }
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Error updating user status", "error", e.getMessage(), "rootCause", e.getCause() != null ? e.getCause().getMessage() : "Unknown"));
+        }
+    }
 
     @PatchMapping(URLConfig.UPDATE_USER_LOCK_STATUS)
     public ResponseEntity<?> updateUserLockStatus(
