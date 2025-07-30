@@ -82,10 +82,6 @@ public interface ReportRepository extends JpaRepository<Report, Integer> {
            "WHERE p.owner.id = :userId AND r.targetType.id = 1 AND r.processingStatus.id = 3 AND r.status = true")
     long countApprovedPostReportsByUserId(@Param("userId") Integer userId);
 
-    @Query("SELECT COUNT(r) FROM Report r " +
-           "WHERE r.targetId = :userId AND r.targetType.id = 4 AND r.processingStatus.id = 3 AND r.status = true")
-    Integer countApprovedUserReportsByUserId(@Param("userId") Integer userId);
-
     @Procedure(procedureName = "sp_AutoBlockUser")
     void autoBlockUser(
             @Param("user_id") Integer targetUserId,
