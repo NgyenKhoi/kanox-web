@@ -18,4 +18,5 @@ public interface BlockRepository extends JpaRepository<Block, BlockId> {
 
     List<Block> findByBlockedUserAndStatus(User blockedUser, boolean status);
 
+
 }
