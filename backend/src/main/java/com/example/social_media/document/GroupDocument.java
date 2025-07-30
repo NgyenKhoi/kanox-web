@@ -20,15 +20,25 @@ public class GroupDocument {
     private String name;
     private String description;
     private List<String> memberNames;
+    private Boolean status;
 
     public GroupDocument() {
     }
-    public GroupDocument(String id, Integer ownerId, String name, String description, List<String> memberNames) {
+    public GroupDocument(String id, Integer ownerId, String name, String description, List<String> memberNames,  Boolean status) {
         this.id = id;
         this.ownerId = ownerId;
         this.name = name;
         this.description = description;
         this.memberNames = memberNames;
+        this.status = status;
+    }
+
+    public Boolean getStatus() {
+        return status;
+    }
+
+    public void setStatus(Boolean status) {
+        this.status = status;
     }
 
     public Integer getOwnerId() {
