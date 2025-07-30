@@ -15,4 +15,7 @@ public interface BlockRepository extends JpaRepository<Block, BlockId> {
 
     @Query("SELECT b FROM Block b WHERE b.user = ?1 AND b.status = ?2")
     List<Block> findByUserAndStatus(User user, Boolean status);
+
+    List<Block> findByBlockedUserAndStatus(User blockedUser, boolean status);
+
 }

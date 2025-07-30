@@ -94,6 +94,17 @@ public class CommentService {
             throw new IllegalArgumentException("customListId không được để trống khi privacySetting là custom");
         }
 
+        Comment parent = null;
+        if (parentCommentId != null && parentCommentId != 0) {
+            parent = commentRepository.findById(parentCommentId)
+                    .orElseThrow(() -> new NotFoundException("Parent comment không tồn tại"));
+
+            // Đảm bảo parent comment thuộc cùng post
+            if (!parent.getPost().getId().equals(postId)) {
+                throw new IllegalArgumentException("Parent comment không thuộc bài viết này");
+            }
+        }
+
         StoredProcedureQuery query = entityManager.createStoredProcedureQuery("sp_CreateComment")
                 .registerStoredProcedureParameter("user_id", Integer.class, ParameterMode.IN)
                 .registerStoredProcedureParameter("post_id", Integer.class, ParameterMode.IN)
@@ -104,7 +115,7 @@ public class CommentService {
                 .registerStoredProcedureParameter("new_comment_id", Integer.class, ParameterMode.OUT)
                 .setParameter("user_id", userId)
                 .setParameter("post_id", postId)
-                .setParameter("parent_comment_id", parentCommentId)
+                .setParameter("parent_comment_id", parent != null ? parent.getId() : null)
                 .setParameter("content", content)
                 .setParameter("privacy_setting", privacySetting)
                 .setParameter("custom_list_id", customListId);

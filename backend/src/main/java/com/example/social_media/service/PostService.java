@@ -48,6 +48,7 @@ public class PostService {
     private final PostShareRepository postShareRepository;
     private final PostAIModerationRepository postAIModerationRepository;
     private final GeocodingService geocodingService;
+    private final BlockService blockService;
 
     public PostService(
             PostRepository postRepository,
@@ -66,7 +67,8 @@ public class PostService {
             TargetTypeRepository targetTypeRepository,
             PostShareRepository postShareRepository,
             PostAIModerationRepository postAIModerationRepository,
-            GeocodingService geocodingService) {
+            GeocodingService geocodingService,
+            BlockService blockService) {
         this.postRepository = postRepository;
         this.postTagRepository = postTagRepository;
         this.userRepository = userRepository;
@@ -84,6 +86,7 @@ public class PostService {
         this.postShareRepository = postShareRepository;
         this.postAIModerationRepository = postAIModerationRepository;
         this.geocodingService = geocodingService;
+        this.blockService = blockService;
     }
 
     @CacheEvict(value = {"newsfeed", "postsByUsername", "communityFeed", "postsByGroup", "postsByUserInGroup", "savedPosts"}, allEntries = true)
@@ -358,10 +361,11 @@ public class PostService {
         Set<Integer> flaggedPostIds = new HashSet<>(postAIModerationRepository.findFlaggedPostIds());
         List<Integer> savedPostIdList = new ArrayList<>(savedPostIds);
 
-        return posts.stream()
-                .filter(post -> isValidPostForUser(post, user.getId(), accessMap, hiddenPostIds, flaggedPostIds, joinedGroupIds))
-                .map(post -> convertToDto(post, user.getId(), savedPostIdList, postTagsMap, mediaMap, reactionCountMap))
-                .toList();
+       return posts.stream()
+               .filter(post -> isValidPostForUser(post, user.getId(), accessMap, hiddenPostIds, flaggedPostIds, joinedGroupIds))
+               .filter(post -> !blockService.isBlockedBetweenUsers(user.getId(), post.getOwner().getId())) // <- thêm dòng này
+               .map(post -> convertToDto(post, user.getId(), savedPostIdList, postTagsMap, mediaMap, reactionCountMap))
+               .toList();
     }
 
         private boolean isValidPostForUser(Post post,
@@ -470,6 +474,7 @@ public class PostService {
         // ✅ Trả về DTO
         return posts.stream()
                 .filter(post -> accessMap.getOrDefault(post.getId(), false))
+                .filter(post -> !blockService.isBlockedBetweenUsers(userId, post.getOwner().getId())) // <- thêm dòng này
                 .map(post -> convertToDto(
                         post,
                         userId,
