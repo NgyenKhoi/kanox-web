@@ -14,6 +14,7 @@ import com.example.social_media.repository.GroupMemberRepository;
 import com.example.social_media.repository.GroupRepository;
 import com.example.social_media.repository.UserRepository;
 
+import com.example.social_media.repository.post.PostRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -39,6 +40,7 @@ public class GroupService {
     private final NotificationService notificationService;
     private final DataSyncService dataSyncService;
     private final FriendshipRepository friendshipRepository;
+    private final PostRepository postRepository;
 
     public GroupService(GroupRepository groupRepository,
                         GroupMemberRepository groupMemberRepository,
@@ -46,7 +48,8 @@ public class GroupService {
                         MediaService mediaService,
                         NotificationService notificationService,
                         DataSyncService dataSyncService,
-                        FriendshipRepository friendshipRepository) {
+                        FriendshipRepository friendshipRepository,
+                        PostRepository postRepository) {
         this.groupRepository = groupRepository;
         this.groupMemberRepository = groupMemberRepository;
         this.userRepository = userRepository;
@@ -54,6 +57,7 @@ public class GroupService {
         this.notificationService = notificationService;
         this.dataSyncService = dataSyncService;
         this.friendshipRepository = friendshipRepository;
+        this.postRepository = postRepository;
     }
 
     public boolean isMember(Integer groupId, String username) {
@@ -146,6 +150,7 @@ public class GroupService {
         groupRepository.save(group);
 
         groupMemberRepository.deactivateByGroupId(groupId);
+        postRepository.deactivateByGroupId(groupId);
     }
 
     @Transactional

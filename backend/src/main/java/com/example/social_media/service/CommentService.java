@@ -2,6 +2,7 @@ package com.example.social_media.service;
 
 import com.example.social_media.dto.comment.CommentResponseDto;
 import com.example.social_media.dto.media.MediaDto;
+import com.example.social_media.dto.notification.NotificationDto;
 import com.example.social_media.dto.user.UserBasicDisplayDto;
 import com.example.social_media.entity.Comment;
 import com.example.social_media.entity.Group;
@@ -151,14 +152,16 @@ public class CommentService {
             String displayName = commenter.getDisplayName() != null ? commenter.getDisplayName() : commenter.getUsername();
             String message = "{displayName} đã bình luận bài viết của bạn";
             String avatarUrl = mediaService.getAvatarUrlByUserId(userId);
-            notificationService.sendNotification(
-                    ownerId, // Gửi đến chủ bài viết
-                    "POST_COMMENT", // Loại thông báo
-                    message, // Nội dung thông báo
-                    postId, // ID bài viết
-                    "POST", // Loại mục tiêu
-                    avatarUrl // Hình ảnh của người bình luận
+            NotificationDto notificationDto = notificationService.sendNotification(
+                    ownerId,
+                    "POST_COMMENT",
+                    message,
+                    postId,
+                    "POST",
+                    null
             );
+            notificationDto.setSenderDisplayName(displayName);
+            notificationDto.setSenderAvatar(avatarUrl);
         }
 
         User user = comment.getUser();

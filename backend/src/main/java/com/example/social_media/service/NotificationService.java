@@ -56,7 +56,7 @@ public class NotificationService {
     }
 
     @Transactional
-    public void sendNotification(Integer userId, String notificationTypeName, String message, Integer targetId, String targetTypeCode, String image) {
+    public NotificationDto  sendNotification(Integer userId, String notificationTypeName, String message, Integer targetId, String targetTypeCode, String image) {
         NotificationType notificationType = notificationTypeRepository.findByNameAndStatus(notificationTypeName, true)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid notification type: " + notificationTypeName));
 
@@ -129,6 +129,8 @@ public class NotificationService {
 
         System.out.println("Sending notification to /topic/notifications/" + userId + ": " + notificationDto);
         messagingTemplate.convertAndSend("/topic/notifications/" + userId, notificationDto);
+
+        return notificationDto;
     }
 
     public Page<NotificationDto> getNotifications(Integer userId, Pageable pageable) {
