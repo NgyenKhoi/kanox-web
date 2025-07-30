@@ -31,7 +31,8 @@
         bio NVARCHAR(255),
         gender TINYINT CHECK (gender IN (0, 1, 2)),
         profile_privacy_setting VARCHAR(20) CHECK (profile_privacy_setting IN ('public', 'friends', 'only_me', 'custom', 'default')) DEFAULT 'default',
-        status BIT NOT NULL DEFAULT 1
+        status BIT NOT NULL DEFAULT 1,
+        is_locked BIT NOT NULL DEFAULT 0  -- 0 = unlocked, 1 = locked
     );
 
 	CREATE TABLE tblLocation (
@@ -3377,6 +3378,82 @@ WHERE definition LIKE '%friendship%';
                 RETURN 99; -- Unknown error
             END CATCH;
         END;
+
+        -- Stored procedure để lock/unlock user
+        CREATE OR ALTER PROCEDURE sp_UpdateUserLockStatus
+            @user_id INT,
+            @admin_id INT,
+            @is_locked BIT,  -- 0 = unlock, 1 = lock
+            @return_code INT OUTPUT  -- Thêm OUTPUT parameter cho Spring JPA
+        AS
+        BEGIN
+            SET NOCOUNT ON;
+            SET @return_code = 0;
+
+            BEGIN TRY
+                BEGIN TRANSACTION;
+
+                -- Kiểm tra user_id tồn tại
+                IF NOT EXISTS (SELECT 1 FROM tblUser WHERE id = @user_id)
+                    BEGIN
+                        SET @return_code = 1; -- User không tồn tại
+                        ROLLBACK TRANSACTION;
+                        RETURN;
+                    END
+
+                -- Kiểm tra admin_id hợp lệ
+                IF NOT EXISTS (SELECT 1 FROM tblUser WHERE id = @admin_id AND is_admin = 1 AND status = 1)
+                    BEGIN
+                        SET @return_code = 2; -- Admin không hợp lệ
+                        ROLLBACK TRANSACTION;
+                        RETURN;
+                    END
+
+                -- Cập nhật trạng thái lock của user
+                UPDATE tblUser
+                SET is_locked = @is_locked
+                WHERE id = @user_id;
+
+                -- Ghi log hoạt động
+                DECLARE @action_type_id INT;
+                DECLARE @action_name NVARCHAR(50);
+                
+                IF @is_locked = 1
+                    SET @action_name = 'LOCK_USER';
+                ELSE
+                    SET @action_name = 'UNLOCK_USER';
+
+                SELECT @action_type_id = id FROM tblActionType WHERE name = @action_name;
+
+                IF @action_type_id IS NULL
+                    BEGIN
+                        DECLARE @description NVARCHAR(255);
+                        IF @is_locked = 1
+                            SET @description = 'Admin locked user account';
+                        ELSE
+                            SET @description = 'Admin unlocked user account';
+                            
+                        INSERT INTO tblActionType (name, description)
+                        VALUES (@action_name, @description);
+                        SET @action_type_id = SCOPE_IDENTITY();
+                    END
+
+                EXEC sp_LogActivity @admin_id, @action_type_id, NULL, NULL, 1, @user_id, 'USER';
+
+                COMMIT TRANSACTION;
+                SET @return_code = 0; -- Thành công
+            END TRY
+            BEGIN CATCH
+                IF @@TRANCOUNT > 0
+                    ROLLBACK TRANSACTION;
+
+                DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+                INSERT INTO tblErrorLog (error_message, error_time)
+                VALUES (@ErrorMessage, GETDATE());
+
+                SET @return_code = 99; -- Unknown error
+            END CATCH;
+        END;
             END CATCH
         END;
     ---------------------------------------
@@ -3734,8 +3811,7 @@ GO
 	('AI_FLAGGED_NOTICE', 'Your post was flagged by AI for review', 1),
 	('AI_FLAGGED_POST', 'A post was flagged by AI for review', 1),
     ('GROUP_USER_KICKED', 'You have been removed from the group', 1),
-    ('POST_REMOVED', 'Your post was removed due to community standards violation', 1),
-    ('GROUP_POST_REPORT', 'Your post was reported', 1);
+    ('POST_REMOVED', 'Your post was removed due to community standards violation', 1);
 
 
     -- tblReactionType (Loại phản hồi: Like, Love, Haha, v.v.)

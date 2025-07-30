@@ -140,6 +140,7 @@ public class URLConfig {
     public static final String GET_ALL_USER = "/users";
     public static final String MANAGE_USER_INFO = "/users/{userId}";
     public static final String UPDATE_USER_STATUS = "/users/{userId}/status";
+    public static final String UPDATE_USER_LOCK_STATUS = "/users/{userId}/lock";
     public static final String SEND_NOTIFICATION_FOR_USER = "/users/send-notification";
     public static final String DELETE_GROUP_BY_ADMIN = "/groups/{groupId}";
     // Dashboard URLs

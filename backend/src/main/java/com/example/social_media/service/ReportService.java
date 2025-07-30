@@ -318,7 +318,8 @@ public class ReportService {
             System.out.println("report.getTargetType() = " + (report.getTargetType() != null ? report.getTargetType().getId() : "null"));
             System.out.println("report.getTargetId() = " + report.getTargetId());
 
-            // Gọi stored procedure để cập nhật status và auto-block nếu cần
+            // Gọi stored procedure để cập nhật status, auto-block và lưu history
+            // Stored procedure đã xử lý tất cả logic cần thiết
             reportRepository.updateReportStatus(reportId, admin.getId(), request.getProcessingStatusId());
 
             // Refresh report object để lấy status mới nhất từ database
@@ -429,91 +430,9 @@ public class ReportService {
                 }
             }
 
-            // Kiểm tra và thông báo nếu target bị tự động block
-            if (request.getProcessingStatusId() == 3 && updatedReport.getTargetType() != null) {
-                System.out.println("[DEBUG] === AUTO-BLOCK LOGIC START ===");
-                System.out.println("[DEBUG] Target ID: " + updatedReport.getTargetId());
-                System.out.println("[DEBUG] Target Type ID: " + updatedReport.getTargetType().getId());
-                System.out.println("[DEBUG] Target Type Name: " + updatedReport.getTargetType().getName());
-
-                long approvedReportsForTarget = reportRepository.countByTargetIdAndTargetTypeIdAndProcessingStatusIdAndStatus(
-                        updatedReport.getTargetId(),
-                        updatedReport.getTargetType().getId(),
-                        3,
-                        true
-                );
-
-                System.out.println("[DEBUG] Approved reports for this target: " + approvedReportsForTarget);
-
-                if (updatedReport.getTargetType().getId() == 4) { // USER target
-                    System.out.println("[DEBUG] This is a USER report - counting all approved reports for user ID: " + updatedReport.getTargetId());
-                } else if (updatedReport.getTargetType().getId() == 1) { // POST target
-                    System.out.println("[DEBUG] This is a POST report - will check post owner for auto-block");
-                    Post reportedPost = postRepository.findById(updatedReport.getTargetId()).orElse(null);
-                    if (reportedPost != null && reportedPost.getOwner() != null) {
-                        System.out.println("[DEBUG] Post owner ID: " + reportedPost.getOwner().getId());
-                        System.out.println("[DEBUG] Post owner username: " + reportedPost.getOwner().getUsername());
-
-                        long userReports = reportRepository.countByTargetIdAndTargetTypeIdAndProcessingStatusIdAndStatus(
-                                reportedPost.getOwner().getId(), 4, 3, true);
-                        long postReports = reportRepository.countApprovedPostReportsByUserId(reportedPost.getOwner().getId());
-                        long totalApprovedReports = userReports + postReports;
-
-                        System.out.println("[DEBUG] User reports approved: " + userReports);
-                        System.out.println("[DEBUG] Post reports approved: " + postReports);
-                        System.out.println("[DEBUG] Total approved reports for user: " + totalApprovedReports);
-
-                        approvedReportsForTarget = totalApprovedReports;
-                    }
-                }
-
-                if (approvedReportsForTarget == 3) {
-                    System.out.println("[DEBUG] Target has exactly 3 approved reports, proceeding with auto-block");
-
-                    final Integer userIdToBlock;
-                    if (updatedReport.getTargetType().getId() == 4) { // USER target
-                        userIdToBlock = updatedReport.getTargetId();
-                    } else if (updatedReport.getTargetType().getId() == 1) { // POST target
-                        Post post = postRepository.findById(updatedReport.getTargetId()).orElse(null);
-                        userIdToBlock = (post != null && post.getOwner() != null) ? post.getOwner().getId() : null;
-                    } else {
-                        userIdToBlock = null;
-                    }
-
-                    if (userIdToBlock != null) {
-                        try {
-                            User targetUser = userRepository.findById(userIdToBlock)
-                                    .orElseThrow(() -> new UserNotFoundException("Target user not found with id: " + userIdToBlock));
-
-                            System.out.println("[DEBUG] Found target user: " + targetUser.getUsername() + ", Status: " + targetUser.getStatus());
-
-                            if (targetUser.getStatus()) {
-                                System.out.println("[DEBUG] Calling autoBlockUser stored procedure...");
-                                reportRepository.autoBlockUser(userIdToBlock, admin.getId());
-
-                                System.out.println("=== AUTO-BLOCK USER SUCCESSFUL ====");
-                                System.out.println("User ID: " + userIdToBlock + " (" + targetUser.getUsername() + ") has been automatically blocked due to 3 approved reports on target ID: " + updatedReport.getTargetId());
-
-                                userRepository.findById(userIdToBlock).ifPresent(updatedUser -> System.out.println("[DEBUG] User status after auto-block: " + updatedUser.getStatus()));
-                            } else {
-                                System.out.println("[DEBUG] User is already blocked, skipping auto-block");
-                            }
-                        } catch (Exception e) {
-                            System.err.println("❌ ERROR auto-blocking user: " + e.getMessage());
-                            System.err.println("❌ Exception type: " + e.getClass().getSimpleName());
-                            if (e.getCause() != null) {
-                                System.err.println("❌ Root cause: " + e.getCause().getMessage());
-                            }
-                            e.printStackTrace();
-                        }
-                    }
-                } else {
-                    System.out.println("[DEBUG] Target has " + approvedReportsForTarget + " approved reports - no auto-block needed");
-                }
-            }
-
-            // Auto-block logic is now handled by the stored procedure sp_UpdateReportStatus
+            // Auto-block logic đã được xử lý bởi stored procedure sp_UpdateReportStatus
             System.out.println("[DEBUG] Auto-block logic handled by stored procedure");
+
 
             String message = switch (request.getProcessingStatusId()) {
                 case 1 -> "Báo cáo của bạn (ID: " + reportId + ") đang chờ xử lý bởi " + admin.getDisplayName();
@@ -579,15 +498,8 @@ public class ReportService {
                 }
             }
 
-            // Lưu lịch sử báo cáo
-            ReportHistory history = new ReportHistory();
-            history.setReporter(admin);
-            history.setReport(updatedReport);
-            history.setProcessingStatus(reportStatusRepository.findById(request.getProcessingStatusId())
-                    .orElseThrow(() -> new IllegalArgumentException("Trạng thái báo cáo không tồn tại")));
-            history.setActionTime(Instant.now());
-            history.setStatus(true);
-            reportHistoryRepository.save(history);
+            // ReportHistory đã được lưu bởi stored procedure sp_UpdateReportStatus
+            System.out.println("[DEBUG] Report history handled by stored procedure");
         } catch (Exception e) {
             e.printStackTrace();
             String message = e.getCause() instanceof SQLException

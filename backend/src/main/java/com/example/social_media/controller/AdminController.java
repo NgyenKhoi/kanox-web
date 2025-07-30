@@ -105,10 +105,11 @@ public class AdminController {
         }
     }
 
+    // Endpoint để khớp với frontend - nhận tham số status
     @PatchMapping(URLConfig.UPDATE_USER_STATUS)
     public ResponseEntity<?> updateUserStatus(
             @PathVariable Integer userId,
-            @RequestParam Boolean status
+            @RequestParam String status
     ) {
         try {
             System.out.println("=== [DEBUG] AdminController.updateUserStatus called ===");
@@ -121,10 +122,22 @@ public class AdminController {
                         .body(Map.of("message", "Invalid user ID", "error", "User ID must be a positive integer"));
             }
             
-            if (status == null) {
-                System.out.println("=== [ERROR] Status is null ===");
+            if (status == null || status.trim().isEmpty()) {
+                System.out.println("=== [ERROR] status is null or empty ===");
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body(Map.of("message", "Status is required", "error", "Status cannot be null"));
+                        .body(Map.of("message", "Status is required", "error", "status cannot be null or empty"));
+            }
+            
+            // Chuyển đổi status thành boolean
+            Boolean isLocked;
+            if ("false".equalsIgnoreCase(status.trim())) {
+                isLocked = true; // status=false nghĩa là khóa tài khoản
+            } else if ("true".equalsIgnoreCase(status.trim())) {
+                isLocked = false; // status=true nghĩa là mở khóa tài khoản
+            } else {
+                System.out.println("=== [ERROR] Invalid status value: " + status + " ===");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of("message", "Invalid status value", "error", "Status must be 'true' or 'false'"));
             }
             
             String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -133,12 +146,12 @@ public class AdminController {
             User admin = customUserDetailsService.getUserByUsername(currentUsername);
             System.out.println("Admin found: " + admin.getUsername());
 
-            User updatedUser = userService.updateUserStatus(userId, status, admin.getId());
-            String statusMessage = status ? "unlocked" : "locked";
+            User updatedUser = userService.updateUserLockStatus(userId, isLocked, admin.getId());
+            String lockMessage = isLocked ? "locked" : "unlocked";
             
             System.out.println("=== [DEBUG] AdminController.updateUserStatus completed successfully ===");
             return ResponseEntity.ok(Map.of(
-                    "message", "User account " + statusMessage + " successfully",
+                    "message", "User account " + lockMessage + " successfully",
                     "data", updatedUser
             ));
         } catch (UserNotFoundException e) {
@@ -165,7 +178,7 @@ public class AdminController {
         }
     }
 
-    @PatchMapping("/admin/users/{userId}/lock")
+    @PatchMapping(URLConfig.UPDATE_USER_LOCK_STATUS)
     public ResponseEntity<?> updateUserLockStatus(
             @PathVariable Integer userId,
             @RequestParam Boolean isLocked
