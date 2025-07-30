@@ -2804,7 +2804,6 @@ WHERE definition LIKE '%friendship%';
 		invite_status NVARCHAR(20) DEFAULT 'PENDING',
         PRIMARY KEY (group_id, user_id)
     );
-
     CREATE TABLE tblPage (
         id INT PRIMARY KEY IDENTITY(1, 1),
         owner_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
