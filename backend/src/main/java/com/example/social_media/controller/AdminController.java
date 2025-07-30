@@ -8,6 +8,7 @@ import com.example.social_media.entity.*;
 import com.example.social_media.exception.UserNotFoundException;
 import com.example.social_media.repository.report.ReportHistoryRepository;
 import com.example.social_media.repository.report.ReportRepository;
+import com.example.social_media.repository.UserRepository;
 import com.example.social_media.service.CustomUserDetailsService;
 import com.example.social_media.service.NotificationService;
 import com.example.social_media.service.ReportService;
@@ -25,6 +26,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @RestController
@@ -39,6 +41,7 @@ public class AdminController {
     private final ReportRepository reportRepository;
     private final ReportHistoryRepository reportHistoryRepository;
     private final GroupService groupService;
+    private final UserRepository userRepository;
 
 
     public AdminController(
@@ -48,7 +51,8 @@ public class AdminController {
             ReportService reportService,
             ReportRepository reportRepository,
             ReportHistoryRepository reportHistoryRepository,
-            GroupService groupService
+            GroupService groupService,
+            UserRepository userRepository
 
     ) {
         this.userService = userService;
@@ -58,6 +62,7 @@ public class AdminController {
         this.reportRepository = reportRepository;
         this.reportHistoryRepository = reportHistoryRepository;
         this.groupService = groupService;
+        this.userRepository = userRepository;
 
     }
 
@@ -368,6 +373,54 @@ public class AdminController {
                     "message", "Lỗi khi lấy danh sách báo cáo chưa đọc: " + e.getMessage(),
                     "errors", Map.of()
             ));
+        }
+    }
+
+    // Debug endpoint to check user report statistics
+    @GetMapping("/admin/debug/user-reports/{targetId}")
+    public ResponseEntity<?> getUserReportDebugInfo(@PathVariable Integer targetId) {
+        try {
+            System.out.println("=== [DEBUG] Getting report statistics for target ID: " + targetId + " ===");
+            
+            // Get user reports count (direct user reports)
+            Integer userReportsCount = reportRepository.countApprovedUserReportsByUserId(targetId);
+            System.out.println("[DEBUG] Direct user reports count: " + userReportsCount);
+            
+            // Get post reports count (reports on posts owned by this user)
+            Long postReportsCountLong = reportRepository.countApprovedPostReportsByUserId(targetId);
+            Integer postReportsCount = postReportsCountLong.intValue();
+            System.out.println("[DEBUG] Post reports count: " + postReportsCount);
+            
+            // Total approved reports
+            Integer totalReportsCount = userReportsCount + postReportsCount;
+            System.out.println("[DEBUG] Total approved reports: " + totalReportsCount);
+            
+            // Get user status
+            Optional<User> userOpt = userRepository.findById(targetId);
+            String userStatus = "NOT_FOUND";
+            if (userOpt.isPresent()) {
+                User user = userOpt.get();
+                userStatus = Boolean.TRUE.equals(user.getStatus()) ? "ACTIVE" : "BLOCKED";
+                System.out.println("[DEBUG] User status: " + userStatus + " (status code: " + user.getStatus() + ")");
+            }
+            
+            Map<String, Object> debugInfo = Map.of(
+                "targetId", targetId,
+                "userReportsCount", userReportsCount,
+                "postReportsCount", postReportsCount,
+                "totalReportsCount", totalReportsCount,
+                "userStatus", userStatus,
+                "shouldAutoBlock", totalReportsCount >= 3 && "ACTIVE".equals(userStatus)
+            );
+            
+            System.out.println("=== [DEBUG] Debug info response: " + debugInfo + " ===");
+            
+            return ResponseEntity.ok(debugInfo);
+        } catch (Exception e) {
+            System.out.println("=== [ERROR] Error in getUserReportDebugInfo: " + e.getMessage() + " ===");
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Error getting debug info", "error", e.getMessage()));
         }
     }
 
