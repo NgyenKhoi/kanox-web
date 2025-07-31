@@ -1,4 +1,4 @@
-/*
+﻿/*
 	USE master
     IF EXISTS(select * from sys.databases where name='SOCIAL-MEDIA-PROJECT')
     BEGIN
@@ -31,8 +31,7 @@
         bio NVARCHAR(255),
         gender TINYINT CHECK (gender IN (0, 1, 2)),
         profile_privacy_setting VARCHAR(20) CHECK (profile_privacy_setting IN ('public', 'friends', 'only_me', 'custom', 'default')) DEFAULT 'default',
-        status BIT NOT NULL DEFAULT 1,
-        is_locked BIT NOT NULL DEFAULT 0  -- 0 = unlocked, 1 = locked
+        status BIT NOT NULL DEFAULT 1
     );
 
 	CREATE TABLE tblLocation (
@@ -2805,6 +2804,7 @@ WHERE definition LIKE '%friendship%';
 		invite_status NVARCHAR(20) DEFAULT 'PENDING',
         PRIMARY KEY (group_id, user_id)
     );
+
     CREATE TABLE tblPage (
         id INT PRIMARY KEY IDENTITY(1, 1),
         owner_id INT NOT NULL FOREIGN KEY REFERENCES tblUser(id),
@@ -3417,7 +3417,7 @@ WHERE definition LIKE '%friendship%';
                 -- Ghi log hoạt động
                 DECLARE @action_type_id INT;
                 DECLARE @action_name NVARCHAR(50);
-                
+
                 IF @is_locked = 1
                     SET @action_name = 'LOCK_USER';
                 ELSE
@@ -3432,7 +3432,7 @@ WHERE definition LIKE '%friendship%';
                             SET @description = 'Admin locked user account';
                         ELSE
                             SET @description = 'Admin unlocked user account';
-                            
+
                         INSERT INTO tblActionType (name, description)
                         VALUES (@action_name, @description);
                         SET @action_type_id = SCOPE_IDENTITY();
@@ -3786,10 +3786,6 @@ GO
 	('ACTIVATE_BANNED_KEYWORD', 'Admin activated banned keyword'),
 	('DEACTIVATE_BANNED_KEYWORD', 'Admin deactivated banned keyword'),
 	('REPORT_ABUSE_WARNING', 'User received warning for report abuse'),
-    ('MARK_CHAT_SPAM', 'User marked a chat as spam'),
-    ('UNMARK_CHAT_SPAM', 'User unmarked a chat as spam'),
-    ('REPORT_SUBMITTED', 'User submitted a report'),
-    ('REPORT_STATUS_UPDATED', 'Admin updated the status of a report'),
 	('UPDATE_LOCATION', 'User update location');
 
 	select * from tblTargetType
@@ -3810,7 +3806,6 @@ GO
 	('REPORT_ABUSE_WARNING', 'Warning for report abuse', 1),
 	('AI_FLAGGED_NOTICE', 'Your post was flagged by AI for review', 1),
 	('AI_FLAGGED_POST', 'A post was flagged by AI for review', 1),
-    ('GROUP_USER_KICKED', 'You have been removed from the group', 1),
     ('POST_REMOVED', 'Your post was removed due to community standards violation', 1);
 
 
@@ -3936,6 +3931,3 @@ INSERT INTO tblReportStatus (name, description, status) VALUES
 ('Approved', N'Báo cáo được chấp nhận', 1),
 ('Rejected', N'Báo cáo bị từ chối', 1);
 
-EXEC sp_UpdateFriendSuggestions;
-
-select * from tblFriendSuggestion

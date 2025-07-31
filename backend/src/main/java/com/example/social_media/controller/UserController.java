@@ -18,6 +18,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -179,15 +180,22 @@ public class UserController {
                         "message", "Không thể cập nhật quyền riêng tư của người khác"));
             }
 
+            String profilePrivacySetting = privacyDto.getProfilePrivacySetting();
+            if (!List.of("public", "friends", "only_me", "custom").contains(profilePrivacySetting)) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "status", "error",
+                        "message", "Giá trị profilePrivacySetting không hợp lệ: " + profilePrivacySetting));
+            }
+
             userProfileService.updateProfilePrivacy(
                     currentUser.getId(),
-                    privacyDto.getPrivacySetting(),
+                    profilePrivacySetting,
                     privacyDto.getCustomListId());
 
             Map<String, Object> data = new HashMap<>();
-            data.put("profilePrivacySetting", privacyDto.getPrivacySetting());
+            data.put("profilePrivacySetting", profilePrivacySetting);
             data.put("customListId",
-                    privacyDto.getPrivacySetting().equals("custom") ? privacyDto.getCustomListId() : null);
+                    profilePrivacySetting.equals("custom") ? privacyDto.getCustomListId() : null);
 
             return ResponseEntity.ok(Map.of(
                     "message", "Cập nhật quyền riêng tư hồ sơ thành công",
