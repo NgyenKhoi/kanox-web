@@ -130,7 +130,7 @@ public class UserDto {
 
     public String getReasonText() {
         if ("mutual_friends".equals(reason) && mutualFriendCount > 0) {
-            return "Có " + mutualFriendCount + " bạn chung: " + mutualFriends;
+            return "Có " + mutualFriendCount + " bạn chung" + mutualFriends;
         } else if ("location".equals(reason) && distanceKm != null && distanceKm > 0) {
             return "Sống cách bạn " + String.format("%.2f", distanceKm) + " km";
         }
