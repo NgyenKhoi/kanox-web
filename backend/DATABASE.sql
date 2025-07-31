@@ -2016,7 +2016,7 @@ GO
 
     -----------------------PROC FOR CREATE COMMENT----------------------------
 
-    CREATE PROCEDURE sp_CreateComment
+    CREATE OR ALTER PROCEDURE sp_CreateComment
         @user_id INT,
         @post_id INT,
         @parent_comment_id INT = NULL,
@@ -2040,14 +2040,6 @@ GO
         IF NOT EXISTS (SELECT 1 FROM tblPost WHERE id = @post_id AND status = 1)
         BEGIN
             RAISERROR('Invalid or inactive post_id.', 16, 1);
-            RETURN;
-        END
-
-        -- Kiểm tra quyền truy cập bài viết
-        EXEC sp_CheckContentAccess @user_id, @post_id, 1, @has_access OUTPUT;
-        IF @has_access = 0
-        BEGIN
-            RAISERROR('User does not have permission to comment on this post.', 16, 1);
             RETURN;
         END
 
@@ -2085,11 +2077,11 @@ GO
         END
 
         -- Kiểm tra content
-        IF @content IS NULL OR LTRIM(RTRIM(@content)) = ''
-        BEGIN
-            RAISERROR('Content cannot be empty.', 16, 1);
-            RETURN;
-        END
+        IF @content IS NULL OR LEN(@content) = 0
+            BEGIN
+                RAISERROR('Content cannot be empty.', 16, 1);
+                RETURN;
+            END
 
         -- Kiểm tra từ khóa bị cấm
         IF EXISTS (
