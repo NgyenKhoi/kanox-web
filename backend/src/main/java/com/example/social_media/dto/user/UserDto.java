@@ -120,6 +120,14 @@ public class UserDto {
         this.distanceKm = distanceKm;
     }
 
+    public List<UserDto> getMutualFriends() {
+        return mutualFriends;
+    }
+
+    public void setMutualFriends(List<UserDto> mutualFriends) {
+        this.mutualFriends = mutualFriends;
+    }
+
     public String getReasonText() {
         if ("mutual_friends".equals(reason) && mutualFriendCount > 0) {
             return "Có " + mutualFriendCount + " bạn chung: " + mutualFriends;
