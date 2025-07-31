@@ -44,6 +44,8 @@ public class PrivacyController {
             responseData.put("postVisibility", settings.getPostViewer() != null ? settings.getPostViewer() : "public");
             responseData.put("commentPermission", settings.getCommentViewer() != null ? settings.getCommentViewer() : "public");
             responseData.put("messagePermission", settings.getMessageViewer() != null ? settings.getMessageViewer() : "friends");
+            responseData.put("profileViewer", settings.getProfileViewer() != null ? settings.getProfileViewer() : "public");
+
 
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Lấy cài đặt thành công");

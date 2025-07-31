@@ -14,6 +14,9 @@ public class NotificationDto {
     private String status;
     private String image;
 
+    private String senderDisplayName;
+    private String senderAvatar;
+
     public NotificationDto() {
     }
 
@@ -29,6 +32,22 @@ public class NotificationDto {
         this.createdAt = createdAt;
         this.status = status;
         this.image = image;
+    }
+
+    public String getSenderDisplayName() {
+        return senderDisplayName;
+    }
+
+    public void setSenderDisplayName(String senderDisplayName) {
+        this.senderDisplayName = senderDisplayName;
+    }
+
+    public String getSenderAvatar() {
+        return senderAvatar;
+    }
+
+    public void setSenderAvatar(String senderAvatar) {
+        this.senderAvatar = senderAvatar;
     }
 
     public Integer getId() {

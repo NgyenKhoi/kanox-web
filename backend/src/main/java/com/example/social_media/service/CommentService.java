@@ -2,11 +2,16 @@ package com.example.social_media.service;
 
 import com.example.social_media.dto.comment.CommentResponseDto;
 import com.example.social_media.dto.media.MediaDto;
+import com.example.social_media.dto.notification.NotificationDto;
 import com.example.social_media.dto.user.UserBasicDisplayDto;
 import com.example.social_media.entity.Comment;
+import com.example.social_media.entity.Group;
+import com.example.social_media.entity.Post;
 import com.example.social_media.entity.User;
+import com.example.social_media.exception.NotFoundException;
 import com.example.social_media.exception.UnauthorizedException;
 import com.example.social_media.repository.CommentRepository;
+import com.example.social_media.repository.post.PostRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.ParameterMode;
 import jakarta.persistence.StoredProcedureQuery;
@@ -27,20 +32,23 @@ public class CommentService {
     private final PrivacyService privacyService;
     private final RedisTemplate<String, List<CommentResponseDto>> redisCommentTemplate;
     private final MediaService mediaService;
-    private final NotificationService notificationService; // Thêm dependency
+    private final NotificationService notificationService;
+    private final PostRepository postRepository;
 
     public CommentService(EntityManager entityManager,
                           CommentRepository commentRepository,
                           PrivacyService privacyService,
                           RedisTemplate<String, List<CommentResponseDto>> redisCommentTemplate,
                           MediaService mediaService,
-                          NotificationService notificationService) { // Thêm vào constructor
+                          NotificationService notificationService,
+                          PostRepository postRepository) { // Thêm vào constructor
         this.entityManager = entityManager;
         this.commentRepository = commentRepository;
         this.privacyService = privacyService;
         this.redisCommentTemplate = redisCommentTemplate;
         this.mediaService = mediaService;
         this.notificationService = notificationService;
+        this.postRepository = postRepository;
     }
 
     @Transactional
@@ -51,10 +59,27 @@ public class CommentService {
                                             Integer parentCommentId,
                                             Integer customListId,
                                             List<MultipartFile> mediaFiles) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new NotFoundException("Post not found"));
+
         Integer ownerId = privacyService.getContentOwnerId(postId);
+
         if (!userId.equals(ownerId)) {
-            if (!privacyService.checkContentAccess(userId, postId, "POST")) {
-                throw new UnauthorizedException("Bạn không có quyền bình luận bài viết này");
+            boolean isGroupPost = post.getGroup() != null;
+
+            if (isGroupPost) {
+                Group group = post.getGroup();
+
+                if (!"public".equalsIgnoreCase(group.getPrivacyLevel())) {
+                    if (!privacyService.checkContentAccess(userId, postId, "POST")) {
+                        throw new UnauthorizedException("Bạn không có quyền bình luận bài viết này");
+                    }
+                }
+            } else {
+                // Bài viết cá nhân - vẫn check quyền
+                if (!privacyService.checkContentAccess(userId, postId, "POST")) {
+                    throw new UnauthorizedException("Bạn không có quyền bình luận bài viết này");
+                }
             }
         }
 
@@ -70,6 +95,17 @@ public class CommentService {
             throw new IllegalArgumentException("customListId không được để trống khi privacySetting là custom");
         }
 
+        Comment parent = null;
+        if (parentCommentId != null && parentCommentId != 0) {
+            parent = commentRepository.findById(parentCommentId)
+                    .orElseThrow(() -> new NotFoundException("Parent comment không tồn tại"));
+
+            // Đảm bảo parent comment thuộc cùng post
+            if (!parent.getPost().getId().equals(postId)) {
+                throw new IllegalArgumentException("Parent comment không thuộc bài viết này");
+            }
+        }
+
         StoredProcedureQuery query = entityManager.createStoredProcedureQuery("sp_CreateComment")
                 .registerStoredProcedureParameter("user_id", Integer.class, ParameterMode.IN)
                 .registerStoredProcedureParameter("post_id", Integer.class, ParameterMode.IN)
@@ -80,7 +116,7 @@ public class CommentService {
                 .registerStoredProcedureParameter("new_comment_id", Integer.class, ParameterMode.OUT)
                 .setParameter("user_id", userId)
                 .setParameter("post_id", postId)
-                .setParameter("parent_comment_id", parentCommentId)
+                .setParameter("parent_comment_id", parent != null ? parent.getId() : null)
                 .setParameter("content", content)
                 .setParameter("privacy_setting", privacySetting)
                 .setParameter("custom_list_id", customListId);
@@ -116,14 +152,16 @@ public class CommentService {
             String displayName = commenter.getDisplayName() != null ? commenter.getDisplayName() : commenter.getUsername();
             String message = "{displayName} đã bình luận bài viết của bạn";
             String avatarUrl = mediaService.getAvatarUrlByUserId(userId);
-            notificationService.sendNotification(
-                    ownerId, // Gửi đến chủ bài viết
-                    "POST_COMMENT", // Loại thông báo
-                    message, // Nội dung thông báo
-                    postId, // ID bài viết
-                    "POST", // Loại mục tiêu
-                    avatarUrl // Hình ảnh của người bình luận
+            NotificationDto notificationDto = notificationService.sendNotification(
+                    ownerId,
+                    "POST_COMMENT",
+                    message,
+                    postId,
+                    "POST",
+                    null
             );
+            notificationDto.setSenderDisplayName(displayName);
+            notificationDto.setSenderAvatar(avatarUrl);
         }
 
         User user = comment.getUser();

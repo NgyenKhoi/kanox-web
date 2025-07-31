@@ -85,4 +85,14 @@ public class BlockService {
                 .orElseThrow(() -> new UserNotFoundException("Không tìm thấy người dùng với id: " + blockedUserId));
         return blockRepository.existsByUserAndBlockedUserAndStatus(user, blockedUser, true);
     }
+    @Transactional(readOnly = true)
+    public boolean isBlockedBetweenUsers(Integer userAId, Integer userBId) {
+        User userA = userRepository.findById(userAId)
+                .orElseThrow(() -> new UserNotFoundException("Không tìm thấy người dùng với id: " + userAId));
+        User userB = userRepository.findById(userBId)
+                .orElseThrow(() -> new UserNotFoundException("Không tìm thấy người dùng với id: " + userBId));
+
+        return blockRepository.existsByUserAndBlockedUserAndStatus(userA, userB, true)
+                || blockRepository.existsByUserAndBlockedUserAndStatus(userB, userA, true);
+    }
 }

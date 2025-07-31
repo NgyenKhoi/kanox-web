@@ -14,6 +14,7 @@ import com.example.social_media.repository.GroupMemberRepository;
 import com.example.social_media.repository.GroupRepository;
 import com.example.social_media.repository.UserRepository;
 
+import com.example.social_media.repository.post.PostRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -39,6 +40,7 @@ public class GroupService {
     private final NotificationService notificationService;
     private final DataSyncService dataSyncService;
     private final FriendshipRepository friendshipRepository;
+    private final PostRepository postRepository;
 
     public GroupService(GroupRepository groupRepository,
                         GroupMemberRepository groupMemberRepository,
@@ -46,7 +48,8 @@ public class GroupService {
                         MediaService mediaService,
                         NotificationService notificationService,
                         DataSyncService dataSyncService,
-                        FriendshipRepository friendshipRepository) {
+                        FriendshipRepository friendshipRepository,
+                        PostRepository postRepository) {
         this.groupRepository = groupRepository;
         this.groupMemberRepository = groupMemberRepository;
         this.userRepository = userRepository;
@@ -54,6 +57,7 @@ public class GroupService {
         this.notificationService = notificationService;
         this.dataSyncService = dataSyncService;
         this.friendshipRepository = friendshipRepository;
+        this.postRepository = postRepository;
     }
 
     public boolean isMember(Integer groupId, String username) {
@@ -146,6 +150,7 @@ public class GroupService {
         groupRepository.save(group);
 
         groupMemberRepository.deactivateByGroupId(groupId);
+        postRepository.deactivateByGroupId(groupId);
     }
 
     @Transactional
@@ -179,19 +184,15 @@ public class GroupService {
             throw new IllegalArgumentException("Không thể xóa chủ nhóm");
         }
 
-        GroupMember member = groupMemberRepository.findById_GroupIdAndId_UserId(groupId, targetUserId)
+        GroupMemberId id = new GroupMemberId(groupId, targetUserId);
+        GroupMember member = groupMemberRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Thành viên không tồn tại"));
 
-        if (!member.getStatus()) {
-            throw new IllegalStateException("Thành viên này đã bị xóa khỏi nhóm");
-        }
-
-        member.setStatus(false);
-        groupMemberRepository.save(member);
+        groupMemberRepository.delete(member); // ✅ Xóa hoàn toàn bản ghi
 
         notificationService.sendNotification(
                 targetUserId,
-                "KICKED_FROM_GROUP",
+                "GROUP_USER_KICKED",
                 "Bạn đã bị Admin xóa khỏi nhóm",
                 groupId,
                 "GROUP"
@@ -393,7 +394,8 @@ public class GroupService {
 
         GroupMemberId id = new GroupMemberId(groupId, user.getId());
 
-        if (groupMemberRepository.existsById(id)) {
+        Optional<GroupMember> optionalMember = groupMemberRepository.findById(id);
+        if (optionalMember.isPresent() && optionalMember.get().getStatus()) {
             throw new IllegalArgumentException("Bạn đã yêu cầu hoặc đã tham gia nhóm này");
         }
 
@@ -725,21 +727,26 @@ public class GroupService {
     public boolean hasPermissionToViewMembers(Integer groupId, String username) {
         Optional<User> userOpt = userRepository.findByUsernameAndStatusTrue(username);
         if (userOpt.isEmpty()) return false;
-
         User user = userOpt.get();
+
+        // Nếu là admin hệ thống hoặc system account
+        if (Boolean.TRUE.equals(user.getIsAdmin()) || Boolean.TRUE.equals(user.getIsSystem())) {
+            return true;
+        }
 
         Group group = groupRepository.findById(groupId)
                 .orElseThrow(() -> new NotFoundException("Group không tồn tại"));
 
         if ("public".equalsIgnoreCase(group.getPrivacyLevel())) return true;
-
         if (group.getOwner().getId().equals(user.getId())) return true;
-
         Boolean isAdmin = groupMemberRepository.isGroupAdmin(groupId, user.getId());
         if (Boolean.TRUE.equals(isAdmin)) return true;
 
-        return groupMemberRepository.existsById_GroupIdAndId_UserIdAndInviteStatus(groupId, user.getId(), "ACCEPTED");
+        return groupMemberRepository.existsById_GroupIdAndId_UserIdAndInviteStatus(
+                groupId, user.getId(), "ACCEPTED"
+        );
     }
+
 
 
 }

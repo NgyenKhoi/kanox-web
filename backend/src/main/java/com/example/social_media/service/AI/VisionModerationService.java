@@ -26,7 +26,7 @@ public class VisionModerationService {
     public Optional<FlagResultDto> analyzeImage(String imageUrl) {
         try {
             // ✅ Load credentials giống như trong Gemini
-            InputStream credentialsStream = getClass().getClassLoader().getResourceAsStream("gcp-credentials.json");
+            InputStream credentialsStream = getClass().getClassLoader().getResourceAsStream("gcp-secret-credentials.json");
             GoogleCredentials credentials = GoogleCredentials
                     .fromStream(credentialsStream)
                     .createScoped("https://www.googleapis.com/auth/cloud-platform");

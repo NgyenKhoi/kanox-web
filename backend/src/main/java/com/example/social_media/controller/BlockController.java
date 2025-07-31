@@ -75,12 +75,22 @@ public class BlockController {
         try {
             String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
             User currentUser = customUserDetailsService.getUserByUsername(currentUsername);
-            boolean isBlocked = blockService.isUserBlocked(currentUser.getId(), blockedUserId);
+
+            boolean isBlocked = blockService.isBlockedBetweenUsers(currentUser.getId(), blockedUserId);
+
             return ResponseEntity.ok(Map.of("isBlocked", isBlocked));
         } catch (UserNotFoundException e) {
-            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage(), "errors", Map.of()));
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", e.getMessage(),
+                    "errors", Map.of()
+            ));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage(), "errors", Map.of()));
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", e.getMessage(),
+                    "errors", Map.of()
+            ));
         }
     }
 }

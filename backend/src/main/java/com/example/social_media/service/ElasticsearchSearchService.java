@@ -92,7 +92,25 @@ public class ElasticsearchSearchService {
     }
 
     public List<GroupDocument> searchGroups(String keyword) throws IOException {
-        return searchWithPrefixAndSort("groups", "name", keyword, GroupDocument.class);
+        ensureIndexExists("groups");
+
+        Query query = Query.of(q -> q.bool(b -> b
+                .must(m1 -> m1.term(t -> t.field("status").value(true)))
+                .must(m2 -> m2.bool(bb -> bb
+                        .should(s -> s.matchPhrasePrefix(mpp -> mpp.field("name").query(keyword)))
+                        .should(s -> s.match(mm -> mm.field("name").query(keyword).fuzziness("AUTO")))
+                        .minimumShouldMatch("1")
+                ))
+        ));
+
+        SearchRequest request = SearchRequest.of(s -> s
+                .index("groups")
+                .query(query)
+                .sort(sort -> sort.field(f -> f.field("name.keyword").order(SortOrder.Asc)))
+        );
+
+        SearchResponse<GroupDocument> response = elasticsearchClient.search(request, GroupDocument.class);
+        return response.hits().hits().stream().map(Hit::source).collect(Collectors.toList());
     }
 
     public Map<String, List<?>> searchAll(String keyword) {

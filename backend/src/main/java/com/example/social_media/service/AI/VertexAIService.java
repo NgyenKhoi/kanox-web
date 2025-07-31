@@ -7,12 +7,10 @@ import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.*;
 
@@ -31,43 +29,44 @@ public class VertexAIService {
 
     public Optional<FlagResultDto> analyzePost(String postContent) {
         try {
-            // ✅ Load credentials từ file system
-            InputStream credentialsStream = getClass().getClassLoader().getResourceAsStream("gcp-credentials.json");
+            // Load credentials
+            InputStream credentialsStream = getClass().getClassLoader()
+                    .getResourceAsStream("gcp-secret-credentials.json");
+            if (credentialsStream == null) {
+                log.error("❌ Không tìm thấy file gcp-secret-credentials.json");
+                return Optional.empty();
+            }
+
             GoogleCredentials credentials = GoogleCredentials
                     .fromStream(credentialsStream)
                     .createScoped("https://www.googleapis.com/auth/cloud-platform");
             credentials.refreshIfExpired();
             AccessToken token = credentials.getAccessToken();
 
-            // Endpoint URL
+            // Endpoint
             String url = String.format(
                     "https://%s-aiplatform.googleapis.com/v1/projects/%s/locations/%s/publishers/%s/models/%s:generateContent",
                     LOCATION, PROJECT_ID, LOCATION, PUBLISHER, MODEL_ID
             );
 
-            // Prompt content
+            // Prompt
             String prompt = """
-                    Bạn là một hệ thống kiểm duyệt nội dung tự động.
+                    Bạn là một hệ thống kiểm duyệt nội dung mạng xã hội.
+                    Hãy đánh giá nội dung sau có vi phạm chính sách cộng đồng không:
 
-                    Nội dung sau đây là một bài đăng hoặc bình luận từ mạng xã hội của người dùng. Vui lòng đánh giá xem nội dung này có vi phạm **chính sách cộng đồng** không.
+                    - Không có lời lẽ căm ghét, kỳ thị, bạo lực, đe dọa.
+                    - Không chứa nội dung tình dục rõ ràng, tục tĩu.
+                    - Không lan truyền tin giả, spam, kích động.
+                    - Không quấy rối hoặc mạo danh.
 
-                    Chính sách cộng đồng bao gồm:
-                    - Không chứa lời nói căm ghét, kỳ thị, phân biệt chủng tộc, giới tính, tôn giáo,...
-                    - Không mang tính chất bạo lực, đe dọa, khủng bố.
-                    - Không chứa nội dung tình dục rõ ràng hoặc tục tĩu.
-                    - Không lan truyền tin giả, kích động, phản cảm, spam.
-
-                    Hãy trả lời theo định dạng JSON như sau:
+                    Trả lời JSON thuần như sau (không dùng dấu ``` hoặc mô tả):
                     {
                       "is_violation": true|false,
                       "violation_types": ["hate_speech", "sexual", "violence", "spam", "inappropriate", "fake_news", "harassment", "impersonation"],
-                      "explanation": "Giải thích ngắn gọn tại sao nội dung này bị cho là vi phạm"
+                      "explanation": "Lý do ngắn gọn"
                     }
 
-                    ❗️Chỉ trả về JSON hợp lệ, KHÔNG bao quanh bằng ``` hoặc bất kỳ mô tả nào khác.
-
-                    Dưới đây là nội dung:
-
+                    Nội dung:
                     "%s"
                     """.formatted(postContent);
 
@@ -89,35 +88,53 @@ public class VertexAIService {
 
             HttpEntity<String> entity = new HttpEntity<>(objectMapper.writeValueAsString(requestBody), headers);
 
-            // Send request
+            // Call API
             ResponseEntity<JsonNode> response = restTemplate.exchange(
-                    url,
-                    HttpMethod.POST,
-                    entity,
-                    JsonNode.class
+                    url, HttpMethod.POST, entity, JsonNode.class
             );
 
-            // Extract JSON from Gemini response
-            String resultText = response.getBody()
-                    .path("candidates").get(0)
-                    .path("content")
-                    .path("parts").get(0)
-                    .path("text").asText();
+            JsonNode root = response.getBody();
+            if (root == null || !root.has("candidates")) {
+                log.error("❌ Response body không hợp lệ: {}", root);
+                return Optional.empty();
+            }
+
+            JsonNode parts = root.path("candidates").path(0).path("content").path("parts");
+            if (!parts.isArray() || parts.isEmpty()) {
+                log.error("❌ Không tìm thấy content.parts trong phản hồi Gemini");
+                return Optional.empty();
+            }
+
+            String resultText = parts.get(0).path("text").asText();
+
+            // Xử lý nếu có dấu ```
+            if (resultText.startsWith("```")) {
+                resultText = resultText.replaceAll("(?s)```.*?\\n(\\{.*?\\})\\n```", "$1");
+            }
 
             JsonNode resultNode;
             try {
-                if (resultText.startsWith("```")) {
-                    resultText = resultText.replaceAll("(?s)```.*?\\n(\\{.*?\\})\\n```", "$1");
-                }
                 resultNode = objectMapper.readTree(resultText);
-            } catch (Exception jsonEx) {
-                log.error("❌ Phản hồi Gemini không đúng định dạng JSON. Nội dung: {}", resultText);
+            } catch (Exception ex) {
+                log.error("❌ Không parse được JSON từ Gemini:\n{}", resultText);
+                return Optional.empty();
+            }
+
+            if (resultNode.get("is_violation") == null || resultNode.get("explanation") == null) {
+                log.error("❌ JSON thiếu field bắt buộc: {}", resultNode.toPrettyString());
                 return Optional.empty();
             }
 
             boolean isViolation = resultNode.get("is_violation").asBoolean();
-            List<String> violationTypes = objectMapper.convertValue(resultNode.get("violation_types"), List.class);
             String explanation = resultNode.get("explanation").asText();
+
+            List<String> violationTypes = new ArrayList<>();
+            JsonNode typesNode = resultNode.get("violation_types");
+            if (typesNode != null && typesNode.isArray()) {
+                for (JsonNode typeNode : typesNode) {
+                    violationTypes.add(typeNode.asText());
+                }
+            }
 
             List<String> mappedViolationTypes = mapViolationTypesToReportReasons(violationTypes);
 
@@ -128,7 +145,7 @@ public class VertexAIService {
                     .build());
 
         } catch (Exception e) {
-            log.error("Lỗi khi gọi Gemini API: {}", e.getMessage(), e);
+            log.error("❌ Lỗi khi gọi Gemini API: {}", e.getMessage(), e);
             return Optional.empty();
         }
     }

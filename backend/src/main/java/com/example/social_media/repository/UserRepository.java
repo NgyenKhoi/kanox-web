@@ -19,6 +19,13 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     Optional<User> findById(Integer id);
     boolean existsByEmail(String email);
     boolean existsByUsername(String username);
+    
+    // Methods to check both status and isLocked
+    Optional<User> findByEmailAndStatusTrueAndIsLockedFalse(String email);
+    Optional<User> findByUsernameAndStatusTrueAndIsLockedFalse(String username);
+    Optional<User> findByEmailAndStatusTrueAndIsLockedFalseOrIsLockedIsNull(String email);
+    Optional<User> findByUsernameAndStatusTrueAndIsLockedFalseOrIsLockedIsNull(String username);
+    Optional<User> findByIdAndStatusTrueAndIsLockedFalseOrIsLockedIsNull(Integer id);
 
     Page<User> findByEmailContainingOrUsernameContainingOrDisplayNameContaining(
             String email, String username, String displayName, Pageable pageable);

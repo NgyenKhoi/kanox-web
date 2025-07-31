@@ -30,7 +30,8 @@ public class DocumentMapper {
                 group.getOwner().getId(),
                 group.getName(),
                 group.getDescription(),
-                memberNames
+                memberNames,
+                group.getStatus()
         );
     }
 
