@@ -146,24 +146,6 @@ public class CommentService {
         // Xóa cache Redis
         redisCommentTemplate.delete("comments:post:" + postId);
 
-        // Gửi thông báo realtime nếu là bình luận cha
-        if (parentCommentId == null && !userId.equals(ownerId)) { // Chỉ gửi nếu là bình luận cha và không phải của chính chủ bài viết
-            User commenter = comment.getUser();
-            String displayName = commenter.getDisplayName() != null ? commenter.getDisplayName() : commenter.getUsername();
-            String message = "{displayName} đã bình luận bài viết của bạn";
-            String avatarUrl = mediaService.getAvatarUrlByUserId(userId);
-            NotificationDto notificationDto = notificationService.sendNotification(
-                    ownerId,
-                    "POST_COMMENT",
-                    message,
-                    postId,
-                    "POST",
-                    null
-            );
-            notificationDto.setSenderDisplayName(displayName);
-            notificationDto.setSenderAvatar(avatarUrl);
-        }
-
         User user = comment.getUser();
         UserBasicDisplayDto userDto = new UserBasicDisplayDto(
                 user.getId(), user.getDisplayName(), user.getUsername(), null
