@@ -688,7 +688,7 @@ CREATE TABLE tblSession (
         VALUES (@user_id, @friend_id, 'pending', GETDATE(), 1);
     END;
 
-	CREATE PROCEDURE sp_AcceptFriendRequest
+	CREATE OR ALTER PROCEDURE sp_AcceptFriendRequest
     @user_id INT,
     @friend_id INT
 AS
@@ -749,7 +749,7 @@ BEGIN
         END
 
         DECLARE @message NVARCHAR(255);
-        SET @message = 'User ' + CAST(@user_id AS NVARCHAR(10)) + ' accepted your friend request.';
+        SET @message = 'User ' + CAST(@user_id AS NVARCHAR(10)) + ' đã chấp nhận lời mời kết bạn của bạn.';
         EXEC sp_AddNotification 
             @user_id = @friend_id, -- Người nhận thông báo
             @type_id = @type_id,
