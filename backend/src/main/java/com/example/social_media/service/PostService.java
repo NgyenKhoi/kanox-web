@@ -9,6 +9,7 @@ import com.example.social_media.exception.RegistrationException;
 import com.example.social_media.exception.UserNotFoundException;
 import com.example.social_media.exception.UnauthorizedException;
 import com.example.social_media.repository.*;
+import com.example.social_media.repository.payment.AccountUpgradeRepository;
 import com.example.social_media.repository.post.*;
 
 import com.google.maps.model.GeocodingResult;
@@ -50,6 +51,8 @@ public class PostService {
     private final GeocodingService geocodingService;
     private final BlockService blockService;
 
+    private final AccountUpgradeRepository accountUpgradeRepository;
+
     public PostService(
             PostRepository postRepository,
             PostTagRepository postTagRepository,
@@ -68,7 +71,7 @@ public class PostService {
             PostShareRepository postShareRepository,
             PostAIModerationRepository postAIModerationRepository,
             GeocodingService geocodingService,
-            BlockService blockService) {
+            BlockService blockService, AccountUpgradeRepository accountUpgradeRepository) {
         this.postRepository = postRepository;
         this.postTagRepository = postTagRepository;
         this.userRepository = userRepository;
@@ -87,6 +90,7 @@ public class PostService {
         this.postAIModerationRepository = postAIModerationRepository;
         this.geocodingService = geocodingService;
         this.blockService = blockService;
+        this.accountUpgradeRepository = accountUpgradeRepository;
     }
 
     @CacheEvict(value = {"newsfeed", "postsByUsername", "communityFeed", "postsByGroup", "postsByUserInGroup", "savedPosts"}, allEntries = true)
@@ -361,9 +365,21 @@ public class PostService {
         Set<Integer> flaggedPostIds = new HashSet<>(postAIModerationRepository.findFlaggedPostIds());
         List<Integer> savedPostIdList = new ArrayList<>(savedPostIds);
 
+
+       Set<Integer> premiumUserIds = accountUpgradeRepository.findActivePremiumUserIds();
+
        return posts.stream()
+               .sorted((p1, p2) -> {
+                   boolean isP1Premium = premiumUserIds.contains(p1.getOwner().getId());
+                   boolean isP2Premium = premiumUserIds.contains(p2.getOwner().getId());
+
+                   if (isP1Premium != isP2Premium) {
+                       return isP1Premium ? -1 : 1;
+                   }
+                   return p2.getCreatedAt().compareTo(p1.getCreatedAt());
+               })
                .filter(post -> isValidPostForUser(post, user.getId(), accessMap, hiddenPostIds, flaggedPostIds, joinedGroupIds))
-               .filter(post -> !blockService.isBlockedBetweenUsers(user.getId(), post.getOwner().getId())) // <- thêm dòng này
+               .filter(post -> !blockService.isBlockedBetweenUsers(user.getId(), post.getOwner().getId()))
                .map(post -> convertToDto(post, user.getId(), savedPostIdList, postTagsMap, mediaMap, reactionCountMap))
                .toList();
     }
