@@ -8,6 +8,7 @@ import com.example.social_media.exception.*;
 import com.example.social_media.jwt.JwtService;
 import com.example.social_media.service.AuthService;
 import com.example.social_media.service.MailService;
+import com.example.social_media.service.PaymentService;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
@@ -32,14 +33,16 @@ public class AuthController {
 
     private final AuthService authService;
     private final MailService mailService;
+    private final PaymentService paymentService;
     private final JwtService jwtService;
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
     public AuthController(AuthService authService,
-            MailService mailService,
-            JwtService jwtService) {
+                          MailService mailService, PaymentService paymentService,
+                          JwtService jwtService) {
         this.authService = authService;
         this.mailService = mailService;
+        this.paymentService = paymentService;
         this.jwtService = jwtService;
     }
 
@@ -90,6 +93,8 @@ public class AuthController {
             String token = jwtService.generateToken(user.getUsername());
             String refreshToken = jwtService.generateRefreshToken(user.getUsername());
 
+
+
             Map<String, Object> userMap = new HashMap<>();
             userMap.put("id", user.getId());
             userMap.put("username", user.getUsername());
@@ -99,6 +104,7 @@ public class AuthController {
             Map<String, Object> result = new HashMap<>();
             result.put("token", token);
             result.put("refreshToken", refreshToken);
+            result.put("isPremium", paymentService.isPremium(user.getId()));
             result.put("user", userMap);
 
             return ResponseEntity.ok(result);

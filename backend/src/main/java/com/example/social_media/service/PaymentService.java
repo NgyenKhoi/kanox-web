@@ -37,4 +37,8 @@ public class PaymentService {
 
         accountUpgradeRepository.save(upgrade);
     }
+
+    public boolean isPremium(Integer userId) {
+        return accountUpgradeRepository.existsAccountUpgradeByUser_Id(userId);
+    }
 }
