@@ -370,19 +370,27 @@ public class PostService {
 
        return posts.stream()
                .sorted((p1, p2) -> {
+                   // So sánh theo ngày tạo trước
+                   int dateCompare = p2.getCreatedAt().compareTo(p1.getCreatedAt());
+                   if (dateCompare != 0) {
+                       return dateCompare; // bài mới hơn lên trước
+                   }
+
+                   // Nếu cùng ngày thì ưu tiên premium
                    boolean isP1Premium = premiumUserIds.contains(p1.getOwner().getId());
                    boolean isP2Premium = premiumUserIds.contains(p2.getOwner().getId());
 
                    if (isP1Premium != isP2Premium) {
-                       return isP1Premium ? -1 : 1;
+                       return isP1Premium ? -1 : 1; // premium lên trước
                    }
-                   return p2.getCreatedAt().compareTo(p1.getCreatedAt());
+
+                   return 0; // giữ nguyên thứ tự nếu bằng nhau
                })
                .filter(post -> isValidPostForUser(post, user.getId(), accessMap, hiddenPostIds, flaggedPostIds, joinedGroupIds))
                .filter(post -> !blockService.isBlockedBetweenUsers(user.getId(), post.getOwner().getId()))
                .map(post -> convertToDto(post, user.getId(), savedPostIdList, postTagsMap, mediaMap, reactionCountMap))
                .toList();
-    }
+   }
 
         private boolean isValidPostForUser(Post post,
                                            int userId,
