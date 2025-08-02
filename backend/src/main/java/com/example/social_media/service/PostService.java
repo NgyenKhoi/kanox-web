@@ -22,6 +22,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -368,28 +370,34 @@ public class PostService {
 
        Set<Integer> premiumUserIds = accountUpgradeRepository.findActivePremiumUserIds();
 
+       ZoneId zone = ZoneId.of("Asia/Ho_Chi_Minh"); // hoặc ZoneId.systemDefault()
+
        return posts.stream()
                .sorted((p1, p2) -> {
-                   // So sánh theo ngày tạo trước
-                   int dateCompare = p2.getCreatedAt().compareTo(p1.getCreatedAt());
+                   LocalDate date1 = p1.getCreatedAt().atZone(zone).toLocalDate();
+                   LocalDate date2 = p2.getCreatedAt().atZone(zone).toLocalDate();
+
+                   // 1. Ngày mới hơn lên trước
+                   int dateCompare = date2.compareTo(date1);
                    if (dateCompare != 0) {
-                       return dateCompare; // bài mới hơn lên trước
+                       return dateCompare;
                    }
 
-                   // Nếu cùng ngày thì ưu tiên premium
+                   // 2. Nếu cùng ngày → premium lên trước
                    boolean isP1Premium = premiumUserIds.contains(p1.getOwner().getId());
                    boolean isP2Premium = premiumUserIds.contains(p2.getOwner().getId());
-
                    if (isP1Premium != isP2Premium) {
-                       return isP1Premium ? -1 : 1; // premium lên trước
+                       return isP1Premium ? -1 : 1;
                    }
 
-                   return 0; // giữ nguyên thứ tự nếu bằng nhau
+                   // 3. Nếu cùng loại → ai đăng sau thì lên trước (Instant mới hơn)
+                   return p2.getCreatedAt().compareTo(p1.getCreatedAt());
                })
                .filter(post -> isValidPostForUser(post, user.getId(), accessMap, hiddenPostIds, flaggedPostIds, joinedGroupIds))
                .filter(post -> !blockService.isBlockedBetweenUsers(user.getId(), post.getOwner().getId()))
                .map(post -> convertToDto(post, user.getId(), savedPostIdList, postTagsMap, mediaMap, reactionCountMap))
                .toList();
+
    }
 
         private boolean isValidPostForUser(Post post,
