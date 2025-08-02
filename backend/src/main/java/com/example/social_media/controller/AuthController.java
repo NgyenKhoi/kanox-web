@@ -259,6 +259,7 @@ public class AuthController {
             return ResponseEntity.ok(Map.of(
                     "token", token,
                     "refreshToken", refreshToken, // Thêm refreshToken vào response
+                    "isPremium", paymentService.isPremium(user.getId()),
                     "user", new UserDto(user)));
 
         } catch (IllegalStateException e) {
