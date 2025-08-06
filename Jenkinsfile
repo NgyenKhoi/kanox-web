@@ -4,7 +4,7 @@ pipeline {
     environment {
         SSH_KEY = '/var/lib/jenkins/.ssh/id_rsa'
         REMOTE_USER = 'vunguyenkhoi47'
-        REMOTE_HOST = '34.87.68.190'
+        REMOTE_HOST = '35.240.152.162'
         REMOTE_DIR = '/home/vunguyenkhoi47/kanox'
         REMOTE_JAR = "${REMOTE_DIR}/app.jar"
         NGINX_CONF = '/etc/nginx/sites-enabled/kanox.conf'
