@@ -21,4 +21,6 @@ public class SocialMediaApplication {
     public String home() {
         return "Welcome to My social media test again";
     }
+
+    //check
 }
