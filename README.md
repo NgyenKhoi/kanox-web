@@ -28,7 +28,7 @@ This project includes:
 | Search       | Elasticsearch                   |
 | Cache / Pub  | Redis                           |
 | Realtime     | WebSocket (STOMP protocol)      |
-| Database     | PostgreSQL / MySQL              |
+| Database     | SQL Server                      |
 | Others       | Map API integration             |
 
 ---
@@ -100,8 +100,7 @@ This project includes:
 
 ## 🗝️ Authentication & Security
 
-- JWT-based authentication
-- Google OAuth2 login support
+- Simple JWT-based authentication Google OAuth2 login support
 - Custom privacy lists and blocking
 
 
