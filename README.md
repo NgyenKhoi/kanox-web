@@ -92,11 +92,7 @@ This project includes:
 
 ### 📍 Location Features
 
-- Map API integration for tagging location in posts
-- View posts near your area
-- Check-in functionality
-
----
+- Map API integration for tagging location in friends suggestion features.
 
 ## 🗝️ Authentication & Security
 
